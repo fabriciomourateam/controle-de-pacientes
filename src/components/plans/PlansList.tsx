@@ -31,7 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { mockPlans, mockPatients } from "@/lib/mock-data";
+import { CardSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
+import { DeleteConfirmation } from "@/components/ui/confirmation-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { 
   BarChart, 
   Bar, 
@@ -48,6 +52,9 @@ export function PlansList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Calcular estatísticas dos planos
   const getPlansStats = () => {
@@ -126,7 +133,27 @@ export function PlansList() {
     );
   };
 
+  const handleDeletePlan = async (planId: string) => {
+    setDeletingId(planId);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast({
+        title: "Plano excluído",
+        description: "O plano foi removido com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o plano.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
+    <TooltipProvider>
     <div className="space-y-6 animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -142,64 +169,79 @@ export function PlansList() {
         </Button>
       </div>
 
-      {/* Estatísticas Gerais */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Planos Ativos</CardTitle>
-            <Calendar className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.activePlans}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              de {mockPlans.length} planos totais
-            </p>
-          </CardContent>
-        </Card>
+        {/* Estatísticas Gerais */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <MetricCardSkeleton key={i} />
+            ))
+          ) : (
+            <>
+              <Card className="glass">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Planos Ativos</CardTitle>
+                  <Calendar className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">{stats.activePlans}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    de {mockPlans.length} planos totais
+                  </p>
+                </CardContent>
+              </Card>
 
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pacientes</CardTitle>
-            <Users className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.totalPatients}</div>
-            <p className="text-xs text-success mt-1">
-              Distribuídos nos planos
-            </p>
-          </CardContent>
-        </Card>
+              <Card className="glass">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Pacientes</CardTitle>
+                  <Users className="h-4 w-4 text-success" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">{stats.totalPatients}</div>
+                  <p className="text-xs text-success mt-1">
+                    Distribuídos nos planos
+                  </p>
+                </CardContent>
+              </Card>
 
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Estimada</CardTitle>
-            <DollarSign className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              R$ {stats.planUsage.reduce((sum, p) => sum + p.revenue, 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Mensal aproximada
-            </p>
-          </CardContent>
-        </Card>
+              <Card className="glass">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Receita Estimada</CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DollarSign className="h-4 w-4 text-warning cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Receita mensal estimada baseada nos planos ativos</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    R$ {stats.planUsage.reduce((sum, p) => sum + p.revenue, 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Mensal aproximada
+                  </p>
+                </CardContent>
+              </Card>
 
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mais Popular</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold text-foreground">
-              {stats.planUsage.sort((a, b) => b.patientsCount - a.patientsCount)[0]?.name.replace('Plano ', '') || 'N/A'}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.planUsage.sort((a, b) => b.patientsCount - a.patientsCount)[0]?.patientsCount} pacientes
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+              <Card className="glass">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Mais Popular</CardTitle>
+                  <Users className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-bold text-foreground">
+                    {stats.planUsage.sort((a, b) => b.patientsCount - a.patientsCount)[0]?.name.replace('Plano ', '') || 'N/A'}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.planUsage.sort((a, b) => b.patientsCount - a.patientsCount)[0]?.patientsCount} pacientes
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -303,9 +345,14 @@ export function PlansList() {
         </CardContent>
       </Card>
 
-      {/* Lista de Planos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredPlans.map((plan) => (
+        {/* Lista de Planos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))
+          ) : (
+            filteredPlans.map((plan) => (
           <Card key={plan.id} className="glass hover-lift">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -336,10 +383,20 @@ export function PlansList() {
                         {plan.active ? <ToggleLeft className="w-4 h-4 mr-2" /> : <ToggleRight className="w-4 h-4 mr-2" />}
                         {plan.active ? 'Desativar' : 'Ativar'}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-danger">
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
+                      <DeleteConfirmation
+                        itemName={plan.name}
+                        itemType="plano"
+                        onConfirm={() => handleDeletePlan(plan.id)}
+                        loading={deletingId === plan.id}
+                      >
+                        <DropdownMenuItem 
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-danger focus:text-danger"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DeleteConfirmation>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -385,8 +442,9 @@ export function PlansList() {
                 </Button>
               </div>
             </CardContent>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
       </div>
 
       {filteredPlans.length === 0 && (
@@ -404,8 +462,9 @@ export function PlansList() {
               Criar Plano
             </Button>
           </CardContent>
-        </Card>
+      </Card>
       )}
     </div>
+    </TooltipProvider>
   );
 }
