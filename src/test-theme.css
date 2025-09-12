@@ -1,0 +1,103 @@
+/* Tema escuro - variáveis atualizadas para HEX #141923 */
+.theme-dark {
+  --background: 220 27% 11%; /* #141923 */
+  --surface: 220 27% 13%; /* #1a202c */
+  --card: 220 27% 15%; /* #1e2329 */
+  --popover: 220 27% 17%; /* #222831 */
+  --secondary: 220 27% 19%; /* #262b35 */
+  --muted: 220 27% 21%; /* #2a2f39 */
+  --border: 220 27% 23%; /* #2e333d */
+  --input: 220 27% 25%; /* #323741 */
+  --primary-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 98%;
+  --warning-foreground: 0 0% 98%;
+}
+
+/* Cards premium para tema escuro */
+.theme-dark .feedback-card-dark {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
+  border: 1px solid #475569 !important;
+  box-shadow: 0 8px 25px -8px rgba(15, 23, 42, 0.4) !important;
+}
+
+.theme-dark .feedback-card-dark:hover {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 35px -8px rgba(15, 23, 42, 0.5) !important;
+}
+
+.theme-dark .action-card-dark {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
+  border: 1px solid #475569 !important;
+  box-shadow: 0 8px 25px -8px rgba(15, 23, 42, 0.4) !important;
+}
+
+.theme-dark .feedback-score-dark {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(71, 85, 105, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.theme-dark .feedback-score-dark:hover {
+  background: rgba(51, 65, 85, 0.8) !important;
+}
+
+/* Sidebar tema claro - simplificado */
+.theme-light [data-sidebar] {
+  background: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+.theme-light [data-sidebar] .sidebar-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.theme-light [data-sidebar] .sidebar-content {
+  background: transparent !important;
+}
+
+.theme-light [data-sidebar] button {
+  color: #475569 !important;
+  background: transparent !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  border-radius: 8px !important;
+}
+
+.theme-light [data-sidebar] button:hover {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.theme-light [data-sidebar] button[data-active="true"] {
+  background: #fbbf24 !important; /* Golden yellow */
+  color: #1f2937 !important; /* Dark gray text */
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3) !important;
+  border: 1px solid #f59e0b !important;
+}
+
+.theme-light [data-sidebar] button[data-active="true"] svg {
+  color: #1f2937 !important;
+}
+
+/* Correção específica para botão selecionado da sidebar no tema claro */
+.theme-light [data-sidebar] button[data-state="active"],
+.theme-light [data-sidebar] button[aria-selected="true"],
+.theme-light [data-sidebar] button.selected,
+.theme-light [data-sidebar] a[aria-current="page"],
+.theme-light [data-sidebar] button[data-active="true"] {
+  background-color: #fbbf24 !important;
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+}
+
+.theme-light [data-sidebar] button[data-state="active"] *,
+.theme-light [data-sidebar] button[aria-selected="true"] *,
+.theme-light [data-sidebar] button.selected *,
+.theme-light [data-sidebar] a[aria-current="page"] *,
+.theme-light [data-sidebar] button[data-active="true"] * {
+  color: #1f2937 !important;
+}
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -40,30 +40,81 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { patientSchema, PatientFormData } from "@/lib/validation-schemas";
-import { mockPlans } from "@/lib/mock-data";
+import { usePlans } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
 
 interface PatientFormProps {
   patient?: PatientFormData & { id: string };
   trigger: React.ReactNode;
   onSave: (data: PatientFormData) => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
-  const [open, setOpen] = useState(false);
+export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOpenChange }: PatientFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { plans, loading: plansLoading } = usePlans();
+  
+  // Usar estado externo se fornecido, senão usar interno
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
 
   const form = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
-    defaultValues: patient || {
-      full_name: "",
-      phone_number: "",
-      plan_id: "",
-      follow_up_duration_months: 3,
-      expiration_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 meses
+    defaultValues: patient ? {
+      ...patient,
+      vencimento: patient.vencimento ? new Date(patient.vencimento) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      data_nascimento: patient.data_nascimento ? new Date(patient.data_nascimento) : undefined,
+    } : {
+      nome: "",
+      apelido: "",
+      cpf: "",
+      email: "",
+      telefone: "",
+      genero: undefined,
+      data_nascimento: undefined,
+      plano: "",
+      tempo_acompanhamento: 3,
+      vencimento: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 meses
+      valor: undefined,
+      observacao: "",
+      objetivo: "",
+      peso: undefined,
+      medida: undefined,
     },
   });
+
+  // Resetar formulário quando o paciente muda
+  useEffect(() => {
+    if (patient) {
+      const formData = {
+        ...patient,
+        vencimento: patient.vencimento ? new Date(patient.vencimento) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        data_nascimento: patient.data_nascimento ? new Date(patient.data_nascimento) : undefined,
+      };
+      form.reset(formData);
+    } else {
+      form.reset({
+        nome: "",
+        apelido: "",
+        cpf: "",
+        email: "",
+        telefone: "",
+        genero: undefined,
+        data_nascimento: undefined,
+        plano: "",
+        tempo_acompanhamento: 3,
+        vencimento: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        valor: undefined,
+        observacao: "",
+        objetivo: "",
+        peso: undefined,
+        medida: undefined,
+      });
+    }
+  }, [patient, form]);
 
   // Auto-save (apenas para edição)
   const { isSaving } = useAutoSave({
@@ -77,7 +128,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
     delay: 3000,
   });
 
-  const activePlans = mockPlans.filter(p => p.active);
+  const activePlans = plans.filter(p => p.active);
 
   const handleSubmit = async (data: PatientFormData) => {
     setLoading(true);
@@ -85,7 +136,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
       await onSave(data);
       toast({
         title: patient ? "Paciente atualizado" : "Paciente criado",
-        description: `${data.full_name} foi ${patient ? "atualizado" : "adicionado"} com sucesso.`,
+        description: `${data.nome} foi ${patient ? "atualizado" : "adicionado"} com sucesso.`,
       });
       setOpen(false);
       form.reset();
@@ -114,19 +165,19 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
         <DialogTrigger asChild>
           {trigger}
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] bg-card border-border animate-scale-in">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-slate-900/95 backdrop-blur-sm border-slate-700/50 animate-scale-in">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <User className="w-5 h-5 text-blue-400" />
               {patient ? "Editar Paciente" : "Novo Paciente"}
               {isSaving && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="w-3 h-3 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <div className="w-3 h-3 border-2 border-blue-400/20 border-t-blue-400 rounded-full animate-spin" />
                   Salvando automaticamente...
                 </div>
               )}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-400">
               Preencha as informações do paciente. {patient ? "As alterações são salvas automaticamente." : ""}
             </DialogDescription>
           </DialogHeader>
@@ -136,7 +187,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="full_name"
+                  name="nome"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
@@ -147,7 +198,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                         <Input
                           placeholder="Ex: João Silva Santos"
                           {...field}
-                          className="bg-surface border-border"
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
                       <FormMessage />
@@ -157,7 +208,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="phone_number"
+                  name="telefone"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
@@ -165,7 +216,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                         Telefone *
                         <Tooltip>
                           <TooltipTrigger>
-                            <div className="w-4 h-4 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs">
+                            <div className="w-4 h-4 rounded-full bg-slate-600 text-slate-300 flex items-center justify-center text-xs">
                               ?
                             </div>
                           </TooltipTrigger>
@@ -182,7 +233,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                             const formatted = formatPhoneNumber(e.target.value);
                             field.onChange(formatted);
                           }}
-                          className="bg-surface border-border"
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
                       <FormMessage />
@@ -194,22 +245,32 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="plan_id"
+                  name="plano"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Plano de Acompanhamento *</FormLabel>
+                      <FormLabel className="text-slate-300">Plano de Acompanhamento *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-surface border-border">
+                          <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
                             <SelectValue placeholder="Selecione o plano" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {activePlans.map((plan) => (
-                            <SelectItem key={plan.id} value={plan.id}>
-                              {plan.name} - {plan.period}
+                          {plansLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Carregando planos...
                             </SelectItem>
-                          ))}
+                          ) : activePlans.length === 0 ? (
+                            <SelectItem value="no-plans" disabled>
+                              Nenhum plano disponível
+                            </SelectItem>
+                          ) : (
+                            activePlans.map((plan) => (
+                              <SelectItem key={plan.id} value={plan.name}>
+                                {plan.name} - {plan.period}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -219,7 +280,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="follow_up_duration_months"
+                  name="tempo_acompanhamento"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
@@ -227,7 +288,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                         Duração (meses) *
                         <Tooltip>
                           <TooltipTrigger>
-                            <div className="w-4 h-4 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs">
+                            <div className="w-4 h-4 rounded-full bg-slate-600 text-slate-300 flex items-center justify-center text-xs">
                               ?
                             </div>
                           </TooltipTrigger>
@@ -244,7 +305,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                           placeholder="3"
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          className="bg-surface border-border"
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
                       <FormMessage />
@@ -253,9 +314,10 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                 />
               </div>
 
+
               <FormField
                 control={form.control}
-                name="expiration_date"
+                name="vencimento"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel className="flex items-center gap-2">
@@ -281,7 +343,7 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                      <PopoverContent className="w-auto p-0 bg-slate-900/95 backdrop-blur-sm border-slate-700/50" align="start">
                         <CalendarComponent
                           mode="single"
                           selected={field.value}
@@ -299,19 +361,227 @@ export function PatientForm({ patient, trigger, onSave }: PatientFormProps) {
                 )}
               />
 
+              {/* Novos campos para estrutura expandida */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="apelido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Apelido</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: João"
+                          {...field}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="joao@email.com"
+                          {...field}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cpf"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">CPF</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="000.000.000-00"
+                          {...field}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="genero"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Gênero</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                            <SelectValue placeholder="Selecione o gênero" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Masculino">Masculino</SelectItem>
+                          <SelectItem value="Feminino">Feminino</SelectItem>
+                          <SelectItem value="Outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="data_nascimento"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data de Nascimento
+                    </FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal bg-surface border-border hover:bg-surface-hover",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Selecione a data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="peso"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Peso (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="30"
+                          max="300"
+                          placeholder="70.5"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="medida"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Medida (cm)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="175.0"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="objetivo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-300">Objetivo</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Perder peso, ganhar massa muscular..."
+                        {...field}
+                          className="bg-slate-800/50 border-slate-600/50 text-white"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="observacao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-300">Observações</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Observações adicionais..."
+                        {...field}
+                          className="bg-slate-800/50 border-slate-600/50 text-white"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <DialogFooter className="gap-3">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setOpen(false)}
-                  className="bg-surface border-border hover:bg-surface-hover"
+                  className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading || !form.formState.isValid}
-                  className="bg-primary hover:bg-primary-hover"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {loading ? (
                     <>

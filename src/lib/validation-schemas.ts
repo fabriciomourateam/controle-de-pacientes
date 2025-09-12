@@ -1,25 +1,53 @@
 import { z } from "zod";
 
-// Schema para pacientes
+// Schema para pacientes - Nova estrutura
 export const patientSchema = z.object({
-  full_name: z.string()
+  nome: z.string()
     .min(2, "Nome deve ter pelo menos 2 caracteres")
-    .max(100, "Nome deve ter no máximo 100 caracteres")
-    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras e espaços"),
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
   
-  phone_number: z.string()
+  apelido: z.string().optional(),
+  
+  cpf: z.string()
+    .regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "Formato: 000.000.000-00")
+    .optional(),
+  
+  email: z.string()
+    .email("Email inválido")
+    .optional(),
+  
+  telefone: z.string()
     .regex(/^\(\d{2}\)\s\d{4,5}-\d{4}$/, "Formato: (11) 99999-9999")
     .transform(val => val.replace(/\D/g, '')), // Remove formatação
   
-  plan_id: z.string()
-    .min(1, "Selecione um plano"),
+  genero: z.enum(['Masculino', 'Feminino', 'Outro']).optional(),
   
-  follow_up_duration_months: z.number()
+  data_nascimento: z.date().optional(),
+  
+  plano: z.string().optional(),
+  
+  tempo_acompanhamento: z.number()
     .min(1, "Duração mínima: 1 mês")
-    .max(24, "Duração máxima: 24 meses"),
+    .max(24, "Duração máxima: 24 meses")
+    .optional(),
   
-  expiration_date: z.date()
+  vencimento: z.date()
     .refine(date => date > new Date(), "Data deve ser futura")
+    .transform(date => date.toISOString().split('T')[0]) // Converter para string YYYY-MM-DD
+    .optional(),
+  
+  valor: z.number().optional(),
+  
+  observacao: z.string().optional(),
+  
+  objetivo: z.string().optional(),
+  
+  peso: z.number()
+    .min(30, "Peso mínimo: 30kg")
+    .max(300, "Peso máximo: 300kg")
+    .optional(),
+  
+  medida: z.number().optional(),
 });
 
 // Schema para planos

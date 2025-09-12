@@ -14,146 +14,301 @@ export type Database = {
   }
   public: {
     Tables: {
-      patient_feedback_records: {
+      checkin: {
         Row: {
-          ate_less_than_planned: boolean | null
-          avg_cardio_per_week: number | null
-          avg_sleep_hours: number | null
-          avg_water_intake_liters: number | null
-          avg_workouts_per_week: number | null
-          body_measurement_notes: string | null
-          cardio_duration_minutes: number | null
-          cardio_score: number | null
-          cheat_meal_content: string | null
-          cheat_meal_score: number | null
-          created_at: string | null
-          current_main_goal: string | null
-          diet_adjustment_notes: string | null
-          difficulties_faced: string | null
-          felt_hungry_at_any_time: boolean | null
-          food_to_include: string | null
-          had_cheat_meal: boolean | null
-          had_snack: boolean | null
           id: string
-          libido_level: number | null
-          libido_score: number | null
-          noticed_visual_improvement: boolean | null
-          overall_score: number | null
-          patient_id: string | null
-          phone_number: string | null
-          photo_urls: string[] | null
-          progress_evolution_notes: string | null
-          rest_between_sets_minutes: number | null
-          rest_between_sets_score: number | null
-          sleep_quality_score: number | null
-          sleep_score: number | null
-          snack_content: string | null
-          snack_score: number | null
-          stress_level: number | null
-          stress_score: number | null
-          updated_at: string | null
-          visual_improvement_points: string | null
-          water_intake_score: number | null
-          weight: number | null
-          workout_duration_minutes: number | null
-          workout_score: number | null
+          telefone: string
+          data_checkin: string
+          mes_ano: string
+          peso: string | null
+          medida: string | null
+          treino: string | null
+          cardio: string | null
+          agua: string | null
+          sono: string | null
+          ref_livre: string | null
+          beliscos: string | null
+          oq_comeu_ref_livre: string | null
+          oq_beliscou: string | null
+          comeu_menos: string | null
+          fome_algum_horario: string | null
+          alimento_para_incluir: string | null
+          melhora_visual: string | null
+          quais_pontos: string | null
+          objetivo: string | null
+          dificuldades: string | null
+          stress: string | null
+          libido: string | null
+          tempo: string | null
+          descanso: string | null
+          tempo_cardio: string | null
+          foto_1: string | null
+          foto_2: string | null
+          foto_3: string | null
+          foto_4: string | null
+          telefone_checkin: string | null
+          pontos_treinos: string | null
+          pontos_cardios: string | null
+          pontos_descanso_entre_series: string | null
+          pontos_refeicao_livre: string | null
+          pontos_beliscos: string | null
+          pontos_agua: string | null
+          pontos_sono: string | null
+          pontos_qualidade_sono: string | null
+          pontos_stress: string | null
+          pontos_libido: string | null
+          total_pontuacao: string | null
+          percentual_aproveitamento: string | null
+          data_preenchimento: string
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          ate_less_than_planned?: boolean | null
-          avg_cardio_per_week?: number | null
-          avg_sleep_hours?: number | null
-          avg_water_intake_liters?: number | null
-          avg_workouts_per_week?: number | null
-          body_measurement_notes?: string | null
-          cardio_duration_minutes?: number | null
-          cardio_score?: number | null
-          cheat_meal_content?: string | null
-          cheat_meal_score?: number | null
-          created_at?: string | null
-          current_main_goal?: string | null
-          diet_adjustment_notes?: string | null
-          difficulties_faced?: string | null
-          felt_hungry_at_any_time?: boolean | null
-          food_to_include?: string | null
-          had_cheat_meal?: boolean | null
-          had_snack?: boolean | null
           id?: string
-          libido_level?: number | null
-          libido_score?: number | null
-          noticed_visual_improvement?: boolean | null
-          overall_score?: number | null
-          patient_id?: string | null
-          phone_number?: string | null
-          photo_urls?: string[] | null
-          progress_evolution_notes?: string | null
-          rest_between_sets_minutes?: number | null
-          rest_between_sets_score?: number | null
-          sleep_quality_score?: number | null
-          sleep_score?: number | null
-          snack_content?: string | null
-          snack_score?: number | null
-          stress_level?: number | null
-          stress_score?: number | null
-          updated_at?: string | null
-          visual_improvement_points?: string | null
-          water_intake_score?: number | null
-          weight?: number | null
-          workout_duration_minutes?: number | null
-          workout_score?: number | null
+          telefone: string
+          data_checkin?: string
+          mes_ano: string
+          peso?: string | null
+          medida?: string | null
+          treino?: string | null
+          cardio?: string | null
+          agua?: string | null
+          sono?: string | null
+          ref_livre?: string | null
+          beliscos?: string | null
+          oq_comeu_ref_livre?: string | null
+          oq_beliscou?: string | null
+          comeu_menos?: string | null
+          fome_algum_horario?: string | null
+          alimento_para_incluir?: string | null
+          melhora_visual?: string | null
+          quais_pontos?: string | null
+          objetivo?: string | null
+          dificuldades?: string | null
+          stress?: string | null
+          libido?: string | null
+          tempo?: string | null
+          descanso?: string | null
+          tempo_cardio?: string | null
+          foto_1?: string | null
+          foto_2?: string | null
+          foto_3?: string | null
+          foto_4?: string | null
+          telefone_checkin?: string | null
+          pontos_treinos?: string | null
+          pontos_cardios?: string | null
+          pontos_descanso_entre_series?: string | null
+          pontos_refeicao_livre?: string | null
+          pontos_beliscos?: string | null
+          pontos_agua?: string | null
+          pontos_sono?: string | null
+          pontos_qualidade_sono?: string | null
+          pontos_stress?: string | null
+          pontos_libido?: string | null
+          total_pontuacao?: string | null
+          percentual_aproveitamento?: string | null
+          data_preenchimento?: string
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          ate_less_than_planned?: boolean | null
-          avg_cardio_per_week?: number | null
-          avg_sleep_hours?: number | null
-          avg_water_intake_liters?: number | null
-          avg_workouts_per_week?: number | null
-          body_measurement_notes?: string | null
-          cardio_duration_minutes?: number | null
-          cardio_score?: number | null
-          cheat_meal_content?: string | null
-          cheat_meal_score?: number | null
-          created_at?: string | null
-          current_main_goal?: string | null
-          diet_adjustment_notes?: string | null
-          difficulties_faced?: string | null
-          felt_hungry_at_any_time?: boolean | null
-          food_to_include?: string | null
-          had_cheat_meal?: boolean | null
-          had_snack?: boolean | null
           id?: string
-          libido_level?: number | null
-          libido_score?: number | null
-          noticed_visual_improvement?: boolean | null
-          overall_score?: number | null
-          patient_id?: string | null
-          phone_number?: string | null
-          photo_urls?: string[] | null
-          progress_evolution_notes?: string | null
-          rest_between_sets_minutes?: number | null
-          rest_between_sets_score?: number | null
-          sleep_quality_score?: number | null
-          sleep_score?: number | null
-          snack_content?: string | null
-          snack_score?: number | null
-          stress_level?: number | null
-          stress_score?: number | null
-          updated_at?: string | null
-          visual_improvement_points?: string | null
-          water_intake_score?: number | null
-          weight?: number | null
-          workout_duration_minutes?: number | null
-          workout_score?: number | null
+          telefone?: string
+          data_checkin?: string
+          mes_ano?: string
+          peso?: string | null
+          medida?: string | null
+          treino?: string | null
+          cardio?: string | null
+          agua?: string | null
+          sono?: string | null
+          ref_livre?: string | null
+          beliscos?: string | null
+          oq_comeu_ref_livre?: string | null
+          oq_beliscou?: string | null
+          comeu_menos?: string | null
+          fome_algum_horario?: string | null
+          alimento_para_incluir?: string | null
+          melhora_visual?: string | null
+          quais_pontos?: string | null
+          objetivo?: string | null
+          dificuldades?: string | null
+          stress?: string | null
+          libido?: string | null
+          tempo?: string | null
+          descanso?: string | null
+          tempo_cardio?: string | null
+          foto_1?: string | null
+          foto_2?: string | null
+          foto_3?: string | null
+          foto_4?: string | null
+          telefone_checkin?: string | null
+          pontos_treinos?: string | null
+          pontos_cardios?: string | null
+          pontos_descanso_entre_series?: string | null
+          pontos_refeicao_livre?: string | null
+          pontos_beliscos?: string | null
+          pontos_agua?: string | null
+          pontos_sono?: string | null
+          pontos_qualidade_sono?: string | null
+          pontos_stress?: string | null
+          pontos_libido?: string | null
+          total_pontuacao?: string | null
+          percentual_aproveitamento?: string | null
+          data_preenchimento?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_patient_feedback_patient_id"
+            foreignKeyName: "checkin_telefone_fkey"
+            columns: ["telefone"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["telefone"]
+          }
+        ]
+      }
+      patient_feedback_records: {
+        Row: {
+          id: string
+          patient_id: string | null
+          weight: number | null
+          body_measurement_notes: string | null
+          avg_workouts_per_week: number | null
+          avg_cardio_per_week: number | null
+          avg_water_intake_liters: number | null
+          avg_sleep_hours: number | null
+          had_cheat_meal: boolean | null
+          had_snack: boolean | null
+          cheat_meal_content: string | null
+          snack_content: string | null
+          ate_less_than_planned: boolean | null
+          felt_hungry_at_any_time: boolean | null
+          food_to_include: string | null
+          noticed_visual_improvement: boolean | null
+          visual_improvement_points: string | null
+          current_main_goal: string | null
+          difficulties_faced: string | null
+          stress_level: number | null
+          libido_level: number | null
+          workout_duration_minutes: number | null
+          rest_between_sets_minutes: number | null
+          cardio_duration_minutes: number | null
+          photo_urls: string[] | null
+          diet_adjustment_notes: string | null
+          progress_evolution_notes: string | null
+          workout_score: number | null
+          cardio_score: number | null
+          rest_between_sets_score: number | null
+          cheat_meal_score: number | null
+          snack_score: number | null
+          water_intake_score: number | null
+          sleep_score: number | null
+          sleep_quality_score: number | null
+          stress_score: number | null
+          libido_score: number | null
+          overall_score: number | null
+          created_at: string | null
+          updated_at: string | null
+          phone_number: string | null
+        }
+        Insert: {
+          id?: string
+          patient_id?: string | null
+          weight?: number | null
+          body_measurement_notes?: string | null
+          avg_workouts_per_week?: number | null
+          avg_cardio_per_week?: number | null
+          avg_water_intake_liters?: number | null
+          avg_sleep_hours?: number | null
+          had_cheat_meal?: boolean | null
+          had_snack?: boolean | null
+          cheat_meal_content?: string | null
+          snack_content?: string | null
+          ate_less_than_planned?: boolean | null
+          felt_hungry_at_any_time?: boolean | null
+          food_to_include?: string | null
+          noticed_visual_improvement?: boolean | null
+          visual_improvement_points?: string | null
+          current_main_goal?: string | null
+          difficulties_faced?: string | null
+          stress_level?: number | null
+          libido_level?: number | null
+          workout_duration_minutes?: number | null
+          rest_between_sets_minutes?: number | null
+          cardio_duration_minutes?: number | null
+          photo_urls?: string[] | null
+          diet_adjustment_notes?: string | null
+          progress_evolution_notes?: string | null
+          workout_score?: number | null
+          cardio_score?: number | null
+          rest_between_sets_score?: number | null
+          cheat_meal_score?: number | null
+          snack_score?: number | null
+          water_intake_score?: number | null
+          sleep_score?: number | null
+          sleep_quality_score?: number | null
+          stress_score?: number | null
+          libido_score?: number | null
+          overall_score?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          phone_number?: string | null
+        }
+        Update: {
+          id?: string
+          patient_id?: string | null
+          weight?: number | null
+          body_measurement_notes?: string | null
+          avg_workouts_per_week?: number | null
+          avg_cardio_per_week?: number | null
+          avg_water_intake_liters?: number | null
+          avg_sleep_hours?: number | null
+          had_cheat_meal?: boolean | null
+          had_snack?: boolean | null
+          cheat_meal_content?: string | null
+          snack_content?: string | null
+          ate_less_than_planned?: boolean | null
+          felt_hungry_at_any_time?: boolean | null
+          food_to_include?: string | null
+          noticed_visual_improvement?: boolean | null
+          visual_improvement_points?: string | null
+          current_main_goal?: string | null
+          difficulties_faced?: string | null
+          stress_level?: number | null
+          libido_level?: number | null
+          workout_duration_minutes?: number | null
+          rest_between_sets_minutes?: number | null
+          cardio_duration_minutes?: number | null
+          photo_urls?: string[] | null
+          diet_adjustment_notes?: string | null
+          progress_evolution_notes?: string | null
+          workout_score?: number | null
+          cardio_score?: number | null
+          rest_between_sets_score?: number | null
+          cheat_meal_score?: number | null
+          snack_score?: number | null
+          water_intake_score?: number | null
+          sleep_score?: number | null
+          sleep_quality_score?: number | null
+          stress_score?: number | null
+          libido_score?: number | null
+          overall_score?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          phone_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_feedback_records_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "patient_feedback_records_patient_id_fkey"
+            foreignKeyName: "fk_patient_feedback_patient_id"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
@@ -163,111 +318,184 @@ export type Database = {
       }
       patients: {
         Row: {
-          created_at: string | null
-          days_to_expiration: number | null
-          expiration_date: string | null
-          follow_up_duration_months: number | null
-          full_name: string | null
           id: string
-          phone_number: string | null
-          plan_id: string | null
+          nome: string | null
+          apelido: string | null
+          cpf: string | null
+          email: string | null
+          telefone: string | null
+          genero: string | null
+          data_nascimento: string | null
+          inicio_acompanhamento: string | null
+          plano: string | null
+          tempo_acompanhamento: number | null
+          vencimento: string | null
+          dias_para_vencer: number | null
+          valor: number | null
+          ticket_medio: number | null
+          rescisao_30_percent: number | null
+          pagamento: string | null
+          observacao: string | null
+          indicacoes: string | null
+          lembrete: string | null
+          telefone_filtro: string | null
+          antes_depois: string | null
+          janeiro: string | null
+          fevereiro: string | null
+          marco: string | null
+          abril: string | null
+          maio: string | null
+          junho: string | null
+          julho: string | null
+          agosto: string | null
+          setembro: string | null
+          outubro: string | null
+          novembro: string | null
+          dezembro: string | null
+          created_at: string | null
           updated_at: string | null
         }
         Insert: {
-          created_at?: string | null
-          days_to_expiration?: number | null
-          expiration_date?: string | null
-          follow_up_duration_months?: number | null
-          full_name?: string | null
           id?: string
-          phone_number?: string | null
-          plan_id?: string | null
+          nome?: string | null
+          apelido?: string | null
+          cpf?: string | null
+          email?: string | null
+          telefone?: string | null
+          genero?: string | null
+          data_nascimento?: string | null
+          inicio_acompanhamento?: string | null
+          plano?: string | null
+          tempo_acompanhamento?: number | null
+          vencimento?: string | null
+          dias_para_vencer?: number | null
+          valor?: number | null
+          ticket_medio?: number | null
+          rescisao_30_percent?: number | null
+          pagamento?: string | null
+          observacao?: string | null
+          indicacoes?: string | null
+          lembrete?: string | null
+          telefone_filtro?: string | null
+          antes_depois?: string | null
+          janeiro?: string | null
+          fevereiro?: string | null
+          marco?: string | null
+          abril?: string | null
+          maio?: string | null
+          junho?: string | null
+          julho?: string | null
+          agosto?: string | null
+          setembro?: string | null
+          outubro?: string | null
+          novembro?: string | null
+          dezembro?: string | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Update: {
-          created_at?: string | null
-          days_to_expiration?: number | null
-          expiration_date?: string | null
-          follow_up_duration_months?: number | null
-          full_name?: string | null
           id?: string
-          phone_number?: string | null
-          plan_id?: string | null
+          nome?: string | null
+          apelido?: string | null
+          cpf?: string | null
+          email?: string | null
+          telefone?: string | null
+          genero?: string | null
+          data_nascimento?: string | null
+          inicio_acompanhamento?: string | null
+          plano?: string | null
+          tempo_acompanhamento?: number | null
+          vencimento?: string | null
+          dias_para_vencer?: number | null
+          valor?: number | null
+          ticket_medio?: number | null
+          rescisao_30_percent?: number | null
+          pagamento?: string | null
+          observacao?: string | null
+          indicacoes?: string | null
+          lembrete?: string | null
+          telefone_filtro?: string | null
+          antes_depois?: string | null
+          janeiro?: string | null
+          fevereiro?: string | null
+          marco?: string | null
+          abril?: string | null
+          maio?: string | null
+          junho?: string | null
+          julho?: string | null
+          agosto?: string | null
+          setembro?: string | null
+          outubro?: string | null
+          novembro?: string | null
+          dezembro?: string | null
+          created_at?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_patients_plan"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       plans: {
         Row: {
-          active: boolean | null
-          category: string | null
-          created_at: string | null
-          description: string | null
           id: string
           name: string
-          period: string
           type: string
+          period: string
+          category: string | null
+          description: string | null
+          active: boolean | null
+          created_at: string | null
           updated_at: string | null
         }
         Insert: {
-          active?: boolean | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
           id?: string
           name: string
-          period: string
           type: string
+          period: string
+          category?: string | null
+          description?: string | null
+          active?: boolean | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Update: {
-          active?: boolean | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
           id?: string
           name?: string
-          period?: string
           type?: string
+          period?: string
+          category?: string | null
+          description?: string | null
+          active?: boolean | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
       }
       profiles: {
         Row: {
-          created_at: string | null
-          department: string | null
-          full_name: string | null
           id: string
-          role: string | null
-          updated_at: string | null
           user_id: string | null
+          full_name: string | null
+          role: string | null
+          department: string | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string | null
-          department?: string | null
-          full_name?: string | null
           id?: string
-          role?: string | null
-          updated_at?: string | null
           user_id?: string | null
+          full_name?: string | null
+          role?: string | null
+          department?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string | null
-          department?: string | null
-          full_name?: string | null
           id?: string
-          role?: string | null
-          updated_at?: string | null
           user_id?: string | null
+          full_name?: string | null
+          role?: string | null
+          department?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {

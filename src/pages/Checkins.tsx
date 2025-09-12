@@ -1,10 +1,11 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { FeedbacksList } from "@/components/feedbacks/FeedbacksList";
+import { CheckinsList } from "@/components/checkins/CheckinsList";
 
-export default function Feedbacks() {
+export default function Checkins() {
   return (
     <DashboardLayout>
-      <FeedbacksList />
+      <CheckinsList />
     </DashboardLayout>
   );
 }
+

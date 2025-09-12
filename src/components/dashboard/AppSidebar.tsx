@@ -31,7 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Pacientes", url: "/patients", icon: Users },
-  { title: "Feedbacks", url: "/feedbacks", icon: MessageSquare },
+  { title: "Checkins", url: "/checkins", icon: MessageSquare },
   { title: "Planos", url: "/plans", icon: Calendar },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
@@ -55,33 +55,33 @@ export function AppSidebar() {
 
   const getNavCls = (path: string) => 
     isActive(path) 
-      ? "bg-primary text-primary-foreground font-medium" 
-      : "hover:bg-surface-hover text-muted-foreground hover:text-foreground";
+      ? "bg-gradient-to-r from-blue-600/20 to-blue-500/20 text-blue-400 font-medium border-blue-500/30" 
+      : "hover:bg-slate-700/50 text-slate-400 hover:text-white hover:border-slate-600/50";
 
   return (
     <Sidebar
-      className={`border-r border-border transition-all duration-300 ${
-        isCollapsed ? "w-[80px]" : "w-[280px]"
+      className={`bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-r border-slate-700/50 transition-all duration-300 ${
+        isCollapsed ? "w-[70px]" : "w-[240px]"
       }`}
       collapsible="icon"
     >
-      <SidebarHeader className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-hover rounded-lg flex items-center justify-center">
-            <LayoutDashboard className="w-4 h-4 text-primary-foreground" />
+      <SidebarHeader className="p-3 border-b border-slate-700/50">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-blue-500/30">
+            <LayoutDashboard className="w-4 h-4 text-blue-400" />
           </div>
           {!isCollapsed && (
             <div>
-              <h1 className="font-bold text-lg text-foreground">FitTrainer</h1>
-              <p className="text-xs text-muted-foreground">Personal Dashboard</p>
+              <h1 className="font-bold text-base text-white">FMTeam</h1>
+              <p className="text-xs text-slate-400">Personal Dashboard</p>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="px-1 py-3">
         <SidebarGroup>
-          <SidebarGroupLabel className={isCollapsed ? "sr-only" : ""}>
+          <SidebarGroupLabel className={`text-slate-400 text-xs font-medium ${isCollapsed ? "sr-only" : ""}`}>
             Navegação Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -103,8 +103,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-8">
-          <SidebarGroupLabel className={isCollapsed ? "sr-only" : ""}>
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className={`text-slate-400 text-xs font-medium ${isCollapsed ? "sr-only" : ""}`}>
             Conta
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -127,30 +127,30 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-border">
+      <SidebarFooter className="p-3 border-t border-slate-700/50">
         {!isCollapsed ? (
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
+          <div className="flex items-center gap-2">
+            <Avatar className="w-7 h-7 border-slate-600/50">
               <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>PT</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">PT</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-foreground truncate">
+              <p className="font-medium text-xs text-white truncate">
                 Personal Trainer
               </p>
-              <p className="text-xs text-muted-foreground truncate">
-                trainer@fittrainer.com
+              <p className="text-xs text-slate-400 truncate">
+                trainer@fmteam.com
               </p>
             </div>
-            <button className="p-1 hover:bg-surface-hover rounded-md transition-colors">
-              <LogOut className="w-4 h-4 text-muted-foreground" />
+            <button className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors">
+              <LogOut className="w-3 h-3 text-slate-400" />
             </button>
           </div>
         ) : (
           <div className="flex justify-center">
-            <Avatar className="w-8 h-8">
+            <Avatar className="w-7 h-7 border-slate-600/50">
               <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>PT</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">PT</AvatarFallback>
             </Avatar>
           </div>
         )}

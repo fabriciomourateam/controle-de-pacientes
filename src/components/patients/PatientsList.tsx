@@ -42,19 +42,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { mockPatients, mockPlans, mockFeedbackRecords } from "@/lib/mock-data";
+import { usePatients, usePlans, useFeedbacks } from "@/hooks/use-supabase-data";
 import { TableRowSkeleton } from "@/components/ui/loading-skeleton";
 import { DeleteConfirmation } from "@/components/ui/confirmation-dialog";
 import { PatientForm } from "@/components/forms/PatientForm";
+import { PatientDetailsModal } from "@/components/modals/PatientDetailsModal";
+import { RenewPlanModal } from "@/components/modals/RenewPlanModal";
 import { useToast } from "@/hooks/use-toast";
 
 export function PatientsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showRenewPlan, setShowRenewPlan] = useState(false);
   const { toast } = useToast();
+
+  // Hooks para dados do Supabase
+  const { patients, loading: patientsLoading, createPatient, updatePatient, deletePatient, refetch: refetchPatients } = usePatients();
+  const { plans, loading: plansLoading } = usePlans();
+  const { feedbacks, loading: feedbacksLoading } = useFeedbacks();
 
   // Função para obter o status do paciente
   const getPatientStatus = (daysToExpiration: number) => {
@@ -66,21 +75,84 @@ export function PatientsList() {
 
   // Função para obter o último feedback
   const getLastFeedback = (patientId: string) => {
-    const feedbacks = mockFeedbackRecords
+    const patientFeedbacks = feedbacks
       .filter(f => f.patient_id === patientId)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
     
-    return feedbacks[0] || null;
+    return patientFeedbacks[0] || null;
+  };
+
+  // Funções para manipular pacientes
+  const handleSavePatient = async (patientData: any) => {
+    try {
+      if (patientData.id) {
+        await updatePatient(patientData.id, patientData);
+        toast({
+          title: "Sucesso",
+          description: "Paciente atualizado com sucesso!",
+        });
+      } else {
+        await createPatient(patientData);
+        toast({
+          title: "Sucesso",
+          description: "Paciente criado com sucesso!",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o paciente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePatient = async (patientId: string) => {
+    try {
+      setDeletingId(patientId);
+      await deletePatient(patientId);
+      toast({
+        title: "Sucesso",
+        description: "Paciente excluído com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o paciente.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleViewDetails = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowDetails(true);
+  };
+
+  const handleRenewPlan = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowRenewPlan(true);
+  };
+
+  const handleRenewPlanSuccess = (patientId: string, data: any) => {
+    toast({
+      title: "Sucesso",
+      description: "Plano renovado com sucesso!",
+    });
+    refetchPatients();
   };
 
   // Filtrar pacientes
-  const filteredPatients = mockPatients.filter(patient => {
-    const matchesSearch = patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.phone_number.includes(searchTerm);
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = (patient.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (patient.telefone || '').includes(searchTerm) ||
+                         (patient.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesPlan = selectedPlan === "all" || patient.plan_id === selectedPlan;
+    const matchesPlan = selectedPlan === "all" || patient.plano === selectedPlan;
     
-    const status = getPatientStatus(patient.days_to_expiration);
+    const status = getPatientStatus(patient.dias_para_vencer || 0);
     const matchesStatus = selectedStatus === "all" || status === selectedStatus;
     
     return matchesSearch && matchesPlan && matchesStatus;
@@ -101,36 +173,7 @@ export function PatientsList() {
     }
   };
 
-  const handleSavePatient = async (data: any) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({
-      title: "Sucesso",
-      description: "Paciente salvo com sucesso!",
-    });
-  };
 
-  const handleDeletePatient = async (patientId: string) => {
-    setDeletingId(patientId);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Paciente excluído",
-        description: "O paciente foi removido com sucesso.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o paciente.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   return (
     <TooltipProvider>
@@ -145,7 +188,7 @@ export function PatientsList() {
           </div>
           <PatientForm
             trigger={
-              <Button className="bg-primary hover:bg-primary-hover">
+              <Button className="btn-premium">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Paciente
               </Button>
@@ -155,7 +198,7 @@ export function PatientsList() {
         </div>
 
         {/* Filtros e Busca */}
-        <Card className="glass">
+        <Card className="card-premium">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
@@ -164,26 +207,26 @@ export function PatientsList() {
                   placeholder="Buscar por nome ou telefone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-surface border-border"
+                  className="pl-10 input-premium"
                 />
               </div>
               
               <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                <SelectTrigger className="w-full md:w-48 bg-surface border-border">
+                <SelectTrigger className="w-full md:w-48 input-premium">
                   <SelectValue placeholder="Filtrar por plano" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os planos</SelectItem>
-                  {mockPlans.filter(p => p.active).map(plan => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name}
+                  {Array.from(new Set(patients.map(p => p.plano).filter(Boolean))).map(plano => (
+                    <SelectItem key={plano} value={plano}>
+                      {plano}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-full md:w-48 bg-surface border-border">
+                <SelectTrigger className="w-full md:w-48 input-premium">
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -222,11 +265,11 @@ export function PatientsList() {
         </Card>
 
         {/* Tabela de Pacientes */}
-        <Card className="glass">
+        <Card className="card-premium">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Lista de Pacientes ({filteredPatients.length})</span>
-              <Button variant="outline" size="sm" onClick={() => setLoading(!loading)}>
+              <Button variant="outline" size="sm" onClick={refetchPatients}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Atualizar
               </Button>
@@ -242,20 +285,23 @@ export function PatientsList() {
                   <TableRow className="bg-surface/50">
                     <TableHead>Paciente</TableHead>
                     <TableHead>Telefone</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Plano</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Último Feedback</TableHead>
+                    <TableHead>Expiração</TableHead>
+                    <TableHead>Duração</TableHead>
+                    <TableHead>Peso</TableHead>
+                    <TableHead>Objetivo</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {patientsLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRowSkeleton key={i} />
                     ))
                   ) : (
                     filteredPatients.map((patient) => {
-                      const plan = mockPlans.find(p => p.id === patient.plan_id);
                       const lastFeedback = getLastFeedback(patient.id);
                       
                       return (
@@ -264,13 +310,13 @@ export function PatientsList() {
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
                                 <AvatarFallback className="bg-primary/20 text-primary">
-                                  {patient.full_name.charAt(0)}
+                                  {(patient.nome || 'P').charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium text-foreground">{patient.full_name}</p>
+                                <p className="font-medium text-foreground">{patient.nome || 'Nome não informado'}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  Desde {new Date(patient.created_at).toLocaleDateString('pt-BR')}
+                                  {patient.apelido && `"${patient.apelido}"`}
                                 </p>
                               </div>
                             </div>
@@ -279,40 +325,71 @@ export function PatientsList() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Phone className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-sm">{patient.phone_number}</span>
+                              <span className="text-sm">{patient.telefone || 'Não informado'}</span>
                             </div>
                           </TableCell>
                           
                           <TableCell>
+                            <span className="text-sm">{patient.email || 'Não informado'}</span>
+                          </TableCell>
+                          
+                          <TableCell>
                             <Badge variant="outline" className="bg-surface">
-                              {plan?.name || 'Plano não encontrado'}
+                              {patient.plano || 'Plano não definido'}
                             </Badge>
                           </TableCell>
                           
                           <TableCell>
-                            {getStatusBadge(patient.days_to_expiration)}
+                            {getStatusBadge(patient.dias_para_vencer || 0)}
                           </TableCell>
                           
                           <TableCell>
-                            {lastFeedback ? (
-                              <div className="flex items-center gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className={
-                                    lastFeedback.overall_score >= 8 ? 'status-active' :
-                                    lastFeedback.overall_score >= 6 ? 'status-warning' :
-                                    'status-danger'
-                                  }
-                                >
-                                  {lastFeedback.overall_score}/10
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(lastFeedback.created_at).toLocaleDateString('pt-BR')}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Sem feedback</span>
-                            )}
+                            <div className="text-sm">
+                              {patient.vencimento ? (
+                                <div>
+                                  <div className="font-medium">
+                                    {new Date(patient.vencimento).toLocaleDateString('pt-BR')}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {patient.dias_para_vencer !== null ? (
+                                      patient.dias_para_vencer > 0 ? 
+                                        `${patient.dias_para_vencer} dias restantes` :
+                                        `${Math.abs(patient.dias_para_vencer)} dias atrasado`
+                                    ) : (
+                                      'Data não calculada'
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">Não definida</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          
+                          <TableCell>
+                            <div className="text-sm">
+                              {patient.tempo_acompanhamento ? (
+                                <span>{patient.tempo_acompanhamento} meses</span>
+                              ) : (
+                                <span className="text-muted-foreground">Não definida</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          
+                          <TableCell>
+                            <div className="text-sm">
+                              {patient.peso ? (
+                                <span>{patient.peso} kg</span>
+                              ) : (
+                                <span className="text-muted-foreground">Não informado</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          
+                          <TableCell>
+                            <div className="text-sm max-w-32 truncate">
+                              {patient.objetivo || 'Não definido'}
+                            </div>
                           </TableCell>
                           
                           <TableCell>
@@ -323,21 +400,21 @@ export function PatientsList() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-card border-border">
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewDetails(patient)}>
                                   <Eye className="w-4 h-4 mr-2" />
                                   Ver Detalhes
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewDetails(patient)}>
                                   <MessageSquare className="w-4 h-4 mr-2" />
                                   Histórico de Feedbacks
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleRenewPlan(patient)}>
                                   <Calendar className="w-4 h-4 mr-2" />
                                   Renovar Plano
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <PatientForm
-                                  patient={{ ...patient, expiration_date: new Date(patient.expiration_date) }}
+                                  patient={patient}
                                   trigger={
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                       <Edit className="w-4 h-4 mr-2" />
@@ -347,7 +424,7 @@ export function PatientsList() {
                                   onSave={handleSavePatient}
                                 />
                                 <DeleteConfirmation
-                                  itemName={patient.full_name}
+                                  itemName={patient.full_name || 'Paciente'}
                                   itemType="paciente"
                                   onConfirm={() => handleDeletePatient(patient.id)}
                                   loading={deletingId === patient.id}
@@ -371,7 +448,7 @@ export function PatientsList() {
               </Table>
             </div>
             
-            {filteredPatients.length === 0 && !loading && (
+            {filteredPatients.length === 0 && !patientsLoading && (
               <div className="text-center py-12">
                 <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium text-foreground mb-2">
@@ -394,6 +471,31 @@ export function PatientsList() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modais */}
+      <PatientDetailsModal
+        patient={selectedPatient}
+        open={showDetails}
+        onClose={() => {
+          setShowDetails(false);
+          setSelectedPatient(null);
+        }}
+        onEdit={(patient) => {
+          setShowDetails(false);
+          // Aqui você pode abrir o formulário de edição
+        }}
+        onRenewPlan={handleRenewPlan}
+      />
+
+      <RenewPlanModal
+        patient={selectedPatient}
+        open={showRenewPlan}
+        onClose={() => {
+          setShowRenewPlan(false);
+          setSelectedPatient(null);
+        }}
+        onRenew={handleRenewPlanSuccess}
+      />
     </TooltipProvider>
   );
 }
