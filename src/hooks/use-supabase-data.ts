@@ -204,6 +204,7 @@ export function useFeedbacks() {
 export function useDashboardMetrics(filterThisMonth: boolean = false) {
   const [metrics, setMetrics] = useState({
     totalPatients: 0,
+    activePatients: 0,
     expiringPatients: 0,
     pendingFeedbacks: 0,
     avgOverallScore: '0.0'

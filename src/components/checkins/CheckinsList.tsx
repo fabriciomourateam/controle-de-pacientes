@@ -343,17 +343,34 @@ export function CheckinsList() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={scoreEvolutionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Line type="monotone" dataKey="workout" stroke="#8884d8" strokeWidth={2} name="Treino" />
-                  <Line type="monotone" dataKey="cardio" stroke="#82ca9d" strokeWidth={2} name="Cardio" />
-                  <Line type="monotone" dataKey="sleep" stroke="#ffc658" strokeWidth={2} name="Sono" />
-                  <Line type="monotone" dataKey="overall" stroke="#ff7300" strokeWidth={3} name="Geral" />
-                </LineChart>
-              </ResponsiveContainer>
+              <>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={scoreEvolutionData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Line type="monotone" dataKey="workout" stroke="#8884d8" strokeWidth={2} name="Treino" />
+                    <Line type="monotone" dataKey="cardio" stroke="#82ca9d" strokeWidth={2} name="Cardio" />
+                    <Line type="monotone" dataKey="sleep" stroke="#ffc658" strokeWidth={2} name="Sono" />
+                  </LineChart>
+                </ResponsiveContainer>
+                
+                {/* Legenda */}
+                <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-0.5 bg-[#8884d8]"></div>
+                    <span className="text-slate-300">Treino</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-0.5 bg-[#82ca9d]"></div>
+                    <span className="text-slate-300">Cardio</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-0.5 bg-[#ffc658]"></div>
+                    <span className="text-slate-300">Sono</span>
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -453,7 +470,7 @@ export function CheckinsList() {
                   </div>
                 </div>
                 
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div className="text-center">
                     <p className="text-xs text-slate-400">Treino</p>
                     <p className="font-semibold text-white">{checkin.pontos_treinos || 'N/A'}</p>
@@ -467,8 +484,16 @@ export function CheckinsList() {
                     <p className="font-semibold text-white">{checkin.pontos_sono || 'N/A'}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-slate-400">Água</p>
+                    <p className="text-xs text-slate-400">Hidratação</p>
                     <p className="font-semibold text-white">{checkin.pontos_agua || 'N/A'}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Stress</p>
+                    <p className="font-semibold text-white">{checkin.pontos_stress || 'N/A'}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Libido</p>
+                    <p className="font-semibold text-white">{checkin.pontos_libido || 'N/A'}</p>
                   </div>
                 </div>
               </div>

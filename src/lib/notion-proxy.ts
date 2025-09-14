@@ -1,8 +1,10 @@
+import { getProxyUrl } from './config';
+
 // Proxy para chamadas da API do Notion (contorna CORS)
 export async function fetchNotionData(apiKey: string, databaseId: string, requestBody: any = {}) {
   try {
-    // Chamar diretamente o servidor proxy na porta 3001
-    const response = await fetch('http://localhost:3001/api/notion-proxy', {
+    // Usar URL dinâmica baseada no ambiente
+    const response = await fetch(getProxyUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

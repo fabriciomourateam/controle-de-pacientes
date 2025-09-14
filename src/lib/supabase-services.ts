@@ -489,7 +489,7 @@ export const dashboardService = {
       // Buscar todos os pacientes para calcular expirando
       const { data: allPatients } = await supabase
         .from('patients')
-        .select('vencimento, created_at, telefone');
+        .select('vencimento, created_at, telefone, plano');
 
       // Calcular pacientes expirando em 30 dias
       const today = new Date();
@@ -500,6 +500,12 @@ export const dashboardService = {
         if (!patient.vencimento) return false;
         const expDate = new Date(patient.vencimento);
         return expDate >= today && expDate <= thirtyDaysFromNow;
+      }).length || 0;
+
+      // Calcular pacientes ativos (excluindo planos inativos)
+      const inactivePlans = ['INATIVO', '⛔ Negativado', 'RESCISÃO', 'Pendência Financeira', 'CONGELADO'];
+      const activePatients = allPatients?.filter(patient => {
+        return patient.plano && !inactivePlans.includes(patient.plano);
       }).length || 0;
 
       // Buscar checkins existentes para calcular pendentes
@@ -579,6 +585,11 @@ export const dashboardService = {
           return lastCheckin < thirtyDaysAgo;
         }).length;
         
+        // Calcular pacientes ativos deste mês
+        const activePatientsThisMonth = patientsThisMonth.filter(patient => {
+          return patient.plano && !inactivePlans.includes(patient.plano);
+        }).length;
+
         // Calcular score médio para checkins deste mês
         let avgScoreThisMonth = '0.0';
         if (checkins && checkins.length > 0) {
@@ -599,6 +610,7 @@ export const dashboardService = {
         
         return {
           totalPatients: patientsThisMonth.length,
+          activePatients: activePatientsThisMonth,
           expiringPatients: expiringThisMonth.length,
           pendingFeedbacks: pendingThisMonth,
           avgOverallScore: avgScoreThisMonth
@@ -607,6 +619,7 @@ export const dashboardService = {
 
       return {
         totalPatients: totalPatients || 0,
+        activePatients,
         expiringPatients,
         pendingFeedbacks,
         avgOverallScore
@@ -615,6 +628,7 @@ export const dashboardService = {
       console.error('Erro ao buscar métricas:', error);
       return {
         totalPatients: 0,
+        activePatients: 0,
         expiringPatients: 0,
         pendingFeedbacks: 0,
         avgOverallScore: '0.0'
@@ -638,11 +652,11 @@ export const dashboardService = {
         startDate.setMonth(startDate.getMonth() - 6);
       }
 
-      // Novos pacientes por mês
+      // Novos pacientes por mês - usando data de início do acompanhamento
       const { data: patientsData } = await supabase
         .from('patients')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString());
+        .select('inicio_acompanhamento, plano')
+        .gte('inicio_acompanhamento', startDate.toISOString());
 
       // Pacientes com pontuação por mês
       const { data: feedbacksData } = await supabase
@@ -663,8 +677,9 @@ export const dashboardService = {
         const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
         
         const novos = patientsData?.filter(p => {
-          const createdDate = new Date(p.created_at);
-          return createdDate >= monthStart && createdDate <= monthEnd;
+          if (!p.inicio_acompanhamento) return false;
+          const inicioDate = new Date(p.inicio_acompanhamento);
+          return inicioDate >= monthStart && inicioDate <= monthEnd;
         }).length || 0;
         
         const feedbacks = feedbacksData?.filter(f => {
@@ -679,15 +694,27 @@ export const dashboardService = {
         });
       }
 
-      // Distribuição de planos
+      // Distribuição de planos (apenas ativos)
       const { data: plansData } = await supabase
         .from('patients')
         .select('plano');
 
+      // Planos inativos a serem excluídos
+      const inactivePlans = ['⛔ Negativado', 'NOVO', 'RESCISÃO', 'INATIVO'];
+
       const planCounts: { [key: string]: number } = {};
       plansData?.forEach(patient => {
         const planName = patient.plano || 'Sem Plano';
-        planCounts[planName] = (planCounts[planName] || 0) + 1;
+        
+        // Filtrar apenas planos ativos
+        const isActivePlan = !inactivePlans.some(inactive => 
+          planName.toUpperCase().includes(inactive.toUpperCase()) || 
+          inactive.toUpperCase().includes(planName.toUpperCase())
+        );
+        
+        if (isActivePlan) {
+          planCounts[planName] = (planCounts[planName] || 0) + 1;
+        }
       });
 
       // Função para obter cor do plano (mesma lógica das tags)

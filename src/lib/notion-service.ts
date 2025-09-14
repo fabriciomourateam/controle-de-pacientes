@@ -493,13 +493,15 @@ export class NotionService {
     try {
       console.log('Iniciando sincronização do Notion...');
       
-      // Buscar dados do Notion (tentar SDK primeiro, depois proxy)
+      // Buscar dados do Notion via proxy (mais confiável no browser)
       let notionData;
       try {
-        notionData = await this.fetchAllData(databaseId);
-      } catch (error) {
-        console.log('SDK falhou, tentando proxy...');
         notionData = await this.fetchAllDataProxy(databaseId);
+        console.log('✅ Dados obtidos via proxy');
+      } catch (error) {
+        console.log('Proxy falhou, tentando SDK...');
+        notionData = await this.fetchAllData(databaseId);
+        console.log('✅ Dados obtidos via SDK');
       }
       
       console.log(`Encontrados ${notionData.length} registros no Notion`);

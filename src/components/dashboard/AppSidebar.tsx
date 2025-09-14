@@ -5,6 +5,7 @@ import {
   MessageSquare, 
   Calendar,
   BarChart3,
+  TrendingUp,
   Settings,
   User,
   Bell,
@@ -12,6 +13,7 @@ import {
   LogOut
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useProfile } from "@/hooks/use-profile";
 
 import {
   Sidebar,
@@ -33,6 +35,7 @@ const mainNavItems = [
   { title: "Pacientes", url: "/patients", icon: Users },
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
   { title: "Planos", url: "/plans", icon: Calendar },
+  { title: "Métricas", url: "/metrics", icon: TrendingUp },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
 
@@ -47,6 +50,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const isCollapsed = state === "collapsed";
+  const { profile } = useProfile();
 
   const isActive = (path: string) => {
     if (path === "/") return currentPath === "/";
@@ -131,15 +135,17 @@ export function AppSidebar() {
         {!isCollapsed ? (
           <div className="flex items-center gap-2">
             <Avatar className="w-7 h-7 border-slate-600/50">
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">PT</AvatarFallback>
+              <AvatarImage src={profile?.avatar_url || ""} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">
+                {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-xs text-white truncate">
-                Personal Trainer
+                {profile?.name || 'Usuário'}
               </p>
               <p className="text-xs text-slate-400 truncate">
-                trainer@fmteam.com
+                {profile?.email || 'email@exemplo.com'}
               </p>
             </div>
             <button className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors">
@@ -149,8 +155,10 @@ export function AppSidebar() {
         ) : (
           <div className="flex justify-center">
             <Avatar className="w-7 h-7 border-slate-600/50">
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">PT</AvatarFallback>
+              <AvatarImage src={profile?.avatar_url || ""} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">
+                {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+              </AvatarFallback>
             </Avatar>
           </div>
         )}

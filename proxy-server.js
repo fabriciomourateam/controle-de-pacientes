@@ -25,6 +25,11 @@ app.post('/api/notion-proxy', async (req, res) => {
         ...requestBody
       };
 
+      console.log('🔍 Fazendo requisição para Notion API...');
+      console.log('📊 Database ID:', databaseId);
+      console.log('🔑 API Key:', apiKey.substring(0, 10) + '...');
+      console.log('📋 Request Body:', JSON.stringify(defaultBody, null, 2));
+
       const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
         method: 'POST',
         headers: {
@@ -35,11 +40,17 @@ app.post('/api/notion-proxy', async (req, res) => {
         body: JSON.stringify(defaultBody)
       });
 
+      console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Status Text:', response.statusText);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Erro da API do Notion:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('✅ Dados recebidos:', data.results?.length || 0, 'registros');
       res.json(data);
     } else {
       res.status(400).json({
@@ -54,6 +65,50 @@ app.post('/api/notion-proxy', async (req, res) => {
       success: false,
       error: 'Erro no servidor proxy',
       details: String(error)
+    });
+  }
+});
+
+// Rota para sincronização de métricas
+app.post('/api/sync-dashboard-metrics', async (req, res) => {
+  try {
+    const { apiKey, databaseId } = req.body;
+
+    if (!apiKey || !databaseId) {
+      return res.status(400).json({
+        success: false,
+        error: 'API Key e Database ID são obrigatórios'
+      });
+    }
+
+    console.log('🔄 Iniciando sincronização de métricas...');
+    
+    // Importar o serviço dinamicamente
+    const { DashboardNotionService } = await import('./src/lib/dashboard-notion-service.js');
+    const dashboardNotionService = new DashboardNotionService(apiKey);
+    const result = await dashboardNotionService.syncToSupabase(databaseId);
+
+    if (result.success) {
+      console.log('✅ Métricas sincronizadas com sucesso!');
+      return res.status(200).json({
+        success: true,
+        message: result.message || `Métricas sincronizadas com sucesso! ${result.imported || 0} inseridas, ${result.updated || 0} atualizadas.`,
+        imported: result.imported || 0,
+        total: result.imported + result.updated,
+        inserted: result.imported || 0,
+        updated: result.updated || 0
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: result.message || 'Erro na sincronização'
+      });
+    }
+  } catch (error) {
+    console.error('Erro na sincronização de métricas:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Erro desconhecido'
     });
   }
 });

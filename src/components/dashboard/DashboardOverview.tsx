@@ -112,10 +112,10 @@ export function DashboardOverview() {
       </div>
 
       {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Pacientes Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-400">Total de Pacientes</CardTitle>
             <Users className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
@@ -131,6 +131,22 @@ export function DashboardOverview() {
 
         <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.1s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-slate-400">Pacientes Ativos</CardTitle>
+            <Activity className="h-4 w-4 text-green-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {metricsLoading ? '...' : metrics.activePatients}
+            </div>
+            <p className="text-xs text-green-400 flex items-center mt-1">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Ativos no sistema
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.2s'}}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">Expirando (30 dias)</CardTitle>
             <AlertTriangle className="h-4 w-4 text-amber-400 animate-pulse" />
           </CardHeader>
@@ -144,7 +160,7 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.2s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.3s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">Checkins Pendentes</CardTitle>
             <MessageSquare className="h-4 w-4 text-red-400 animate-pulse" />
@@ -159,7 +175,7 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.3s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.4s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">Score Médio</CardTitle>
             <Star className="h-4 w-4 text-purple-400" />
@@ -185,7 +201,7 @@ export function DashboardOverview() {
               Evolução Mensal
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Novos pacientes vs checkins recebidos
+              Novos pacientes por mês
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -201,19 +217,46 @@ export function DashboardOverview() {
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    border: '2px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: '12px',
+                    color: '#ffffff',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.7)',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  formatter={(value: any, name: any) => [
+                    `${value} pacientes`,
+                    'Novos Pacientes'
+                  ]}
+                  labelStyle={{
+                    color: '#ffffff',
+                    fontWeight: '700',
+                    fontSize: '15px'
+                  }}
+                  itemStyle={{
+                    color: '#ffffff'
+                  }}
+                  cursor={{ fill: 'rgba(59, 130, 246, 0.2)' }}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="novos" 
                   stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="checkins" 
-                  stroke="hsl(var(--success))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--success))", strokeWidth: 2, r: 4 }}
+                  strokeWidth={3}
+                  dot={{ 
+                    fill: "hsl(var(--primary))", 
+                    strokeWidth: 2, 
+                    r: 6,
+                    stroke: "hsl(var(--background))"
+                  }}
+                  activeDot={{ 
+                    r: 8, 
+                    fill: "hsl(var(--primary))",
+                    stroke: "hsl(var(--background))",
+                    strokeWidth: 2
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -354,8 +397,20 @@ export function DashboardOverview() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30">
-                      {patient.dias_para_vencer}d restantes
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        patient.dias_para_vencer <= 0 
+                          ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                          : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                      }
+                    >
+                      {patient.dias_para_vencer === 0 
+                        ? 'Vencido hoje' 
+                        : patient.dias_para_vencer < 0 
+                          ? `${Math.abs(patient.dias_para_vencer)}d atrasado`
+                          : `${patient.dias_para_vencer}d restantes`
+                      }
                     </Badge>
                   </div>
                 </div>
