@@ -74,7 +74,7 @@ export default function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { profile, loading, saving, saveProfile, updatePassword, uploadAvatar } = useProfile();
-  const { apiKeys, loading: apiKeysLoading, saving: apiKeysSaving, createNewApiKey, removeApiKey } = useApiKeys();
+  const { apiKeys, loading: apiKeysLoading, saving: apiKeysSaving, isAuthenticated: apiKeysAuthenticated, createNewApiKey, removeApiKey } = useApiKeys();
   const { toast } = useToast();
 
   // Atualizar formData quando profile carregar
@@ -690,7 +690,13 @@ export default function Profile() {
                         </Button>
                       </div>
                       
-                      {apiKeysLoading ? (
+                      {!apiKeysAuthenticated ? (
+                        <div className="text-center py-8">
+                          <Lock className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                          <p className="text-slate-400">Usuário não autenticado</p>
+                          <p className="text-sm text-slate-500">Faça login para gerenciar suas API Keys</p>
+                        </div>
+                      ) : apiKeysLoading ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
                           <span className="ml-2 text-slate-400">Carregando API Keys...</span>

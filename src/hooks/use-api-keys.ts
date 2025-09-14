@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   getApiKeys, 
   createApiKey, 
@@ -12,21 +13,46 @@ export const useApiKeys = () => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+
+  // Verificar se o usuário está autenticado
+  const checkAuthentication = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+      return !!user;
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error);
+      setIsAuthenticated(false);
+      return false;
+    }
+  };
 
   // Carregar API Keys
   const loadApiKeys = async () => {
     try {
       setLoading(true);
+      
+      // Verificar autenticação primeiro
+      const isAuth = await checkAuthentication();
+      if (!isAuth) {
+        setApiKeys([]);
+        return;
+      }
+
       const keys = await getApiKeys();
       setApiKeys(keys);
     } catch (error) {
       console.error('Erro ao carregar API Keys:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar API Keys",
-        variant: "destructive",
-      });
+      // Não mostrar toast de erro se não estiver autenticado
+      if (isAuthenticated) {
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar API Keys",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -89,10 +115,26 @@ export const useApiKeys = () => {
     loadApiKeys();
   }, []);
 
+  // Escutar mudanças na autenticação
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setIsAuthenticated(true);
+        loadApiKeys();
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setApiKeys([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return {
     apiKeys,
     loading,
     saving,
+    isAuthenticated,
     loadApiKeys,
     createNewApiKey,
     removeApiKey,
