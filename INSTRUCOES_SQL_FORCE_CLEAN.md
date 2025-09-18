@@ -206,3 +206,4 @@ Alertas gerados:
 **Execute o SQL force clean e veja a magia acontecer!** 🎯
 
 
+

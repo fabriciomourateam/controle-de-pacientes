@@ -38,3 +38,4 @@ VALUES ('dashboard_sync_config', '{}', 'Configurações de sincronização do da
 ON CONFLICT (key) DO NOTHING;
 
 
+

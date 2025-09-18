@@ -51,6 +51,18 @@ const colorMap = {
     border: 'border-purple-500/30',
     text: 'text-purple-400',
     icon: 'text-purple-400'
+  },
+  yellow: {
+    bg: 'from-yellow-500/20 to-yellow-600/20',
+    border: 'border-yellow-500/30',
+    text: 'text-yellow-400',
+    icon: 'text-yellow-400'
+  },
+  default: {
+    bg: 'from-slate-500/20 to-slate-600/20',
+    border: 'border-slate-500/30',
+    text: 'text-slate-400',
+    icon: 'text-slate-400'
   }
 };
 
@@ -100,11 +112,30 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
     }
   };
 
+  // Verificação de segurança para kpis
+  if (!kpis || !Array.isArray(kpis)) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((index) => (
+          <Card key={index} className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+            <CardContent className="p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-slate-600/50 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-slate-600/50 rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-slate-600/50 rounded w-2/3"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {kpis.map((kpi, index) => {
-        const IconComponent = iconMap[kpi.icone as keyof typeof iconMap];
-        const colors = colorMap[kpi.cor as keyof typeof colorMap];
+        const IconComponent = iconMap[kpi.icone as keyof typeof iconMap] || iconMap.Activity;
+        const colors = colorMap[kpi.cor as keyof typeof colorMap] || colorMap.default;
         const isHealthMetric = kpi.titulo === 'Saúde do Negócio';
         
         return (

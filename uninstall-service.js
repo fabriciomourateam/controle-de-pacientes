@@ -19,3 +19,4 @@ console.log('🗑️ Desinstalando serviço Windows...');
 svc.uninstall();
 
 
+

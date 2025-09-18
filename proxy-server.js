@@ -113,6 +113,52 @@ app.post('/api/sync-dashboard-metrics', async (req, res) => {
   }
 });
 
+// Auto-sync em background (para produção)
+let autoSyncInterval = null;
+
+// Endpoint para configurar auto-sync
+app.post('/api/configure-auto-sync', (req, res) => {
+  const { apiKey, databaseId, intervalMinutes, enabled } = req.body;
+  
+  if (!enabled) {
+    if (autoSyncInterval) {
+      clearInterval(autoSyncInterval);
+      autoSyncInterval = null;
+      console.log('🛑 Auto-sync desabilitado');
+    }
+    return res.json({ success: true, message: 'Auto-sync desabilitado' });
+  }
+
+  if (autoSyncInterval) {
+    clearInterval(autoSyncInterval);
+  }
+
+  console.log(`🔄 Configurando auto-sync: ${intervalMinutes} minutos`);
+  
+  autoSyncInterval = setInterval(async () => {
+    try {
+      console.log('🔄 Executando sincronização automática...');
+      // Chamar endpoint de sincronização
+      const response = await fetch('http://localhost:3001/api/sync-dashboard-metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, databaseId })
+      });
+      
+      const result = await response.json();
+      console.log('✅ Auto-sync concluído:', result);
+    } catch (error) {
+      console.error('❌ Erro no auto-sync:', error);
+    }
+  }, intervalMinutes * 60 * 1000);
+
+  res.json({ 
+    success: true, 
+    message: `Auto-sync configurado para ${intervalMinutes} minutos` 
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor proxy rodando em http://localhost:${port}`);
+  console.log(`🔧 Auto-sync endpoint: http://localhost:${port}/api/configure-auto-sync`);
 });

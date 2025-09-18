@@ -4,7 +4,7 @@ export const config = {
   
   // URLs do proxy baseado no ambiente
   proxyUrl: import.meta.env.PROD 
-    ? 'https://seu-dominio.com/api/notion-proxy'  // Substitua pela sua URL de produção
+    ? 'https://painel-fmteam.vercel.app/api/notion-proxy'
     : 'http://localhost:3001/api/notion-proxy',
   
   // Configurações do Supabase
@@ -17,9 +17,9 @@ export const config = {
 // Função para obter URL do proxy dinamicamente
 export function getProxyUrl(): string {
   // Se estiver em produção e a URL estiver configurada
-  if (config.isProduction && config.proxyUrl.includes('seu-dominio.com')) {
-    console.warn('⚠️ URL do proxy de produção não configurada, usando localhost');
-    return 'http://localhost:3001/api/notion-proxy';
+  if (config.isProduction && config.proxyUrl.includes('painel-fmteam.vercel.app')) {
+    console.log('✅ Usando proxy de produção:', config.proxyUrl);
+    return config.proxyUrl;
   }
   
   return config.proxyUrl;
@@ -42,5 +42,6 @@ export async function checkProxyHealth(): Promise<boolean> {
     return false;
   }
 }
+
 
 

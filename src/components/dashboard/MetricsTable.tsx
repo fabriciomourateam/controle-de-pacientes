@@ -10,10 +10,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
-import type { DashboardMetricas } from "@/types/dashboard";
+interface MetricsData {
+  mes_numero: number;
+  mes: string;
+  ano: number;
+  total_pacientes: number;
+  pacientes_ativos: number;
+  novos_pacientes: number;
+  churn_rate: number;
+  renovacao_rate: number;
+}
 
 interface MetricsTableProps {
-  data: DashboardMetricas[];
+  data: MetricsData[];
   loading?: boolean;
   onRefresh?: () => void;
   onExport?: () => void;
@@ -68,14 +77,16 @@ export function MetricsTable({ data, loading = false, onRefresh, onExport, isMin
   }
 
   const getRenovacaoStatus = (valor: number) => {
-    // Valor vem como decimal do Supabase (0.5 = 50%), então 50% = 0.5
-    if (valor >= 0.5) return { label: 'Bom', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+    // Valor já vem multiplicado por 100 (90.5 = 90.5%)
+    if (valor >= 70) return { label: 'Bom', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+    if (valor >= 50) return { label: 'Regular', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
     return { label: 'Baixo', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
   };
 
   const getChurnStatus = (valor: number) => {
-    // Valor vem como decimal do Supabase (0.05 = 5%), então 5% = 0.05
-    if (valor < 0.05) return { label: 'Baixo', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+    // Valor já vem multiplicado por 100 (12.5 = 12.5%)
+    if (valor < 3) return { label: 'Baixo', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+    if (valor < 6) return { label: 'Regular', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
     return { label: 'Alto', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
   };
 
@@ -137,59 +148,49 @@ export function MetricsTable({ data, loading = false, onRefresh, onExport, isMin
             <TableHeader>
               <TableRow className="border-slate-700/50 hover:bg-slate-800/30">
                 <TableHead className="text-slate-300">Período</TableHead>
-                <TableHead className="text-slate-300">Ativos</TableHead>
-                <TableHead className="text-slate-300">Entraram</TableHead>
-                <TableHead className="text-slate-300">Sairam</TableHead>
-                <TableHead className="text-slate-300">Vencimentos</TableHead>
-                <TableHead className="text-slate-300">Não Renovou</TableHead>
-                <TableHead className="text-slate-300">Desistência</TableHead>
-                <TableHead className="text-slate-300">Congelamento</TableHead>
-                <TableHead className="text-slate-300">Renovação</TableHead>
-                <TableHead className="text-slate-300">Churn</TableHead>
+                <TableHead className="text-slate-300">Pacientes Ativos</TableHead>
+                <TableHead className="text-slate-300">Total Pacientes</TableHead>
+                <TableHead className="text-slate-300">Novos Pacientes</TableHead>
+                <TableHead className="text-slate-300">Taxa Renovação</TableHead>
+                <TableHead className="text-slate-300">Taxa Churn</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((item, index) => {
-                const renovacaoStatus = getRenovacaoStatus(item.percentual_renovacao);
-                const churnStatus = getChurnStatus(item.percentual_churn);
+                const renovacaoStatus = getRenovacaoStatus(item.renovacao_rate);
+                const churnStatus = getChurnStatus(item.churn_rate);
                 
                 return (
                   <TableRow 
-                    key={item.id || index}
+                    key={`${item.mes_numero}-${item.ano}` || index}
                     className="border-slate-700/50 hover:bg-slate-800/30 transition-colors"
                   >
                     <TableCell className="text-white font-medium">
                       {item.mes}/{item.ano}
                     </TableCell>
+                    <TableCell className="text-blue-400 font-medium">
+                      {item.pacientes_ativos.toLocaleString('pt-BR')}
+                    </TableCell>
                     <TableCell className="text-slate-300">
-                      {item.ativos_total_inicio_mes.toLocaleString('pt-BR')}
+                      {item.total_pacientes.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="text-green-400">
-                      {item.entraram.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-red-400">
-                      {item.sairam.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-slate-300">
-                      {item.vencimentos.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-yellow-400">
-                      {item.nao_renovou.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-red-400">
-                      {item.desistencia.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-blue-400">
-                      {item.congelamento.toLocaleString('pt-BR')}
+                      {item.novos_pacientes.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={renovacaoStatus.color}>
-                        {(item.percentual_renovacao * 100).toFixed(1)}%
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${renovacaoStatus.color}`}
+                      >
+                        {item.renovacao_rate.toFixed(1)}% {renovacaoStatus.label}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={churnStatus.color}>
-                        {(item.percentual_churn * 100).toFixed(1)}%
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${churnStatus.color}`}
+                      >
+                        {item.churn_rate.toFixed(1)}% {churnStatus.label}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -204,27 +205,27 @@ export function MetricsTable({ data, loading = false, onRefresh, onExport, isMin
           <h4 className="text-sm font-medium text-white mb-3">Resumo do Período</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
-              <p className="text-slate-400">Total Entraram:</p>
+              <p className="text-slate-400">Total Novos Pacientes:</p>
               <p className="text-green-400 font-semibold">
-                {data.reduce((acc, item) => acc + item.entraram, 0).toLocaleString('pt-BR')}
+                {data.reduce((acc, item) => acc + item.novos_pacientes, 0).toLocaleString('pt-BR')}
               </p>
             </div>
             <div>
-              <p className="text-slate-400">Total Sairam:</p>
-              <p className="text-red-400 font-semibold">
-                {data.reduce((acc, item) => acc + item.sairam, 0).toLocaleString('pt-BR')}
+              <p className="text-slate-400">Pacientes Ativos Atuais:</p>
+              <p className="text-blue-400 font-semibold">
+                {data.length > 0 ? data[data.length - 1].pacientes_ativos.toLocaleString('pt-BR') : '0'}
               </p>
             </div>
             <div>
               <p className="text-slate-400">Renovação Média:</p>
               <p className="text-green-400 font-semibold">
-                {(data.reduce((acc, item) => acc + (item.percentual_renovacao * 100), 0) / data.length).toFixed(1)}%
+                {data.length > 0 ? (data.reduce((acc, item) => acc + item.renovacao_rate, 0) / data.length).toFixed(1) : '0.0'}%
               </p>
             </div>
             <div>
               <p className="text-slate-400">Churn Médio:</p>
               <p className="text-red-400 font-semibold">
-                {(data.reduce((acc, item) => acc + (item.percentual_churn * 100), 0) / data.length).toFixed(1)}%
+                {data.length > 0 ? (data.reduce((acc, item) => acc + item.churn_rate, 0) / data.length).toFixed(1) : '0.0'}%
               </p>
             </div>
           </div>

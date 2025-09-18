@@ -43,3 +43,4 @@ console.log('🔧 Instalando serviço Windows...');
 svc.install();
 
 
+

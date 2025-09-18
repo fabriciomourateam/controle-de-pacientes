@@ -42,25 +42,52 @@ export class NotionService {
       let allResults = [];
       let hasMore = true;
       let startCursor = undefined;
+      let pageCount = 0;
+      const maxPages = 50; // Limite de segurança para evitar loops infinitos
 
-      while (hasMore) {
+      while (hasMore && pageCount < maxPages) {
+        pageCount++;
         const requestBody = {
           page_size: 100,
           ...(startCursor && { start_cursor: startCursor })
         };
 
-        console.log(`Buscando página ${Math.floor(allResults.length / 100) + 1}...`);
+        console.log(`🔍 Buscando página ${pageCount}... (${allResults.length} registros até agora)`);
         
         // Usar apenas o proxy (mais confiável)
         const data = await fetchNotionData(this.apiKey, databaseId, requestBody);
+        
+        if (!data.results || data.results.length === 0) {
+          console.log('⚠️ Página sem resultados, finalizando...');
+          break;
+        }
+
         allResults = allResults.concat(data.results);
         hasMore = data.has_more;
-        startCursor = data.next_cursor;
+        const newCursor = data.next_cursor;
         
-        console.log(`Buscados ${allResults.length} registros até agora...`);
+        // Verificar se o cursor mudou para evitar loop infinito
+        if (startCursor === newCursor && newCursor !== null) {
+          console.log('⚠️ Cursor não mudou, possível loop detectado. Finalizando...');
+          break;
+        }
+        
+        startCursor = newCursor;
+        
+        console.log(`✅ Página ${pageCount}: +${data.results.length} registros (Total: ${allResults.length})`);
+        
+        // Se não há mais páginas, sair do loop
+        if (!hasMore || !startCursor) {
+          console.log('📋 Todas as páginas foram processadas');
+          break;
+        }
       }
 
-      console.log(`Total de registros encontrados: ${allResults.length}`);
+      if (pageCount >= maxPages) {
+        console.log('⚠️ Limite máximo de páginas atingido para evitar loop infinito');
+      }
+
+      console.log(`🎉 Total de registros encontrados: ${allResults.length} em ${pageCount} páginas`);
       return allResults;
     } catch (error) {
       console.error('Erro ao buscar dados do Notion via proxy:', error);

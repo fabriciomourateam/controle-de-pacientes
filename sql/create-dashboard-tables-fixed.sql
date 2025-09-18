@@ -279,3 +279,4 @@ COMMENT ON VIEW ultimos_6_meses IS 'View com dados dos últimos 6 meses';
 COMMENT ON VIEW alertas_dashboard_ativos IS 'View com alertas ativos ordenados por prioridade';
 
 
+

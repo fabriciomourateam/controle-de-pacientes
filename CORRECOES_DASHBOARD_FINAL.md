@@ -167,3 +167,4 @@ Dashboard → Filtros → Análise → Exportação → Ações
 **Execute o SQL e veja a magia acontecer!** 🎯
 
 
+

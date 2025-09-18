@@ -12,10 +12,19 @@ import {
   Area
 } from "recharts";
 import { TrendingUp, Users, ArrowUpRight } from "lucide-react";
-import type { ChartData } from "@/types/dashboard";
+interface MetricsData {
+  mes_numero: number;
+  mes: string;
+  ano: number;
+  total_pacientes: number;
+  pacientes_ativos: number;
+  novos_pacientes: number;
+  churn_rate: number;
+  renovacao_rate: number;
+}
 
 interface GrowthChartProps {
-  data: ChartData[];
+  data: MetricsData[];
   loading?: boolean;
 }
 
@@ -41,6 +50,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function GrowthChart({ data, loading = false }: GrowthChartProps) {
+  console.log('🔍 GrowthChart recebeu dados:', data);
+  
   if (loading) {
     return (
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
@@ -85,7 +96,7 @@ export function GrowthChart({ data, loading = false }: GrowthChartProps) {
 
   // Calcular crescimento total
   const crescimentoTotal = data.length > 1 
-    ? ((data[data.length - 1].ativos - data[0].ativos) / data[0].ativos) * 100 
+    ? ((data[data.length - 1].pacientes_ativos - data[0].pacientes_ativos) / data[0].pacientes_ativos) * 100 
     : 0;
 
   return (
@@ -145,7 +156,7 @@ export function GrowthChart({ data, loading = false }: GrowthChartProps) {
             <Tooltip content={<CustomTooltip />} />
             <Area
               type="monotone"
-              dataKey="ativos"
+              dataKey="pacientes_ativos"
               stroke="#3b82f6"
               strokeWidth={2}
               fill="url(#colorAtivos)"

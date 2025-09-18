@@ -62,3 +62,4 @@ END $$;
 SELECT 'Objetos removidos com sucesso!' as status;
 
 
+

@@ -88,14 +88,6 @@ export function DashboardOverview() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            className={`${filterThisMonth ? 'bg-blue-600/20 border-blue-500 text-blue-300' : 'border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
-            onClick={() => setFilterThisMonth(!filterThisMonth)}
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            {filterThisMonth ? 'Todos os períodos' : 'Este mês'}
-          </Button>
           <div className="flex gap-2">
             <PatientForm
               trigger={
@@ -110,6 +102,7 @@ export function DashboardOverview() {
           </div>
         </div>
       </div>
+
 
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -186,11 +179,12 @@ export function DashboardOverview() {
             </div>
             <p className="text-xs text-emerald-400 flex items-center mt-1">
               <TrendingUp className="w-3 h-3 mr-1" />
-              Excelente desempenho
+              Score dos checkins
             </p>
           </CardContent>
         </Card>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico de Evolução */}

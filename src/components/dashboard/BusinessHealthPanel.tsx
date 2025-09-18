@@ -59,6 +59,8 @@ export function BusinessHealthPanel({
   growthMetrics, 
   loading = false 
 }: BusinessHealthPanelProps) {
+  console.log('🔍 BusinessHealthPanel recebeu:', { healthMetrics, retentionMetrics, growthMetrics });
+  
   if (loading) {
     return (
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
@@ -116,10 +118,10 @@ export function BusinessHealthPanel({
               Análise completa da saúde da empresa
             </CardDescription>
           </div>
-          <Badge variant="outline" className={getHealthColor(healthMetrics.healthStatus)}>
+          <Badge variant="outline" className={getHealthColor(healthMetrics?.healthStatus || 'unknown')}>
             <div className="flex items-center gap-1">
-              {getHealthIcon(healthMetrics.healthStatus)}
-              <span className="text-xs">{getHealthLabel(healthMetrics.healthStatus)}</span>
+              {getHealthIcon(healthMetrics?.healthStatus || 'unknown')}
+              <span className="text-xs">{getHealthLabel(healthMetrics?.healthStatus || 'unknown')}</span>
             </div>
           </Badge>
         </div>
@@ -129,10 +131,10 @@ export function BusinessHealthPanel({
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-slate-300">Score de Saúde</span>
-            <span className="text-sm text-white font-semibold">{healthMetrics.healthScore}/100</span>
+            <span className="text-sm text-white font-semibold">{healthMetrics?.healthScore || 0}/100</span>
           </div>
           <Progress 
-            value={healthMetrics.healthScore} 
+            value={healthMetrics?.healthScore || 0} 
             className="h-2"
           />
           <div className="flex justify-between text-xs text-slate-400 mt-1">
@@ -147,13 +149,13 @@ export function BusinessHealthPanel({
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 bg-slate-800/30 rounded-lg">
             <div className="text-2xl font-bold text-green-400 mb-1">
-              {retentionMetrics?.averageRetention || 0}%
+              {healthMetrics?.retencao?.toFixed(1) || '0.0'}%
             </div>
             <div className="text-xs text-slate-400">Retenção</div>
           </div>
           <div className="text-center p-3 bg-slate-800/30 rounded-lg">
             <div className="text-2xl font-bold text-red-400 mb-1">
-              {retentionMetrics?.churnRate || 0}%
+              {healthMetrics?.churnRate?.toFixed(1) || '0.0'}%
             </div>
             <div className="text-xs text-slate-400">Churn</div>
           </div>
@@ -166,60 +168,42 @@ export function BusinessHealthPanel({
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">Crescimento:</span>
               <div className="flex items-center gap-1">
-                {growthMetrics?.growthTrend === 'growing' ? (
+                {(healthMetrics?.crescimento || 0) > 0 ? (
                   <TrendingUp className="w-3 h-3 text-green-400" />
-                ) : growthMetrics?.growthTrend === 'declining' ? (
+                ) : (healthMetrics?.crescimento || 0) < 0 ? (
                   <TrendingDown className="w-3 h-3 text-red-400" />
                 ) : (
                   <div className="w-3 h-3 bg-slate-400 rounded-full" />
                 )}
-                <span className="text-white capitalize">
-                  {growthMetrics?.growthTrend || 'estável'}
-                </span>
+                <span className="text-white capitalize">Estável</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">Retenção:</span>
               <div className="flex items-center gap-1">
-                {retentionMetrics?.retentionTrend === 'improving' ? (
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                ) : retentionMetrics?.retentionTrend === 'declining' ? (
-                  <TrendingDown className="w-3 h-3 text-red-400" />
-                ) : (
-                  <div className="w-3 h-3 bg-slate-400 rounded-full" />
-                )}
-                <span className="text-white capitalize">
-                  {retentionMetrics?.retentionTrend || 'estável'}
-                </span>
+                <div className="w-3 h-3 bg-slate-400 rounded-full" />
+                <span className="text-white capitalize">Estável</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">Churn:</span>
               <div className="flex items-center gap-1">
-                {retentionMetrics?.churnTrend === 'improving' ? (
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                ) : retentionMetrics?.churnTrend === 'worsening' ? (
-                  <TrendingDown className="w-3 h-3 text-red-400" />
-                ) : (
-                  <div className="w-3 h-3 bg-slate-400 rounded-full" />
-                )}
-                <span className="text-white capitalize">
-                  {retentionMetrics?.churnTrend || 'estável'}
-                </span>
+                <div className="w-3 h-3 bg-slate-400 rounded-full" />
+                <span className="text-white capitalize">Estável</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Recomendações */}
-        {healthMetrics.recommendations.length > 0 && (
+        {healthMetrics?.recommendations?.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
               <Lightbulb className="w-4 h-4 text-yellow-400" />
               Recomendações
             </h4>
             <div className="space-y-2">
-              {healthMetrics.recommendations.map((recommendation, index) => (
+              {healthMetrics?.recommendations?.map((recommendation, index) => (
                 <div key={index} className="text-xs text-slate-300 bg-slate-800/30 p-2 rounded">
                   • {recommendation}
                 </div>
@@ -229,14 +213,14 @@ export function BusinessHealthPanel({
         )}
 
         {/* Fatores de Risco */}
-        {healthMetrics.riskFactors.length > 0 && (
+        {healthMetrics?.riskFactors?.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400" />
               Fatores de Risco
             </h4>
             <div className="space-y-2">
-              {healthMetrics.riskFactors.map((risk, index) => (
+              {healthMetrics?.riskFactors?.map((risk, index) => (
                 <div key={index} className="text-xs text-red-300 bg-red-900/20 p-2 rounded border border-red-500/20">
                   ⚠️ {risk}
                 </div>

@@ -159,3 +159,4 @@
 **Agora você pode sincronizar dados reais do Notion para o dashboard usando o mesmo modelo robusto que já funciona para pacientes!** 🎯
 
 
+

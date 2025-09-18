@@ -11,10 +11,21 @@ import {
   Clock,
   Activity
 } from "lucide-react";
-import type { ChartData, GrowthMetrics, RetentionMetrics, HealthMetrics } from "@/types/dashboard";
+import type { GrowthMetrics, RetentionMetrics, HealthMetrics } from "@/types/dashboard";
+
+interface MetricsData {
+  mes_numero: number;
+  mes: string;
+  ano: number;
+  total_pacientes: number;
+  pacientes_ativos: number;
+  novos_pacientes: number;
+  churn_rate: number;
+  renovacao_rate: number;
+}
 
 interface BusinessInsightsProps {
-  data: ChartData[];
+  data: MetricsData[];
   growthMetrics: GrowthMetrics | null;
   retentionMetrics: RetentionMetrics | null;
   healthMetrics: HealthMetrics | null;
@@ -28,6 +39,8 @@ export function BusinessInsights({
   healthMetrics, 
   loading = false 
 }: BusinessInsightsProps) {
+  console.log('🔍 BusinessInsights recebeu:', { data, growthMetrics, retentionMetrics, healthMetrics });
+  
   if (loading) {
     return (
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
@@ -65,11 +78,11 @@ export function BusinessInsights({
   }
 
   // Calcular métricas avançadas
-  const totalPatients = data.reduce((sum, item) => sum + item.ativos, 0);
-  const totalNewPatients = data.reduce((sum, item) => sum + item.entraram, 0);
-  const totalLostPatients = data.reduce((sum, item) => sum + item.sairam, 0);
-  const averageRetention = data.reduce((sum, item) => sum + item.renovacao, 0) / data.length;
-  const averageChurn = data.reduce((sum, item) => sum + item.churn, 0) / data.length;
+  const totalPatients = data.reduce((sum, item) => sum + item.pacientes_ativos, 0);
+  const totalNewPatients = data.reduce((sum, item) => sum + item.novos_pacientes, 0);
+  const totalLostPatients = 0; // Não disponível nos dados atuais
+  const averageRetention = data.length > 0 ? data.reduce((sum, item) => sum + item.renovacao_rate, 0) / data.length : 0;
+  const averageChurn = data.length > 0 ? data.reduce((sum, item) => sum + item.churn_rate, 0) / data.length : 0;
   
   // Calcular eficiência de retenção
   const retentionEfficiency = averageRetention - averageChurn;
@@ -77,8 +90,8 @@ export function BusinessInsights({
   // Calcular taxa de crescimento composto
   const firstMonth = data[0];
   const lastMonth = data[data.length - 1];
-  const compoundGrowthRate = data.length > 1 
-    ? (Math.pow(lastMonth.ativos / firstMonth.ativos, 1 / (data.length - 1)) - 1) * 100
+  const compoundGrowthRate = data.length > 1 && firstMonth.pacientes_ativos > 0
+    ? (Math.pow(lastMonth.pacientes_ativos / firstMonth.pacientes_ativos, 1 / (data.length - 1)) - 1) * 100
     : 0;
 
   // Calcular previsão de crescimento
@@ -89,7 +102,7 @@ export function BusinessInsights({
   // Calcular métricas de sazonalidade
   const monthlyData = data.map(item => ({
     month: item.mes, // Usar o nome do mês diretamente
-    growth: item.entraram - item.sairam
+    growth: item.novos_pacientes // Usar novos pacientes como crescimento
   }));
 
   const seasonalPattern = monthlyData.reduce((acc, item) => {

@@ -528,15 +528,19 @@ export const dashboardService = {
         }
       });
       
-      // Contar pacientes sem checkin recente
-      const pendingFeedbacks = allPatients?.filter(patient => {
+      // Contar pacientes ATIVOS sem checkin recente (apenas pacientes com planos ativos)
+      const activePatientsData = allPatients?.filter(patient => {
+        return patient.plano && !inactivePlans.includes(patient.plano);
+      }) || [];
+      
+      const pendingFeedbacks = activePatientsData.filter(patient => {
         if (!patient.telefone) return true; // Se não tem telefone, considera pendente
         
         const lastCheckin = checkinsByPhone.get(patient.telefone);
         if (!lastCheckin) return true; // Se nunca fez checkin, considera pendente
         
         return lastCheckin < thirtyDaysAgo; // Se último checkin foi há mais de 30 dias
-      }).length || 0;
+      }).length;
 
       // Calcular score médio baseado nos checkins
       let avgOverallScore = '0.0';
@@ -575,8 +579,12 @@ export const dashboardService = {
           return expDate >= startOfMonth && expDate <= endOfMonth;
         }) || [];
         
-        // Calcular checkins pendentes para pacientes deste mês
-        const pendingThisMonth = patientsThisMonth.filter(patient => {
+        // Calcular checkins pendentes para pacientes ATIVOS deste mês
+        const activePatientsThisMonthData = patientsThisMonth.filter(patient => {
+          return patient.plano && !inactivePlans.includes(patient.plano);
+        });
+        
+        const pendingThisMonth = activePatientsThisMonthData.filter(patient => {
           if (!patient.telefone) return true;
           
           const lastCheckin = checkinsByPhone.get(patient.telefone);

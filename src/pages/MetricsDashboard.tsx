@@ -2,15 +2,15 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { KPICards } from "@/components/dashboard/KPICards";
 import { GrowthChart } from "@/components/dashboard/GrowthChart";
 import { ChurnChart } from "@/components/dashboard/ChurnChart";
-import { OrganizedGrowthChart } from "@/components/dashboard/OrganizedGrowthChart";
-import { MonthlyGrowthChart } from "@/components/dashboard/MonthlyGrowthChart";
 import { BusinessHealthPanel } from "@/components/dashboard/BusinessHealthPanel";
 import { BusinessInsights } from "@/components/dashboard/BusinessInsights";
 import { MetricsTable } from "@/components/dashboard/MetricsTable";
 import { DashboardSyncModal } from "@/components/dashboard/DashboardSyncModal";
+import { MetricsMonthSelector } from "@/components/dashboard/MetricsMonthSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
+import { useDashboardMetrics } from "@/hooks/use-metrics-dashboard";
+import { useFilteredMetrics } from "@/hooks/use-filtered-metrics";
 import { 
   RefreshCw, 
   Download, 
@@ -45,8 +45,15 @@ export default function MetricsDashboard() {
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [isFilterMinimized, setIsFilterMinimized] = useState(true);
 
+  // Hook para filtrar métricas baseado nos meses selecionados
+  const { filteredData, filteredKpis } = useFilteredMetrics(data, selectedMonths);
+
   // Gerar lista de meses disponíveis
   const availableMonths = useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    
     const months = data.map(item => ({
       mes_numero: item.mes_numero,
       mes: item.mes,
@@ -83,26 +90,6 @@ export default function MetricsDashboard() {
     setSelectedMonths([]);
   };
 
-  // Filtrar dados baseado nos meses selecionados
-  const filteredData = useMemo(() => {
-    if (selectedMonths.length === 0) return data;
-    return data.filter(item => selectedMonths.includes(item.mes_numero));
-  }, [data, selectedMonths]);
-
-  // Transformar dados filtrados para o formato ChartData
-  const filteredChartData = useMemo(() => {
-    return filteredData.map(item => ({
-      mes: item.mes,
-      ativos: item.ativos_total_inicio_mes || 0,
-      entraram: item.entraram || 0,
-      sairam: item.sairam || 0,
-      renovacao: (item.percentual_renovacao || 0) * 100,
-      churn: (item.percentual_churn || 0) * 100,
-      crescimento: item.taxa_crescimento || 0,
-      saldo: (item.entraram || 0) - (item.sairam || 0),
-      eficiencia: item.eficiencia_conversao || 0
-    }));
-  }, [filteredData]);
 
   // Tratamento de erro
   if (error) {
@@ -172,7 +159,7 @@ export default function MetricsDashboard() {
             <Button
               variant="outline"
               onClick={exportData}
-              disabled={loading || data.length === 0}
+              disabled={loading || !data || data.length === 0}
               className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
             >
               <Download className="w-4 h-4 mr-2" />
@@ -182,89 +169,16 @@ export default function MetricsDashboard() {
         </div>
 
 
-        {/* Filtro de Meses */}
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-400" />
-                  Selecionar Meses para Análise
-                </h3>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAllMonths}
-                    className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-                  >
-                    Selecionar Todos
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDeselectAllMonths}
-                    className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-                  >
-                    Desmarcar Todos
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsFilterMinimized(!isFilterMinimized)}
-                    className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-                  >
-                    {isFilterMinimized ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronUp className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              
-              {!isFilterMinimized && (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {availableMonths.map((month) => (
-                      <label
-                        key={month.mes_numero}
-                        className="flex items-center space-x-2 p-3 rounded-lg border border-slate-600/50 bg-slate-700/30 hover:bg-slate-700/50 cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedMonths.includes(month.mes_numero)}
-                          onChange={() => handleMonthToggle(month.mes_numero)}
-                          className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-white">
-                            {month.mes}
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            {month.ano}
-                          </span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                  
-                  <div className="text-sm text-slate-400">
-                    {selectedMonths.length > 0 ? (
-                      <span>
-                        {selectedMonths.length} de {availableMonths.length} meses selecionados
-                      </span>
-                    ) : (
-                      <span className="text-blue-400">
-                        Nenhum mês selecionado - todos os dados serão exibidos
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Seletor de Meses - Página de Métricas */}
+        <MetricsMonthSelector
+          availableMonths={data}
+          selectedMonths={selectedMonths}
+          onToggleMonth={handleMonthToggle}
+          onSelectAll={handleSelectAllMonths}
+          onClearAll={handleDeselectAllMonths}
+          loading={loading}
+        />
+
 
         {/* KPIs PRINCIPAIS */}
         <div className="space-y-6">
@@ -273,7 +187,7 @@ export default function MetricsDashboard() {
             <h2 className="text-xl font-semibold text-white">KPIs Principais</h2>
           </div>
           
-          <KPICards kpis={kpis} loading={loading} />
+          <KPICards kpis={filteredKpis} loading={loading} />
         </div>
 
         {/* ANÁLISE DE CRESCIMENTO */}
@@ -282,12 +196,7 @@ export default function MetricsDashboard() {
             <div className="w-1 h-6 bg-green-500 rounded"></div>
             <h2 className="text-xl font-semibold text-white">Análise de Crescimento</h2>
           </div>
-          
-          <MonthlyGrowthChart
-            data={filteredChartData}
-            growthMetrics={growthMetrics}
-            loading={loading}
-          />
+          <GrowthChart data={filteredData} loading={loading} />
         </div>
 
         {/* SAÚDE DO NEGÓCIO */}
@@ -305,7 +214,7 @@ export default function MetricsDashboard() {
               loading={loading}
             />
             <BusinessInsights
-              data={filteredChartData}
+              data={filteredData}
               growthMetrics={growthMetrics}
               retentionMetrics={retentionMetrics}
               healthMetrics={healthMetrics}

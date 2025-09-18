@@ -35,3 +35,4 @@ AND table_name = 'dashboard_dados'
 ORDER BY ordinal_position;
 
 
+

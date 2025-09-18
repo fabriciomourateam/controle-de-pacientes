@@ -89,3 +89,4 @@ O proxy está configurado em `proxy-server.js`:
 **O proxy é necessário para a sincronização funcionar corretamente!** 🔧✨
 
 
+

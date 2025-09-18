@@ -1,27 +1,20 @@
 {
+  "functions": {
+    "api/notion-proxy.js": {
+      "runtime": "@vercel/node"
+    },
+    "api/sync-dashboard-metrics.js": {
+      "runtime": "@vercel/node"
+    }
+  },
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
+      "source": "/api/notion-proxy",
+      "destination": "/api/notion-proxy.js"
+    },
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "source": "/api/sync-dashboard-metrics", 
+      "destination": "/api/sync-dashboard-metrics.js"
     }
   ]
 }

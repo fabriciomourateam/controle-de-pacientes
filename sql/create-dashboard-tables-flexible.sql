@@ -293,3 +293,4 @@ CREATE POLICY "Allow authenticated users to manage alerts" ON alertas_dashboard
 SELECT gerar_alertas_dashboard();
 
 
+

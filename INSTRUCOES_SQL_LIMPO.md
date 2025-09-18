@@ -174,3 +174,4 @@ INSERT INTO dashboard_dados (
 **Execute o SQL limpo e veja a magia acontecer!** 🎯
 
 
+

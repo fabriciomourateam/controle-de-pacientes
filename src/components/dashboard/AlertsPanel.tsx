@@ -222,3 +222,4 @@ export function AlertsPanel({ alertas, loading = false }: AlertsPanelProps) {
 }
 
 
+
