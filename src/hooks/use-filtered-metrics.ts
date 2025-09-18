@@ -94,6 +94,15 @@ export function useFilteredMetrics(data: MetricsData[], selectedMonths: number[]
         descricao: `Atual: ${currentRenovacao.toFixed(1)}% | Média período: ${averageRenovacaoFiltered.toFixed(1)}%`
       },
       {
+        titulo: 'Média Renovação Período',
+        valor: `${averageRenovacaoFiltered.toFixed(1)}%`,
+        variacao: 0,
+        variacao_tipo: averageRenovacaoFiltered >= 70 ? 'positiva' : 'negativa',
+        icone: 'BarChart3',
+        cor: averageRenovacaoFiltered >= 70 ? 'green' : averageRenovacaoFiltered >= 50 ? 'yellow' : 'red',
+        descricao: `Média de renovação dos ${sortedData.length} períodos selecionados`
+      },
+      {
         titulo: 'Taxa de Churn',
         valor: `${currentChurn.toFixed(1)}%`,
         variacao: Number((averageChurnFiltered - currentChurn).toFixed(1)),
@@ -102,7 +111,6 @@ export function useFilteredMetrics(data: MetricsData[], selectedMonths: number[]
         cor: currentChurn < 10 ? 'green' : currentChurn < 20 ? 'yellow' : 'red',
         descricao: `Atual: ${currentChurn.toFixed(1)}% | Média período: ${averageChurnFiltered.toFixed(1)}%`
       },
-      // KPIs adicionais para comparação de médias
       {
         titulo: 'Média Churn Período',
         valor: `${averageChurnFiltered.toFixed(1)}%`,
@@ -111,15 +119,6 @@ export function useFilteredMetrics(data: MetricsData[], selectedMonths: number[]
         icone: 'BarChart3',
         cor: averageChurnFiltered < 10 ? 'green' : averageChurnFiltered < 20 ? 'yellow' : 'red',
         descricao: `Média de churn dos ${sortedData.length} períodos selecionados`
-      },
-      {
-        titulo: 'Média Renovação Período',
-        valor: `${averageRenovacaoFiltered.toFixed(1)}%`,
-        variacao: 0,
-        variacao_tipo: averageRenovacaoFiltered >= 70 ? 'positiva' : 'negativa',
-        icone: 'BarChart3',
-        cor: averageRenovacaoFiltered >= 70 ? 'green' : averageRenovacaoFiltered >= 50 ? 'yellow' : 'red',
-        descricao: `Média de renovação dos ${sortedData.length} períodos selecionados`
       }
     ];
 

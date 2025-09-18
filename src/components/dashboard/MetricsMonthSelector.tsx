@@ -33,7 +33,7 @@ export function MetricsMonthSelector({
   onClearAll,
   loading = false 
 }: MetricsMonthSelectorProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const selectedCount = selectedMonths.length;
   const hasSelection = selectedCount > 0;

@@ -71,10 +71,10 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-            <CardContent className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Card key={index} className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 h-32">
+            <CardContent className="p-4 h-full">
               <div className="animate-pulse">
                 <div className="flex items-center justify-between mb-4">
                   <div className="h-4 bg-slate-600 rounded w-24"></div>
@@ -115,10 +115,10 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
   // Verificação de segurança para kpis
   if (!kpis || !Array.isArray(kpis)) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map((index) => (
-          <Card key={index} className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-            <CardContent className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {[1, 2, 3, 4, 5].map((index) => (
+          <Card key={index} className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 h-32">
+            <CardContent className="p-4 h-full">
               <div className="animate-pulse">
                 <div className="h-4 bg-slate-600/50 rounded w-3/4 mb-2"></div>
                 <div className="h-8 bg-slate-600/50 rounded w-1/2 mb-2"></div>
@@ -132,7 +132,7 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {kpis.map((kpi, index) => {
         const IconComponent = iconMap[kpi.icone as keyof typeof iconMap] || iconMap.Activity;
         const colors = colorMap[kpi.cor as keyof typeof colorMap] || colorMap.default;
@@ -141,14 +141,14 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
         return (
           <div key={index} className="relative">
             <Card 
-              className={`bg-gradient-to-br ${colors.bg} backdrop-blur-sm border ${colors.border} hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300`}
+              className={`bg-gradient-to-br ${colors.bg} backdrop-blur-sm border ${colors.border} hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300 h-32 flex flex-col`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
+              <CardContent className="p-4 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-2 flex-shrink-0">
                   <div className="flex items-center gap-2">
-                    <IconComponent className={`w-5 h-5 ${colors.icon}`} />
-                    <h3 className="text-sm font-medium text-slate-300">{kpi.titulo}</h3>
+                    <IconComponent className={`w-4 h-4 ${colors.icon}`} />
+                    <h3 className="text-xs font-medium text-slate-300 truncate">{kpi.titulo}</h3>
                     {isHealthMetric && (
                       <div className="relative">
                         <button 
@@ -156,7 +156,7 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
                           onMouseEnter={() => setShowTooltip(true)}
                           onMouseLeave={() => setShowTooltip(false)}
                         >
-                          <Info className="w-4 h-4" />
+                          <Info className="w-3 h-3" />
                         </button>
                         
                         {showTooltip && (
@@ -204,7 +204,7 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
                   {kpi.variacao !== undefined && (
                     <Badge 
                       variant="outline" 
-                      className={`${getVariationColor(kpi.variacao_tipo)} border-current`}
+                      className={`${getVariationColor(kpi.variacao_tipo)} border-current text-xs px-1 py-0`}
                     >
                       <div className="flex items-center gap-1">
                         {getVariationIcon(kpi.variacao_tipo)}
@@ -216,11 +216,11 @@ export function KPICards({ kpis, loading = false }: KPICardsProps) {
                   )}
                 </div>
                 
-                <div className="space-y-2">
-                  <div className={`text-2xl font-bold ${colors.text}`}>
+                <div className="flex flex-col justify-between flex-1">
+                  <div className={`text-xl font-bold ${colors.text} mb-1`}>
                     {kpi.valor}
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 line-clamp-2 leading-tight">
                     {kpi.descricao}
                   </p>
                 </div>

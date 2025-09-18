@@ -94,9 +94,25 @@ export function BusinessInsights({
     ? (Math.pow(lastMonth.pacientes_ativos / firstMonth.pacientes_ativos, 1 / (data.length - 1)) - 1) * 100
     : 0;
 
-  // Calcular previsão de crescimento
-  const monthlyGrowthRate = growthMetrics?.averageMonthlyGrowth || 0;
-  const projectedGrowth = monthlyGrowthRate * 6; // Próximos 6 meses
+  // Calcular previsão de crescimento para 6 meses
+  // Usar crescimento médio dos últimos 3 meses ou todos os dados disponíveis
+  const recentMonths = data.length >= 3 ? data.slice(-3) : data;
+  const monthlyGrowthRates = [];
+  
+  for (let i = 1; i < recentMonths.length; i++) {
+    const current = recentMonths[i].pacientes_ativos;
+    const previous = recentMonths[i - 1].pacientes_ativos;
+    if (previous > 0) {
+      const growthRate = ((current - previous) / previous) * 100;
+      monthlyGrowthRates.push(growthRate);
+    }
+  }
+  
+  const averageMonthlyGrowth = monthlyGrowthRates.length > 0 
+    ? monthlyGrowthRates.reduce((sum, rate) => sum + rate, 0) / monthlyGrowthRates.length 
+    : 0;
+  
+  const projectedGrowth = averageMonthlyGrowth * 6; // Projeção para 6 meses
 
 
   // Calcular métricas de sazonalidade
