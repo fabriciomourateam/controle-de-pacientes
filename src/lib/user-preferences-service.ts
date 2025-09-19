@@ -76,6 +76,14 @@ class UserPreferencesService {
 
       if (error) {
         console.error('Erro ao salvar preferências:', error);
+        
+        // Se o erro for por coluna não encontrada, tentar criar apenas com campos básicos
+        if (error.code === 'PGRST204' && error.message.includes('read_notifications')) {
+          console.warn('Coluna read_notifications não encontrada. Execute o SQL para adicionar a coluna.');
+          console.warn('SQL necessário: ALTER TABLE user_preferences ADD COLUMN read_notifications JSONB DEFAULT \'[]\';');
+          return null;
+        }
+        
         throw error;
       }
 
