@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useSupabaseData } from './use-supabase-data';
+import { usePatients } from './use-supabase-data';
+import { useCheckins } from './use-checkin-data';
 
 export interface Notification {
   id: string;
@@ -15,7 +16,8 @@ export interface Notification {
 export function useNotifications() {
   const [isOpen, setIsOpen] = useState(false);
   const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
-  const { checkins, patients } = useSupabaseData();
+  const { patients } = usePatients();
+  const { checkins } = useCheckins();
 
   const notifications = useMemo(() => {
     const notifs: Notification[] = [];
@@ -31,7 +33,7 @@ export function useNotifications() {
           id: `checkin-${checkin.id}`,
           type: 'checkin',
           title: 'Novo Check-in',
-          message: `${checkin.patient_name || 'Paciente'} fez um check-in`,
+          message: `Paciente ${checkin.telefone || 'desconhecido'} fez um check-in`,
           timestamp: checkinDate,
           read: readNotifications.has(`checkin-${checkin.id}`),
           priority: 'medium',
@@ -42,7 +44,7 @@ export function useNotifications() {
 
     // Alertas de pacientes sem checkin há muito tempo
     patients?.forEach(patient => {
-      const lastCheckin = checkins?.find(c => c.patient_id === patient.id);
+      const lastCheckin = checkins?.find(c => c.telefone === patient.telefone);
       if (lastCheckin) {
         const lastCheckinDate = new Date(lastCheckin.created_at);
         const daysSinceLastCheckin = Math.floor((now.getTime() - lastCheckinDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -52,7 +54,7 @@ export function useNotifications() {
             id: `alert-${patient.id}`,
             type: 'alert',
             title: 'Paciente inativo',
-            message: `${patient.name || 'Paciente'} não faz check-in há ${daysSinceLastCheckin} dias`,
+            message: `${patient.nome || patient.apelido || 'Paciente'} não faz check-in há ${daysSinceLastCheckin} dias`,
             timestamp: lastCheckinDate,
             read: readNotifications.has(`alert-${patient.id}`),
             priority: daysSinceLastCheckin >= 14 ? 'high' : 'medium',

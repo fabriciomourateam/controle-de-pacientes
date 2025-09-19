@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
-import { useSupabaseData } from './use-supabase-data';
+import { usePatients } from './use-supabase-data';
+import { usePlans } from './use-supabase-data';
+import { useCheckins } from './use-checkin-data';
 
 export interface SearchResult {
   id: string;
@@ -13,7 +15,9 @@ export interface SearchResult {
 export function useGlobalSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const { patients, plans, checkins } = useSupabaseData();
+  const { patients } = usePatients();
+  const { plans } = usePlans();
+  const { checkins } = useCheckins();
 
   const searchResults = useMemo(() => {
     if (!searchTerm.trim() || searchTerm.length < 2) return [];
@@ -23,16 +27,17 @@ export function useGlobalSearch() {
 
     // Buscar pacientes
     patients?.forEach(patient => {
-      const name = patient.name?.toLowerCase() || '';
-      const email = patient.email?.toLowerCase() || '';
-      const phone = patient.phone?.toLowerCase() || '';
+      const nome = patient.nome?.toLowerCase() || '';
+      const apelido = patient.apelido?.toLowerCase() || '';
+      const telefone = patient.telefone?.toLowerCase() || '';
+      const plano = patient.plano?.toLowerCase() || '';
       
-      if (name.includes(term) || email.includes(term) || phone.includes(term)) {
+      if (nome.includes(term) || apelido.includes(term) || telefone.includes(term) || plano.includes(term)) {
         results.push({
           id: patient.id,
           type: 'patient',
-          title: patient.name || 'Sem nome',
-          subtitle: patient.email || patient.phone || '',
+          title: patient.nome || patient.apelido || 'Sem nome',
+          subtitle: patient.telefone || patient.plano || '',
           url: `/patients?highlight=${patient.id}`,
           data: patient
         });
@@ -41,15 +46,15 @@ export function useGlobalSearch() {
 
     // Buscar planos
     plans?.forEach(plan => {
-      const name = plan.name?.toLowerCase() || '';
-      const description = plan.description?.toLowerCase() || '';
+      const nome = plan.nome?.toLowerCase() || '';
+      const descricao = plan.descricao?.toLowerCase() || '';
       
-      if (name.includes(term) || description.includes(term)) {
+      if (nome.includes(term) || descricao.includes(term)) {
         results.push({
           id: plan.id,
           type: 'plan',
-          title: plan.name || 'Sem nome',
-          subtitle: plan.description || `R$ ${plan.price || 0}`,
+          title: plan.nome || 'Sem nome',
+          subtitle: plan.descricao || `R$ ${plan.preco || 0}`,
           url: `/plans?highlight=${plan.id}`,
           data: plan
         });
@@ -58,15 +63,16 @@ export function useGlobalSearch() {
 
     // Buscar checkins
     checkins?.forEach(checkin => {
-      const patientName = checkin.patient_name?.toLowerCase() || '';
-      const message = checkin.message?.toLowerCase() || '';
+      const telefone = checkin.telefone?.toLowerCase() || '';
+      const objetivo = checkin.objetivo?.toLowerCase() || '';
+      const dificuldades = checkin.dificuldades?.toLowerCase() || '';
       
-      if (patientName.includes(term) || message.includes(term)) {
+      if (telefone.includes(term) || objetivo.includes(term) || dificuldades.includes(term)) {
         results.push({
           id: checkin.id,
           type: 'checkin',
-          title: `Check-in de ${checkin.patient_name || 'Paciente'}`,
-          subtitle: checkin.message?.substring(0, 50) + '...' || '',
+          title: `Check-in de ${checkin.telefone || 'Paciente'}`,
+          subtitle: checkin.objetivo?.substring(0, 50) + '...' || checkin.dificuldades?.substring(0, 50) + '...' || '',
           url: `/checkins?highlight=${checkin.id}`,
           data: checkin
         });
