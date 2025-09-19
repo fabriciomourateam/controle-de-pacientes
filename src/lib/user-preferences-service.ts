@@ -26,43 +26,62 @@ class UserPreferencesService {
   // Buscar preferências do usuário
   async getUserPreferences(): Promise<UserPreferences | null> {
     const userId = this.getUserId();
+    console.log('Buscando preferências para usuário:', userId);
     
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-      console.error('Erro ao buscar preferências:', error);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Não encontrado - isso é normal para novos usuários
+          console.log('Preferências não encontradas para novo usuário:', userId);
+          return null;
+        }
+        console.error('Erro ao buscar preferências:', error);
+        throw error;
+      }
+
+      console.log('Preferências carregadas:', data);
+      return data;
+    } catch (error) {
+      console.error('Erro na consulta de preferências:', error);
       return null;
     }
-
-    return data;
   }
 
   // Criar ou atualizar preferências
   async upsertUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
     const userId = this.getUserId();
+    console.log('Salvando preferências para usuário:', userId, preferences);
     
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .upsert({
-        user_id: userId,
-        ...preferences,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
-      })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: userId,
+          ...preferences,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Erro ao salvar preferências:', error);
+      if (error) {
+        console.error('Erro ao salvar preferências:', error);
+        throw error;
+      }
+
+      console.log('Preferências salvas com sucesso:', data);
+      return data;
+    } catch (error) {
+      console.error('Erro na operação upsert:', error);
       return null;
     }
-
-    return data;
   }
 
   // Buscar notificações lidas
