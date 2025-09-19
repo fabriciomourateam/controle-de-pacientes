@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 
 export function NotificationsPanel() {
   const navigate = useNavigate();
-  const { notifications, unreadCount, isOpen, setIsOpen, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, isOpen, setIsOpen, markAsRead, markAllAsRead } = useNotifications();
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -109,7 +109,12 @@ export function NotificationsPanel() {
         </div>
 
         <ScrollArea className="max-h-96">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="p-6 text-center text-muted-foreground">
+              <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p>Carregando notificações...</p>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">
               <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>Nenhuma notificação</p>

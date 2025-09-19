@@ -1,37 +1,55 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
-export interface PatientViewPreferences {
+export interface UserPreferences {
   id?: string;
   user_id: string;
-  filters: {
-    plan?: string;
-    status?: 'active' | 'expired' | 'expiring_soon' | 'all';
-    days_to_expire?: number;
-    gender?: string;
-    created_after?: string;
-    created_before?: string;
-  };
-  sorting: {
-    field: string;
-    direction: 'asc' | 'desc';
-  };
-  visible_columns: string[];
-  page_size: number;
+  filters?: any;
+  sorting?: any;
+  visible_columns?: string[];
+  page_size?: number;
+  read_notifications?: string[];
   created_at?: string;
   updated_at?: string;
 }
 
-export const userPreferencesService = {
-  // Salvar preferências do usuário
-  async savePatientPreferences(preferences: Omit<PatientViewPreferences, 'id' | 'created_at' | 'updated_at'>): Promise<PatientViewPreferences> {
+class UserPreferencesService {
+  // Gerar um ID único do usuário baseado no navegador/sessão
+  private getUserId(): string {
+    let userId = localStorage.getItem('user_session_id');
+    if (!userId) {
+      userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('user_session_id', userId);
+    }
+    return userId;
+  }
+
+  // Buscar preferências do usuário
+  async getUserPreferences(): Promise<UserPreferences | null> {
+    const userId = this.getUserId();
+    
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      console.error('Erro ao buscar preferências:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  // Criar ou atualizar preferências
+  async upsertUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
+    const userId = this.getUserId();
+    
     const { data, error } = await supabase
       .from('user_preferences')
       .upsert({
-        user_id: preferences.user_id,
-        filters: preferences.filters,
-        sorting: preferences.sorting,
-        visible_columns: preferences.visible_columns,
-        page_size: preferences.page_size,
+        user_id: userId,
+        ...preferences,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id'
@@ -39,44 +57,84 @@ export const userPreferencesService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao salvar preferências:', error);
+      return null;
+    }
+
     return data;
-  },
-
-  // Carregar preferências do usuário
-  async getPatientPreferences(userId: string): Promise<PatientViewPreferences | null> {
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  },
-
-  // Preferências padrão
-  getDefaultPreferences(): Omit<PatientViewPreferences, 'id' | 'user_id' | 'created_at' | 'updated_at'> {
-    return {
-      filters: {
-        status: 'all'
-      },
-      sorting: {
-        field: 'created_at',
-        direction: 'desc'
-      },
-      visible_columns: [
-        'nome',
-        'apelido',
-        'telefone',
-        'email',
-        'plano',
-        'vencimento',
-        'dias_para_vencer',
-        'status',
-        'created_at'
-      ],
-      page_size: 20
-    };
   }
-};
+
+  // Buscar notificações lidas
+  async getReadNotifications(): Promise<string[]> {
+    const preferences = await this.getUserPreferences();
+    return preferences?.read_notifications || [];
+  }
+
+  // Marcar notificação como lida
+  async markNotificationAsRead(notificationId: string): Promise<boolean> {
+    try {
+      const currentReadNotifications = await this.getReadNotifications();
+      
+      if (currentReadNotifications.includes(notificationId)) {
+        return true; // Já está marcada como lida
+      }
+
+      const updatedReadNotifications = [...currentReadNotifications, notificationId];
+      
+      const result = await this.upsertUserPreferences({
+        read_notifications: updatedReadNotifications
+      });
+
+      return result !== null;
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+      return false;
+    }
+  }
+
+  // Marcar múltiplas notificações como lidas
+  async markMultipleNotificationsAsRead(notificationIds: string[]): Promise<boolean> {
+    try {
+      const currentReadNotifications = await this.getReadNotifications();
+      
+      const newNotifications = notificationIds.filter(id => !currentReadNotifications.includes(id));
+      
+      if (newNotifications.length === 0) {
+        return true; // Todas já estão marcadas como lidas
+      }
+
+      const updatedReadNotifications = [...currentReadNotifications, ...newNotifications];
+      
+      const result = await this.upsertUserPreferences({
+        read_notifications: updatedReadNotifications
+      });
+
+      return result !== null;
+    } catch (error) {
+      console.error('Erro ao marcar notificações como lidas:', error);
+      return false;
+    }
+  }
+
+  // Limpar notificações antigas (opcional - para manter a base limpa)
+  async cleanOldNotifications(daysToKeep: number = 30): Promise<boolean> {
+    try {
+      const preferences = await this.getUserPreferences();
+      if (!preferences?.read_notifications) return true;
+
+      // Esta é uma limpeza simples - em um cenário real, você poderia 
+      // filtrar baseado na data das notificações
+      const result = await this.upsertUserPreferences({
+        read_notifications: []
+      });
+
+      return result !== null;
+    } catch (error) {
+      console.error('Erro ao limpar notificações antigas:', error);
+      return false;
+    }
+  }
+}
+
+export const userPreferencesService = new UserPreferencesService();

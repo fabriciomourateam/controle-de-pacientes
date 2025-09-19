@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePatients } from './use-supabase-data';
 import { useCheckins } from './use-checkin-data';
+import { userPreferencesService } from '@/lib/user-preferences-service';
 
 export interface Notification {
   id: string;
@@ -16,8 +17,25 @@ export interface Notification {
 export function useNotifications() {
   const [isOpen, setIsOpen] = useState(false);
   const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
   const { patients } = usePatients();
   const { checkins } = useCheckins();
+
+  // Carregar notificações lidas do Supabase na inicialização
+  useEffect(() => {
+    const loadReadNotifications = async () => {
+      try {
+        const readNotificationIds = await userPreferencesService.getReadNotifications();
+        setReadNotifications(new Set(readNotificationIds));
+      } catch (error) {
+        console.error('Erro ao carregar notificações lidas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReadNotifications();
+  }, []);
 
   const notifications = useMemo(() => {
     const notifs: Notification[] = [];
@@ -83,24 +101,45 @@ export function useNotifications() {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
-  const markAsRead = (notificationId: string) => {
-    console.log('Marcando como lida:', notificationId);
-    setReadNotifications(prev => {
-      const newSet = new Set([...prev, notificationId]);
-      console.log('Notificações lidas:', newSet);
-      return newSet;
-    });
+  const markAsRead = async (notificationId: string) => {
+    try {
+      // Atualizar estado local imediatamente para responsividade
+      setReadNotifications(prev => new Set([...prev, notificationId]));
+      
+      // Salvar na nuvem
+      await userPreferencesService.markNotificationAsRead(notificationId);
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+      // Reverter estado local em caso de erro
+      setReadNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(notificationId);
+        return newSet;
+      });
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     const allIds = notifications.map(n => n.id);
-    console.log('Marcando todas como lidas:', allIds);
-    setReadNotifications(new Set(allIds));
+    
+    try {
+      // Atualizar estado local imediatamente
+      setReadNotifications(new Set(allIds));
+      
+      // Salvar na nuvem
+      await userPreferencesService.markMultipleNotificationsAsRead(allIds);
+    } catch (error) {
+      console.error('Erro ao marcar todas as notificações como lidas:', error);
+      // Recarregar do servidor em caso de erro
+      const readNotificationIds = await userPreferencesService.getReadNotifications();
+      setReadNotifications(new Set(readNotificationIds));
+    }
   };
 
   return {
     notifications,
     unreadCount,
+    loading,
     isOpen,
     setIsOpen,
     markAsRead,
