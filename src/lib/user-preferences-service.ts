@@ -211,4 +211,82 @@ class UserPreferencesService {
   }
 }
 
+  // Funções específicas para preferências de pacientes
+  getDefaultPreferences(): PatientViewPreferences {
+    return {
+      user_id: '',
+      filters: {
+        search: '',
+        status: 'all',
+        plan: 'all',
+        dateRange: { start: '', end: '' }
+      },
+      sorting: {
+        field: 'created_at',
+        direction: 'desc'
+      },
+      visible_columns: ['nome', 'apelido', 'telefone', 'email', 'plano', 'data_vencimento', 'status', 'created_at'],
+      page_size: 20
+    };
+  }
+
+  async getPatientPreferences(userId: string): Promise<PatientViewPreferences | null> {
+    try {
+      const preferences = await this.getUserPreferences();
+      if (!preferences) return null;
+
+      return {
+        user_id: userId,
+        filters: preferences.filters?.patientFilters || this.getDefaultPreferences().filters,
+        sorting: preferences.sorting || this.getDefaultPreferences().sorting,
+        visible_columns: preferences.visible_columns || this.getDefaultPreferences().visible_columns,
+        page_size: preferences.page_size || this.getDefaultPreferences().page_size
+      };
+    } catch (error) {
+      console.error('Erro ao buscar preferências de pacientes:', error);
+      return null;
+    }
+  }
+
+  async savePatientPreferences(preferences: PatientViewPreferences): Promise<PatientViewPreferences> {
+    try {
+      const currentPrefs = await this.getUserPreferences();
+      
+      const updatedPrefs = await this.upsertUserPreferences({
+        filters: {
+          ...(currentPrefs?.filters || {}),
+          patientFilters: preferences.filters
+        },
+        sorting: preferences.sorting,
+        visible_columns: preferences.visible_columns,
+        page_size: preferences.page_size
+      });
+
+      if (!updatedPrefs) throw new Error('Falha ao salvar preferências');
+
+      return preferences;
+    } catch (error) {
+      console.error('Erro ao salvar preferências de pacientes:', error);
+      throw error;
+    }
+  }
+}
+
+// Interfaces para preferências de pacientes
+export interface PatientViewPreferences {
+  user_id: string;
+  filters: {
+    search: string;
+    status: string;
+    plan: string;
+    dateRange: { start: string; end: string };
+  };
+  sorting: {
+    field: string;
+    direction: 'asc' | 'desc';
+  };
+  visible_columns: string[];
+  page_size: number;
+}
+
 export const userPreferencesService = new UserPreferencesService();

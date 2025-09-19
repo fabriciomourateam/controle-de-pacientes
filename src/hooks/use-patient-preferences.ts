@@ -5,6 +5,23 @@ import { PatientSorting } from "@/components/patients/PatientSorting";
 
 const USER_ID = "default_user"; // Em produção, usar o ID do usuário logado
 
+// Preferências padrão locais
+const getDefaultPreferences = (): PatientViewPreferences => ({
+  user_id: USER_ID,
+  filters: {
+    search: '',
+    status: 'all',
+    plan: 'all',
+    dateRange: { start: '', end: '' }
+  },
+  sorting: {
+    field: 'created_at',
+    direction: 'desc'
+  },
+  visible_columns: ['nome', 'apelido', 'telefone', 'email', 'plano', 'data_vencimento', 'status', 'created_at'],
+  page_size: 20
+});
+
 export function usePatientPreferences() {
   const [preferences, setPreferences] = useState<PatientViewPreferences | null>(null);
   const [loading, setLoading] = useState(true);
@@ -14,26 +31,22 @@ export function usePatientPreferences() {
   const loadPreferences = useCallback(async () => {
     try {
       setLoading(true);
-      const savedPreferences = await userPreferencesService.getPatientPreferences(USER_ID);
+      
+      // Tentar carregar preferências salvas
+      const savedPreferences = await userPreferencesService.getPatientPreferences?.(USER_ID);
       
       if (savedPreferences) {
         setPreferences(savedPreferences);
       } else {
         // Usar preferências padrão se não houver salvas
-        const defaultPrefs = userPreferencesService.getDefaultPreferences();
-        setPreferences({
-          ...defaultPrefs,
-          user_id: USER_ID
-        });
+        const defaultPrefs = getDefaultPreferences();
+        setPreferences(defaultPrefs);
       }
     } catch (error) {
       console.error('Erro ao carregar preferências:', error);
       // Usar preferências padrão em caso de erro
-      const defaultPrefs = userPreferencesService.getDefaultPreferences();
-      setPreferences({
-        ...defaultPrefs,
-        user_id: USER_ID
-      });
+      const defaultPrefs = getDefaultPreferences();
+      setPreferences(defaultPrefs);
     } finally {
       setLoading(false);
     }
@@ -51,7 +64,7 @@ export function usePatientPreferences() {
         updated_at: new Date().toISOString()
       };
 
-      const saved = await userPreferencesService.savePatientPreferences(updatedPreferences);
+      const saved = await userPreferencesService.savePatientPreferences?.(updatedPreferences) || updatedPreferences;
       setPreferences(saved);
     } catch (error) {
       console.error('Erro ao salvar preferências:', error);
@@ -83,7 +96,7 @@ export function usePatientPreferences() {
 
   // Resetar para padrão
   const resetToDefault = useCallback(async () => {
-    const defaultPrefs = userPreferencesService.getDefaultPreferences();
+    const defaultPrefs = getDefaultPreferences();
     await savePreferences(defaultPrefs);
   }, [savePreferences]);
 
