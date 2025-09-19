@@ -12,6 +12,23 @@ export interface UserPreferences {
   updated_at?: string;
 }
 
+// Interfaces para preferências de pacientes
+export interface PatientViewPreferences {
+  user_id: string;
+  filters: {
+    search: string;
+    status: string;
+    plan: string;
+    dateRange: { start: string; end: string };
+  };
+  sorting: {
+    field: string;
+    direction: 'asc' | 'desc';
+  };
+  visible_columns: string[];
+  page_size: number;
+}
+
 class UserPreferencesService {
   // Gerar um ID único do usuário baseado no navegador/sessão
   private getUserId(): string {
@@ -209,7 +226,6 @@ class UserPreferencesService {
       return false;
     }
   }
-}
 
   // Funções específicas para preferências de pacientes
   getDefaultPreferences(): PatientViewPreferences {
@@ -270,23 +286,6 @@ class UserPreferencesService {
       throw error;
     }
   }
-}
-
-// Interfaces para preferências de pacientes
-export interface PatientViewPreferences {
-  user_id: string;
-  filters: {
-    search: string;
-    status: string;
-    plan: string;
-    dateRange: { start: string; end: string };
-  };
-  sorting: {
-    field: string;
-    direction: 'asc' | 'desc';
-  };
-  visible_columns: string[];
-  page_size: number;
 }
 
 export const userPreferencesService = new UserPreferencesService();
