@@ -43,8 +43,10 @@ import {
   Legend
 } from "recharts";
 import { useDashboardMetrics, usePatients, useChartData } from "@/hooks/use-supabase-data";
+import { reportsService, ReportData } from "@/lib/reports-service";
+import { ReportViewModal } from "@/components/modals/ReportViewModal";
 
-interface ReportData {
+interface ReportItem {
   id: string;
   title: string;
   description: string;
@@ -67,6 +69,8 @@ export default function ReportsPage() {
   const { patients, loading: patientsLoading } = usePatients();
   const { chartData, loading: chartLoading } = useChartData();
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [currentReportData, setCurrentReportData] = useState<ReportData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filters, setFilters] = useState<ReportFilter>({
     period: 'last-30-days',
     startDate: '',
@@ -75,8 +79,13 @@ export default function ReportsPage() {
     metrics: []
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [filteredData, setFilteredData] = useState({
+    patients: [] as any[],
+    monthlyData: [] as any[],
+    planDistribution: [] as any[]
+  });
 
-  const reportTypes: ReportData[] = [
+  const reportTypes: ReportItem[] = [
     {
       id: 'patient-growth',
       title: 'Crescimento de Pacientes',
@@ -176,20 +185,159 @@ export default function ReportsPage() {
     novos: item.novos || 0
   }));
 
+  // Aplicar filtros aos dados
+  const applyFilters = () => {
+    console.log('Aplicando filtros:', filters);
+    
+    if (!patients || patients.length === 0) {
+      setFilteredData({ patients: [], monthlyData: [], planDistribution: [] });
+      return;
+    }
+
+    // Calcular range de datas
+    const getDateRange = () => {
+      if (filters.startDate && filters.endDate) {
+        return { start: new Date(filters.startDate), end: new Date(filters.endDate) };
+      }
+      
+      const now = new Date();
+      let start: Date;
+      
+      switch (filters.period) {
+        case 'last-7-days':
+          start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'last-30-days':
+          start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'last-3-months':
+          start = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+          break;
+        case 'last-6-months':
+          start = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          break;
+        case 'last-year':
+          start = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          break;
+        default:
+          start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      }
+      
+      return { start, end: now };
+    };
+
+    const { start, end } = getDateRange();
+    
+    // Filtrar pacientes por data
+    const filteredPatients = patients.filter(patient => {
+      if (!patient.created_at) return false;
+      const createdAt = new Date(patient.created_at);
+      return createdAt >= start && createdAt <= end;
+    });
+
+    // Recalcular dados mensais
+    const monthlyStats = filteredPatients.reduce((acc, patient) => {
+      if (!patient.created_at) return acc;
+      
+      const date = new Date(patient.created_at);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!acc[monthKey]) {
+        acc[monthKey] = { month: monthKey, novos: 0 };
+      }
+      
+      acc[monthKey].novos++;
+      return acc;
+    }, {} as Record<string, any>);
+
+    const newMonthlyData = Object.values(monthlyStats).sort((a: any, b: any) => a.month.localeCompare(b.month));
+
+    // Recalcular distribuição de planos
+    const inactivePlans = ['⛔ Negativado', 'NOVO', 'RESCISÃO', 'INATIVO'];
+    const activePatients = filteredPatients.filter(patient => {
+      if (!patient.plano) return false;
+      return !inactivePlans.some(inactive => 
+        patient.plano!.toUpperCase().includes(inactive.toUpperCase())
+      );
+    });
+
+    const planCounts: { [key: string]: number } = {};
+    activePatients.forEach(patient => {
+      const planName = patient.plano || 'Sem Plano';
+      planCounts[planName] = (planCounts[planName] || 0) + 1;
+    });
+
+    const colors = ['#eab308', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+    const newPlanDistribution = Object.entries(planCounts).map(([name, value], index) => ({
+      name,
+      value,
+      color: colors[index % colors.length]
+    }));
+
+    setFilteredData({
+      patients: filteredPatients,
+      monthlyData: newMonthlyData,
+      planDistribution: newPlanDistribution
+    });
+  };
+
+  // Usar dados filtrados ou originais
+  const displayData = filteredData.patients.length > 0 ? filteredData : {
+    patients,
+    monthlyData,
+    planDistribution
+  };
+
   const handleGenerateReport = async (reportId: string) => {
     setIsGenerating(true);
     setSelectedReport(reportId);
     
-    // Simular geração de relatório
-    setTimeout(() => {
+    try {
+      const reportData = await reportsService.generateReportPreview(reportId, filters);
+      setCurrentReportData(reportData);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+    } finally {
       setIsGenerating(false);
       setSelectedReport(null);
-    }, 2000);
+    }
   };
 
   const handleExportReport = (reportId: string, format: 'pdf' | 'excel' | 'csv') => {
-    // Implementar exportação
     console.log(`Exportando relatório ${reportId} em formato ${format}`);
+    
+    // Se já temos dados do relatório, exportar diretamente
+    if (currentReportData && currentReportData.id === reportId) {
+      switch (format) {
+        case 'csv':
+          reportsService.exportToCSV(currentReportData);
+          break;
+        case 'excel':
+          reportsService.exportToExcel(currentReportData);
+          break;
+        case 'pdf':
+          reportsService.exportToPDF(currentReportData);
+          break;
+      }
+    } else {
+      // Gerar e exportar
+      reportsService.generateReportPreview(reportId, filters)
+        .then(reportData => {
+          switch (format) {
+            case 'csv':
+              reportsService.exportToCSV(reportData);
+              break;
+            case 'excel':
+              reportsService.exportToExcel(reportData);
+              break;
+            case 'pdf':
+              reportsService.exportToPDF(reportData);
+              break;
+          }
+        })
+        .catch(error => console.error('Erro ao exportar:', error));
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -293,7 +441,7 @@ export default function ReportsPage() {
                   <Button 
                     size="sm" 
                     className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => console.log('Aplicar filtros')}
+                    onClick={applyFilters}
                   >
                     Aplicar
                   </Button>
@@ -325,7 +473,7 @@ export default function ReportsPage() {
                 <div>
                   <p className="text-sm text-slate-400">Total de Pacientes</p>
                   <p className="text-2xl font-bold text-white">
-                    {patientsLoading ? '...' : patients.length}
+                    {patientsLoading ? '...' : displayData.patients.length}
                   </p>
                 </div>
                 <Users className="w-8 h-8 text-blue-400" />
@@ -353,7 +501,7 @@ export default function ReportsPage() {
                 <div>
                   <p className="text-sm text-slate-400">Planos Únicos</p>
                   <p className="text-2xl font-bold text-white">
-                    {planDistribution.length}
+                    {displayData.planDistribution.length}
                   </p>
                 </div>
                 <BarChart3 className="w-8 h-8 text-purple-400" />
@@ -463,7 +611,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyData}>
+                <LineChart data={displayData.monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                   <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -534,7 +682,7 @@ export default function ReportsPage() {
               <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
-                    data={planDistribution}
+                    data={displayData.planDistribution}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -542,7 +690,7 @@ export default function ReportsPage() {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {planDistribution.map((entry, index) => (
+                    {displayData.planDistribution.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={entry.color}
@@ -570,6 +718,18 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Visualização de Relatório */}
+      <ReportViewModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        reportData={currentReportData}
+        onExport={(format) => {
+          if (currentReportData) {
+            handleExportReport(currentReportData.id, format);
+          }
+        }}
+      />
     </DashboardLayout>
   );
 }
