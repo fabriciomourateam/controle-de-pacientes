@@ -11,6 +11,10 @@
     {
       "source": "/api/sync-dashboard-metrics", 
       "destination": "/api/sync-dashboard-metrics.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
