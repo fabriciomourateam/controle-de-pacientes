@@ -56,6 +56,33 @@ class UserPreferencesService {
     }
   }
 
+  // Método com fallback para problemas de schema cache
+  async upsertUserPreferencesWithFallback(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
+    console.log('Tentando salvar com fallback...');
+    
+    // Primeiro tentar com o campo dedicado
+    try {
+      return await this.upsertUserPreferences(preferences);
+    } catch (error) {
+      console.warn('Falha ao salvar no campo dedicado, usando fallback em filters...');
+      
+      // Se falhar, usar o campo filters como fallback
+      if (preferences.read_notifications) {
+        const currentPrefs = await this.getUserPreferences();
+        const updatedFilters = {
+          ...(currentPrefs?.filters || {}),
+          read_notifications: preferences.read_notifications
+        };
+        
+        return await this.upsertUserPreferences({
+          filters: updatedFilters
+        });
+      }
+      
+      return null;
+    }
+  }
+
   // Criar ou atualizar preferências
   async upsertUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
     const userId = this.getUserId();
@@ -100,8 +127,20 @@ class UserPreferencesService {
     console.log('Iniciando busca de notificações lidas...');
     try {
       const preferences = await this.getUserPreferences();
-      const readNotifications = preferences?.read_notifications || [];
-      console.log('Notificações lidas encontradas:', readNotifications);
+      
+      // Tentar primeiro o campo read_notifications, depois usar fallback no filters
+      let readNotifications: string[] = [];
+      
+      if (preferences?.read_notifications) {
+        readNotifications = preferences.read_notifications;
+        console.log('Notificações lidas encontradas (campo dedicado):', readNotifications);
+      } else if (preferences?.filters?.read_notifications) {
+        readNotifications = preferences.filters.read_notifications;
+        console.log('Notificações lidas encontradas (fallback em filters):', readNotifications);
+      } else {
+        console.log('Nenhuma notificação lida encontrada');
+      }
+      
       return readNotifications;
     } catch (error) {
       console.error('Erro ao buscar notificações lidas:', error);
@@ -120,7 +159,8 @@ class UserPreferencesService {
 
       const updatedReadNotifications = [...currentReadNotifications, notificationId];
       
-      const result = await this.upsertUserPreferences({
+      // Tentar salvar no campo dedicado primeiro, depois usar fallback
+      let result = await this.upsertUserPreferencesWithFallback({
         read_notifications: updatedReadNotifications
       });
 
@@ -144,7 +184,7 @@ class UserPreferencesService {
 
       const updatedReadNotifications = [...currentReadNotifications, ...newNotifications];
       
-      const result = await this.upsertUserPreferences({
+      const result = await this.upsertUserPreferencesWithFallback({
         read_notifications: updatedReadNotifications
       });
 
