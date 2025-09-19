@@ -29,22 +29,25 @@ class UserPreferencesService {
     console.log('Buscando preferências para usuário:', userId);
     
     try {
-      const { data, error } = await supabase
+      // Primeiro tenta buscar sem .single() para ver se a tabela existe
+      const { data: allData, error: listError } = await supabase
         .from('user_preferences')
         .select('*')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Não encontrado - isso é normal para novos usuários
-          console.log('Preferências não encontradas para novo usuário:', userId);
-          return null;
-        }
-        console.error('Erro ao buscar preferências:', error);
-        throw error;
+      if (listError) {
+        console.error('Erro na consulta da tabela user_preferences:', listError);
+        throw listError;
       }
 
+      console.log('Resultado da consulta (array):', allData);
+
+      if (!allData || allData.length === 0) {
+        console.log('Preferências não encontradas para novo usuário:', userId);
+        return null;
+      }
+
+      const data = allData[0]; // Pega o primeiro resultado
       console.log('Preferências carregadas:', data);
       return data;
     } catch (error) {
@@ -86,8 +89,16 @@ class UserPreferencesService {
 
   // Buscar notificações lidas
   async getReadNotifications(): Promise<string[]> {
-    const preferences = await this.getUserPreferences();
-    return preferences?.read_notifications || [];
+    console.log('Iniciando busca de notificações lidas...');
+    try {
+      const preferences = await this.getUserPreferences();
+      const readNotifications = preferences?.read_notifications || [];
+      console.log('Notificações lidas encontradas:', readNotifications);
+      return readNotifications;
+    } catch (error) {
+      console.error('Erro ao buscar notificações lidas:', error);
+      return [];
+    }
   }
 
   // Marcar notificação como lida
