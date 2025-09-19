@@ -79,14 +79,22 @@ export function useNotifications() {
     return notifs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }, [checkins, patients, readNotifications]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
 
   const markAsRead = (notificationId: string) => {
-    setReadNotifications(prev => new Set([...prev, notificationId]));
+    console.log('Marcando como lida:', notificationId);
+    setReadNotifications(prev => {
+      const newSet = new Set([...prev, notificationId]);
+      console.log('Notificações lidas:', newSet);
+      return newSet;
+    });
   };
 
   const markAllAsRead = () => {
     const allIds = notifications.map(n => n.id);
+    console.log('Marcando todas como lidas:', allIds);
     setReadNotifications(new Set(allIds));
   };
 

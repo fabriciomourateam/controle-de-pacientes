@@ -33,13 +33,13 @@ export function NotificationsPanel() {
   const getPriorityColor = (priority: Notification['priority']) => {
     switch (priority) {
       case 'high':
-        return 'border-l-red-500 bg-red-50/50';
+        return 'border-l-red-500 bg-red-500/10';
       case 'medium':
-        return 'border-l-yellow-500 bg-yellow-50/50';
+        return 'border-l-yellow-500 bg-yellow-500/10';
       case 'low':
-        return 'border-l-gray-500 bg-gray-50/50';
+        return 'border-l-blue-500 bg-blue-500/10';
       default:
-        return 'border-l-gray-300';
+        return 'border-l-gray-500 bg-gray-500/10';
     }
   };
 
@@ -120,7 +120,7 @@ export function NotificationsPanel() {
                 <div
                   key={notification.id}
                   className={`p-4 cursor-pointer hover:bg-accent transition-colors border-l-4 ${getPriorityColor(notification.priority)} ${
-                    !notification.read ? 'bg-blue-50/30' : ''
+                    !notification.read ? 'bg-blue-500/5 dark:bg-blue-500/10' : ''
                   }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
