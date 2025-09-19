@@ -58,29 +58,25 @@ class UserPreferencesService {
 
   // Método com fallback para problemas de schema cache
   async upsertUserPreferencesWithFallback(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
-    console.log('Tentando salvar com fallback...');
+    console.log('Tentando salvar com fallback...', preferences);
     
-    // Primeiro tentar com o campo dedicado
-    try {
-      return await this.upsertUserPreferences(preferences);
-    } catch (error) {
-      console.warn('Falha ao salvar no campo dedicado, usando fallback em filters...');
+    // Se tiver read_notifications, tentar salvar no campo filters diretamente para evitar erro
+    if (preferences.read_notifications) {
+      console.log('Usando fallback direto em filters para read_notifications...');
       
-      // Se falhar, usar o campo filters como fallback
-      if (preferences.read_notifications) {
-        const currentPrefs = await this.getUserPreferences();
-        const updatedFilters = {
-          ...(currentPrefs?.filters || {}),
-          read_notifications: preferences.read_notifications
-        };
-        
-        return await this.upsertUserPreferences({
-          filters: updatedFilters
-        });
-      }
+      const currentPrefs = await this.getUserPreferences();
+      const updatedFilters = {
+        ...(currentPrefs?.filters || {}),
+        read_notifications: preferences.read_notifications
+      };
       
-      return null;
+      return await this.upsertUserPreferences({
+        filters: updatedFilters
+      });
     }
+    
+    // Para outros campos, usar método normal
+    return await this.upsertUserPreferences(preferences);
   }
 
   // Criar ou atualizar preferências

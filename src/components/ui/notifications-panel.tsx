@@ -167,11 +167,12 @@ export function NotificationsPanel() {
                 size="sm" 
                 className="w-full text-xs"
                 onClick={() => {
-                  navigate('/notifications');
+                  // Por enquanto, apenas fechar o painel
                   setIsOpen(false);
+                  console.log('Funcionalidade "Ver todas" será implementada futuramente');
                 }}
               >
-                Ver todas as notificações
+                Fechar notificações
               </Button>
             </div>
           </>
