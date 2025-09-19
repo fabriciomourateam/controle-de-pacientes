@@ -10,7 +10,8 @@ import {
   User,
   Bell,
   HelpCircle,
-  LogOut
+  LogOut,
+  Monitor
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -36,6 +37,7 @@ const mainNavItems = [
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
   { title: "Planos", url: "/plans", icon: Calendar },
   { title: "Métricas", url: "/metrics", icon: TrendingUp },
+  { title: "Workspace", url: "/workspace", icon: Monitor },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
 
