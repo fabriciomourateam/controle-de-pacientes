@@ -11,7 +11,8 @@ import {
   Bell,
   HelpCircle,
   LogOut,
-  Monitor
+  Monitor,
+  Activity
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -38,6 +39,7 @@ const mainNavItems = [
   { title: "Planos", url: "/plans", icon: Calendar },
   { title: "Métricas", url: "/metrics", icon: TrendingUp },
   { title: "Workspace", url: "/workspace", icon: Monitor },
+  { title: "Bioimpedância", url: "/bioimpedancia", icon: Activity },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
 

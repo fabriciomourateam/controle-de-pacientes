@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Database, TrendingUp } from 'lucide-react';
+import { getProxyUrl } from '@/lib/config';
 // Função para sincronizar métricas via proxy
 async function syncDashboardMetrics(apiKey: string, databaseId: string) {
-  const response = await fetch('http://localhost:3001/api/sync-dashboard-metrics', {
+  const response = await fetch(getProxyUrl().replace('/notion-proxy', '/sync-dashboard-metrics'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

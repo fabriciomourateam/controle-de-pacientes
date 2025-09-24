@@ -1,6 +1,7 @@
 import { Client } from '@notionhq/client';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardDados } from '@/types/dashboard';
+import { getProxyUrl } from './config';
 
 export class DashboardNotionService {
   private notion: Client;
@@ -41,7 +42,7 @@ export class DashboardNotionService {
 
   async fetchAllDataProxy(databaseId: string) {
     try {
-      const response = await fetch('http://localhost:3001/api/notion-proxy', {
+      const response = await fetch(getProxyUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

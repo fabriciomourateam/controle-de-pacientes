@@ -1,19 +1,21 @@
-// API Route para proxy do Notion na Vercel
-export default async function handler(req, res) {
-  // Configurar CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+const app = express();
+const port = 3001;
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido' });
-  }
+// Middleware
+app.use(cors());
+app.use(express.json());
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Proxy para API do Notion
+app.post('/api/notion-proxy', async (req, res) => {
   try {
     const { apiKey, databaseId, action, requestBody = {} } = req.body;
 
@@ -33,6 +35,7 @@ export default async function handler(req, res) {
       console.log('🔍 Fazendo requisição para Notion API...');
       console.log('📊 Database ID:', databaseId);
       console.log('🔑 API Key:', apiKey.substring(0, 10) + '...');
+      console.log('📋 Request Body:', JSON.stringify(defaultBody, null, 2));
 
       const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
         method: 'POST',
@@ -45,6 +48,7 @@ export default async function handler(req, res) {
       });
 
       console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Status Text:', response.statusText);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -74,4 +78,31 @@ export default async function handler(req, res) {
       error: error.message
     });
   }
-}
+});
+
+// Tratamento de erros não capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Erro não capturado:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promise rejeitada:', reason);
+});
+
+// Iniciar servidor
+app.listen(port, () => {
+  console.log(`🚀 Servidor proxy rodando em http://localhost:${port}`);
+  console.log(`💚 Health check: http://localhost:${port}/health`);
+  console.log(`🔧 Notion proxy: http://localhost:${port}/api/notion-proxy`);
+});
+
+// Manter o processo vivo
+process.on('SIGINT', () => {
+  console.log('🛑 Recebido SIGINT, encerrando servidor...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Recebido SIGTERM, encerrando servidor...');
+  process.exit(0);
+});

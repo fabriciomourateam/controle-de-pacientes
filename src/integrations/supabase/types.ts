@@ -507,6 +507,42 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          filters: Json | null
+          sorting: Json | null
+          visible_columns: string[] | null
+          page_size: number | null
+          read_notifications: Json | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          filters?: Json | null
+          sorting?: Json | null
+          visible_columns?: string[] | null
+          page_size?: number | null
+          read_notifications?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          filters?: Json | null
+          sorting?: Json | null
+          visible_columns?: string[] | null
+          page_size?: number | null
+          read_notifications?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           id: string

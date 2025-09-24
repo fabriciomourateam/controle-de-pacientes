@@ -12,6 +12,7 @@ import Checkins from "./pages/Checkins";
 import Plans from "./pages/Plans";
 import MetricsDashboard from "./pages/MetricsDashboard";
 import Workspace from "./pages/Workspace";
+import Bioimpedancia from "./pages/Bioimpedancia";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/plans" element={<Plans />} />
           <Route path="/metrics" element={<MetricsDashboard />} />
           <Route path="/workspace" element={<Workspace />} />
+          <Route path="/bioimpedancia" element={<Bioimpedancia />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />

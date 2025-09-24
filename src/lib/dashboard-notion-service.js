@@ -1,6 +1,16 @@
 import { Client } from '@notionhq/client';
 import { createClient } from '@supabase/supabase-js';
 
+// Função para obter URL do proxy dinamicamente
+function getProxyUrl() {
+  // Se estiver em produção, usar a API Route da Vercel
+  if (import.meta.env.PROD) {
+    return 'https://painel-fmteam.vercel.app/api/notion-proxy';
+  }
+  // Em desenvolvimento, usar o proxy local
+  return 'http://localhost:3001/api/notion-proxy';
+}
+
 // Configuração do Supabase
 const supabaseUrl = 'https://qhzifnyjyxdushxorzrk.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA';
@@ -49,7 +59,7 @@ export class DashboardNotionService {
       
       console.log('🔑 Usando API Key:', apiKey ? apiKey.substring(0, 10) + '...' : 'undefined');
       
-      const response = await fetch('http://localhost:3001/api/notion-proxy', {
+      const response = await fetch(getProxyUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
