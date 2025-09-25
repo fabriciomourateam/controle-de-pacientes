@@ -3,6 +3,7 @@ import { DashboardNotionService } from './dashboard-notion-service';
 interface DashboardAutoSyncConfig {
   apiKey: string;
   databaseId: string;
+  intervalDays: number;
   intervalMinutes: number;
   enabled: boolean;
 }
@@ -24,12 +25,12 @@ class DashboardAutoSyncService {
       return;
     }
 
-    console.log(`🔄 Iniciando auto-sync de métricas com intervalo de ${config.intervalMinutes} minutos`);
+    console.log(`🔄 Iniciando auto-sync de métricas com intervalo de ${config.intervalDays} dias (${config.intervalMinutes} minutos)`);
     
     // Executar sincronização imediata
     await this.performMetricsSync(config);
     
-    // Configurar intervalo
+    // Configurar intervalo (usar minutos convertidos de dias)
     this.intervalId = setInterval(async () => {
       await this.performMetricsSync(config);
     }, config.intervalMinutes * 60 * 1000);
@@ -54,8 +55,8 @@ class DashboardAutoSyncService {
       
       const dashboardService = new DashboardNotionService(config.apiKey);
       
-      // Processar dados do Notion para métricas
-      const result = await dashboardService.processNotionDataForMetrics(config.databaseId);
+      // Sincronizar dados do Notion para métricas
+      const result = await dashboardService.syncToSupabase(config.databaseId);
 
       this.lastSyncTime = new Date();
       
@@ -63,7 +64,7 @@ class DashboardAutoSyncService {
       console.log(`   📥 Inseridos: ${result.inserted}`);
       console.log(`   🔄 Atualizados: ${result.updated}`);
       console.log(`   ❌ Erros: ${result.errors.length}`);
-      console.log(`   ⏰ Próxima sincronização em ${config.intervalMinutes} minutos`);
+      console.log(`   ⏰ Próxima sincronização em ${config.intervalDays} dias (${config.intervalMinutes} minutos)`);
 
       // Salvar status da última sincronização
       await this.saveSyncStatus({

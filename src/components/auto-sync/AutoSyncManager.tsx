@@ -23,6 +23,7 @@ import { autoSyncService } from '@/lib/auto-sync-service';
 interface AutoSyncConfig {
   apiKey: string;
   databaseId: string;
+  intervalDays: number;
   intervalMinutes: number;
   enabled: boolean;
 }
@@ -32,7 +33,8 @@ export function AutoSyncManager() {
   const [config, setConfig] = useState<AutoSyncConfig>({
     apiKey: '',
     databaseId: '',
-    intervalMinutes: 30,
+    intervalDays: 1,
+    intervalMinutes: 1440, // 1 dia = 1440 minutos
     enabled: false
   });
   const [isRunning, setIsRunning] = useState(false);
@@ -40,13 +42,32 @@ export function AutoSyncManager() {
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Converter dias para minutos
+  const convertDaysToMinutes = (days: number) => {
+    return days * 24 * 60; // 1 dia = 1440 minutos
+  };
+
+  // Atualizar minutos quando dias mudarem
+  useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      intervalMinutes: convertDaysToMinutes(prev.intervalDays)
+    }));
+  }, [config.intervalDays]);
+
   // Carregar configurações salvas
   useEffect(() => {
     const savedConfig = localStorage.getItem('autoSyncConfig');
     const savedStatus = autoSyncService.getSyncStatus();
     
     if (savedConfig) {
-      setConfig(JSON.parse(savedConfig));
+      const parsedConfig = JSON.parse(savedConfig);
+      // Garantir que intervalDays existe, senão usar 1 dia
+      if (!parsedConfig.intervalDays) {
+        parsedConfig.intervalDays = 1;
+        parsedConfig.intervalMinutes = convertDaysToMinutes(1);
+      }
+      setConfig(parsedConfig);
     }
     
     if (savedStatus) {
@@ -69,7 +90,11 @@ export function AutoSyncManager() {
   }, []);
 
   const handleSaveConfig = () => {
-    localStorage.setItem('autoSyncConfig', JSON.stringify(config));
+    const configToSave = {
+      ...config,
+      intervalMinutes: convertDaysToMinutes(config.intervalDays)
+    };
+    localStorage.setItem('autoSyncConfig', JSON.stringify(configToSave));
     toast({
       title: "Configuração salva",
       description: "As configurações de auto-sync foram salvas com sucesso.",
@@ -92,7 +117,7 @@ export function AutoSyncManager() {
       setIsRunning(true);
       toast({
         title: "Auto-sync iniciado",
-        description: `Sincronização automática iniciada com intervalo de ${config.intervalMinutes} minutos.`,
+        description: `Sincronização automática iniciada com intervalo de ${config.intervalDays} ${config.intervalDays === 1 ? 'dia' : 'dias'}.`,
       });
     } catch (error) {
       toast({
@@ -230,14 +255,14 @@ export function AutoSyncManager() {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <Label htmlFor="interval" className="text-xs text-slate-300">Intervalo (min)</Label>
+                  <Label htmlFor="interval" className="text-xs text-slate-300">Intervalo (dias)</Label>
                   <Input
                     id="interval"
                     type="number"
-                    min="5"
-                    max="1440"
-                    value={config.intervalMinutes}
-                    onChange={(e) => setConfig(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value) || 30 }))}
+                    min="1"
+                    max="30"
+                    value={config.intervalDays}
+                    onChange={(e) => setConfig(prev => ({ ...prev, intervalDays: parseInt(e.target.value) || 1 }))}
                     className="h-8 w-20 text-sm"
                   />
                 </div>
@@ -249,6 +274,10 @@ export function AutoSyncManager() {
                   />
                   <Label htmlFor="enabled" className="text-xs text-slate-300">Habilitar</Label>
                 </div>
+              </div>
+              
+              <div className="text-xs text-slate-400">
+                Equivale a {convertDaysToMinutes(config.intervalDays)} minutos ({config.intervalDays} {config.intervalDays === 1 ? 'dia' : 'dias'})
               </div>
 
               <Button onClick={handleSaveConfig} variant="outline" size="sm" className="w-full h-8 text-xs">

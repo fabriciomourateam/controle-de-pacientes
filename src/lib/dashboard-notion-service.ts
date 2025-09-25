@@ -177,6 +177,11 @@ export class DashboardNotionService {
     return date.toISOString().split('T')[0];
   }
 
+  // Método para processar dados do Notion para métricas (compatibilidade)
+  async processNotionDataForMetrics(databaseId: string) {
+    return await this.syncToSupabase(databaseId);
+  }
+
   async syncToSupabase(databaseId: string): Promise<{
     success: boolean;
     imported: number;
@@ -187,92 +192,10 @@ export class DashboardNotionService {
     try {
       console.log('🔄 Processando dados do Notion para métricas...');
       
-      // Usar apenas o proxy (SDK está com problemas)
-      let notionData: any[] = [];
-      try {
-        notionData = await this.fetchAllDataProxy(databaseId);
-        console.log('✅ Dados obtidos via proxy');
-      } catch (proxyError) {
-        console.log('❌ Proxy falhou:', proxyError);
-        console.log('📊 Inserindo dados de exemplo para o dashboard funcionar...');
-        
-        // Inserir dados de exemplo quando há erro na sincronização
-        try {
-          const exampleData = [
-            {
-              mes: "Janeiro",
-              ano: "2025",
-              mes_numero: "1",
-              data_referencia: "2025-01-01",
-              ativos_total_inicio_mes: "50",
-              saldo_entrada_saida: "5",
-              entraram: "10",
-              sairam: "5",
-              vencimentos: "8",
-              nao_renovou: "3",
-              desistencia: "2",
-              congelamento: "0",
-              percentual_renovacao: "85.0",
-              percentual_churn: "15.0",
-              churn_max: "10"
-            },
-            {
-              mes: "Fevereiro",
-              ano: "2025",
-              mes_numero: "2",
-              data_referencia: "2025-02-01",
-              ativos_total_inicio_mes: "55",
-              saldo_entrada_saida: "8",
-              entraram: "12",
-              sairam: "4",
-              vencimentos: "6",
-              nao_renovou: "2",
-              desistencia: "2",
-              congelamento: "0",
-              percentual_renovacao: "90.0",
-              percentual_churn: "10.0",
-              churn_max: "8"
-            }
-          ];
-
-          // Inserir dados de exemplo no Supabase
-          const { error: insertError } = await supabase
-            .from('dashboard_dados')
-            .upsert(exampleData, { 
-              onConflict: 'ano,mes_numero',
-              ignoreDuplicates: false 
-            });
-
-          if (insertError) {
-            console.error('❌ Erro ao inserir dados de exemplo:', insertError);
-            return {
-              success: false,
-              imported: 0,
-              updated: 0,
-              errors: 0,
-              message: `Erro no proxy e ao inserir dados de exemplo: ${proxyError.message}`
-            };
-          }
-
-          console.log('✅ Dados de exemplo inseridos com sucesso');
-          return {
-            success: true,
-            imported: 2,
-            updated: 0,
-            errors: 0,
-            message: `Erro na sincronização com Notion, mas dados de exemplo foram inseridos para o dashboard funcionar. Erro: ${proxyError.message}`
-          };
-        } catch (insertError) {
-          console.error('❌ Erro ao inserir dados de exemplo:', insertError);
-          return {
-            success: false,
-            imported: 0,
-            updated: 0,
-            errors: 0,
-            message: `Erro no proxy e ao inserir dados de exemplo: ${proxyError.message}`
-          };
-        }
-      }
+      // Buscar dados reais do Notion via proxy
+      console.log('🔍 Buscando dados reais do Notion...');
+      const notionData = await this.fetchAllDataProxy(databaseId);
+      console.log('✅ Dados reais obtidos do Notion via proxy');
 
       console.log(`📊 Encontrados ${notionData.length} registros no Notion`);
 

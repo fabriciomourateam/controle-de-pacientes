@@ -19,7 +19,8 @@ import { dashboardAutoSyncService } from '@/lib/dashboard-auto-sync-service';
 
 export function DashboardAutoSyncManager() {
   const [enabled, setEnabled] = useState(false);
-  const [intervalMinutes, setIntervalMinutes] = useState(60);
+  const [intervalDays, setIntervalDays] = useState(1);
+  const [intervalMinutes, setIntervalMinutes] = useState(1440); // 1 dia = 1440 minutos
   const [apiKey, setApiKey] = useState('');
   const [databaseId, setDatabaseId] = useState('');
   const [lastSync, setLastSync] = useState<any>(null);
@@ -32,7 +33,8 @@ export function DashboardAutoSyncManager() {
     if (savedConfig) {
       const config = JSON.parse(savedConfig);
       setEnabled(config.enabled || false);
-      setIntervalMinutes(config.intervalMinutes || 60);
+      setIntervalDays(config.intervalDays || 1);
+      setIntervalMinutes(config.intervalMinutes || 1440);
       setApiKey(config.apiKey || '');
       setDatabaseId(config.databaseId || '');
     }
@@ -45,11 +47,22 @@ export function DashboardAutoSyncManager() {
     }
   }, []);
 
+  // Converter dias para minutos
+  const convertDaysToMinutes = (days: number) => {
+    return days * 24 * 60; // 1 dia = 1440 minutos
+  };
+
+  // Atualizar minutos quando dias mudarem
+  useEffect(() => {
+    setIntervalMinutes(convertDaysToMinutes(intervalDays));
+  }, [intervalDays]);
+
   // Salvar configurações
   const saveConfig = () => {
     const config = {
       enabled,
-      intervalMinutes,
+      intervalDays,
+      intervalMinutes: convertDaysToMinutes(intervalDays),
       apiKey,
       databaseId
     };
@@ -75,6 +88,7 @@ export function DashboardAutoSyncManager() {
       await dashboardAutoSyncService.startAutoSync({
         apiKey: apiKey.trim(),
         databaseId: databaseId.trim(),
+        intervalDays,
         intervalMinutes,
         enabled: true
       });
@@ -85,7 +99,7 @@ export function DashboardAutoSyncManager() {
       
       toast({
         title: "Auto-sync iniciado",
-        description: `Sincronização automática a cada ${intervalMinutes} minutos`
+        description: `Sincronização automática a cada ${intervalDays} ${intervalDays === 1 ? 'dia' : 'dias'}`
       });
     } catch (error) {
       toast({
@@ -124,6 +138,7 @@ export function DashboardAutoSyncManager() {
       await dashboardAutoSyncService.startAutoSync({
         apiKey: apiKey.trim(),
         databaseId: databaseId.trim(),
+        intervalDays,
         intervalMinutes,
         enabled: false
       });
@@ -205,16 +220,19 @@ export function DashboardAutoSyncManager() {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="interval" className="text-white">Intervalo (minutos)</Label>
+            <Label htmlFor="interval" className="text-white">Intervalo (dias)</Label>
             <Input
               id="interval"
               type="number"
-              min="5"
-              max="1440"
-              value={intervalMinutes}
-              onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 60)}
+              min="1"
+              max="30"
+              value={intervalDays}
+              onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
               className="w-20 bg-slate-700/50 border-slate-600/50 text-white"
             />
+          </div>
+          <div className="text-xs text-slate-400">
+            Equivale a {convertDaysToMinutes(intervalDays)} minutos ({intervalDays} {intervalDays === 1 ? 'dia' : 'dias'})
           </div>
         </div>
 
@@ -287,6 +305,8 @@ export function DashboardAutoSyncManager() {
     </Card>
   );
 }
+
+
 
 
 
