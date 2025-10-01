@@ -7,6 +7,7 @@ import { AutoSyncManager } from "@/components/auto-sync/AutoSyncManager";
 import { InteractiveChart } from "./InteractiveChart";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   Calendar,
@@ -29,6 +30,7 @@ import type { CheckinWithPatient } from "@/lib/checkin-service";
 
 export function DashboardOverview() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const { metrics, loading: metricsLoading } = useDashboardMetrics(filterThisMonth);
   const { chartData, loading: chartLoading } = useChartData(filterThisMonth);
@@ -44,6 +46,10 @@ export function DashboardOverview() {
   const handleViewCheckin = (checkin: CheckinWithPatient) => {
     setSelectedCheckin(checkin);
     setIsModalOpen(true);
+  };
+
+  const handlePatientClick = (patientId: string) => {
+    navigate(`/patients/${patientId}`);
   };
 
   // Função para criar novo paciente
@@ -303,7 +309,11 @@ export function DashboardOverview() {
               </div>
             ) : (
               expiringPatients.map((patient) => (
-                <div key={patient.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/20 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-300">
+                <div 
+                  key={patient.id} 
+                  onClick={() => handlePatientClick(patient.id)}
+                  className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/20 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+                >
                   <div className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
                       <AvatarFallback className="bg-amber-500/20 text-amber-400">
