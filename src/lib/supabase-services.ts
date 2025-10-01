@@ -21,8 +21,13 @@ export const patientService = {
     
     const today = new Date();
     const expDate = new Date(expirationDate);
+    
+    // Normalizar para meia-noite para comparação precisa
+    today.setHours(0, 0, 0, 0);
+    expDate.setHours(0, 0, 0, 0);
+    
     const diffTime = expDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
     return diffDays;
   },
@@ -220,10 +225,24 @@ export const patientService = {
     if (error) throw error;
     
     // Filtrar e calcular dias_para_vencer
-    const updatedData = data?.map(patient => ({
-      ...patient,
-      dias_para_vencer: this.calculateDaysToExpiration(patient.vencimento)
-    })).filter(patient => {
+    const updatedData = data?.map(patient => {
+      const diasParaVencer = this.calculateDaysToExpiration(patient.vencimento);
+      
+      // Debug para Jones Fernandes
+      if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
+        console.log('🔍 Debug Jones Fernandes:', {
+          nome: patient.nome,
+          vencimento: patient.vencimento,
+          dias_para_vencer: diasParaVencer,
+          plano: patient.plano
+        });
+      }
+      
+      return {
+        ...patient,
+        dias_para_vencer: diasParaVencer
+      };
+    }).filter(patient => {
       // Apenas pacientes ativos (não inativos/negativados)
       const diasParaVencer = patient.dias_para_vencer;
       
