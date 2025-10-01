@@ -83,7 +83,7 @@ const COLORS = {
 
 export function InteractiveChart({ data, title, description, icon: Icon, iconColor }: InteractiveChartProps) {
   const [chartType, setChartType] = useState('line');
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [selectedData, setSelectedData] = useState<ChartData | null>(null);
 
   const handleDataClick = (data: any) => {
