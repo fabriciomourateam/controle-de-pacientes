@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { GlobalSearch } from "@/components/ui/global-search";
 import { NotificationsPanel } from "@/components/ui/notifications-panel";
 
@@ -25,7 +24,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
               
               <div className="flex items-center gap-2">
-                <ThemeToggle />
                 <NotificationsPanel />
               </div>
             </div>

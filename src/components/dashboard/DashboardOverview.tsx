@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PatientForm } from "@/components/forms/PatientForm";
 import { AutoSyncManager } from "@/components/auto-sync/AutoSyncManager";
+import { InteractiveChart } from "./InteractiveChart";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import {
@@ -20,22 +21,6 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip
-} from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
 import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
@@ -187,75 +172,16 @@ export function DashboardOverview() {
 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico de Evolução */}
-        <Card className="col-span-1 lg:col-span-2 bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Activity className="w-4 h-4 text-blue-400" />
-              Evolução Mensal
-            </CardTitle>
-            <CardDescription className="text-slate-400">
-              Novos pacientes por mês
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="month" 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
-                    border: '2px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '12px',
-                    color: '#ffffff',
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.7)',
-                    backdropFilter: 'blur(10px)'
-                  }}
-                  formatter={(value: any, name: any) => [
-                    `${value} pacientes`,
-                    'Novos Pacientes'
-                  ]}
-                  labelStyle={{
-                    color: '#ffffff',
-                    fontWeight: '700',
-                    fontSize: '15px'
-                  }}
-                  itemStyle={{
-                    color: '#ffffff'
-                  }}
-                  cursor={{ fill: 'rgba(59, 130, 246, 0.2)' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="novos" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={3}
-                  dot={{ 
-                    fill: "hsl(var(--primary))", 
-                    strokeWidth: 2, 
-                    r: 6,
-                    stroke: "hsl(var(--background))"
-                  }}
-                  activeDot={{ 
-                    r: 8, 
-                    fill: "hsl(var(--primary))",
-                    stroke: "hsl(var(--background))",
-                    strokeWidth: 2
-                  }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Gráfico Interativo de Evolução */}
+        <div className="col-span-1 lg:col-span-2">
+          <InteractiveChart
+            data={monthlyData}
+            title="Evolução Mensal"
+            description="Novos pacientes e feedbacks por mês"
+            icon={Activity}
+            iconColor="text-blue-400"
+          />
+        </div>
 
         {/* Distribuição de Planos */}
         <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
