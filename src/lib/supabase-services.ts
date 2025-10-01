@@ -79,10 +79,24 @@ export const patientService = {
     if (error) throw error;
     
     // Atualizar days_to_expiration para todos os pacientes
-    const updatedData = data?.map(patient => ({
-      ...patient,
-      dias_para_vencer: this.calculateDaysToExpiration(patient.vencimento)
-    }));
+    const updatedData = data?.map(patient => {
+      const diasParaVencer = this.calculateDaysToExpiration(patient.vencimento);
+      
+      // Debug para Jones Fernandes na lista de pacientes
+      if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
+        console.log('🔍 Debug Jones Fernandes (Lista):', {
+          nome: patient.nome,
+          vencimento: patient.vencimento,
+          dias_para_vencer: diasParaVencer,
+          plano: patient.plano
+        });
+      }
+      
+      return {
+        ...patient,
+        dias_para_vencer: diasParaVencer
+      };
+    });
 
     return updatedData;
   },
@@ -230,11 +244,12 @@ export const patientService = {
       
       // Debug para Jones Fernandes
       if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
-        console.log('🔍 Debug Jones Fernandes:', {
+        console.log('🔍 Debug Jones Fernandes (Dashboard):', {
           nome: patient.nome,
           vencimento: patient.vencimento,
           dias_para_vencer: diasParaVencer,
-          plano: patient.plano
+          plano: patient.plano,
+          filtro_dias: days
         });
       }
       
@@ -245,6 +260,18 @@ export const patientService = {
     }).filter(patient => {
       // Apenas pacientes ativos (não inativos/negativados)
       const diasParaVencer = patient.dias_para_vencer;
+      
+      // Debug para Jones Fernandes - verificar filtros
+      if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
+        console.log('🔍 Debug Jones Fernandes (Filtro):', {
+          nome: patient.nome,
+          dias_para_vencer: diasParaVencer,
+          plano: patient.plano,
+          filtro_dias: days,
+          passa_filtro_dias: diasParaVencer <= days && diasParaVencer >= 0,
+          plano_excluido: ['INATIVO', 'CONGELADO', 'RESCISÃO', '⚠️ Pendência Financeira', '⛔ Negativado'].includes(patient.plano)
+        });
+      }
       
       // Excluir pacientes inativos/negativados
       if (diasParaVencer === null) return false;
