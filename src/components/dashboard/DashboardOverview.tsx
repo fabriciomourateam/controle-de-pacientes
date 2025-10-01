@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
 import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
@@ -177,7 +178,7 @@ export function DashboardOverview() {
           <InteractiveChart
             data={monthlyData}
             title="Evolução Mensal"
-            description="Novos pacientes e feedbacks por mês"
+            description="Novos pacientes, renovações e churn por mês"
             icon={Activity}
             iconColor="text-blue-400"
           />

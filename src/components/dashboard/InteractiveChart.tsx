@@ -34,6 +34,8 @@ interface ChartData {
   month: string;
   novos: number;
   feedbacks: number;
+  renovacoes?: number;
+  churn?: number;
 }
 
 interface InteractiveChartProps {
@@ -71,6 +73,8 @@ const CHART_TYPES = [
 const COLORS = {
   novos: '#3b82f6', // blue-500
   feedbacks: '#10b981', // emerald-500
+  renovacoes: '#f59e0b', // amber-500
+  churn: '#ef4444', // red-500
   gradient: {
     start: 'rgba(59, 130, 246, 0.1)',
     end: 'rgba(59, 130, 246, 0.05)'
@@ -127,12 +131,21 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
             />
             <Line 
               type="monotone" 
-              dataKey="feedbacks" 
-              stroke={COLORS.feedbacks}
+              dataKey="renovacoes" 
+              stroke={COLORS.renovacoes}
               strokeWidth={3}
-              dot={{ fill: COLORS.feedbacks, strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: COLORS.feedbacks, strokeWidth: 2 }}
-              name="Feedbacks"
+              dot={{ fill: COLORS.renovacoes, strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: COLORS.renovacoes, strokeWidth: 2 }}
+              name="Renovações"
+            />
+            <Line 
+              type="monotone" 
+              dataKey="churn" 
+              stroke={COLORS.churn}
+              strokeWidth={3}
+              dot={{ fill: COLORS.churn, strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: COLORS.churn, strokeWidth: 2 }}
+              name="Churn"
             />
           </LineChart>
         );
@@ -168,13 +181,23 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
             />
             <Area
               type="monotone"
-              dataKey="feedbacks"
+              dataKey="renovacoes"
               stackId="2"
-              stroke={COLORS.feedbacks}
-              fill={COLORS.feedbacks}
+              stroke={COLORS.renovacoes}
+              fill={COLORS.renovacoes}
               fillOpacity={0.6}
               strokeWidth={2}
-              name="Feedbacks"
+              name="Renovações"
+            />
+            <Area
+              type="monotone"
+              dataKey="churn"
+              stackId="3"
+              stroke={COLORS.churn}
+              fill={COLORS.churn}
+              fillOpacity={0.6}
+              strokeWidth={2}
+              name="Churn"
             />
           </AreaChart>
         );
@@ -205,10 +228,16 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
               name="Novos Pacientes"
             />
             <Bar 
-              dataKey="feedbacks" 
-              fill={COLORS.feedbacks}
+              dataKey="renovacoes" 
+              fill={COLORS.renovacoes}
               radius={[4, 4, 0, 0]}
-              name="Feedbacks"
+              name="Renovações"
+            />
+            <Bar 
+              dataKey="churn" 
+              fill={COLORS.churn}
+              radius={[4, 4, 0, 0]}
+              name="Churn"
             />
           </BarChart>
         );
@@ -329,12 +358,18 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
                       <p className="text-blue-400 font-semibold">{selectedData.novos}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Feedbacks</p>
-                      <p className="text-emerald-400 font-semibold">{selectedData.feedbacks}</p>
+                      <p className="text-xs text-slate-400">Renovações</p>
+                      <p className="text-amber-400 font-semibold">{selectedData.renovacoes || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Churn</p>
+                      <p className="text-red-400 font-semibold">{selectedData.churn || 0}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400">Total</p>
-                      <p className="text-white font-semibold">{selectedData.novos + selectedData.feedbacks}</p>
+                      <p className="text-white font-semibold">
+                        {(selectedData.novos || 0) + (selectedData.renovacoes || 0) - (selectedData.churn || 0)}
+                      </p>
                     </div>
                   </div>
                 </div>
