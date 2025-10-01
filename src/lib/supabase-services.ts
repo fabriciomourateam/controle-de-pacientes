@@ -666,11 +666,11 @@ export const dashboardService = {
         .select('inicio_acompanhamento, plano')
         .gte('inicio_acompanhamento', startDate.toISOString());
 
-      // Pacientes com pontuação por mês
+      // Pacientes com pontuação por mês (usando mesmo critério)
       const { data: feedbacksData } = await supabase
         .from('patients')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString());
+        .select('inicio_acompanhamento')
+        .gte('inicio_acompanhamento', startDate.toISOString());
 
       // Processar dados para gráfico
       const monthlyData = [];
@@ -691,8 +691,9 @@ export const dashboardService = {
         }).length || 0;
         
         const feedbacks = feedbacksData?.filter(f => {
-          const createdDate = new Date(f.created_at);
-          return createdDate >= monthStart && createdDate <= monthEnd;
+          if (!f.inicio_acompanhamento) return false;
+          const inicioDate = new Date(f.inicio_acompanhamento);
+          return inicioDate >= monthStart && inicioDate <= monthEnd;
         }).length || 0;
         
         monthlyData.push({
