@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { 
   Search, 
-  Filter,
   Calendar,
   Star,
   TrendingUp,
@@ -173,10 +172,6 @@ export function CheckinsList() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white">
-            <Filter className="w-4 h-4 mr-2" />
-            Filtros
-          </Button>
           <CheckinForm
             trigger={
               <Button size="sm" onClick={() => console.log('Botão clicado!')}>

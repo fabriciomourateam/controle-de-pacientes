@@ -109,8 +109,17 @@ export function RankingPanel() {
       };
     });
 
-    // Ordenar por score total (decrescente)
-    return rankings.sort((a, b) => b.totalScore - a.totalScore);
+    // Ordenar por score total (decrescente), colocando NaN no final
+    return rankings.sort((a, b) => {
+      // Se ambos são NaN, manter ordem original
+      if (isNaN(a.totalScore) && isNaN(b.totalScore)) return 0;
+      // Se apenas a é NaN, colocar no final
+      if (isNaN(a.totalScore)) return 1;
+      // Se apenas b é NaN, colocar no final
+      if (isNaN(b.totalScore)) return -1;
+      // Ordenação normal (decrescente)
+      return b.totalScore - a.totalScore;
+    });
   }, [checkins, selectedRanking]);
 
   const getRankIcon = (position: number) => {
@@ -231,12 +240,12 @@ export function RankingPanel() {
                     <div className="text-right">
                       <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold text-white">
-                          {ranking.totalScore.toFixed(1)}
+                          {isNaN(ranking.totalScore) ? '0.0' : ranking.totalScore.toFixed(1)}
                         </span>
                         <span className="text-sm text-slate-400">pts</span>
                       </div>
                       <p className="text-sm text-slate-400">
-                        Média: {ranking.averageScore}
+                        Média: {isNaN(ranking.averageScore) ? '0.0' : ranking.averageScore}
                       </p>
                     </div>
                   </div>
