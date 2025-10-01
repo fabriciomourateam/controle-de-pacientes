@@ -3,10 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FMTeam Dashboard</title>
-    <meta name="description" content="FMTeam Dashboard - Sistema de Controle de Pacientes" />
+    <title>Controle de Pacientes</title>
+    <meta name="description" content="Sistema de Controle de Pacientes com integração Notion" />
     <meta name="author" content="FMTeam" />
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Pacientes" />
+    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/favicon.jpeg" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/favicon.jpeg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.jpeg" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/favicon.jpeg" />
 
     <meta property="og:title" content="FMTeam Dashboard" />
     <meta property="og:description" content="FMTeam Dashboard - Sistema de Controle de Pacientes" />
@@ -21,5 +38,20 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registrado com sucesso:', registration);
+            })
+            .catch((registrationError) => {
+              console.log('Falha no registro do SW:', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
