@@ -676,6 +676,15 @@ export const dashboardService = {
       const monthlyData = [];
       const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       
+      // Buscar total de pacientes por mês para calcular corretamente
+      const { data: allPatientsData } = await supabase
+        .from('patients')
+        .select('inicio_acompanhamento, vencimento')
+        .order('inicio_acompanhamento', { ascending: true });
+      
+      let totalPacientesAnterior = 0;
+      let pacientesAtivosAnterior = 0;
+      
       for (let i = 5; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
@@ -684,32 +693,54 @@ export const dashboardService = {
         const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
         const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
         
-        const novos = patientsData?.filter(p => {
+        // Calcular total de pacientes até este mês
+        const totalPacientes = allPatientsData?.filter(p => {
           if (!p.inicio_acompanhamento) return false;
           const inicioDate = new Date(p.inicio_acompanhamento);
-          return inicioDate >= monthStart && inicioDate <= monthEnd;
+          return inicioDate <= monthEnd;
         }).length || 0;
         
-        const feedbacks = feedbacksData?.filter(f => {
-          if (!f.inicio_acompanhamento) return false;
-          const inicioDate = new Date(f.inicio_acompanhamento);
-          return inicioDate >= monthStart && inicioDate <= monthEnd;
+        // Calcular pacientes ativos (não vencidos)
+        const pacientesAtivos = allPatientsData?.filter(p => {
+          if (!p.inicio_acompanhamento) return false;
+          const inicioDate = new Date(p.inicio_acompanhamento);
+          if (inicioDate > monthEnd) return false;
+          
+          // Se tem vencimento, verificar se ainda está ativo
+          if (p.vencimento) {
+            const vencimentoDate = new Date(p.vencimento);
+            return vencimentoDate >= monthStart;
+          }
+          
+          return true; // Sem vencimento = ativo
         }).length || 0;
         
-        // Simular dados de renovação e churn em porcentagem
-        // Renovação: 65-85% (baseado em dados típicos de retenção)
-        const renovacao = 65 + Math.random() * 20;
+        // Novos pacientes = diferença do total
+        const novos = i === 5 ? totalPacientes : totalPacientes - totalPacientesAnterior;
         
-        // Churn: 8-18% (baseado em dados típicos de churn)
-        const churn = 8 + Math.random() * 10;
+        // Calcular churn (pacientes que saíram)
+        const churnAbsoluto = i === 5 ? 0 : Math.max(0, totalPacientesAnterior - pacientesAtivos);
+        
+        // Calcular taxas
+        const renovacao = pacientesAtivosAnterior > 0 
+          ? ((pacientesAtivos - novos) / pacientesAtivosAnterior) * 100 
+          : 0;
+        
+        const churn = totalPacientesAnterior > 0 
+          ? (churnAbsoluto / totalPacientesAnterior) * 100 
+          : 0;
         
         monthlyData.push({
           month: monthName,
-          novos,
-          feedbacks,
-          renovacao: Number(renovacao.toFixed(1)),
-          churn: Number(churn.toFixed(1))
+          novos: Math.max(0, novos),
+          feedbacks: novos, // Usar novos como feedbacks por simplicidade
+          renovacao: Number(Math.max(0, Math.min(100, renovacao)).toFixed(1)),
+          churn: Number(Math.max(0, Math.min(100, churn)).toFixed(1))
         });
+        
+        // Atualizar para próximo mês
+        totalPacientesAnterior = totalPacientes;
+        pacientesAtivosAnterior = pacientesAtivos;
       }
 
       // Distribuição de planos (apenas ativos)
