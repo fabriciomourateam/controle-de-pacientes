@@ -8,6 +8,7 @@ import "./test-theme.css";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
+import PatientDetails from "./pages/PatientDetails";
 import Checkins from "./pages/Checkins";
 import Plans from "./pages/Plans";
 import MetricsDashboard from "./pages/MetricsDashboard";
@@ -32,6 +33,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<Patients />} />
+          <Route path="/patients/:id" element={<PatientDetails />} />
           <Route path="/checkins" element={<Checkins />} />
           <Route path="/plans" element={<Plans />} />
           <Route path="/metrics" element={<MetricsDashboard />} />
