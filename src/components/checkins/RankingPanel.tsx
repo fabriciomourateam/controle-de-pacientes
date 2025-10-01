@@ -156,7 +156,7 @@ export function RankingPanel() {
               <CardTitle className="text-white flex items-center gap-2">
                 Ranking de {selectedRankingType?.label || 'Total'}
                 <Badge variant="outline" className="text-xs">
-                  {rankings.length} pacientes
+                  {calculateRankings.length} pacientes
                 </Badge>
               </CardTitle>
               <CardDescription className="text-slate-400">
@@ -197,7 +197,7 @@ export function RankingPanel() {
 
       {isExpanded && (
         <CardContent className="space-y-3">
-          {rankings.length === 0 ? (
+          {calculateRankings.length === 0 ? (
             <div className="text-center py-8">
               <Trophy className="w-12 h-12 mx-auto mb-4 text-slate-400" />
               <p className="text-slate-400">Nenhum ranking disponível</p>
@@ -205,7 +205,7 @@ export function RankingPanel() {
             </div>
           ) : (
             <div className="space-y-2">
-              {rankings.slice(0, 10).map((ranking, index) => (
+              {calculateRankings.slice(0, 10).map((ranking, index) => (
                 <div
                   key={ranking.patientId}
                   className={`p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] ${getRankColor(index + 1)}`}
@@ -243,10 +243,10 @@ export function RankingPanel() {
                 </div>
               ))}
               
-              {rankings.length > 10 && (
+              {calculateRankings.length > 10 && (
                 <div className="text-center pt-4">
                   <p className="text-sm text-slate-500">
-                    E mais {rankings.length - 10} paciente{rankings.length - 10 !== 1 ? 's' : ''}...
+                    E mais {calculateRankings.length - 10} paciente{calculateRankings.length - 10 !== 1 ? 's' : ''}...
                   </p>
                 </div>
               )}
