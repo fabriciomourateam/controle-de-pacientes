@@ -696,19 +696,19 @@ export const dashboardService = {
           return inicioDate >= monthStart && inicioDate <= monthEnd;
         }).length || 0;
         
-        // Simular dados de renovação e churn baseados nos novos pacientes
-        // Renovação: 60-80% dos novos pacientes do mês anterior
-        const renovacoes = i > 0 ? Math.floor(novos * (0.6 + Math.random() * 0.2)) : 0;
+        // Simular dados de renovação e churn em porcentagem
+        // Renovação: 65-85% (baseado em dados típicos de retenção)
+        const renovacao = 65 + Math.random() * 20;
         
-        // Churn: 10-20% dos pacientes totais do mês anterior
-        const churn = i > 0 ? Math.floor((novos + renovacoes) * (0.1 + Math.random() * 0.1)) : 0;
+        // Churn: 8-18% (baseado em dados típicos de churn)
+        const churn = 8 + Math.random() * 10;
         
         monthlyData.push({
           month: monthName,
           novos,
           feedbacks,
-          renovacoes,
-          churn
+          renovacao: Number(renovacao.toFixed(1)),
+          churn: Number(churn.toFixed(1))
         });
       }
 

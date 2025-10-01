@@ -34,8 +34,8 @@ interface ChartData {
   month: string;
   novos: number;
   feedbacks: number;
-  renovacoes?: number;
-  churn?: number;
+  renovacao?: number; // Porcentagem de renovação
+  churn?: number; // Porcentagem de churn
 }
 
 interface InteractiveChartProps {
@@ -131,12 +131,12 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
             />
             <Line 
               type="monotone" 
-              dataKey="renovacoes" 
+              dataKey="renovacao" 
               stroke={COLORS.renovacoes}
               strokeWidth={3}
               dot={{ fill: COLORS.renovacoes, strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, stroke: COLORS.renovacoes, strokeWidth: 2 }}
-              name="Renovações"
+              name="Renovação (%)"
             />
             <Line 
               type="monotone" 
@@ -145,7 +145,7 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
               strokeWidth={3}
               dot={{ fill: COLORS.churn, strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, stroke: COLORS.churn, strokeWidth: 2 }}
-              name="Churn"
+              name="Churn (%)"
             />
           </LineChart>
         );
@@ -181,13 +181,13 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
             />
             <Area
               type="monotone"
-              dataKey="renovacoes"
+              dataKey="renovacao"
               stackId="2"
               stroke={COLORS.renovacoes}
               fill={COLORS.renovacoes}
               fillOpacity={0.6}
               strokeWidth={2}
-              name="Renovações"
+              name="Renovação (%)"
             />
             <Area
               type="monotone"
@@ -197,7 +197,7 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
               fill={COLORS.churn}
               fillOpacity={0.6}
               strokeWidth={2}
-              name="Churn"
+              name="Churn (%)"
             />
           </AreaChart>
         );
@@ -228,16 +228,16 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
               name="Novos Pacientes"
             />
             <Bar 
-              dataKey="renovacoes" 
+              dataKey="renovacao" 
               fill={COLORS.renovacoes}
               radius={[4, 4, 0, 0]}
-              name="Renovações"
+              name="Renovação (%)"
             />
             <Bar 
               dataKey="churn" 
               fill={COLORS.churn}
               radius={[4, 4, 0, 0]}
-              name="Churn"
+              name="Churn (%)"
             />
           </BarChart>
         );
@@ -259,7 +259,11 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-slate-300 text-sm">
-                {entry.name}: <span className="text-white font-medium">{entry.value}</span>
+                {entry.name}: <span className="text-white font-medium">
+                  {entry.dataKey === 'renovacao' || entry.dataKey === 'churn' 
+                    ? `${entry.value.toFixed(1)}%` 
+                    : entry.value}
+                </span>
               </span>
             </div>
           ))}
@@ -358,17 +362,17 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
                       <p className="text-blue-400 font-semibold">{selectedData.novos}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Renovações</p>
-                      <p className="text-amber-400 font-semibold">{selectedData.renovacoes || 0}</p>
+                      <p className="text-xs text-slate-400">Renovação</p>
+                      <p className="text-amber-400 font-semibold">{(selectedData.renovacao || 0).toFixed(1)}%</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400">Churn</p>
-                      <p className="text-red-400 font-semibold">{selectedData.churn || 0}</p>
+                      <p className="text-red-400 font-semibold">{(selectedData.churn || 0).toFixed(1)}%</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Total</p>
+                      <p className="text-xs text-slate-400">Crescimento</p>
                       <p className="text-white font-semibold">
-                        {(selectedData.novos || 0) + (selectedData.renovacoes || 0) - (selectedData.churn || 0)}
+                        {((selectedData.renovacao || 0) - (selectedData.churn || 0)).toFixed(1)}%
                       </p>
                     </div>
                   </div>

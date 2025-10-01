@@ -178,7 +178,7 @@ export function DashboardOverview() {
           <InteractiveChart
             data={monthlyData}
             title="Evolução Mensal"
-            description="Novos pacientes, renovações e churn por mês"
+            description="Novos pacientes, % de renovação e % de churn por mês"
             icon={Activity}
             iconColor="text-blue-400"
           />
