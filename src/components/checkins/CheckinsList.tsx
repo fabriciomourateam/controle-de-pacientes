@@ -27,6 +27,7 @@ import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinItemSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import { CheckinForm } from "@/components/forms/CheckinForm";
+import { RankingPanel } from "@/components/checkins/RankingPanel";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import {
   LineChart,
@@ -410,6 +411,9 @@ export function CheckinsList() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Ranking Panel */}
+      <RankingPanel />
 
       {/* Lista de Checkins */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
