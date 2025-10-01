@@ -149,7 +149,6 @@ export function MetricsTable({ data, loading = false, onRefresh, onExport, isMin
               <TableRow className="border-slate-700/50 hover:bg-slate-800/30">
                 <TableHead className="text-slate-300">Período</TableHead>
                 <TableHead className="text-slate-300">Pacientes Ativos</TableHead>
-                <TableHead className="text-slate-300">Total Pacientes</TableHead>
                 <TableHead className="text-slate-300">Novos Pacientes</TableHead>
                 <TableHead className="text-slate-300">Taxa Renovação</TableHead>
                 <TableHead className="text-slate-300">Taxa Churn</TableHead>
@@ -170,9 +169,6 @@ export function MetricsTable({ data, loading = false, onRefresh, onExport, isMin
                     </TableCell>
                     <TableCell className="text-blue-400 font-medium">
                       {item.pacientes_ativos.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-slate-300">
-                      {item.total_pacientes.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="text-green-400">
                       {item.novos_pacientes.toLocaleString('pt-BR')}
