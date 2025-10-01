@@ -268,14 +268,14 @@ export const patientService = {
           dias_para_vencer: diasParaVencer,
           plano: patient.plano,
           filtro_dias: days,
-          passa_filtro_dias: diasParaVencer <= days && diasParaVencer >= 0,
+          passa_filtro_dias: diasParaVencer <= days,
           plano_excluido: ['INATIVO', 'CONGELADO', 'RESCISÃO', '⚠️ Pendência Financeira', '⛔ Negativado'].includes(patient.plano)
         });
       }
       
       // Excluir pacientes inativos/negativados
       if (diasParaVencer === null) return false;
-      if (diasParaVencer < 0) return false; // Já expiraram
+      // Removido: if (diasParaVencer < 0) return false; // Agora inclui vencidos
       
       // Excluir planos específicos que não devem aparecer no card "Ação Necessária"
       const planosExcluidos = [
@@ -288,8 +288,8 @@ export const patientService = {
       
       if (planosExcluidos.includes(patient.plano)) return false;
       
-      // Apenas pacientes que vencem nos próximos X dias
-      return diasParaVencer <= days && diasParaVencer >= 0;
+      // Incluir pacientes vencidos (dias_para_vencer < 0) e que vencem nos próximos X dias
+      return diasParaVencer <= days;
     }).sort((a, b) => (a.dias_para_vencer || 0) - (b.dias_para_vencer || 0));
 
     return updatedData;

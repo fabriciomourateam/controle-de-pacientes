@@ -293,7 +293,7 @@ export function DashboardOverview() {
               Ação Necessária
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Pacientes expirando nos próximos 7 dias
+              Pacientes vencidos e expirando nos próximos 7 dias
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
