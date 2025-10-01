@@ -9,10 +9,10 @@ function WorkspacePage() {
           <iframe 
             src="https://workspace-fmteam.netlify.app/cronograma"
             width="100%"
-            height="900px"
+            height="1200px"
             frameBorder="0"
             title="Cronograma FMTEAM"
-            className="w-full h-[900px]"
+            className="w-full h-[1200px]"
           />
         </div>
       </div>

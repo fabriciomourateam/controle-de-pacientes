@@ -9,10 +9,10 @@ function BioimpedanciaPage() {
           <iframe 
             src="https://inshape-premium.vercel.app/"
             width="100%"
-            height="900px"
+            height="1200px"
             frameBorder="0"
             title="InShape Premium - Avaliação Corporal"
-            className="w-full h-[900px]"
+            className="w-full h-[1200px]"
           />
         </div>
       </div>
