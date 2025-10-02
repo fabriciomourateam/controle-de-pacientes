@@ -1,20 +1,14 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ResponsiveIframe } from "@/components/ui/responsive-iframe";
 
 function WorkspacePage() {
   return (
     <DashboardLayout>
       <div className="animate-fadeIn">
-        {/* Iframe Container */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-700/50">
-          <iframe 
-            src="https://workspace-fmteam.netlify.app/cronograma"
-            width="100%"
-            height="1200px"
-            frameBorder="0"
-            title="Cronograma FMTEAM"
-            className="w-full h-[1200px]"
-          />
-        </div>
+        <ResponsiveIframe 
+          src="https://workspace-fmteam.netlify.app/cronograma"
+          title="Cronograma FMTEAM"
+        />
       </div>
     </DashboardLayout>
   );
