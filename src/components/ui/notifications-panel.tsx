@@ -85,7 +85,7 @@ export function NotificationsPanel() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end">
+      <PopoverContent className="w-80 sm:w-96 p-0" align="end">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">Notificações</h3>

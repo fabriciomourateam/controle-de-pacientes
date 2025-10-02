@@ -68,14 +68,14 @@ export function GlobalSearch() {
           <Input
             ref={inputRef}
             placeholder="Buscar pacientes, planos... (Ctrl+K)"
-            className="pl-10 w-80 input-premium"
+            className="pl-10 w-48 sm:w-64 md:w-80 input-premium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setIsOpen(true)}
           />
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="start">
+      <PopoverContent className="w-80 sm:w-96 p-0" align="start">
         <Command className="rounded-lg border shadow-md">
           <CommandList>
             {searchTerm.length < 2 ? (
