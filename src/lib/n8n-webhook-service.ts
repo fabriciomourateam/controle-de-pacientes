@@ -201,7 +201,31 @@ export class N8NWebhookService {
     try {
       console.log('🔄 Buscando dados do N8N...');
       
-      // Criar dados de exemplo mais realistas
+      // Tentar buscar dados reais do webhook primeiro
+      try {
+        const response = await fetch('https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webhook', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          const webhookData = await response.json();
+          console.log('✅ Webhook N8N acessível:', webhookData);
+          
+          // Se o webhook retornou dados, usar dados reais
+          if (webhookData.webhookData) {
+            this.processWebhookData(webhookData.webhookData);
+            console.log('✅ Dados reais do N8N processados');
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Webhook N8N não acessível, usando dados simulados');
+      }
+      
+      // Fallback: usar dados simulados se webhook não estiver disponível
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -260,11 +284,89 @@ export class N8NWebhookService {
         this.processWebhookData(data);
       });
       
-      console.log('✅ Dados do N8N carregados com sucesso');
+      console.log('✅ Dados simulados do N8N carregados');
       
     } catch (error) {
       console.error('❌ Erro ao buscar dados do N8N:', error);
     }
+  }
+
+  // Processar dados reais do N8N (chamado quando N8N envia dados)
+  static processRealN8NData(webhookData: N8NWebhookData): void {
+    console.log('🔄 Processando dados reais do N8N...');
+    console.log('📊 Tabela:', webhookData.table);
+    console.log('📋 Dados:', webhookData.data);
+    
+    try {
+      this.processWebhookData(webhookData);
+      console.log('✅ Dados reais do N8N processados com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao processar dados reais do N8N:', error);
+    }
+  }
+
+  // Simular dados do N8N (para teste)
+  static simulateN8NData(): void {
+    console.log('🔄 Simulando dados do N8N...');
+    
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const mockData = [
+      {
+        table: 'leads_que_entraram',
+        data: {
+          DATA: today.toISOString().split('T')[0],
+          GOOGLE: 15,
+          GOOGLE_FORMS: 8,
+          INSTAGRAM: 12,
+          FACEBOOK: 6,
+          SELLER: 4,
+          INDICACAO: 3,
+          OUTROS: 2,
+          TOTAL: 50
+        },
+        timestamp: today.toISOString()
+      },
+      {
+        table: 'leads_que_entraram',
+        data: {
+          DATA: yesterday.toISOString().split('T')[0],
+          GOOGLE: 12,
+          GOOGLE_FORMS: 6,
+          INSTAGRAM: 10,
+          FACEBOOK: 5,
+          SELLER: 3,
+          INDICACAO: 2,
+          OUTROS: 1,
+          TOTAL: 39
+        },
+        timestamp: yesterday.toISOString()
+      },
+      {
+        table: 'calls_agendadas',
+        data: {
+          AGENDADAS: today.toISOString().split('T')[0],
+          TOTAL_DE_CALLS_AGENDADAS: 25
+        },
+        timestamp: today.toISOString()
+      },
+      {
+        table: 'calls_agendadas',
+        data: {
+          AGENDADAS: yesterday.toISOString().split('T')[0],
+          TOTAL_DE_CALLS_AGENDADAS: 18
+        },
+        timestamp: yesterday.toISOString()
+      }
+    ];
+
+    mockData.forEach(data => {
+      this.processWebhookData(data);
+    });
+    
+    console.log('✅ Dados simulados do N8N processados');
   }
 
   // Limpar dados

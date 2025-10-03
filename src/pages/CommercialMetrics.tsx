@@ -243,7 +243,7 @@ export default function CommercialMetrics() {
             onClick={async () => {
               try {
                 setRefreshing(true);
-                await N8NWebhookService.fetchDataFromN8N();
+                N8NWebhookService.simulateN8NData();
                 const refreshedData = N8NWebhookService.getMetrics();
                 setData(refreshedData);
                 toast({

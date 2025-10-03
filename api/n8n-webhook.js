@@ -44,16 +44,18 @@ export default async function handler(req, res) {
     // Simular processamento
     await new Promise(resolve => setTimeout(resolve, 100));
 
+    // Retornar os dados para o frontend processar
     res.status(200).json({
       success: true,
-      message: `Dados da tabela ${table} recebidos e processados com sucesso`,
+      message: `Dados da tabela ${table} recebidos com sucesso`,
       timestamp: new Date().toISOString(),
+      webhookData: webhookData,
       receivedData: {
         table,
         recordCount: Array.isArray(data) ? data.length : 1,
         timestamp: webhookData.timestamp
       },
-      instructions: 'Os dados foram salvos no localStorage do frontend'
+      instructions: 'Os dados foram enviados para o frontend processar'
     });
 
   } catch (error) {
