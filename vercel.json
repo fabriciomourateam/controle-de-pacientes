@@ -6,10 +6,10 @@
   "functions": {
     "api/n8n-webhook.js": {
       "maxDuration": 10
+    },
+    "api/public-webhook.js": {
+      "maxDuration": 10
     }
-  },
-  "deploymentProtection": {
-    "api/n8n-webhook": false
   },
   "rewrites": [
     {
