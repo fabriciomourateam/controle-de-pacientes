@@ -204,34 +204,65 @@ export default function CommercialMetrics() {
               Atualizar
             </Button>
             
-            <Button 
-              onClick={async () => {
-                try {
-                  setRefreshing(true);
-                  const refreshedData = N8NWebhookService.getMetrics();
-                  setData(refreshedData);
-                  toast({
-                    title: "Dados atualizados via N8N",
-                    description: "Dados foram atualizados diretamente do N8N",
-                  });
-                } catch (error) {
-                  toast({
-                    title: "Erro ao atualizar via N8N",
-                    description: "Tentando atualização normal...",
-                    variant: "destructive",
-                  });
-                  fetchData(true);
-                } finally {
-                  setRefreshing(false);
-                }
-              }}
-              disabled={refreshing}
-              variant="outline"
-              className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Forçar Atualização N8N
-            </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={async () => {
+              try {
+                setRefreshing(true);
+                const refreshedData = N8NWebhookService.getMetrics();
+                setData(refreshedData);
+                toast({
+                  title: "Dados atualizados via N8N",
+                  description: "Dados foram atualizados diretamente do N8N",
+                });
+              } catch (error) {
+                toast({
+                  title: "Erro ao atualizar via N8N",
+                  description: "Tentando atualização normal...",
+                  variant: "destructive",
+                });
+                fetchData(true);
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+            disabled={refreshing}
+            variant="outline"
+            className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar Dados
+          </Button>
+          
+          <Button 
+            onClick={async () => {
+              try {
+                setRefreshing(true);
+                await N8NWebhookService.fetchDataFromN8N();
+                const refreshedData = N8NWebhookService.getMetrics();
+                setData(refreshedData);
+                toast({
+                  title: "Dados simulados do N8N",
+                  description: "Dados de teste foram carregados com sucesso",
+                });
+              } catch (error) {
+                toast({
+                  title: "Erro ao simular dados",
+                  description: "Erro ao carregar dados de teste",
+                  variant: "destructive",
+                });
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+            disabled={refreshing}
+            variant="default"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <BarChart3 className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Simular Dados N8N
+          </Button>
+        </div>
           </div>
         </div>
 
