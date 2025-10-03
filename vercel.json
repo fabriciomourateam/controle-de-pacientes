@@ -1,28 +1,8 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/notion-proxy",
-      "destination": "/api/notion-proxy.js"
-    },
-    {
-      "source": "/api/sync-dashboard-metrics", 
-      "destination": "/api/sync-dashboard-metrics.js"
-    },
-    {
-      "source": "/api/n8n-webhook",
-      "destination": "/api/n8n-webhook.js"
-    },
-    {
-      "source": "/api/process-n8n-data",
-      "destination": "/api/process-n8n-data.js"
-    },
-    {
-      "source": "/api/public-webhook",
-      "destination": "/api/public-webhook.js"
+      "source": "/api/(.*)",
+      "destination": "/api/$1.js"
     },
     {
       "source": "/(.*)",
