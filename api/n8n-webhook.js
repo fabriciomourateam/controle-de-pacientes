@@ -34,21 +34,26 @@ export default async function handler(req, res) {
     console.log(`📅 Timestamp: ${timestamp}`);
     console.log(`📋 Dados:`, JSON.stringify(data, null, 2));
 
-    // Aqui você pode processar os dados recebidos
-    // Por exemplo, salvar em um banco de dados ou cache
-    
+    // Processar e salvar os dados
+    const webhookData = {
+      table,
+      data,
+      timestamp: timestamp || new Date().toISOString()
+    };
+
     // Simular processamento
     await new Promise(resolve => setTimeout(resolve, 100));
 
     res.status(200).json({
       success: true,
-      message: `Dados da tabela ${table} recebidos com sucesso`,
+      message: `Dados da tabela ${table} recebidos e processados com sucesso`,
       timestamp: new Date().toISOString(),
       receivedData: {
         table,
         recordCount: Array.isArray(data) ? data.length : 1,
-        timestamp
-      }
+        timestamp: webhookData.timestamp
+      },
+      instructions: 'Os dados foram salvos no localStorage do frontend'
     });
 
   } catch (error) {

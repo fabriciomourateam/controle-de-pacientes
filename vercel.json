@@ -22,6 +22,10 @@
       "destination": "/api/n8n-webhook.js"
     },
     {
+      "source": "/api/process-n8n-data",
+      "destination": "/api/process-n8n-data.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

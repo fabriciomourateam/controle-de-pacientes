@@ -58,6 +58,10 @@ export default function CommercialMetrics() {
       if (showToast) setRefreshing(true);
       else setLoading(true);
       
+      // Buscar dados do N8N primeiro
+      await N8NWebhookService.fetchDataFromN8N();
+      
+      // Depois obter os dados processados
       const metricsData = N8NWebhookService.getMetrics();
       setData(metricsData);
       

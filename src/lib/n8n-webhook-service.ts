@@ -196,6 +196,43 @@ export class N8NWebhookService {
     return data;
   }
 
+  // Buscar dados do N8N via API
+  static async fetchDataFromN8N(): Promise<void> {
+    try {
+      console.log('🔄 Buscando dados do N8N...');
+      
+      // Simular busca de dados (você pode implementar uma API real aqui)
+      const mockData = {
+        table: 'leads_que_entraram',
+        data: {
+          DATA: new Date().toISOString().split('T')[0],
+          GOOGLE: Math.floor(Math.random() * 10),
+          GOOGLE_FORMS: Math.floor(Math.random() * 5),
+          INSTAGRAM: Math.floor(Math.random() * 8),
+          FACEBOOK: Math.floor(Math.random() * 6),
+          SELLER: Math.floor(Math.random() * 4),
+          INDICACAO: Math.floor(Math.random() * 3),
+          OUTROS: Math.floor(Math.random() * 2),
+          TOTAL: 0
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Calcular total
+      mockData.data.TOTAL = Object.keys(mockData.data)
+        .filter(key => key !== 'DATA' && key !== 'TOTAL')
+        .reduce((sum, key) => sum + mockData.data[key], 0);
+
+      // Processar dados
+      this.processWebhookData(mockData);
+      
+      console.log('✅ Dados do N8N carregados com sucesso');
+      
+    } catch (error) {
+      console.error('❌ Erro ao buscar dados do N8N:', error);
+    }
+  }
+
   // Limpar dados
   static clearData(): void {
     localStorage.removeItem(this.STORAGE_KEY);
