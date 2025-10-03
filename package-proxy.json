@@ -1,0 +1,19 @@
+{
+  "name": "proxy-n8n-cors",
+  "version": "1.0.0",
+  "description": "Proxy para contornar CORS do N8N",
+  "main": "proxy-n8n.js",
+  "scripts": {
+    "start": "node proxy-n8n.js",
+    "dev": "node proxy-n8n.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
+  },
+  "keywords": ["proxy", "cors", "n8n"],
+  "author": "Sistema de Métricas Comerciais",
+  "license": "MIT"
+}

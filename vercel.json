@@ -13,6 +13,10 @@
       "destination": "/api/sync-dashboard-metrics.js"
     },
     {
+      "source": "/api/n8n-webhook",
+      "destination": "/api/n8n-webhook.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
