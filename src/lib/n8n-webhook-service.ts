@@ -201,30 +201,64 @@ export class N8NWebhookService {
     try {
       console.log('🔄 Buscando dados do N8N...');
       
-      // Simular busca de dados (você pode implementar uma API real aqui)
-      const mockData = {
-        table: 'leads_que_entraram',
-        data: {
-          DATA: new Date().toISOString().split('T')[0],
-          GOOGLE: Math.floor(Math.random() * 10),
-          GOOGLE_FORMS: Math.floor(Math.random() * 5),
-          INSTAGRAM: Math.floor(Math.random() * 8),
-          FACEBOOK: Math.floor(Math.random() * 6),
-          SELLER: Math.floor(Math.random() * 4),
-          INDICACAO: Math.floor(Math.random() * 3),
-          OUTROS: Math.floor(Math.random() * 2),
-          TOTAL: 0
+      // Criar dados de exemplo mais realistas
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const mockData = [
+        {
+          table: 'leads_que_entraram',
+          data: {
+            DATA: today.toISOString().split('T')[0],
+            GOOGLE: 15,
+            GOOGLE_FORMS: 8,
+            INSTAGRAM: 12,
+            FACEBOOK: 6,
+            SELLER: 4,
+            INDICACAO: 3,
+            OUTROS: 2,
+            TOTAL: 50
+          },
+          timestamp: today.toISOString()
         },
-        timestamp: new Date().toISOString()
-      };
+        {
+          table: 'leads_que_entraram',
+          data: {
+            DATA: yesterday.toISOString().split('T')[0],
+            GOOGLE: 12,
+            GOOGLE_FORMS: 6,
+            INSTAGRAM: 10,
+            FACEBOOK: 5,
+            SELLER: 3,
+            INDICACAO: 2,
+            OUTROS: 1,
+            TOTAL: 39
+          },
+          timestamp: yesterday.toISOString()
+        },
+        {
+          table: 'calls_agendadas',
+          data: {
+            AGENDADAS: today.toISOString().split('T')[0],
+            TOTAL_DE_CALLS_AGENDADAS: 25
+          },
+          timestamp: today.toISOString()
+        },
+        {
+          table: 'calls_agendadas',
+          data: {
+            AGENDADAS: yesterday.toISOString().split('T')[0],
+            TOTAL_DE_CALLS_AGENDADAS: 18
+          },
+          timestamp: yesterday.toISOString()
+        }
+      ];
 
-      // Calcular total
-      mockData.data.TOTAL = Object.keys(mockData.data)
-        .filter(key => key !== 'DATA' && key !== 'TOTAL')
-        .reduce((sum, key) => sum + mockData.data[key], 0);
-
-      // Processar dados
-      this.processWebhookData(mockData);
+      // Processar cada conjunto de dados
+      mockData.forEach(data => {
+        this.processWebhookData(data);
+      });
       
       console.log('✅ Dados do N8N carregados com sucesso');
       

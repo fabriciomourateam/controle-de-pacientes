@@ -262,6 +262,22 @@ export default function CommercialMetrics() {
             <BarChart3 className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Simular Dados N8N
           </Button>
+          
+          <Button 
+            onClick={() => {
+              N8NWebhookService.clearData();
+              setData(null);
+              toast({
+                title: "Dados limpos",
+                description: "Todos os dados foram removidos",
+              });
+            }}
+            variant="destructive"
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            Limpar Dados
+          </Button>
         </div>
           </div>
         </div>
