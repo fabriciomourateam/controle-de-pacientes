@@ -39,7 +39,7 @@ interface CommercialMetricsData {
 
 export class N8NWebhookService {
   private static readonly STORAGE_KEY = 'n8n_metrics_data';
-  private static readonly WEBHOOK_URL = '/api/n8n-webhook';
+  private static readonly WEBHOOK_URL = 'https://painel-fmteam.vercel.app/api/public-webhook';
 
   // Processar dados recebidos do webhook
   static processWebhookData(webhookData: N8NWebhookData): void {

@@ -61,20 +61,38 @@ export default function CommercialMetrics() {
       // Obter dados existentes primeiro
       let metricsData = N8NWebhookService.getMetrics();
       
-      // Se não há dados, tentar buscar dados do N8N
-      if (metricsData.dailyLeads.length === 0 && metricsData.dailyCalls.length === 0) {
+      // Verificar se há dados válidos
+      const hasValidData = metricsData.dailyLeads.length > 0 || metricsData.dailyCalls.length > 0;
+      
+      if (!hasValidData) {
         console.log('🔄 Nenhum dado encontrado, buscando dados do N8N...');
         await N8NWebhookService.fetchDataFromN8N();
         metricsData = N8NWebhookService.getMetrics();
       }
       
-      setData(metricsData);
+      // Verificar novamente se há dados após tentar buscar
+      const hasDataAfterFetch = metricsData.dailyLeads.length > 0 || metricsData.dailyCalls.length > 0;
       
-      if (showToast) {
-        toast({
-          title: "Dados atualizados",
-          description: "Métricas comerciais atualizadas com sucesso",
-        });
+      if (hasDataAfterFetch) {
+        setData(metricsData);
+        
+        if (showToast) {
+          toast({
+            title: "Dados atualizados",
+            description: "Métricas comerciais atualizadas com sucesso",
+          });
+        }
+      } else {
+        // Se ainda não há dados, definir como null para mostrar a tela de erro
+        setData(null);
+        
+        if (showToast) {
+          toast({
+            title: "Nenhum dado encontrado",
+            description: "Use 'Simular Dados N8N' para testar ou configure o N8N",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Erro ao buscar métricas:", error);
@@ -83,15 +101,17 @@ export default function CommercialMetrics() {
       
       if (error instanceof Error) {
         if (error.message.includes('403')) {
-          errorMessage = "Erro de permissão: Verifique se a planilha está compartilhada publicamente";
+          errorMessage = "Erro de permissão: Verifique a configuração do N8N";
         } else if (error.message.includes('404')) {
-          errorMessage = "Planilha não encontrada: Verifique o ID da planilha";
+          errorMessage = "Dados não encontrados: Verifique se o N8N está enviando dados";
         } else if (error.message.includes('API key')) {
-          errorMessage = "Chave da API inválida: Verifique a configuração";
+          errorMessage = "Chave da API inválida: Verifique a configuração do N8N";
         } else {
           errorMessage = `Erro: ${error.message}`;
         }
       }
+      
+      setData(null);
       
       toast({
         title: "Erro ao carregar dados",
@@ -140,20 +160,20 @@ export default function CommercialMetrics() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <AlertTriangle className="w-24 h-24 text-red-400 mb-6" />
             <h2 className="text-2xl font-semibold text-white mb-4">
-              Erro ao conectar com a planilha
+              Nenhum dado encontrado
             </h2>
             <p className="text-slate-400 mb-6 max-w-2xl">
-              Não foi possível carregar os dados da planilha Google Sheets. 
-              Verifique se a planilha está compartilhada publicamente e se a chave da API está correta.
+              Não há dados disponíveis do N8N. 
+              Verifique se o N8N está configurado para enviar dados para o webhook.
             </p>
             
             <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-6 mb-8 max-w-2xl text-left">
               <h3 className="text-lg font-semibold text-white mb-4">Possíveis soluções:</h3>
               <ul className="text-sm text-slate-300 space-y-2">
-                <li>• Verifique se a planilha está compartilhada como "Qualquer pessoa com o link pode visualizar"</li>
-                <li>• Confirme se a aba "RELATÓRIO DE LEADS (SDR)" existe na planilha</li>
-                <li>• Verifique se há dados nas colunas A-R da planilha</li>
-                <li>• Teste a conexão usando o botão abaixo</li>
+                <li>• Verifique se o N8N está configurado para enviar dados para o webhook</li>
+                <li>• Confirme se o workflow do N8N está ativo e executando</li>
+                <li>• Teste a conexão usando o botão "Testar Conexão" abaixo</li>
+                <li>• Use "Simular Dados N8N" para testar com dados de exemplo</li>
               </ul>
             </div>
 
@@ -168,11 +188,31 @@ export default function CommercialMetrics() {
               </Button>
               
               <Button
-                variant="outline"
-                onClick={() => window.open('https://docs.google.com/spreadsheets/d/1BTzBftwg_C6rxzNYmIHTvlCGNH1GuyjIQHzGQlkQQuo/edit?gid=431380115#gid=431380115', '_blank')}
-                className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                variant="default"
+                onClick={async () => {
+                  try {
+                    setRefreshing(true);
+                    N8NWebhookService.simulateN8NData();
+                    const refreshedData = N8NWebhookService.getMetrics();
+                    setData(refreshedData);
+                    toast({
+                      title: "Dados simulados carregados",
+                      description: "Dados de teste foram carregados com sucesso",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Erro ao simular dados",
+                      description: "Erro ao carregar dados de teste",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Abrir Planilha
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Simular Dados N8N
               </Button>
             </div>
           </div>
@@ -274,7 +314,7 @@ export default function CommercialMetrics() {
               setData(null);
               toast({
                 title: "Dados limpos",
-                description: "Todos os dados foram removidos",
+                description: "Todos os dados foram removidos. Recarregue a página para ver a tela inicial.",
               });
             }}
             variant="destructive"

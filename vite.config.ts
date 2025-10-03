@@ -11,6 +11,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
+    host: true,
     proxy: {
       '/api/notion-proxy': {
         target: 'http://localhost:3001',
@@ -23,6 +25,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select']
+        }
+      }
+    }
   }
 })

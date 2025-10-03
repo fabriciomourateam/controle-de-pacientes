@@ -25,19 +25,19 @@ O sistema agora está configurado para processar dados reais do N8N.
 
 ### **URL do Webhook (Pública - Sem Autenticação):**
 ```
-https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/public-webhook
+https://painel-fmteam.vercel.app/api/public-webhook
 ```
 
 ### **URL Alternativa (Se a primeira não funcionar):**
 ```
-https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webhook
+https://painel-fmteam.vercel.app/api/n8n-webhook
 ```
 
 ### **Configuração dos Nós HTTP Request:**
 
 #### **1. Após "Upsert row(s)" - Leads que Entraram:**
 - **Method**: POST
-- **URL**: `https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/public-webhook`
+- **URL**: `https://painel-fmteam.vercel.app/api/public-webhook`
 - **Headers**: `Content-Type: application/json`
 - **Body**:
 ```json
@@ -50,7 +50,7 @@ https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webh
 
 #### **2. Após "Upsert row(s)3" - Total de Leads:**
 - **Method**: POST
-- **URL**: `https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/public-webhook`
+- **URL**: `https://painel-fmteam.vercel.app/api/public-webhook`
 - **Headers**: `Content-Type: application/json`
 - **Body**:
 ```json
@@ -63,7 +63,7 @@ https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webh
 
 #### **3. Após "Upsert row(s)1" - Total de Calls Agendadas:**
 - **Method**: POST
-- **URL**: `https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/public-webhook`
+- **URL**: `https://painel-fmteam.vercel.app/api/public-webhook`
 - **Headers**: `Content-Type: application/json`
 - **Body**:
 ```json
@@ -76,7 +76,7 @@ https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webh
 
 #### **4. Após "Upsert row(s)2" - Total de Leads por Funil:**
 - **Method**: POST
-- **URL**: `https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/public-webhook`
+- **URL**: `https://painel-fmteam.vercel.app/api/public-webhook`
 - **Headers**: `Content-Type: application/json`
 - **Body**:
 ```json
@@ -89,7 +89,7 @@ https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webh
 
 #### **5. Após "Upsert row(s)4" - Total de Agendamentos por Funil:**
 - **Method**: POST
-- **URL**: `https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/public-webhook`
+- **URL**: `https://painel-fmteam.vercel.app/api/public-webhook`
 - **Headers**: `Content-Type: application/json`
 - **Body**:
 ```json

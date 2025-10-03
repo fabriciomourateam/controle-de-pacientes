@@ -90,7 +90,7 @@ export function ConnectionTest() {
 
         <div className="space-y-2 text-sm text-slate-400">
           <p><strong>Fonte Principal:</strong> N8N Webhook (Direto)</p>
-          <p><strong>URL:</strong> https://painel-fmteam.vercel.app/api/n8n-webhook</p>
+          <p><strong>URL:</strong> https://painel-fmteam.vercel.app/api/public-webhook</p>
           <p><strong>Método:</strong> N8N envia dados automaticamente</p>
           <p><strong>Webhook:</strong> Configurado ✅</p>
         </div>
