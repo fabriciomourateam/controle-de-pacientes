@@ -1,5 +1,5 @@
-// Endpoint para receber dados do N8N
-// Configurado para funcionar com Vercel
+// Endpoint público para receber dados do N8N
+// Sem proteção de deploy
 
 export default async function handler(req, res) {
   // Configurar CORS para permitir acesso de qualquer origem
@@ -17,10 +17,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({
       success: true,
-      message: 'Webhook N8N funcionando',
+      message: 'Webhook público N8N funcionando',
       timestamp: new Date().toISOString(),
       instructions: 'Use POST para enviar dados do N8N',
-      endpoint: '/api/n8n-webhook'
+      endpoint: '/api/public-webhook'
     });
   }
 
