@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug N8N Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .container {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .data-display {
+            background-color: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug N8N Data</h1>
+    
+    <div class="container">
+        <h2>Teste de Dados N8N</h2>
+        <button onclick="testN8NData()">Simular Dados N8N</button>
+        <button onclick="clearData()">Limpar Dados</button>
+        <button onclick="showData()">Mostrar Dados</button>
+        <button onclick="testWebhook()">Testar Webhook</button>
+        
+        <div id="output" class="data-display"></div>
+    </div>
+
+    <script>
+        // Simular o serviço N8N
+        class N8NWebhookService {
+            static STORAGE_KEY = 'n8n_metrics_data';
+            
+            static processWebhookData(webhookData) {
+                console.log(`📊 Processando dados do N8N - Tabela: ${webhookData.table}`);
+                
+                try {
+                    const existingData = this.getStoredData();
+                    
+                    switch (webhookData.table) {
+                        case 'leads_que_entraram':
+                            this.processLeadsData(webhookData.data, existingData);
+                            break;
+                        case 'calls_agendadas':
+                            this.processCallsData(webhookData.data, existingData);
+                            break;
+                    }
+                    
+                    existingData.lastUpdated = webhookData.timestamp;
+                    this.saveData(existingData);
+                    
+                    console.log('✅ Dados processados e salvos com sucesso');
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao processar dados do webhook:', error);
+                }
+            }
+            
+            static processLeadsData(data, existingData) {
+                if (!data.DATA) return;
+                
+                const leadData = {
+                    date: this.formatDate(data.DATA),
+                    google: this.parseNumber(data.GOOGLE || 0),
+                    googleForms: this.parseNumber(data.GOOGLE_FORMS || 0),
+                    instagram: this.parseNumber(data.INSTAGRAM || 0),
+                    facebook: this.parseNumber(data.FACEBOOK || 0),
+                    seller: this.parseNumber(data.SELLER || 0),
+                    indicacao: this.parseNumber(data.INDICACAO || 0),
+                    outros: this.parseNumber(data.OUTROS || 0),
+                    total: this.parseNumber(data.TOTAL || 0),
+                };
+
+                const existingIndex = existingData.dailyLeads.findIndex(item => item.date === leadData.date);
+                if (existingIndex >= 0) {
+                    existingData.dailyLeads[existingIndex] = leadData;
+                } else {
+                    existingData.dailyLeads.push(leadData);
+                }
+
+                existingData.dailyLeads.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            }
+            
+            static processCallsData(data, existingData) {
+                if (!data.AGENDADAS) return;
+                
+                const callData = {
+                    date: this.formatDate(data.AGENDADAS),
+                    scheduled: this.parseNumber(data.TOTAL_DE_CALLS_AGENDADAS || 0),
+                    completed: Math.round(this.parseNumber(data.TOTAL_DE_CALLS_AGENDADAS || 0) * 0.8),
+                };
+
+                const existingIndex = existingData.dailyCalls.findIndex(item => item.date === callData.date);
+                if (existingIndex >= 0) {
+                    existingData.dailyCalls[existingIndex] = callData;
+                } else {
+                    existingData.dailyCalls.push(callData);
+                }
+
+                existingData.dailyCalls.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            }
+            
+            static getStoredData() {
+                try {
+                    const stored = localStorage.getItem(this.STORAGE_KEY);
+                    if (stored) {
+                        return JSON.parse(stored);
+                    }
+                } catch (error) {
+                    console.error('Erro ao obter dados armazenados:', error);
+                }
+
+                return {
+                    dailyLeads: [],
+                    dailyCalls: [],
+                    monthlyLeads: { current: 0, previous: 0, growth: 0 },
+                    monthlyCalls: { current: 0, previous: 0, growth: 0 },
+                    totalLeads: 0,
+                    totalCalls: 0,
+                    conversionRate: 0,
+                    lastUpdated: new Date().toISOString(),
+                };
+            }
+            
+            static saveData(data) {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+                } catch (error) {
+                    console.error('Erro ao salvar dados:', error);
+                }
+            }
+            
+            static clearData() {
+                localStorage.removeItem(this.STORAGE_KEY);
+            }
+            
+            static formatDate(dateStr) {
+                if (!dateStr) return '';
+                
+                try {
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+                } catch (error) {
+                    return '';
+                }
+            }
+            
+            static parseNumber(value) {
+                if (value === null || value === undefined || value === '') return 0;
+                if (typeof value === 'number') return value;
+                
+                const cleaned = value.toString().replace(/[^\d,.-]/g, '');
+                const normalized = cleaned.replace(',', '.');
+                return parseFloat(normalized) || 0;
+            }
+        }
+        
+        function testN8NData() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔄 Simulando dados N8N...';
+            
+            try {
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                const mockData = [
+                    {
+                        table: 'leads_que_entraram',
+                        data: {
+                            DATA: today.toISOString().split('T')[0],
+                            GOOGLE: 15,
+                            GOOGLE_FORMS: 8,
+                            INSTAGRAM: 12,
+                            FACEBOOK: 6,
+                            SELLER: 4,
+                            INDICACAO: 3,
+                            OUTROS: 2,
+                            TOTAL: 50
+                        },
+                        timestamp: today.toISOString()
+                    },
+                    {
+                        table: 'leads_que_entraram',
+                        data: {
+                            DATA: yesterday.toISOString().split('T')[0],
+                            GOOGLE: 12,
+                            GOOGLE_FORMS: 6,
+                            INSTAGRAM: 10,
+                            FACEBOOK: 5,
+                            SELLER: 3,
+                            INDICACAO: 2,
+                            OUTROS: 1,
+                            TOTAL: 39
+                        },
+                        timestamp: yesterday.toISOString()
+                    },
+                    {
+                        table: 'calls_agendadas',
+                        data: {
+                            AGENDADAS: today.toISOString().split('T')[0],
+                            TOTAL_DE_CALLS_AGENDADAS: 25
+                        },
+                        timestamp: today.toISOString()
+                    }
+                ];
+
+                mockData.forEach(data => {
+                    N8NWebhookService.processWebhookData(data);
+                });
+                
+                output.innerHTML = '<span class="success">✅ Dados simulados com sucesso!</span>\n\n' + 
+                    'Dados processados:\n' + JSON.stringify(mockData, null, 2);
+                
+            } catch (error) {
+                output.innerHTML = '<span class="error">❌ Erro ao simular dados:</span>\n' + error.message;
+            }
+        }
+        
+        function clearData() {
+            N8NWebhookService.clearData();
+            document.getElementById('output').innerHTML = '<span class="success">✅ Dados limpos com sucesso!</span>';
+        }
+        
+        function showData() {
+            const data = N8NWebhookService.getStoredData();
+            document.getElementById('output').innerHTML = 'Dados armazenados:\n' + JSON.stringify(data, null, 2);
+        }
+        
+        function testWebhook() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔄 Testando webhook...';
+            
+            // Testar webhook local primeiro
+            fetch('/api/n8n-webhook', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                output.innerHTML = '<span class="success">✅ Webhook funcionando!</span>\n\n' + 
+                    'Resposta do webhook:\n' + JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                output.innerHTML = '<span class="error">❌ Erro no webhook:</span>\n' + 
+                    'Erro: ' + error.message + '\n\n' +
+                    'Tentando webhook externo...';
+                
+                // Tentar webhook externo como fallback
+                fetch('https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webhook', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    output.innerHTML += '\n\n<span class="success">✅ Webhook externo funcionando!</span>\n\n' + 
+                        'Resposta do webhook externo:\n' + JSON.stringify(data, null, 2);
+                })
+                .catch(error2 => {
+                    output.innerHTML += '\n\n<span class="error">❌ Webhook externo também falhou:</span>\n' + error2.message;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
