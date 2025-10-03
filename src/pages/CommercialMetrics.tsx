@@ -58,11 +58,16 @@ export default function CommercialMetrics() {
       if (showToast) setRefreshing(true);
       else setLoading(true);
       
-      // Buscar dados do N8N primeiro
-      await N8NWebhookService.fetchDataFromN8N();
+      // Obter dados existentes primeiro
+      let metricsData = N8NWebhookService.getMetrics();
       
-      // Depois obter os dados processados
-      const metricsData = N8NWebhookService.getMetrics();
+      // Se não há dados, tentar buscar dados do N8N
+      if (metricsData.dailyLeads.length === 0 && metricsData.dailyCalls.length === 0) {
+        console.log('🔄 Nenhum dado encontrado, buscando dados do N8N...');
+        await N8NWebhookService.fetchDataFromN8N();
+        metricsData = N8NWebhookService.getMetrics();
+      }
+      
       setData(metricsData);
       
       if (showToast) {

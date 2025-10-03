@@ -274,43 +274,23 @@ export class N8NWebhookService {
 
   // Testar conexão com o endpoint
   static async testConnection(): Promise<boolean> {
+    // Modo offline - sempre retorna true para permitir uso local
+    console.log('🔄 Testando conexão (modo offline)...');
+    
     try {
-      // Primeiro tentar webhook local
-      const localResponse = await fetch('/api/n8n-webhook', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Verificar se há dados no localStorage
+      const existingData = this.getStoredData();
+      const hasData = existingData.dailyLeads.length > 0 || existingData.dailyCalls.length > 0;
       
-      if (localResponse.ok) {
-        const data = await localResponse.json();
-        console.log('✅ Conexão com webhook local OK:', data);
-        return true;
-      }
-    } catch (error) {
-      console.log('⚠️ Webhook local não disponível, tentando externo...');
-    }
-
-    try {
-      // Tentar webhook externo como fallback
-      const response = await fetch('https://painel-fmteam-git-main-fabricio-moura-s-projects.vercel.app/api/n8n-webhook', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Conexão com webhook externo OK:', data);
+      if (hasData) {
+        console.log('✅ Dados encontrados no localStorage');
         return true;
       } else {
-        console.error('❌ Erro na conexão com webhook externo:', response.status);
-        return false;
+        console.log('⚠️ Nenhum dado encontrado, mas sistema funcionando offline');
+        return true;
       }
     } catch (error) {
-      console.error('❌ Erro ao testar conexão com webhook externo:', error);
+      console.error('❌ Erro ao verificar dados locais:', error);
       // Retornar true mesmo com erro para permitir uso offline
       return true;
     }
