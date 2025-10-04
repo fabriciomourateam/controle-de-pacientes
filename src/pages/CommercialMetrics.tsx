@@ -126,6 +126,14 @@ export default function CommercialMetrics() {
 
   useEffect(() => {
     fetchData();
+    
+    // Verificar dados do N8N a cada 30 segundos
+    const interval = setInterval(() => {
+      console.log('🔄 Verificando dados do N8N...');
+      fetchData(true);
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {

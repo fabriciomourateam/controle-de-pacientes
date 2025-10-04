@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpeza DEFINITIVA - Métricas Comerciais</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+        }
+        button {
+            padding: 20px 40px;
+            margin: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .limpar { background-color: #dc3545; color: white; }
+        .limpar:hover { background-color: #c82333; }
+        .verificar { background-color: #007bff; color: white; }
+        .verificar:hover { background-color: #0056b3; }
+        .nuclear { background-color: #6f42c1; color: white; }
+        .nuclear:hover { background-color: #5a32a3; }
+        .bloquear { background-color: #fd7e14; color: white; }
+        .bloquear:hover { background-color: #e55a00; }
+        pre { 
+            background-color: #2d2d2d; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            margin-top: 20px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>💥 Limpeza DEFINITIVA - Métricas Comerciais</h1>
+    <p>Este utilitário irá limpar COMPLETAMENTE todos os dados e BLOQUEAR a recriação automática.</p>
+
+    <div>
+        <button class="verificar" onclick="verificarTudo()">🔍 Verificar TUDO</button>
+        <button class="limpar" onclick="limparTudo()">🗑️ Limpar TUDO</button>
+        <button class="nuclear" onclick="limpezaNuclear()">💥 LIMPEZA NUCLEAR</button>
+        <button class="bloquear" onclick="bloquearRecriacao()">🚫 BLOQUEAR RECRIAÇÃO</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        function verificarTudo() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔍 Verificando TUDO no localStorage...';
+            
+            try {
+                const todasChaves = Object.keys(localStorage);
+                const chavesRelacionadas = todasChaves.filter(chave => 
+                    chave.toLowerCase().includes('n8n') || 
+                    chave.toLowerCase().includes('metric') || 
+                    chave.toLowerCase().includes('commercial') ||
+                    chave.toLowerCase().includes('webhook') ||
+                    chave.toLowerCase().includes('data') ||
+                    chave.toLowerCase().includes('vite') ||
+                    chave.toLowerCase().includes('react')
+                );
+                
+                let html = `<div class="warning">📊 Total de chaves no localStorage: ${todasChaves.length}</div>`;
+                html += `<div class="warning">🎯 Chaves relacionadas encontradas: ${chavesRelacionadas.length}</div>`;
+                
+                if (chavesRelacionadas.length > 0) {
+                    html += '<h3>Chaves encontradas:</h3>';
+                    chavesRelacionadas.forEach(chave => {
+                        const valor = localStorage.getItem(chave);
+                        html += `<div><strong>${chave}:</strong> ${valor ? valor.substring(0, 100) + '...' : 'null'}</div>`;
+                    });
+                } else {
+                    html += '<div class="success">✅ Nenhuma chave relacionada encontrada</div>';
+                }
+                
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        function limparTudo() {
+            const output = document.getElementById('output');
+            
+            if (confirm('⚠️ Isso irá limpar TODOS os dados relacionados às métricas!\n\nContinuar?')) {
+                try {
+                    const todasChaves = Object.keys(localStorage);
+                    const chavesRelacionadas = todasChaves.filter(chave => 
+                        chave.toLowerCase().includes('n8n') || 
+                        chave.toLowerCase().includes('metric') || 
+                        chave.toLowerCase().includes('commercial') ||
+                        chave.toLowerCase().includes('webhook') ||
+                        chave.toLowerCase().includes('data') ||
+                        chave.toLowerCase().includes('vite') ||
+                        chave.toLowerCase().includes('react')
+                    );
+                    
+                    let removidas = 0;
+                    chavesRelacionadas.forEach(chave => {
+                        localStorage.removeItem(chave);
+                        removidas++;
+                    });
+                    
+                    // Limpar também chaves específicas conhecidas
+                    const chavesEspecificas = [
+                        'n8n_metrics_data',
+                        'commercial_metrics_data',
+                        'metrics_data',
+                        'n8n_data',
+                        'webhook_data',
+                        'cached_data',
+                        'app_data',
+                        'vite_react_shadcn_ts',
+                        'commercial-metrics',
+                        'vite:react-refresh',
+                        'vite:hmr-port'
+                    ];
+                    
+                    chavesEspecificas.forEach(chave => {
+                        if (localStorage.getItem(chave)) {
+                            localStorage.removeItem(chave);
+                            removidas++;
+                        }
+                    });
+                    
+                    output.innerHTML = `
+                        <div class="success">✅ Limpeza realizada!</div>
+                        <p><strong>Chaves removidas:</strong> ${removidas}</p>
+                        <p><strong>Recarregando página em 3 segundos...</strong></p>
+                    `;
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 3000);
+                } catch (error) {
+                    output.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                }
+            }
+        }
+
+        function limpezaNuclear() {
+            const output = document.getElementById('output');
+            
+            if (confirm('💥 ATENÇÃO: LIMPEZA NUCLEAR!\n\nIsso irá limpar TODO o localStorage!\n\nTem certeza?')) {
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    output.innerHTML = `
+                        <div class="success">💥 LIMPEZA NUCLEAR CONCLUÍDA!</div>
+                        <p><strong>localStorage:</strong> Limpo</p>
+                        <p><strong>sessionStorage:</strong> Limpo</p>
+                        <p><strong>Recarregando página em 3 segundos...</strong></p>
+                    `;
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 3000);
+                } catch (error) {
+                    output.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                }
+            }
+        }
+
+        function bloquearRecriacao() {
+            const output = document.getElementById('output');
+            
+            if (confirm('🚫 BLOQUEAR RECRIAÇÃO AUTOMÁTICA!\n\nIsso irá modificar o localStorage para impedir recriação de dados!\n\nContinuar?')) {
+                try {
+                    // Limpar tudo primeiro
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    // Adicionar uma chave especial que indica que os dados foram limpos intencionalmente
+                    localStorage.setItem('DADOS_LIMPOS_INTENCIONALMENTE', 'true');
+                    localStorage.setItem('BLOQUEAR_RECRIACAO_AUTOMATICA', 'true');
+                    localStorage.setItem('TIMESTAMP_LIMPEZA', new Date().toISOString());
+                    
+                    output.innerHTML = `
+                        <div class="success">🚫 BLOQUEIO DE RECRIAÇÃO ATIVADO!</div>
+                        <p><strong>localStorage:</strong> Limpo e bloqueado</p>
+                        <p><strong>sessionStorage:</strong> Limpo</p>
+                        <p><strong>Proteção:</strong> Ativa</p>
+                        <p><strong>Recarregando página em 3 segundos...</strong></p>
+                    `;
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 3000);
+                } catch (error) {
+                    output.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Verificar automaticamente ao carregar
+        window.onload = function() {
+            verificarTudo();
+        };
+    </script>
+</body>
+</html>

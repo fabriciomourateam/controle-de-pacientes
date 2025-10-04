@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testar Endpoint de Dados N8N</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+        }
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .testar { background-color: #007bff; color: white; }
+        .testar:hover { background-color: #0056b3; }
+        .verificar { background-color: #28a745; color: white; }
+        .verificar:hover { background-color: #218838; }
+        .limpar { background-color: #dc3545; color: white; }
+        .limpar:hover { background-color: #c82333; }
+        pre { 
+            background-color: #2d2d2d; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Testar Endpoint de Dados N8N</h1>
+    <p>Este utilitário testa o novo endpoint que fornece dados do N8N para o frontend.</p>
+
+    <div>
+        <button class="testar" onclick="testarEndpoint()">🚀 Testar Endpoint</button>
+        <button class="verificar" onclick="verificarDados()">📊 Verificar Dados</button>
+        <button class="limpar" onclick="limparDados()">🗑️ Limpar Dados</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        async function testarEndpoint() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔄 Testando endpoint de dados do N8N...';
+            
+            try {
+                const response = await fetch('https://painel-fmteam.vercel.app/api/get-n8n-data', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    output.innerHTML = `
+                        <div class="success">✅ Endpoint funcionando!</div>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Dados recebidos:</strong></p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    output.innerHTML = `
+                        <div class="error">❌ Erro no endpoint</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `
+                    <div class="error">❌ Erro de conexão</div>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        function verificarDados() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔍 Verificando dados no localStorage...';
+            
+            try {
+                const todasChaves = Object.keys(localStorage);
+                const chavesRelacionadas = todasChaves.filter(chave => 
+                    chave.toLowerCase().includes('n8n') || 
+                    chave.toLowerCase().includes('metric') || 
+                    chave.toLowerCase().includes('commercial') ||
+                    chave.toLowerCase().includes('webhook') ||
+                    chave.toLowerCase().includes('data')
+                );
+                
+                let html = `<div class="warning">📊 Total de chaves no localStorage: ${todasChaves.length}</div>`;
+                html += `<div class="warning">🎯 Chaves relacionadas: ${chavesRelacionadas.length}</div>`;
+                
+                if (chavesRelacionadas.length > 0) {
+                    html += '<h3>Dados encontrados:</h3>';
+                    chavesRelacionadas.forEach(chave => {
+                        const valor = localStorage.getItem(chave);
+                        html += `<div><strong>${chave}:</strong></div>`;
+                        html += `<pre>${valor ? JSON.stringify(JSON.parse(valor), null, 2) : 'null'}</pre>`;
+                    });
+                } else {
+                    html += '<div class="success">✅ Nenhum dado encontrado</div>';
+                }
+                
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        function limparDados() {
+            if (confirm('⚠️ Limpar todos os dados?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.getElementById('output').innerHTML = '<div class="success">✅ Dados limpos!</div>';
+            }
+        }
+
+        // Verificar automaticamente ao carregar
+        window.onload = function() {
+            verificarDados();
+        };
+    </script>
+</body>
+</html>

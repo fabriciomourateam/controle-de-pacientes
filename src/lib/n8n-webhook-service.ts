@@ -44,8 +44,19 @@ export class N8NWebhookService {
   // Processar dados recebidos do webhook
   static processWebhookData(webhookData: N8NWebhookData): void {
     console.log(`📊 Processando dados do N8N - Tabela: ${webhookData.table}`);
+    console.log(`📋 Dados recebidos:`, webhookData.data);
     
     try {
+      // Verificar se os dados foram limpos intencionalmente
+      const dadosLimpos = localStorage.getItem('DADOS_LIMPOS_INTENCIONALMENTE');
+      const bloqueioAtivo = localStorage.getItem('BLOQUEAR_RECRIACAO_AUTOMATICA');
+      
+      if (dadosLimpos === 'true' && bloqueioAtivo === 'true') {
+        console.log('🚫 Dados foram limpos intencionalmente, removendo bloqueio para processar dados reais do N8N');
+        localStorage.removeItem('DADOS_LIMPOS_INTENCIONALMENTE');
+        localStorage.removeItem('BLOQUEAR_RECRIACAO_AUTOMATICA');
+      }
+      
       // Obter dados existentes do localStorage
       const existingData = this.getStoredData();
       
@@ -77,6 +88,7 @@ export class N8NWebhookService {
       this.saveData(existingData);
       
       console.log('✅ Dados processados e salvos com sucesso');
+      console.log('📊 Dados finais:', existingData);
       
     } catch (error) {
       console.error('❌ Erro ao processar dados do webhook:', error);
@@ -154,6 +166,24 @@ export class N8NWebhookService {
   // Obter dados armazenados
   static getStoredData(): CommercialMetricsData {
     try {
+      // Verificar se os dados foram limpos intencionalmente
+      const dadosLimpos = localStorage.getItem('DADOS_LIMPOS_INTENCIONALMENTE');
+      const bloqueioAtivo = localStorage.getItem('BLOQUEAR_RECRIACAO_AUTOMATICA');
+      
+      if (dadosLimpos === 'true' && bloqueioAtivo === 'true') {
+        console.log('🚫 Dados foram limpos intencionalmente, não recriando');
+        return {
+          dailyLeads: [],
+          dailyCalls: [],
+          monthlyLeads: { current: 0, previous: 0, growth: 0 },
+          monthlyCalls: { current: 0, previous: 0, growth: 0 },
+          totalLeads: 0,
+          totalCalls: 0,
+          conversionRate: 0,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+      
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
@@ -208,14 +238,50 @@ export class N8NWebhookService {
         return;
       }
       
-      // Usar dados simulados como fallback
-      console.log('⚠️ Nenhum dado encontrado, usando dados simulados para demonstração');
-      this.simulateN8NData();
+      // Buscar dados do endpoint de dados do N8N
+      try {
+        const response = await fetch('https://painel-fmteam.vercel.app/api/get-n8n-data', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('📡 Dados do N8N recebidos:', result);
+          
+          if (result.success && result.data) {
+            // Processar cada tabela de dados
+            Object.keys(result.data).forEach(tableName => {
+              const tableData = result.data[tableName];
+              if (Array.isArray(tableData) && tableData.length > 0) {
+                // Pegar o registro mais recente
+                const latestRecord = tableData[tableData.length - 1];
+                const webhookData = {
+                  table: tableName,
+                  data: latestRecord.data,
+                  timestamp: latestRecord.timestamp
+                };
+                
+                console.log(`📊 Processando dados da tabela ${tableName}:`, webhookData);
+                this.processWebhookData(webhookData);
+              }
+            });
+            
+            console.log('✅ Dados do N8N processados com sucesso');
+          } else {
+            console.log('⚠️ Nenhum dado válido encontrado no N8N');
+          }
+        } else {
+          console.log('⚠️ Erro ao buscar dados do N8N:', response.status);
+        }
+      } catch (webhookError) {
+        console.log('⚠️ Erro ao buscar dados do N8N:', webhookError);
+      }
       
     } catch (error) {
       console.error('❌ Erro ao buscar dados do N8N:', error);
-      // Em caso de erro, usar dados simulados
-      this.simulateN8NData();
     }
   }
 

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpeza Completa - Métricas Comerciais</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+        }
+        button {
+            padding: 20px 40px;
+            margin: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .limpar { background-color: #dc3545; color: white; }
+        .limpar:hover { background-color: #c82333; }
+        .verificar { background-color: #007bff; color: white; }
+        .verificar:hover { background-color: #0056b3; }
+        pre { 
+            background-color: #2d2d2d; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            margin-top: 20px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Limpeza Completa - Métricas Comerciais</h1>
+    <p>Este utilitário irá limpar COMPLETAMENTE todos os dados das métricas comerciais.</p>
+
+    <div>
+        <button class="verificar" onclick="verificarTodosDados()">🔍 Verificar TODOS os Dados</button>
+        <button class="limpar" onclick="limparCompletamente()">🗑️ LIMPEZA COMPLETA</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        function verificarTodosDados() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔍 Verificando TODOS os dados no localStorage...';
+            
+            try {
+                const chaves = Object.keys(localStorage);
+                const dadosMetricas = [];
+                
+                chaves.forEach(chave => {
+                    if (chave.includes('n8n') || chave.includes('metric') || chave.includes('commercial')) {
+                        const valor = localStorage.getItem(chave);
+                        try {
+                            const parsed = JSON.parse(valor);
+                            dadosMetricas.push({ chave, dados: parsed });
+                        } catch (e) {
+                            dadosMetricas.push({ chave, dados: valor });
+                        }
+                    }
+                });
+                
+                if (dadosMetricas.length > 0) {
+                    let html = '<div class="warning">⚠️ DADOS ENCONTRADOS:</div>';
+                    dadosMetricas.forEach(item => {
+                        html += `<h3>Chave: ${item.chave}</h3>`;
+                        html += `<pre>${JSON.stringify(item.dados, null, 2)}</pre>`;
+                    });
+                    output.innerHTML = html;
+                } else {
+                    output.innerHTML = '<div class="success">✅ Nenhum dado de métricas encontrado</div>';
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Erro ao verificar dados: ${error.message}</div>`;
+            }
+        }
+
+        function limparCompletamente() {
+            const output = document.getElementById('output');
+            
+            if (confirm('⚠️ ATENÇÃO: Isso irá limpar TODOS os dados das métricas comerciais!\n\nTem certeza que deseja continuar?')) {
+                try {
+                    // Limpar todas as chaves relacionadas a métricas
+                    const chaves = Object.keys(localStorage);
+                    let removidas = 0;
+                    
+                    chaves.forEach(chave => {
+                        if (chave.includes('n8n') || chave.includes('metric') || chave.includes('commercial')) {
+                            localStorage.removeItem(chave);
+                            removidas++;
+                        }
+                    });
+                    
+                    // Limpar também chaves específicas conhecidas
+                    const chavesEspecificas = [
+                        'n8n_metrics_data',
+                        'commercial_metrics_data',
+                        'metrics_data',
+                        'n8n_data',
+                        'webhook_data'
+                    ];
+                    
+                    chavesEspecificas.forEach(chave => {
+                        if (localStorage.getItem(chave)) {
+                            localStorage.removeItem(chave);
+                            removidas++;
+                        }
+                    });
+                    
+                    output.innerHTML = `
+                        <div class="success">✅ LIMPEZA COMPLETA REALIZADA!</div>
+                        <p><strong>Chaves removidas:</strong> ${removidas}</p>
+                        <p><strong>Status:</strong> Todos os dados das métricas comerciais foram removidos</p>
+                        
+                        <h3>🎯 Próximos Passos:</h3>
+                        <ol>
+                            <li><strong>Configure o N8N</strong> para enviar dados para:<br>
+                                <code>https://painel-fmteam.vercel.app/api/public-webhook</code>
+                            </li>
+                            <li><strong>Acesse a página de Métricas Comerciais</strong> no site</li>
+                            <li><strong>Execute o workflow do N8N</strong> para enviar dados reais</li>
+                            <li><strong>Verifique se os dados aparecem</strong> na página</li>
+                        </ol>
+                        
+                        <h3>📋 URLs Importantes:</h3>
+                        <ul>
+                            <li><strong>Site Local:</strong> http://localhost:5174</li>
+                            <li><strong>Site Produção:</strong> https://painel-fmteam.vercel.app/</li>
+                            <li><strong>Webhook N8N:</strong> https://painel-fmteam.vercel.app/api/public-webhook</li>
+                        </ul>
+                    `;
+                } catch (error) {
+                    output.innerHTML = `<div class="error">❌ Erro ao limpar dados: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Verificar dados automaticamente ao carregar
+        window.onload = function() {
+            verificarTodosDados();
+        };
+    </script>
+</body>
+</html>

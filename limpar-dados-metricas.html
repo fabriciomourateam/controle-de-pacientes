@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Dados - Métricas Comerciais</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+        }
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .limpar { background-color: #dc3545; color: white; }
+        .limpar:hover { background-color: #c82333; }
+        .verificar { background-color: #007bff; color: white; }
+        .verificar:hover { background-color: #0056b3; }
+        .simular { background-color: #28a745; color: white; }
+        .simular:hover { background-color: #218838; }
+        pre { 
+            background-color: #2d2d2d; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            margin-top: 20px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Limpar Dados - Métricas Comerciais</h1>
+    <p>Use este utilitário para limpar os dados das métricas comerciais e testar com dados reais do N8N.</p>
+
+    <div>
+        <button class="verificar" onclick="verificarDados()">🔍 Verificar Dados Atuais</button>
+        <button class="limpar" onclick="limparDados()">🗑️ Limpar Todos os Dados</button>
+        <button class="simular" onclick="simularDados()">📊 Simular Dados N8N</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        function verificarDados() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔍 Verificando dados...';
+            
+            try {
+                const dados = localStorage.getItem('n8n_metrics_data');
+                if (dados) {
+                    const parsed = JSON.parse(dados);
+                    output.innerHTML = `
+                        <div class="success">✅ Dados encontrados no localStorage:</div>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                        <p><strong>Total de leads diários:</strong> ${parsed.dailyLeads ? parsed.dailyLeads.length : 0}</p>
+                        <p><strong>Total de calls diárias:</strong> ${parsed.dailyCalls ? parsed.dailyCalls.length : 0}</p>
+                        <p><strong>Última atualização:</strong> ${parsed.lastUpdated || 'N/A'}</p>
+                    `;
+                } else {
+                    output.innerHTML = '<div class="error">❌ Nenhum dado encontrado no localStorage</div>';
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Erro ao verificar dados: ${error.message}</div>`;
+            }
+        }
+
+        function limparDados() {
+            const output = document.getElementById('output');
+            
+            if (confirm('⚠️ Tem certeza que deseja limpar TODOS os dados das métricas comerciais?')) {
+                try {
+                    localStorage.removeItem('n8n_metrics_data');
+                    output.innerHTML = `
+                        <div class="success">✅ Dados limpos com sucesso!</div>
+                        <p>Os dados das métricas comerciais foram removidos do localStorage.</p>
+                        <p><strong>Próximos passos:</strong></p>
+                        <ul>
+                            <li>Configure o N8N para enviar dados para: <code>https://painel-fmteam.vercel.app/api/public-webhook</code></li>
+                            <li>Acesse a página de Métricas Comerciais no site</li>
+                            <li>Os dados aparecerão automaticamente quando o N8N enviar</li>
+                        </ul>
+                    `;
+                } catch (error) {
+                    output.innerHTML = `<div class="error">❌ Erro ao limpar dados: ${error.message}</div>`;
+                }
+            }
+        }
+
+        function simularDados() {
+            const output = document.getElementById('output');
+            output.innerHTML = '📊 Simulando dados do N8N...';
+            
+            try {
+                const hoje = new Date();
+                const ontem = new Date(hoje);
+                ontem.setDate(ontem.getDate() - 1);
+                
+                const dadosSimulados = {
+                    dailyLeads: [
+                        {
+                            date: hoje.toISOString().split('T')[0],
+                            google: 15,
+                            googleForms: 8,
+                            instagram: 12,
+                            facebook: 6,
+                            seller: 4,
+                            indicacao: 3,
+                            outros: 2,
+                            total: 50
+                        },
+                        {
+                            date: ontem.toISOString().split('T')[0],
+                            google: 12,
+                            googleForms: 6,
+                            instagram: 10,
+                            facebook: 5,
+                            seller: 3,
+                            indicacao: 2,
+                            outros: 1,
+                            total: 39
+                        }
+                    ],
+                    dailyCalls: [
+                        {
+                            date: hoje.toISOString().split('T')[0],
+                            scheduled: 25,
+                            completed: 20
+                        },
+                        {
+                            date: ontem.toISOString().split('T')[0],
+                            scheduled: 18,
+                            completed: 15
+                        }
+                    ],
+                    monthlyLeads: {
+                        current: 1200,
+                        previous: 1100,
+                        growth: 9.09
+                    },
+                    monthlyCalls: {
+                        current: 600,
+                        previous: 550,
+                        growth: 9.09
+                    },
+                    totalLeads: 1200,
+                    totalCalls: 600,
+                    conversionRate: 50.0,
+                    lastUpdated: hoje.toISOString()
+                };
+                
+                localStorage.setItem('n8n_metrics_data', JSON.stringify(dadosSimulados));
+                
+                output.innerHTML = `
+                    <div class="success">✅ Dados simulados criados com sucesso!</div>
+                    <pre>${JSON.stringify(dadosSimulados, null, 2)}</pre>
+                    <p><strong>Dados simulados incluem:</strong></p>
+                    <ul>
+                        <li>2 dias de leads (hoje e ontem)</li>
+                        <li>2 dias de calls agendadas</li>
+                        <li>Dados mensais e totais</li>
+                        <li>Taxa de conversão de 50%</li>
+                    </ul>
+                    <p>Agora você pode acessar a página de Métricas Comerciais para ver os dados simulados.</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Erro ao simular dados: ${error.message}</div>`;
+            }
+        }
+
+        // Verificar dados automaticamente ao carregar
+        window.onload = function() {
+            verificarDados();
+        };
+    </script>
+</body>
+</html>
