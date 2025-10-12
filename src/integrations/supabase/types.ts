@@ -555,6 +555,198 @@ export type Database = {
         }
         Relationships: []
       }
+      leads_que_entraram: {
+        Row: {
+          id: string
+          DATA: string | null
+          GOOGLE: number | null
+          GOOGLE_FORMS: string | null
+          INSTAGRAM: number | null
+          FACEBOOK: number | null
+          SELLER: string | null
+          INDICACAO: string | null
+          OUTROS: number | null
+          TOTAL: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          DATA?: string | null
+          GOOGLE?: number | null
+          GOOGLE_FORMS?: string | null
+          INSTAGRAM?: number | null
+          FACEBOOK?: number | null
+          SELLER?: string | null
+          INDICACAO?: string | null
+          OUTROS?: number | null
+          TOTAL?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          DATA?: string | null
+          GOOGLE?: number | null
+          GOOGLE_FORMS?: string | null
+          INSTAGRAM?: number | null
+          FACEBOOK?: number | null
+          SELLER?: string | null
+          INDICACAO?: string | null
+          OUTROS?: number | null
+          TOTAL?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      "Total de Leads": {
+        Row: {
+          id: string
+          LEADS: string | null
+          LEAD_GOOGLE: number | null
+          LEAD_GOOGLE_FORMS: number | null
+          LEAD_INSTAGRAM: number | null
+          LEAD_FACEBOOK: number | null
+          LEAD_SELLER: number | null
+          LEAD_INDICACAO: number | null
+          LEAD_OUTROS: number | null
+          TOTAL_DE_LEADS: number | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          LEADS?: string | null
+          LEAD_GOOGLE?: number | null
+          LEAD_GOOGLE_FORMS?: number | null
+          LEAD_INSTAGRAM?: number | null
+          LEAD_FACEBOOK?: number | null
+          LEAD_SELLER?: number | null
+          LEAD_INDICACAO?: number | null
+          LEAD_OUTROS?: number | null
+          TOTAL_DE_LEADS?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          LEADS?: string | null
+          LEAD_GOOGLE?: number | null
+          LEAD_GOOGLE_FORMS?: number | null
+          LEAD_INSTAGRAM?: number | null
+          LEAD_FACEBOOK?: number | null
+          LEAD_SELLER?: number | null
+          LEAD_INDICACAO?: number | null
+          LEAD_OUTROS?: number | null
+          TOTAL_DE_LEADS?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      "Total de Calls Agendadas": {
+        Row: {
+          id: string
+          AGENDADAS: string | null
+          AGENDADOS_GOOGLE: number | null
+          AGENDADOS_GOOGLE_FORMS: number | null
+          AGENDADOS_INSTAGRAM: number | null
+          AGENDADOS_FACEBOOK: number | null
+          AGENDADOS_SELLER: number | null
+          AGENDADOS_INDICACAO: number | null
+          AGENDADOS_OUTROS: number | null
+          TOTAL_DE_CALLS_AGENDADAS: number | null
+          PERCENT_QUE_VAI_PRA_CALL: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          AGENDADAS?: string | null
+          AGENDADOS_GOOGLE?: number | null
+          AGENDADOS_GOOGLE_FORMS?: number | null
+          AGENDADOS_INSTAGRAM?: number | null
+          AGENDADOS_FACEBOOK?: number | null
+          AGENDADOS_SELLER?: number | null
+          AGENDADOS_INDICACAO?: number | null
+          AGENDADOS_OUTROS?: number | null
+          TOTAL_DE_CALLS_AGENDADAS?: number | null
+          PERCENT_QUE_VAI_PRA_CALL?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          AGENDADAS?: string | null
+          AGENDADOS_GOOGLE?: number | null
+          AGENDADOS_GOOGLE_FORMS?: number | null
+          AGENDADOS_INSTAGRAM?: number | null
+          AGENDADOS_FACEBOOK?: number | null
+          AGENDADOS_SELLER?: number | null
+          AGENDADOS_INDICACAO?: number | null
+          AGENDADOS_OUTROS?: number | null
+          TOTAL_DE_CALLS_AGENDADAS?: number | null
+          PERCENT_QUE_VAI_PRA_CALL?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      "Total de Leads por Funil": {
+        Row: {
+          id: string
+          TOTAL_DE_LEADS_DOS_FUNIS: string | null
+          TOTAL_GERAL_LEADS: number | null
+          PERCENT_TOTAL_LEADS: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          TOTAL_DE_LEADS_DOS_FUNIS?: string | null
+          TOTAL_GERAL_LEADS?: number | null
+          PERCENT_TOTAL_LEADS?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          TOTAL_DE_LEADS_DOS_FUNIS?: string | null
+          TOTAL_GERAL_LEADS?: number | null
+          PERCENT_TOTAL_LEADS?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      "Total de Agendamentos por Funil": {
+        Row: {
+          id: string
+          TOTAL_AGEND_DOS_FUNIS: string | null
+          TOTAL_GERAL_AGEND: number | null
+          PERCENT_TOTAL_AGEND: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          TOTAL_AGEND_DOS_FUNIS?: string | null
+          TOTAL_GERAL_AGEND?: number | null
+          PERCENT_TOTAL_AGEND?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          TOTAL_AGEND_DOS_FUNIS?: string | null
+          TOTAL_GERAL_AGEND?: number | null
+          PERCENT_TOTAL_AGEND?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

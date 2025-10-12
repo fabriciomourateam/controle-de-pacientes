@@ -1,246 +1,223 @@
-interface GoogleSheetsResponse {
-  values: string[][];
-}
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-interface CommercialMetricsData {
-  dailyLeads: Array<{
-    date: string;
-    google: number;
-    googleForms: number;
-    instagram: number;
-    facebook: number;
-    seller: number;
-    indicacao: number;
-    outros: number;
-    total: number;
-  }>;
-  monthlyLeads: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-  dailyCalls: Array<{
-    date: string;
-    scheduled: number;
-    completed: number;
-  }>;
-  monthlyCalls: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-  totalLeads: number;
-  totalCalls: number;
-  conversionRate: number;
-  lastUpdated: string;
-}
+// Tipos das tabelas
+type LeadsQueEntraram = Database['public']['Tables']['leads_que_entraram']['Row'];
+type TotalDeLeads = Database['public']['Tables']['Total de Leads']['Row'];
+type TotalDeCallsAgendadas = Database['public']['Tables']['Total de Calls Agendadas']['Row'];
+type TotalDeLeadsPorFunil = Database['public']['Tables']['Total de Leads por Funil']['Row'];
+type TotalDeAgendamentosPorFunil = Database['public']['Tables']['Total de Agendamentos por Funil']['Row'];
 
-export class CommercialMetricsService {
-  private static readonly SHEET_ID = '1BTzBftwg_C6rxzNYmIHTvlCGNH1GuyjIQHzGQlkQQuo';
-  private static readonly API_KEY = 'AIzaSyCvyO-iC4qK2iw321_VpdxYE8qkkPR1lVU';
-  private static readonly BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
+// Serviço de métricas comerciais
+export const commercialMetricsService = {
+  // Buscar dados diários de leads que entraram
+  async getLeadsQueEntraram() {
+    const { data, error } = await supabase
+      .from('leads_que_entraram')
+      .select('*')
+      .order('DATA', { ascending: true });
 
-  private static async fetchSheetData(range: string): Promise<string[][]> {
-    if (!this.API_KEY) {
-      throw new Error('Google Sheets API key não configurada');
+    if (error) {
+      console.error('Erro ao buscar leads que entraram:', error);
+      throw error;
     }
 
-    const url = `${this.BASE_URL}/${this.SHEET_ID}/values/${range}?key=${this.API_KEY}`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar dados: ${response.status} ${response.statusText}`);
+    return data as LeadsQueEntraram[];
+  },
+
+  // Buscar todos os meses de leads
+  async getAllTotalDeLeads() {
+    const { data, error } = await supabase
+      .from('Total de Leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar total de leads:', error);
+      throw error;
     }
 
-    const data: GoogleSheetsResponse = await response.json();
-    return data.values || [];
-  }
+    return (data || []) as TotalDeLeads[];
+  },
 
-  private static isValidDate(dateStr: string): boolean {
-    if (!dateStr || dateStr.trim() === '') return false;
-    
-    const formats = [
-      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // DD/MM/YYYY
-      /^(\d{4})-(\d{1,2})-(\d{1,2})$/,   // YYYY-MM-DD
-      /^(\d{1,2})-(\d{1,2})-(\d{4})$/,   // DD-MM-YYYY
-    ];
+  // Buscar total de leads de um mês específico
+  async getTotalDeLeadsByMonth(month: string) {
+    const { data, error } = await supabase
+      .from('Total de Leads')
+      .select('*')
+      .eq('LEADS', month)
+      .single();
 
-    return formats.some(format => format.test(dateStr));
-  }
-
-  private static parseDate(dateStr: string): Date {
-    // Tenta diferentes formatos de data
-    const formats = [
-      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // DD/MM/YYYY
-      /^(\d{4})-(\d{1,2})-(\d{1,2})$/,   // YYYY-MM-DD
-      /^(\d{1,2})-(\d{1,2})-(\d{4})$/,   // DD-MM-YYYY
-    ];
-
-    for (const format of formats) {
-      const match = dateStr.match(format);
-      if (match) {
-        if (format === formats[0]) { // DD/MM/YYYY
-          return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
-        } else if (format === formats[1]) { // YYYY-MM-DD
-          return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
-        } else { // DD-MM-YYYY
-          return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
-        }
-      }
+    if (error) {
+      console.error('Erro ao buscar total de leads do mês:', error);
+      return null;
     }
 
-    // Fallback para Date constructor
-    return new Date(dateStr);
-  }
+    return data as TotalDeLeads | null;
+  },
 
-  private static parseNumber(value: string): number {
-    if (!value || value.trim() === '') return 0;
-    
-    // Remove caracteres não numéricos exceto vírgula e ponto
-    const cleaned = value.replace(/[^\d,.-]/g, '');
-    
-    // Substitui vírgula por ponto para parseFloat
-    const normalized = cleaned.replace(',', '.');
-    
-    return parseFloat(normalized) || 0;
-  }
+  // Buscar todos os meses de calls agendadas
+  async getAllTotalDeCallsAgendadas() {
+    const { data, error } = await supabase
+      .from('Total de Calls Agendadas')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  private static calculateGrowth(current: number, previous: number): number {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-  }
+    if (error) {
+      console.error('Erro ao buscar total de calls agendadas:', error);
+      throw error;
+    }
 
-  static async getMetrics(): Promise<CommercialMetricsData> {
+    return (data || []) as TotalDeCallsAgendadas[];
+  },
+
+  // Buscar total de calls agendadas de um mês específico
+  async getTotalDeCallsAgendadasByMonth(month: string) {
+    const { data, error } = await supabase
+      .from('Total de Calls Agendadas')
+      .select('*')
+      .eq('AGENDADAS', month)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar total de calls agendadas do mês:', error);
+      return null;
+    }
+
+    return data as TotalDeCallsAgendadas | null;
+  },
+
+  // Buscar total de leads por funil
+  async getTotalDeLeadsPorFunil() {
+    const { data, error } = await supabase
+      .from('Total de Leads por Funil')
+      .select('*');
+
+    if (error) {
+      console.error('Erro ao buscar total de leads por funil:', error);
+      throw error;
+    }
+
+    return data as TotalDeLeadsPorFunil[];
+  },
+
+  // Buscar total de agendamentos por funil
+  async getTotalDeAgendamentosPorFunil() {
+    const { data, error } = await supabase
+      .from('Total de Agendamentos por Funil')
+      .select('*');
+
+    if (error) {
+      console.error('Erro ao buscar total de agendamentos por funil:', error);
+      throw error;
+    }
+
+    return data as TotalDeAgendamentosPorFunil[];
+  },
+
+  // Buscar todos os dados de uma vez
+  async getAllMetrics() {
     try {
-      // Busca dados da aba "RELATÓRIO DE LEADS (SDR)"
-      const leadsData = await this.fetchSheetData('RELATÓRIO DE LEADS (SDR)!A2:Z100');
-      
-      // Processa dados de leads baseado na estrutura da planilha
-      const dailyLeads = leadsData
-        .filter(row => row.length >= 10 && row[0] && this.isValidDate(row[0]))
-        .map(row => {
-          const date = this.parseDate(row[0]); // Coluna A - DATA
-          const google = this.parseNumber(row[1] || '0'); // Coluna B - GOOGLE
-          const googleForms = this.parseNumber(row[2] || '0'); // Coluna C - GOOGLE-FORMS
-          const instagram = this.parseNumber(row[3] || '0'); // Coluna D - INSTAGRAM
-          const facebook = this.parseNumber(row[4] || '0'); // Coluna E - FACEBOOK
-          const seller = this.parseNumber(row[5] || '0'); // Coluna F - SELLER
-          const indicacao = this.parseNumber(row[6] || '0'); // Coluna G - INDICAÇÃO
-          const outros = this.parseNumber(row[7] || '0'); // Coluna H - OUTROS
-          const total = this.parseNumber(row[8] || '0'); // Coluna I - TOTAL
-          
-          return {
-            date: date.toISOString().split('T')[0],
-            google: google,
-            googleForms: googleForms,
-            instagram: instagram,
-            facebook: facebook,
-            seller: seller,
-            indicacao: indicacao,
-            outros: outros,
-            total: total,
-          };
-        })
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      // Processa dados de calls baseado na estrutura da planilha
-      const dailyCalls = leadsData
-        .filter(row => row.length >= 20 && row[0] && this.isValidDate(row[0]))
-        .map(row => {
-          const date = this.parseDate(row[0]); // Coluna A - DATA
-          const googleCall = this.parseNumber(row[9] || '0'); // Coluna J - GOOGLE CALL
-          const googleFormsCall = this.parseNumber(row[10] || '0'); // Coluna K - GOOGLE-FORMS CALL
-          const instaCall = this.parseNumber(row[11] || '0'); // Coluna L - INSTA CALL
-          const faceCall = this.parseNumber(row[12] || '0'); // Coluna M - FACE CALL
-          const sellerCall = this.parseNumber(row[13] || '0'); // Coluna N - SELLER CALL
-          const indicCall = this.parseNumber(row[14] || '0'); // Coluna O - INDIC CALL
-          const outroCall = this.parseNumber(row[15] || '0'); // Coluna P - OUTRO CALL
-          const totalCalls = this.parseNumber(row[16] || '0'); // Coluna Q - TOTAL DE LEADS
-          const callsAgendadas = this.parseNumber(row[17] || '0'); // Coluna R - CALLS AGENDADAS
-          
-          return {
-            date: date.toISOString().split('T')[0],
-            scheduled: callsAgendadas,
-            completed: Math.round(callsAgendadas * 0.8), // Estimativa baseada em 80% de completude
-          };
-        })
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      // Calcula métricas mensais
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-      const currentMonthLeads = dailyLeads
-        .filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
-        })
-        .reduce((sum, item) => sum + item.total, 0);
-
-      const previousMonthLeads = dailyLeads
-        .filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate.getMonth() === previousMonth && itemDate.getFullYear() === previousYear;
-        })
-        .reduce((sum, item) => sum + item.total, 0);
-
-      const currentMonthCalls = dailyCalls
-        .filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
-        })
-        .reduce((sum, item) => sum + item.scheduled, 0);
-
-      const previousMonthCalls = dailyCalls
-        .filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate.getMonth() === previousMonth && itemDate.getFullYear() === previousYear;
-        })
-        .reduce((sum, item) => sum + item.scheduled, 0);
-
-      // Calcula totais
-      const totalLeads = dailyLeads.reduce((sum, item) => sum + item.total, 0);
-      const totalCalls = dailyCalls.reduce((sum, item) => sum + item.scheduled, 0);
-
-      // Calcula taxa de conversão
-      const conversionRate = totalLeads > 0 ? (totalCalls / totalLeads) * 100 : 0;
-
-      return {
-        dailyLeads,
-        monthlyLeads: {
-          current: currentMonthLeads,
-          previous: previousMonthLeads,
-          growth: this.calculateGrowth(currentMonthLeads, previousMonthLeads),
-        },
-        dailyCalls,
-        monthlyCalls: {
-          current: currentMonthCalls,
-          previous: previousMonthCalls,
-          growth: this.calculateGrowth(currentMonthCalls, previousMonthCalls),
-        },
+      const [
+        leadsQueEntraram,
         totalLeads,
         totalCalls,
-        conversionRate,
-        lastUpdated: new Date().toISOString(),
+        leadsPorFunil,
+        agendamentosPorFunil
+      ] = await Promise.all([
+        this.getLeadsQueEntraram(),
+        this.getTotalDeLeads(),
+        this.getTotalDeCallsAgendadas(),
+        this.getTotalDeLeadsPorFunil(),
+        this.getTotalDeAgendamentosPorFunil()
+      ]);
+
+      return {
+        leadsQueEntraram,
+        totalLeads,
+        totalCalls,
+        leadsPorFunil,
+        agendamentosPorFunil
       };
     } catch (error) {
-      console.error('Erro ao buscar métricas comerciais:', error);
-      throw error; // Re-lança o erro para ser tratado na interface
+      console.error('Erro ao buscar todas as métricas:', error);
+      throw error;
     }
   }
+};
 
+// Funções auxiliares para calcular métricas
+export const metricsCalculations = {
+  // Calcular taxa de conversão
+  calculateConversionRate(totalLeads: number, totalCalls: number): number {
+    if (totalLeads === 0) return 0;
+    return (totalCalls / totalLeads) * 100;
+  },
 
-  // Método para testar a conexão com Google Sheets
-  static async testConnection(): Promise<boolean> {
-    try {
-      await this.fetchSheetData('RELATÓRIO DE LEADS (SDR)!A1:Z1');
-      return true;
-    } catch (error) {
-      console.error('Erro ao testar conexão:', error);
-      return false;
+  // Calcular crescimento percentual
+  calculateGrowth(current: number, previous: number): number {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  },
+
+  // Formatar número como porcentagem
+  formatPercent(value: string | number | null | undefined): number {
+    if (!value) return 0;
+    
+    // Se é número
+    if (typeof value === 'number') {
+      // Se está entre 0 e 1, multiplica por 100
+      if (value > 0 && value < 1) {
+        return value * 100;
+      }
+      return value;
     }
+    
+    // Se é string, remove % e converte
+    const cleaned = value.replace('%', '').replace(',', '.').trim();
+    const num = parseFloat(cleaned) || 0;
+    
+    // Se o número resultante está entre 0 e 1, multiplica por 100
+    if (num > 0 && num < 1) {
+      return num * 100;
+    }
+    
+    return num;
+  },
+
+  // Converter string para número (sem conversão automática de %)
+  parseNumber(value: string | number | null | undefined): number {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return value;
+    
+    const cleaned = value.toString().replace(/[^\d,.-]/g, '').replace(',', '.');
+    return parseFloat(cleaned) || 0;
+  },
+
+  // Formatar valor para exibição
+  formatValue(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return '0';
+    
+    // Se é string e contém %, retorna como está
+    if (typeof value === 'string' && value.includes('%')) {
+      return value;
+    }
+    
+    const num = typeof value === 'number' ? value : parseFloat(value.toString().replace(',', '.'));
+    
+    // Se o número original está entre 0 e 1 (decimal), converte e exibe como %
+    if (typeof value === 'number' && value > 0 && value < 1) {
+      return `${(value * 100).toFixed(1)}%`;
+    }
+    
+    // Se é um número string que parece ser decimal (0.xxxx)
+    if (typeof value === 'string') {
+      const original = parseFloat(value);
+      if (original > 0 && original < 1) {
+        return `${(original * 100).toFixed(1)}%`;
+      }
+    }
+    
+    return num.toLocaleString('pt-BR');
   }
-}
+};

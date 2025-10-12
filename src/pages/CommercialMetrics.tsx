@@ -1,142 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, TrendingUp, Users, Phone, Calendar, BarChart3, Target, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RefreshCw, Users, Phone, Target, TrendingUp, AlertCircle, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { N8NWebhookService } from "@/lib/n8n-webhook-service";
-import { LeadsChart } from "@/components/commercial-metrics/LeadsChart";
-import { CallsChart } from "@/components/commercial-metrics/CallsChart";
-import { ConversionChart } from "@/components/commercial-metrics/ConversionChart";
-import { DailyMetricsTable } from "@/components/commercial-metrics/DailyMetricsTable";
-import { MonthlySummary } from "@/components/commercial-metrics/MonthlySummary";
-import { ConnectionTest } from "@/components/commercial-metrics/ConnectionTest";
-
-interface CommercialMetricsData {
-  dailyLeads: Array<{
-    date: string;
-    google: number;
-    googleForms: number;
-    instagram: number;
-    facebook: number;
-    seller: number;
-    indicacao: number;
-    outros: number;
-    total: number;
-  }>;
-  monthlyLeads: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-  dailyCalls: Array<{
-    date: string;
-    scheduled: number;
-    completed: number;
-  }>;
-  monthlyCalls: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-  totalLeads: number;
-  totalCalls: number;
-  conversionRate: number;
-  lastUpdated: string;
-}
+import { useCommercialMetrics } from "@/hooks/use-commercial-metrics";
+import { LeadsDailyChart, ChannelDistributionChart, MetricsTable } from "@/components/commercial-metrics/MetricsCharts";
+import { ChannelComparisonWithFilter } from "@/components/commercial-metrics/ChannelComparisonWithFilter";
+import { metricsCalculations } from "@/lib/commercial-metrics-service";
 
 export default function CommercialMetrics() {
-  const [data, setData] = useState<CommercialMetricsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const { toast } = useToast();
+  const [selectedMonthForComparison, setSelectedMonthForComparison] = useState<string>('');
+  const [isFunnelConversionExpanded, setIsFunnelConversionExpanded] = useState(false);
+  const { isLoading, isError, kpis, dailyData, funnelData, availableMonths, currentMonth, allMonthsData, refetch } = useCommercialMetrics(selectedMonthForComparison);
 
-  const fetchData = async (showToast = false) => {
-    try {
-      if (showToast) setRefreshing(true);
-      else setLoading(true);
-      
-      // Obter dados existentes primeiro
-      let metricsData = N8NWebhookService.getMetrics();
-      
-      // Verificar se há dados válidos
-      const hasValidData = metricsData.dailyLeads.length > 0 || metricsData.dailyCalls.length > 0;
-      
-      if (!hasValidData) {
-        console.log('🔄 Nenhum dado encontrado, buscando dados do N8N...');
-        await N8NWebhookService.fetchDataFromN8N();
-        metricsData = N8NWebhookService.getMetrics();
-      }
-      
-      // Verificar novamente se há dados após tentar buscar
-      const hasDataAfterFetch = metricsData.dailyLeads.length > 0 || metricsData.dailyCalls.length > 0;
-      
-      if (hasDataAfterFetch) {
-        setData(metricsData);
-        
-        if (showToast) {
-          toast({
-            title: "Dados atualizados",
-            description: "Métricas comerciais atualizadas com sucesso",
-          });
-        }
-      } else {
-        // Se ainda não há dados, definir como null para mostrar a tela de erro
-        setData(null);
-        
-        if (showToast) {
-          toast({
-            title: "Nenhum dado encontrado",
-            description: "Use 'Simular Dados N8N' para testar ou configure o N8N",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao buscar métricas:", error);
-      
-      let errorMessage = "Não foi possível carregar as métricas comerciais";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('403')) {
-          errorMessage = "Erro de permissão: Verifique a configuração do N8N";
-        } else if (error.message.includes('404')) {
-          errorMessage = "Dados não encontrados: Verifique se o N8N está enviando dados";
-        } else if (error.message.includes('API key')) {
-          errorMessage = "Chave da API inválida: Verifique a configuração do N8N";
-        } else {
-          errorMessage = `Erro: ${error.message}`;
-        }
-      }
-      
-      setData(null);
-      
-      toast({
-        title: "Erro ao carregar dados",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    
-    // Verificar dados do N8N a cada 30 segundos
-    const interval = setInterval(() => {
-      console.log('🔄 Verificando dados do N8N...');
-      fetchData(true);
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -149,7 +30,7 @@ export default function CommercialMetrics() {
     );
   }
 
-  if (!data) {
+  if (isError) {
     return (
       <DashboardLayout>
         <div className="space-y-6 animate-fadeIn">
@@ -166,68 +47,49 @@ export default function CommercialMetrics() {
           </div>
 
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <AlertTriangle className="w-24 h-24 text-red-400 mb-6" />
+            <AlertCircle className="w-24 h-24 text-red-400 mb-6" />
             <h2 className="text-2xl font-semibold text-white mb-4">
-              Nenhum dado encontrado
+              Erro ao carregar dados
             </h2>
             <p className="text-slate-400 mb-6 max-w-2xl">
-              Não há dados disponíveis do N8N. 
-              Verifique se o N8N está configurado para enviar dados para o webhook.
+              Não foi possível carregar os dados das métricas comerciais. 
+              Verifique se as tabelas estão criadas no Supabase e se o N8N está atualizando os dados.
             </p>
             
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-6 mb-8 max-w-2xl text-left">
-              <h3 className="text-lg font-semibold text-white mb-4">Possíveis soluções:</h3>
-              <ul className="text-sm text-slate-300 space-y-2">
-                <li>• Verifique se o N8N está configurado para enviar dados para o webhook</li>
-                <li>• Confirme se o workflow do N8N está ativo e executando</li>
-                <li>• Teste a conexão usando o botão "Testar Conexão" abaixo</li>
-                <li>• Use "Simular Dados N8N" para testar com dados de exemplo</li>
-              </ul>
-            </div>
-
-            <div className="flex gap-4">
               <Button
                 variant="outline"
-                onClick={() => fetchData(true)}
+              onClick={() => refetch()}
                 className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Tentar novamente
               </Button>
-              
-              <Button
-                variant="default"
-                onClick={async () => {
-                  try {
-                    setRefreshing(true);
-                    N8NWebhookService.simulateN8NData();
-                    const refreshedData = N8NWebhookService.getMetrics();
-                    setData(refreshedData);
-                    toast({
-                      title: "Dados simulados carregados",
-                      description: "Dados de teste foram carregados com sucesso",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Erro ao simular dados",
-                      description: "Erro ao carregar dados de teste",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setRefreshing(false);
-                  }
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Simular Dados N8N
-              </Button>
-            </div>
           </div>
         </div>
       </DashboardLayout>
     );
   }
+
+  // Preparar dados dos canais para o gráfico
+  const channelsData = [
+    { name: 'Google', value: kpis.leadsGoogle, color: 'bg-gradient-to-r from-blue-500 to-blue-600' },
+    { name: 'Google Forms', value: kpis.leadsGoogleForms, color: 'bg-gradient-to-r from-green-500 to-green-600' },
+    { name: 'Instagram', value: kpis.leadsInstagram, color: 'bg-gradient-to-r from-pink-500 to-purple-600' },
+    { name: 'Facebook', value: kpis.leadsFacebook, color: 'bg-gradient-to-r from-blue-600 to-indigo-600' },
+    { name: 'Seller', value: kpis.leadsSeller, color: 'bg-gradient-to-r from-orange-500 to-red-600' },
+    { name: 'Indicação', value: kpis.leadsIndicacao, color: 'bg-gradient-to-r from-yellow-500 to-orange-500' },
+    { name: 'Outros', value: kpis.leadsOutros, color: 'bg-gradient-to-r from-gray-500 to-gray-600' },
+  ];
+
+  const callsChannelsData = [
+    { name: 'Google', value: kpis.callsGoogle, color: 'bg-gradient-to-r from-blue-500 to-blue-600' },
+    { name: 'Google Forms', value: kpis.callsGoogleForms, color: 'bg-gradient-to-r from-green-500 to-green-600' },
+    { name: 'Instagram', value: kpis.callsInstagram, color: 'bg-gradient-to-r from-pink-500 to-purple-600' },
+    { name: 'Facebook', value: kpis.callsFacebook, color: 'bg-gradient-to-r from-blue-600 to-indigo-600' },
+    { name: 'Seller', value: kpis.callsSeller, color: 'bg-gradient-to-r from-orange-500 to-red-600' },
+    { name: 'Indicação', value: kpis.callsIndicacao, color: 'bg-gradient-to-r from-yellow-500 to-orange-500' },
+    { name: 'Outros', value: kpis.callsOutros, color: 'bg-gradient-to-r from-gray-500 to-gray-600' },
+  ];
 
   return (
     <DashboardLayout>
@@ -240,98 +102,21 @@ export default function CommercialMetrics() {
               Métricas Comerciais
             </h1>
             <p className="text-slate-400 mt-1">
-              Acompanhe leads, calls e conversões em tempo real
+              Dados atualizados automaticamente pelo N8N
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <Badge variant="outline" className="text-xs border-slate-600/50 text-slate-300">
-              Última atualização: {new Date(data.lastUpdated).toLocaleString('pt-BR')}
+              Atualização automática a cada 30s
             </Badge>
             <Button 
-              onClick={() => fetchData(true)} 
-              disabled={refreshing}
+              onClick={() => refetch()} 
               variant="outline"
               className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-4 h-4 mr-2" />
               Atualizar
             </Button>
-            
-        <div className="flex gap-2">
-          <Button 
-            onClick={async () => {
-              try {
-                setRefreshing(true);
-                const refreshedData = N8NWebhookService.getMetrics();
-                setData(refreshedData);
-                toast({
-                  title: "Dados atualizados via N8N",
-                  description: "Dados foram atualizados diretamente do N8N",
-                });
-              } catch (error) {
-                toast({
-                  title: "Erro ao atualizar via N8N",
-                  description: "Tentando atualização normal...",
-                  variant: "destructive",
-                });
-                fetchData(true);
-              } finally {
-                setRefreshing(false);
-              }
-            }}
-            disabled={refreshing}
-            variant="outline"
-            className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Atualizar Dados
-          </Button>
-          
-          <Button 
-            onClick={async () => {
-              try {
-                setRefreshing(true);
-                N8NWebhookService.simulateN8NData();
-                const refreshedData = N8NWebhookService.getMetrics();
-                setData(refreshedData);
-                toast({
-                  title: "Dados simulados do N8N",
-                  description: "Dados de teste foram carregados com sucesso",
-                });
-              } catch (error) {
-                toast({
-                  title: "Erro ao simular dados",
-                  description: "Erro ao carregar dados de teste",
-                  variant: "destructive",
-                });
-              } finally {
-                setRefreshing(false);
-              }
-            }}
-            disabled={refreshing}
-            variant="default"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <BarChart3 className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Simular Dados N8N
-          </Button>
-          
-          <Button 
-            onClick={() => {
-              N8NWebhookService.clearData();
-              setData(null);
-              toast({
-                title: "Dados limpos",
-                description: "Todos os dados foram removidos. Recarregue a página para ver a tela inicial.",
-              });
-            }}
-            variant="destructive"
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Limpar Dados
-          </Button>
-        </div>
           </div>
         </div>
 
@@ -345,32 +130,26 @@ export default function CommercialMetrics() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-slate-800/50 border-slate-700/50">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Leads do Mês</CardTitle>
+                <CardTitle className="text-sm font-medium text-slate-300">Total de Leads</CardTitle>
                 <Users className="h-4 w-4 text-blue-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{data.monthlyLeads.current.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-white">{kpis.totalLeads.toLocaleString()}</div>
                 <p className="text-xs text-slate-400">
-                  <span className={data.monthlyLeads.growth >= 0 ? 'text-green-400' : 'text-red-400'}>
-                    {data.monthlyLeads.growth >= 0 ? '+' : ''}{data.monthlyLeads.growth.toFixed(1)}%
-                  </span>
-                  <span className="text-slate-500"> vs mês anterior</span>
+                  {currentMonth ? `Mês: ${currentMonth}` : 'Total acumulado'}
                 </p>
               </CardContent>
             </Card>
 
             <Card className="bg-slate-800/50 border-slate-700/50">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Calls do Mês</CardTitle>
+                <CardTitle className="text-sm font-medium text-slate-300">Calls Agendadas</CardTitle>
                 <Phone className="h-4 w-4 text-green-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{data.monthlyCalls.current.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-white">{kpis.totalCalls.toLocaleString()}</div>
                 <p className="text-xs text-slate-400">
-                  <span className={data.monthlyCalls.growth >= 0 ? 'text-green-400' : 'text-red-400'}>
-                    {data.monthlyCalls.growth >= 0 ? '+' : ''}{data.monthlyCalls.growth.toFixed(1)}%
-                  </span>
-                  <span className="text-slate-500"> vs mês anterior</span>
+                  {currentMonth ? `Mês: ${currentMonth}` : 'Total acumulado'}
                 </p>
               </CardContent>
             </Card>
@@ -381,7 +160,7 @@ export default function CommercialMetrics() {
                 <Target className="h-4 w-4 text-purple-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{data.conversionRate.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-white">{kpis.conversionRate.toFixed(1)}%</div>
                 <p className="text-xs text-slate-400">
                   Leads que vão para call
                 </p>
@@ -390,13 +169,15 @@ export default function CommercialMetrics() {
 
             <Card className="bg-slate-800/50 border-slate-700/50">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Total Geral</CardTitle>
-                <BarChart3 className="h-4 w-4 text-orange-400" />
+                <CardTitle className="text-sm font-medium text-slate-300">Canal Líder</CardTitle>
+                <TrendingUp className="h-4 w-4 text-orange-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{data.totalLeads.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-white">
+                  {channelsData.reduce((prev, current) => (prev.value > current.value) ? prev : current).name}
+                </div>
                 <p className="text-xs text-slate-400">
-                  {data.totalCalls.toLocaleString()} calls agendadas
+                  {channelsData.reduce((prev, current) => (prev.value > current.value) ? prev : current).value} leads
                 </p>
               </CardContent>
             </Card>
@@ -410,7 +191,7 @@ export default function CommercialMetrics() {
             <h2 className="text-xl font-semibold text-white">Análise Detalhada</h2>
           </div>
           
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border-slate-700/50">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border-slate-700/50">
             <TabsTrigger 
               value="overview" 
               className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
@@ -418,72 +199,154 @@ export default function CommercialMetrics() {
               Visão Geral
             </TabsTrigger>
             <TabsTrigger 
-              value="leads"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
-            >
-              Leads
-            </TabsTrigger>
-            <TabsTrigger 
-              value="calls"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
-            >
-              Calls
-            </TabsTrigger>
-            <TabsTrigger 
               value="conversion"
               className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
             >
-              Conversão
+              Métricas Diárias
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Dashboard de Comparação Detalhada com Filtro */}
+            <ChannelComparisonWithFilter 
+              availableMonths={availableMonths}
+              allMonthsData={allMonthsData}
+              initialMonth={currentMonth}
+              onMonthChange={setSelectedMonthForComparison}
+            />
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <LeadsChart data={data.dailyLeads} />
-              <CallsChart data={data.dailyCalls} />
+              <LeadsDailyChart data={dailyData} />
+              <ChannelDistributionChart channels={channelsData} />
             </div>
-            <MonthlySummary 
-              monthlyLeads={data.monthlyLeads}
-              monthlyCalls={data.monthlyCalls}
-              conversionRate={data.conversionRate}
-            />
-          </TabsContent>
 
-          <TabsContent value="leads" className="space-y-6">
-            <LeadsChart data={data.dailyLeads} />
-            <DailyMetricsTable 
-              data={data.dailyLeads} 
-              type="leads"
-              title="Leads por Dia"
-            />
-          </TabsContent>
+            {/* Total de Conversões pra Call por Funil */}
+            {funnelData.leads.length > 0 && funnelData.agendamentos.length > 0 && (
+              <Card className="bg-slate-800/50 border-slate-700/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Target className="w-5 h-5 text-purple-400" />
+                        Total de Conversões pra Call por Funil
+                      </CardTitle>
+                      <CardDescription className="text-slate-400 mt-1">
+                        {funnelData.leads.length} {funnelData.leads.length === 1 ? 'funil' : 'funis'} • Taxa de conversão (Calls / Leads)
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsFunnelConversionExpanded(!isFunnelConversionExpanded)}
+                      className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+                    >
+                      {isFunnelConversionExpanded ? (
+                        <>
+                          <ChevronUp className="w-4 h-4 mr-2" />
+                          Minimizar
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 mr-2" />
+                          Expandir
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {isFunnelConversionExpanded && (
+                  <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {funnelData.leads.map((leadItem, index) => {
+                      // Encontrar o agendamento correspondente pelo nome do funil
+                      const agendItem = funnelData.agendamentos.find(
+                        a => a.TOTAL_AGEND_DOS_FUNIS === leadItem.TOTAL_DE_LEADS_DOS_FUNIS
+                      );
+                      
+                      const totalLeads = leadItem.TOTAL_GERAL_LEADS || 0;
+                      const totalCalls = agendItem?.TOTAL_GERAL_AGEND || 0;
+                      const conversionRate = totalLeads > 0 ? (totalCalls / totalLeads) * 100 : 0;
+                      
+                      return (
+                        <div 
+                          key={index} 
+                          className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/30 hover:border-purple-500/50 transition-colors"
+                        >
+                          <h3 className="text-slate-300 text-sm font-medium mb-3">{leadItem.TOTAL_DE_LEADS_DOS_FUNIS}</h3>
+                          
+                          {/* Métricas em grid */}
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                            <div className="bg-blue-500/10 rounded p-2 text-center">
+                              <p className="text-xs text-blue-400 font-semibold">Leads</p>
+                              <p className="text-lg font-bold text-white">{totalLeads.toLocaleString('pt-BR')}</p>
+                            </div>
+                            <div className="bg-green-500/10 rounded p-2 text-center">
+                              <p className="text-xs text-green-400 font-semibold">Calls</p>
+                              <p className="text-lg font-bold text-white">{totalCalls.toLocaleString('pt-BR')}</p>
+                            </div>
+                          </div>
 
-          <TabsContent value="calls" className="space-y-6">
-            <CallsChart data={data.dailyCalls} />
-            <DailyMetricsTable 
-              data={data.dailyCalls} 
-              type="calls"
-              title="Calls por Dia"
-            />
+                          {/* Taxa de conversão destacada */}
+                          <div className="bg-purple-500/10 rounded-lg p-3 text-center border border-purple-500/30">
+                            <p className="text-xs text-purple-400 font-semibold mb-1">Taxa de Conversão</p>
+                            <p className={`text-3xl font-bold ${
+                              conversionRate >= 21 ? 'text-green-400' : 
+                              conversionRate >= 15 ? 'text-yellow-400' : 
+                              conversionRate >= 10 ? 'text-orange-400' :
+                              'text-red-400'
+                            }`}>
+                              {conversionRate.toFixed(1)}%
+                            </p>
+                          </div>
+
+                          {/* Barra de progresso */}
+                          <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden mt-3">
+                            <div 
+                              className={`absolute h-full transition-all duration-500 ${
+                                conversionRate >= 21 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                                conversionRate >= 15 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                                conversionRate >= 10 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                                'bg-gradient-to-r from-red-500 to-red-600'
+                              }`}
+                              style={{ width: `${Math.min(conversionRate, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Legenda de cores */}
+                  <div className="mt-6 p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
+                    <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="text-slate-300">≥ 21% <span className="text-green-400 font-semibold">Excelente</span></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <span className="text-slate-300">15-20% <span className="text-yellow-400 font-semibold">Bom</span></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <span className="text-slate-300">10-14% <span className="text-orange-400 font-semibold">Regular</span></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span className="text-slate-300">&lt; 10% <span className="text-red-400 font-semibold">Baixo</span></span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                )}
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="conversion" className="space-y-6">
-            <ConversionChart 
-              leadsData={data.dailyLeads}
-              callsData={data.dailyCalls}
-            />
+            <MetricsTable data={dailyData} />
           </TabsContent>
         </Tabs>
-
-        {/* Teste de Conexão */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-6 bg-purple-500 rounded"></div>
-            <h2 className="text-xl font-semibold text-white">Configuração</h2>
-          </div>
-          
-          <ConnectionTest />
-        </div>
       </div>
     </DashboardLayout>
   );
