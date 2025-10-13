@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Básico</title>
+</head>
+<body>
+    <h1>Teste Básico</h1>
+    <button onclick="alert('Botão funcionando!')">Testar Botão</button>
+    <button onclick="testarEndpoint()">Testar Endpoint</button>
+    <div id="resultado"></div>
+
+    <script>
+        function testarEndpoint() {
+            document.getElementById('resultado').innerHTML = 'Testando...';
+            
+            fetch('https://painel-fmteam.vercel.app/api/get-n8n-data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('resultado').innerHTML = 'Sucesso: ' + JSON.stringify(data);
+                })
+                .catch(error => {
+                    document.getElementById('resultado').innerHTML = 'Erro: ' + error.message;
+                });
+        }
+    </script>
+</body>
+</html>
+
+

@@ -180,3 +180,5 @@ SELECT * FROM dashboard_metricas ORDER BY data_referencia DESC;
 
 
 
+
+

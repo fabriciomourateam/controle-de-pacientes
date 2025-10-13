@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testar Endpoint de Dados N8N - Completo</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+        }
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .testar { background-color: #007bff; color: white; }
+        .testar:hover { background-color: #0056b3; }
+        .verificar { background-color: #28a745; color: white; }
+        .verificar:hover { background-color: #218838; }
+        .limpar { background-color: #dc3545; color: white; }
+        .limpar:hover { background-color: #c82333; }
+        .processar { background-color: #6f42c1; color: white; }
+        .processar:hover { background-color: #5a32a3; }
+        pre { 
+            background-color: #2d2d2d; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .info { color: #17a2b8; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Testar Endpoint de Dados N8N - Completo</h1>
+    <p>Este utilitário testa o endpoint e processa os dados como o frontend faria.</p>
+
+    <div>
+        <button class="testar" onclick="testarEndpoint()">🚀 Testar Endpoint</button>
+        <button class="processar" onclick="processarDados()">⚙️ Processar Dados</button>
+        <button class="verificar" onclick="verificarDados()">📊 Verificar Dados</button>
+        <button class="limpar" onclick="limparDados()">🗑️ Limpar Dados</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        // Simular o serviço N8N Webhook
+        class N8NWebhookService {
+            static readonly STORAGE_KEY = 'n8n_metrics_data';
+
+            // Processar dados recebidos do webhook
+            static processWebhookData(webhookData) {
+                console.log(`📊 Processando dados do N8N - Tabela: ${webhookData.table}`);
+                console.log(`📋 Dados recebidos:`, webhookData.data);
+                
+                try {
+                    // Obter dados existentes do localStorage
+                    const existingData = this.getStoredData();
+                    
+                    // Processar dados baseado na tabela
+                    switch (webhookData.table) {
+                        case 'leads_que_entraram':
+                            this.processLeadsData(webhookData.data, existingData);
+                            break;
+                        case 'total_leads_mes':
+                            this.processMonthlyLeadsData(webhookData.data, existingData);
+                            break;
+                        case 'calls_agendadas':
+                            this.processCallsData(webhookData.data, existingData);
+                            break;
+                        case 'leads_funis':
+                            this.processLeadsFunisData(webhookData.data, existingData);
+                            break;
+                        case 'agend_funis':
+                            this.processAgendFunisData(webhookData.data, existingData);
+                            break;
+                        default:
+                            console.warn(`Tabela desconhecida: ${webhookData.table}`);
+                    }
+                    
+                    // Atualizar timestamp
+                    existingData.lastUpdated = webhookData.timestamp;
+                    
+                    // Salvar dados atualizados
+                    this.saveData(existingData);
+                    
+                    console.log('✅ Dados processados e salvos com sucesso');
+                    console.log('📊 Dados finais:', existingData);
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao processar dados do webhook:', error);
+                }
+            }
+
+            // Processar dados de leads diários
+            static processLeadsData(data, existingData) {
+                if (!data.DATA) return;
+                
+                const leadData = {
+                    date: this.formatDate(data.DATA),
+                    google: this.parseNumber(data.GOOGLE || 0),
+                    googleForms: this.parseNumber(data['GOOGLE-FORMS'] || 0),
+                    instagram: this.parseNumber(data.INSTAGRAM || 0),
+                    facebook: this.parseNumber(data.FACEBOOK || 0),
+                    seller: this.parseNumber(data.SELLER || 0),
+                    indicacao: this.parseNumber(data['INDICAÇÃO'] || 0),
+                    outros: this.parseNumber(data.OUTROS || 0),
+                    total: this.parseNumber(data.TOTAL || 0),
+                };
+
+                // Atualizar ou adicionar dados de leads
+                const existingIndex = existingData.dailyLeads.findIndex(item => item.date === leadData.date);
+                if (existingIndex >= 0) {
+                    existingData.dailyLeads[existingIndex] = leadData;
+                } else {
+                    existingData.dailyLeads.push(leadData);
+                }
+
+                // Ordenar por data
+                existingData.dailyLeads.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            }
+
+            // Processar dados de calls
+            static processCallsData(data, existingData) {
+                if (!data.AGENDADAS) return;
+                
+                const callData = {
+                    date: this.formatDate(data.AGENDADAS),
+                    scheduled: this.parseNumber(data['TOTAL DE CALLS AGENDADAS'] || 0),
+                    completed: Math.round(this.parseNumber(data['TOTAL DE CALLS AGENDADAS'] || 0) * 0.8), // Estimativa
+                };
+
+                // Atualizar ou adicionar dados de calls
+                const existingIndex = existingData.dailyCalls.findIndex(item => item.date === callData.date);
+                if (existingIndex >= 0) {
+                    existingData.dailyCalls[existingIndex] = callData;
+                } else {
+                    existingData.dailyCalls.push(callData);
+                }
+
+                // Ordenar por data
+                existingData.dailyCalls.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            }
+
+            // Processar dados mensais de leads
+            static processMonthlyLeadsData(data, existingData) {
+                console.log('📈 Processando dados mensais de leads:', data);
+                existingData.monthlyLeads.current = this.parseNumber(data.TOTAL_DE_LEADS || 0);
+            }
+
+            // Processar dados de leads por funil
+            static processLeadsFunisData(data, existingData) {
+                console.log('🎯 Processando dados de leads por funil:', data);
+            }
+
+            // Processar dados de agendamentos por funil
+            static processAgendFunisData(data, existingData) {
+                console.log('📅 Processando dados de agendamentos por funil:', data);
+            }
+
+            // Obter dados armazenados
+            static getStoredData() {
+                try {
+                    const stored = localStorage.getItem(this.STORAGE_KEY);
+                    if (stored) {
+                        return JSON.parse(stored);
+                    }
+                } catch (error) {
+                    console.error('Erro ao obter dados armazenados:', error);
+                }
+
+                // Retornar estrutura padrão
+                return {
+                    dailyLeads: [],
+                    dailyCalls: [],
+                    monthlyLeads: { current: 0, previous: 0, growth: 0 },
+                    monthlyCalls: { current: 0, previous: 0, growth: 0 },
+                    totalLeads: 0,
+                    totalCalls: 0,
+                    conversionRate: 0,
+                    lastUpdated: new Date().toISOString(),
+                };
+            }
+
+            // Salvar dados
+            static saveData(data) {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+                } catch (error) {
+                    console.error('Erro ao salvar dados:', error);
+                }
+            }
+
+            // Obter métricas processadas
+            static getMetrics() {
+                const data = this.getStoredData();
+                
+                // Calcular totais
+                data.totalLeads = data.dailyLeads.reduce((sum, item) => sum + item.total, 0);
+                data.totalCalls = data.dailyCalls.reduce((sum, item) => sum + item.scheduled, 0);
+                data.conversionRate = data.totalLeads > 0 ? (data.totalCalls / data.totalLeads) * 100 : 0;
+
+                return data;
+            }
+
+            // Utilitários
+            static formatDate(dateStr) {
+                if (!dateStr) return '';
+                
+                try {
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+                } catch (error) {
+                    return '';
+                }
+            }
+
+            static parseNumber(value) {
+                if (value === null || value === undefined || value === '') return 0;
+                if (typeof value === 'number') return value;
+                
+                const cleaned = value.toString().replace(/[^\d,.-]/g, '');
+                const normalized = cleaned.replace(',', '.');
+                return parseFloat(normalized) || 0;
+            }
+        }
+
+        async function testarEndpoint() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔄 Testando endpoint de dados do N8N...';
+            
+            try {
+                const response = await fetch('https://painel-fmteam.vercel.app/api/get-n8n-data', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    output.innerHTML = `
+                        <div class="success">✅ Endpoint funcionando!</div>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Dados recebidos:</strong></p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                        <div class="info">💡 Agora clique em "Processar Dados" para salvar no localStorage</div>
+                    `;
+                } else {
+                    output.innerHTML = `
+                        <div class="error">❌ Erro no endpoint</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `
+                    <div class="error">❌ Erro de conexão</div>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        async function processarDados() {
+            const output = document.getElementById('output');
+            output.innerHTML = '⚙️ Processando dados do endpoint...';
+            
+            try {
+                const response = await fetch('https://painel-fmteam.vercel.app/api/get-n8n-data', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.data) {
+                    let processados = 0;
+                    
+                    // Processar cada tabela de dados
+                    Object.keys(result.data).forEach(tableName => {
+                        const tableData = result.data[tableName];
+                        if (Array.isArray(tableData) && tableData.length > 0) {
+                            // Pegar o registro mais recente
+                            const latestRecord = tableData[tableData.length - 1];
+                            const webhookData = {
+                                table: tableName,
+                                data: latestRecord.data,
+                                timestamp: latestRecord.timestamp
+                            };
+                            
+                            console.log(`📊 Processando dados da tabela ${tableName}:`, webhookData);
+                            N8NWebhookService.processWebhookData(webhookData);
+                            processados++;
+                        }
+                    });
+                    
+                    output.innerHTML = `
+                        <div class="success">✅ Dados processados com sucesso!</div>
+                        <p><strong>Tabelas processadas:</strong> ${processados}</p>
+                        <p><strong>Dados salvos no localStorage</strong></p>
+                        <div class="info">💡 Agora clique em "Verificar Dados" para ver os dados processados</div>
+                    `;
+                } else {
+                    output.innerHTML = `
+                        <div class="error">❌ Erro ao processar dados</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `
+                    <div class="error">❌ Erro ao processar dados</div>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        function verificarDados() {
+            const output = document.getElementById('output');
+            output.innerHTML = '🔍 Verificando dados no localStorage...';
+            
+            try {
+                const dados = N8NWebhookService.getMetrics();
+                
+                let html = `<div class="success">✅ Dados encontrados!</div>`;
+                html += `<p><strong>Leads diários:</strong> ${dados.dailyLeads.length} registros</p>`;
+                html += `<p><strong>Calls diários:</strong> ${dados.dailyCalls.length} registros</p>`;
+                html += `<p><strong>Total de leads:</strong> ${dados.totalLeads}</p>`;
+                html += `<p><strong>Total de calls:</strong> ${dados.totalCalls}</p>`;
+                html += `<p><strong>Taxa de conversão:</strong> ${dados.conversionRate.toFixed(1)}%</p>`;
+                html += `<p><strong>Última atualização:</strong> ${new Date(dados.lastUpdated).toLocaleString('pt-BR')}</p>`;
+                
+                html += '<h3>Dados detalhados:</h3>';
+                html += '<pre>' + JSON.stringify(dados, null, 2) + '</pre>';
+                
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        function limparDados() {
+            if (confirm('⚠️ Limpar todos os dados?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.getElementById('output').innerHTML = '<div class="success">✅ Dados limpos!</div>';
+            }
+        }
+
+        // Verificar automaticamente ao carregar
+        window.onload = function() {
+            verificarDados();
+        };
+    </script>
+</body>
+</html>
+
+

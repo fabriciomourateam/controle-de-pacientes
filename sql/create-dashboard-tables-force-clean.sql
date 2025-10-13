@@ -388,3 +388,5 @@ SELECT COUNT(*) as total_alertas FROM alertas_dashboard;
 
 
 
+
+
