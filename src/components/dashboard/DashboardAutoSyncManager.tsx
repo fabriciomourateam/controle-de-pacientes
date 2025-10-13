@@ -35,12 +35,24 @@ export function DashboardAutoSyncManager() {
   useEffect(() => {
     const savedConfig = localStorage.getItem('dashboardAutoSyncConfig');
     if (savedConfig) {
-      const config = JSON.parse(savedConfig);
-      setEnabled(config.enabled || false);
-      setIntervalDays(config.intervalDays || 1);
-      setIntervalMinutes(config.intervalMinutes || 1440);
-      setApiKey(config.apiKey || DEFAULT_NOTION_API_KEY);
-      setDatabaseId(config.databaseId || DEFAULT_NOTION_DATABASE_ID);
+      try {
+        const config = JSON.parse(savedConfig);
+        setEnabled(config.enabled || false);
+        setIntervalDays(config.intervalDays || 1);
+        setIntervalMinutes(config.intervalMinutes || 1440);
+        // Se não houver credenciais salvas, usar as padrões
+        setApiKey(config.apiKey || DEFAULT_NOTION_API_KEY);
+        setDatabaseId(config.databaseId || DEFAULT_NOTION_DATABASE_ID);
+      } catch (error) {
+        console.error('Erro ao carregar config do localStorage:', error);
+        // Se houver erro, usar valores padrão
+        setApiKey(DEFAULT_NOTION_API_KEY);
+        setDatabaseId(DEFAULT_NOTION_DATABASE_ID);
+      }
+    } else {
+      // Se não houver configuração salva, garantir que os valores padrão estejam definidos
+      setApiKey(DEFAULT_NOTION_API_KEY);
+      setDatabaseId(DEFAULT_NOTION_DATABASE_ID);
     }
 
     // Carregar status da sincronização

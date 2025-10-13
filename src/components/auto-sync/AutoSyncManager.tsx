@@ -65,20 +65,41 @@ export function AutoSyncManager() {
     const savedStatus = autoSyncService.getSyncStatus();
     
     if (savedConfig) {
-      const parsedConfig = JSON.parse(savedConfig);
-      // Garantir que intervalDays existe, senão usar 1 dia
-      if (!parsedConfig.intervalDays) {
-        parsedConfig.intervalDays = 1;
-        parsedConfig.intervalMinutes = convertDaysToMinutes(1);
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        // Garantir que intervalDays existe, senão usar 1 dia
+        if (!parsedConfig.intervalDays) {
+          parsedConfig.intervalDays = 1;
+          parsedConfig.intervalMinutes = convertDaysToMinutes(1);
+        }
+        // Se não houver API Key ou Database ID, usar os padrões
+        if (!parsedConfig.apiKey) {
+          parsedConfig.apiKey = DEFAULT_NOTION_API_KEY;
+        }
+        if (!parsedConfig.databaseId) {
+          parsedConfig.databaseId = DEFAULT_NOTION_DATABASE_ID;
+        }
+        setConfig(parsedConfig);
+      } catch (error) {
+        console.error('Erro ao carregar config do localStorage:', error);
+        // Se houver erro, garantir valores padrão
+        setConfig({
+          apiKey: DEFAULT_NOTION_API_KEY,
+          databaseId: DEFAULT_NOTION_DATABASE_ID,
+          intervalDays: 1,
+          intervalMinutes: 1440,
+          enabled: false
+        });
       }
-      // Se não houver API Key ou Database ID, usar os padrões
-      if (!parsedConfig.apiKey) {
-        parsedConfig.apiKey = DEFAULT_NOTION_API_KEY;
-      }
-      if (!parsedConfig.databaseId) {
-        parsedConfig.databaseId = DEFAULT_NOTION_DATABASE_ID;
-      }
-      setConfig(parsedConfig);
+    } else {
+      // Se não houver configuração salva, garantir que os valores padrão estejam definidos
+      setConfig({
+        apiKey: DEFAULT_NOTION_API_KEY,
+        databaseId: DEFAULT_NOTION_DATABASE_ID,
+        intervalDays: 1,
+        intervalMinutes: 1440,
+        enabled: false
+      });
     }
     
     if (savedStatus) {
