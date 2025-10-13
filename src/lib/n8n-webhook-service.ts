@@ -39,7 +39,7 @@ interface CommercialMetricsData {
 
 export class N8NWebhookService {
   private static readonly STORAGE_KEY = 'n8n_metrics_data';
-  private static readonly WEBHOOK_URL = 'https://painel-fmteam.vercel.app/api/public-webhook';
+  private static readonly WEBHOOK_URL = 'https://dashboard-fmteam.vercel.app/api/public-webhook';
 
   // Processar dados recebidos do webhook
   static processWebhookData(webhookData: N8NWebhookData): void {
@@ -240,7 +240,7 @@ export class N8NWebhookService {
       
       // Buscar dados do endpoint de dados do N8N
       try {
-        const response = await fetch('https://painel-fmteam.vercel.app/api/get-n8n-data', {
+        const response = await fetch('https://dashboard-fmteam.vercel.app/api/get-n8n-data', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

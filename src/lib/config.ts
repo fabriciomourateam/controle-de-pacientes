@@ -4,7 +4,7 @@ export const config = {
   
   // URLs do proxy baseado no ambiente
   proxyUrl: import.meta.env.PROD 
-    ? 'https://painel-fmteam.vercel.app/api/notion-proxy'
+    ? 'https://dashboard-fmteam.vercel.app/api/notion-proxy'
     : 'http://localhost:3001/api/notion-proxy',
   
   // Credenciais padrão do Notion (usadas em dev e prod)
@@ -23,7 +23,7 @@ export const config = {
 // Função para obter URL do proxy dinamicamente
 export function getProxyUrl(): string {
   // Se estiver em produção e a URL estiver configurada
-  if (config.isProduction && config.proxyUrl.includes('painel-fmteam.vercel.app')) {
+  if (config.isProduction && config.proxyUrl.includes('dashboard-fmteam.vercel.app')) {
     console.log('✅ Usando proxy de produção:', config.proxyUrl);
     return config.proxyUrl;
   }
