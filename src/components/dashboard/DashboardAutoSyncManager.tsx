@@ -17,12 +17,16 @@ import {
 } from 'lucide-react';
 import { dashboardAutoSyncService } from '@/lib/dashboard-auto-sync-service';
 
+// Credenciais padrão do Notion para sincronização do Dashboard
+const DEFAULT_NOTION_API_KEY = 'ntn_E50356294261kVEmTcoS17ZLs24AVhXystP6D6Th84L8Yb';
+const DEFAULT_NOTION_DATABASE_ID = '631cf85b608d4c1693b772bfe0822f64';
+
 export function DashboardAutoSyncManager() {
   const [enabled, setEnabled] = useState(false);
   const [intervalDays, setIntervalDays] = useState(1);
   const [intervalMinutes, setIntervalMinutes] = useState(1440); // 1 dia = 1440 minutos
-  const [apiKey, setApiKey] = useState('');
-  const [databaseId, setDatabaseId] = useState('');
+  const [apiKey, setApiKey] = useState(DEFAULT_NOTION_API_KEY);
+  const [databaseId, setDatabaseId] = useState(DEFAULT_NOTION_DATABASE_ID);
   const [lastSync, setLastSync] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
   const { toast } = useToast();
@@ -35,8 +39,8 @@ export function DashboardAutoSyncManager() {
       setEnabled(config.enabled || false);
       setIntervalDays(config.intervalDays || 1);
       setIntervalMinutes(config.intervalMinutes || 1440);
-      setApiKey(config.apiKey || '');
-      setDatabaseId(config.databaseId || '');
+      setApiKey(config.apiKey || DEFAULT_NOTION_API_KEY);
+      setDatabaseId(config.databaseId || DEFAULT_NOTION_DATABASE_ID);
     }
 
     // Carregar status da sincronização

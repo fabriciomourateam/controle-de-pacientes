@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "node proxy-server.js & vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

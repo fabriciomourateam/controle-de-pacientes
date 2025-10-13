@@ -28,11 +28,15 @@ interface AutoSyncConfig {
   enabled: boolean;
 }
 
+// Credenciais padrão do Notion para sincronização
+const DEFAULT_NOTION_API_KEY = 'ntn_E50356294261kVEmTcoS17ZLs24AVhXystP6D6Th84L8Yb';
+const DEFAULT_NOTION_DATABASE_ID = '631cf85b608d4c1693b772bfe0822f64';
+
 export function AutoSyncManager() {
   const { toast } = useToast();
   const [config, setConfig] = useState<AutoSyncConfig>({
-    apiKey: '',
-    databaseId: '',
+    apiKey: DEFAULT_NOTION_API_KEY,
+    databaseId: DEFAULT_NOTION_DATABASE_ID,
     intervalDays: 1,
     intervalMinutes: 1440, // 1 dia = 1440 minutos
     enabled: false
@@ -66,6 +70,13 @@ export function AutoSyncManager() {
       if (!parsedConfig.intervalDays) {
         parsedConfig.intervalDays = 1;
         parsedConfig.intervalMinutes = convertDaysToMinutes(1);
+      }
+      // Se não houver API Key ou Database ID, usar os padrões
+      if (!parsedConfig.apiKey) {
+        parsedConfig.apiKey = DEFAULT_NOTION_API_KEY;
+      }
+      if (!parsedConfig.databaseId) {
+        parsedConfig.databaseId = DEFAULT_NOTION_DATABASE_ID;
       }
       setConfig(parsedConfig);
     }

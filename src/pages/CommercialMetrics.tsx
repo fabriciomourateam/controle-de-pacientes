@@ -11,11 +11,71 @@ import { useCommercialMetrics } from "@/hooks/use-commercial-metrics";
 import { LeadsDailyChart, ChannelDistributionChart, MetricsTable } from "@/components/commercial-metrics/MetricsCharts";
 import { ChannelComparisonWithFilter } from "@/components/commercial-metrics/ChannelComparisonWithFilter";
 import { metricsCalculations } from "@/lib/commercial-metrics-service";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CommercialMetrics() {
   const [selectedMonthForComparison, setSelectedMonthForComparison] = useState<string>('');
   const [isFunnelConversionExpanded, setIsFunnelConversionExpanded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
   const { isLoading, isError, kpis, dailyData, funnelData, availableMonths, currentMonth, allMonthsData, refetch } = useCommercialMetrics(selectedMonthForComparison);
+
+  // Função para acionar o webhook do n8n e atualizar os dados
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    
+    try {
+      // Acionar webhook do n8n
+      toast({
+        title: "Atualizando dados",
+        description: "Acionando fluxo do N8N...",
+      });
+
+      const response = await fetch('https://n8n.shapepro.shop/webhook/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          trigger: 'manual',
+          source: 'dashboard',
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Fluxo acionado",
+          description: "Aguarde alguns segundos para os dados serem atualizados...",
+        });
+        
+        // Aguardar 3 segundos para o n8n processar
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Atualizar os dados na interface
+        await refetch();
+        
+        toast({
+          title: "Dados atualizados",
+          description: "Métricas comerciais atualizadas com sucesso!",
+        });
+      } else {
+        throw new Error('Erro ao acionar webhook');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível acionar o fluxo do N8N. Tentando atualizar apenas os dados locais...",
+        variant: "destructive",
+      });
+      
+      // Mesmo com erro no webhook, tentar atualizar os dados
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -58,11 +118,12 @@ export default function CommercialMetrics() {
             
               <Button
                 variant="outline"
-              onClick={() => refetch()}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                 className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Tentar novamente
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Atualizando...' : 'Tentar novamente'}
               </Button>
           </div>
         </div>
@@ -110,12 +171,13 @@ export default function CommercialMetrics() {
               Atualização automática a cada 30s
             </Badge>
             <Button 
-              onClick={() => refetch()} 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
               variant="outline"
               className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </Button>
           </div>
         </div>

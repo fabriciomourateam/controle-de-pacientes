@@ -100,7 +100,7 @@ export default function MetricsDashboard() {
             <div>
               <h1 className="text-3xl font-bold text-white flex items-center gap-3">
                 <BarChart3 className="w-8 h-8 text-blue-400" />
-                Dashboard de Métricas
+                Métricas Operacionais
               </h1>
               <p className="text-slate-400 mt-1">
                 Análise completa de renovação, churn e crescimento dos pacientes
@@ -135,15 +135,15 @@ export default function MetricsDashboard() {
       <div className="space-y-6 animate-fadeIn">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <BarChart3 className="w-8 h-8 text-blue-400" />
-              Dashboard de Métricas
-            </h1>
-            <p className="text-slate-400 mt-1">
-              Análise completa de renovação, churn e crescimento dos pacientes
-            </p>
-          </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <BarChart3 className="w-8 h-8 text-blue-400" />
+                Métricas Operacionais
+              </h1>
+              <p className="text-slate-400 mt-1">
+                Análise completa de renovação, churn e crescimento dos pacientes
+              </p>
+            </div>
           
           <div className="flex flex-col sm:flex-row gap-3">
             <DashboardSyncModal onSyncComplete={refreshData} />

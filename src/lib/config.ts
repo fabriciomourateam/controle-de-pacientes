@@ -7,6 +7,12 @@ export const config = {
     ? 'https://painel-fmteam.vercel.app/api/notion-proxy'
     : 'http://localhost:3001/api/notion-proxy',
   
+  // Credenciais padrão do Notion (usadas em dev e prod)
+  notion: {
+    apiKey: import.meta.env.VITE_NOTION_API_KEY || 'ntn_E50356294261kVEmTcoS17ZLs24AVhXystP6D6Th84L8Yb',
+    databaseId: import.meta.env.VITE_NOTION_DATABASE_ID || '631cf85b608d4c1693b772bfe0822f64'
+  },
+  
   // Configurações do Supabase
   supabase: {
     url: import.meta.env.VITE_SUPABASE_URL,

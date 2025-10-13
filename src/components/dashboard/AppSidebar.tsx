@@ -38,7 +38,7 @@ const mainNavItems = [
   { title: "Pacientes", url: "/patients", icon: Users },
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
   { title: "Planos", url: "/plans", icon: Calendar },
-  { title: "Métricas", url: "/metrics", icon: TrendingUp },
+  { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },
   { title: "Métricas Comerciais", url: "/commercial-metrics", icon: Target },
   { title: "Workspace", url: "/workspace", icon: Monitor },
   { title: "Bioimpedância", url: "/bioimpedancia", icon: Activity },
