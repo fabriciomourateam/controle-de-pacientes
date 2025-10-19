@@ -747,6 +747,78 @@ export type Database = {
         }
         Relationships: []
       }
+      "Total de Vendas": {
+        Row: {
+          id: string
+          MES: string | null
+          DATA: string | null
+          FUNIL: string | null
+          COMPROU: string | null
+          "NÃO COMPROU": string | null
+          "NO SHOW": string | null
+          "QUEM FEZ A CALL": string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          MES?: string | null
+          DATA?: string | null
+          FUNIL?: string | null
+          COMPROU?: string | null
+          "NÃO COMPROU"?: string | null
+          "NO SHOW"?: string | null
+          "QUEM FEZ A CALL"?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          MES?: string | null
+          DATA?: string | null
+          FUNIL?: string | null
+          COMPROU?: string | null
+          "NÃO COMPROU"?: string | null
+          "NO SHOW"?: string | null
+          "QUEM FEZ A CALL"?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      page_passwords: {
+        Row: {
+          id: string
+          page_name: string
+          password_hash: string
+          is_active: boolean
+          description: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          page_name: string
+          password_hash: string
+          is_active?: boolean
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          page_name?: string
+          password_hash?: string
+          is_active?: boolean
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

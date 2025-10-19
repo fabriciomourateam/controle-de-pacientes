@@ -74,7 +74,7 @@ export function LeadsDailyChart({ data }: LeadsChartProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data.slice(-10).map((item, index) => (
+          {data.map((item, index) => (
             <div key={index} className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-300">{item.date}</span>

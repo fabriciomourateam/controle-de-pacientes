@@ -7,6 +7,7 @@ type TotalDeLeads = Database['public']['Tables']['Total de Leads']['Row'];
 type TotalDeCallsAgendadas = Database['public']['Tables']['Total de Calls Agendadas']['Row'];
 type TotalDeLeadsPorFunil = Database['public']['Tables']['Total de Leads por Funil']['Row'];
 type TotalDeAgendamentosPorFunil = Database['public']['Tables']['Total de Agendamentos por Funil']['Row'];
+type TotalDeVendas = Database['public']['Tables']['Total de Vendas']['Row'];
 
 // Serviço de métricas comerciais
 export const commercialMetricsService = {
@@ -115,6 +116,52 @@ export const commercialMetricsService = {
     return data as TotalDeAgendamentosPorFunil[];
   },
 
+  // Buscar dados de vendas
+  async getTotalDeVendas() {
+    console.log('🔍 Buscando dados DIRETO do Supabase...');
+    
+    const { data, error } = await supabase
+      .from('Total de Vendas')
+      .select('*')
+      .order('DATA', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar total de vendas:', error);
+      throw error;
+    }
+    
+    console.log('✅ Dados recebidos do Supabase:', data?.length, 'registros');
+    
+    // Contar diretamente aqui para verificar
+    if (data) {
+      const contagemDireta = {
+        total: data.length,
+        comprou: data.filter(v => v.COMPROU === '1').length,
+        naoComprou: data.filter(v => v['NÃO COMPROU'] === '1').length,
+        noShow: data.filter(v => v['NO SHOW'] === '1').length
+      };
+      console.log('📊 CONTAGEM DIRETA NO SERVICE:', contagemDireta);
+    }
+
+    return data as TotalDeVendas[];
+  },
+
+  // Buscar vendas por mês específico
+  async getVendasByMonth(month: string) {
+    const { data, error } = await supabase
+      .from('Total de Vendas')
+      .select('*')
+      .eq('MES', month)
+      .order('DATA', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar vendas do mês:', error);
+      throw error;
+    }
+
+    return data as TotalDeVendas[];
+  },
+
   // Buscar todos os dados de uma vez
   async getAllMetrics() {
     try {
@@ -123,13 +170,15 @@ export const commercialMetricsService = {
         totalLeads,
         totalCalls,
         leadsPorFunil,
-        agendamentosPorFunil
+        agendamentosPorFunil,
+        vendas
       ] = await Promise.all([
         this.getLeadsQueEntraram(),
         this.getTotalDeLeads(),
         this.getTotalDeCallsAgendadas(),
         this.getTotalDeLeadsPorFunil(),
-        this.getTotalDeAgendamentosPorFunil()
+        this.getTotalDeAgendamentosPorFunil(),
+        this.getTotalDeVendas()
       ]);
 
       return {
@@ -137,7 +186,8 @@ export const commercialMetricsService = {
         totalLeads,
         totalCalls,
         leadsPorFunil,
-        agendamentosPorFunil
+        agendamentosPorFunil,
+        vendas
       };
     } catch (error) {
       console.error('Erro ao buscar todas as métricas:', error);

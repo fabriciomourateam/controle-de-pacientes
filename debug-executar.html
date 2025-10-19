@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Executar Análise de Vendas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e293b;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .result {
+            background: #1e40af;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #065f46;
+        }
+        .warning {
+            background: #92400e;
+        }
+        .error {
+            background: #991b1b;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #475569;
+            padding: 8px;
+            text-align: center;
+        }
+        .comparison-table th {
+            background: #1e40af;
+            font-weight: bold;
+        }
+        .match {
+            background: #065f46;
+        }
+        .mismatch {
+            background: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug - Análise de Vendas (Execução Automática)</h1>
+        
+        <div class="section">
+            <h2>📊 Dados do Excel (Confirmados no Supabase)</h2>
+            <div class="result success">
+Excel - COMPROU: 206
+Excel - NÃO COMPROU: 110
+Excel - NO SHOW: 77
+Excel - CALLS: 410
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🖥️ Simulação do Sistema</h2>
+            <button class="button" onclick="simularSistema()">Simular Processamento do Sistema</button>
+            <div id="sistema-result"></div>
+        </div>
+
+        <div class="section">
+            <h2>⚖️ Comparação e Análise</h2>
+            <button class="button" onclick="compararDados()">Comparar Dados</button>
+            <div id="comparison-result"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Script para Console Real</h2>
+            <p>Para testar com dados reais do Supabase, cole este script no console da página de métricas:</p>
+            <div class="result" style="background: #1f2937; padding: 15px; border-radius: 5px; overflow-x: auto;">
+// Script para debug real - Cole no console da página de métricas comerciais
+console.log('🔍 Debug de vendas iniciado...');
+
+const fetchOriginal = window.fetch;
+window.fetch = function(...args) {
+    const url = args[0];
+    
+    if (typeof url === 'string' && (url.includes('supabase') || url.includes('vendas'))) {
+        console.log('📊 Interceptando requisição:', url);
+        
+        return fetchOriginal.apply(this, args).then(response => {
+            if (response.ok) {
+                response.clone().json().then(data => {
+                    console.log('📊 Dados interceptados:', data);
+                    
+                    if (Array.isArray(data) && data.length > 0 && data[0].MÊS) {
+                        console.log('✅ Dados de vendas encontrados!');
+                        analisarVendas(data);
+                    }
+                }).catch(e => {});
+            }
+            return response;
+        });
+    }
+    
+    return fetchOriginal.apply(this, args);
+};
+
+function analisarVendas(vendas) {
+    console.log(`📊 Analisando ${vendas.length} registros de vendas...`);
+    
+    let totalCalls = 0;
+    let comprou = 0;
+    let naoComprou = 0;
+    let noShow = 0;
+    
+    const ehSim = (valor) => {
+        if (!valor) return false;
+        const normalizado = valor.toString().toLowerCase().trim();
+        return ['sim', 's', 'yes', 'y', 'x', '1', 'true'].includes(normalizado);
+    };
+    
+    vendas.forEach(venda => {
+        totalCalls++;
+        
+        if (ehSim(venda.COMPROU)) {
+            comprou++;
+        } else if (ehSim(venda['NO SHOW'])) {
+            noShow++;
+        } else {
+            naoComprou++;
+        }
+    });
+    
+    console.log('\\n📊 RESULTADOS DO SISTEMA:');
+    console.log(`Total de Calls: ${totalCalls}`);
+    console.log(`Comprou: ${comprou}`);
+    console.log(`Não Comprou: ${naoComprou}`);
+    console.log(`No Show: ${noShow}`);
+    
+    console.log('\\n📊 COMPARAÇÃO COM EXCEL:');
+    console.log('Excel - COMPROU: 206');
+    console.log('Excel - NÃO COMPROU: 110');
+    console.log('Excel - NO SHOW: 77');
+    console.log('Excel - CALLS: 410');
+    console.log('');
+    console.log(`Sistema - COMPROU: ${comprou}`);
+    console.log(`Sistema - NÃO COMPROU: ${naoComprou}`);
+    console.log(`Sistema - NO SHOW: ${noShow}`);
+    console.log(`Sistema - Total Calls: ${totalCalls}`);
+    
+    console.log('\\n🔍 DIFERENÇAS:');
+    console.log(`COMPROU: ${206 - comprou} (Excel - Sistema)`);
+    console.log(`NÃO COMPROU: ${110 - naoComprou} (Excel - Sistema)`);
+    console.log(`NO SHOW: ${77 - noShow} (Excel - Sistema)`);
+    console.log(`Total Calls: ${410 - totalCalls} (Excel - Sistema)`);
+    
+    if (comprou === 206 && totalCalls === 410) {
+        console.log('\\n✅ PERFEITO! Os dados estão 100% alinhados!');
+    } else {
+        console.log('\\n⚠️ Diferenças encontradas. Investigar filtros ou lógica de processamento.');
+    }
+}
+
+console.log('✅ Script executado! Recarregue a página para capturar os dados.');
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados simulados baseados no Excel
+        const dadosExcel = {
+            comprou: 206,
+            naoComprou: 110,
+            noShow: 77,
+            calls: 410
+        };
+
+        // Simular diferentes cenários do sistema
+        const cenarios = [
+            {
+                nome: "Cenário 1: Dados Perfeitos",
+                comprou: 206,
+                naoComprou: 110,
+                noShow: 77,
+                totalCalls: 410,
+                descricao: "Sistema processando exatamente como o Excel"
+            },
+            {
+                nome: "Cenário 2: Filtros Aplicados",
+                comprou: 200,
+                naoComprou: 105,
+                noShow: 75,
+                totalCalls: 380,
+                descricao: "Sistema filtrando alguns registros (ex: reunião de equipe)"
+            },
+            {
+                nome: "Cenário 3: Lógica Diferente",
+                comprou: 190,
+                naoComprou: 120,
+                noShow: 100,
+                totalCalls: 410,
+                descricao: "Sistema com lógica de prioridade diferente"
+            },
+            {
+                nome: "Cenário 4: Dados Incompletos",
+                comprou: 180,
+                naoComprou: 90,
+                noShow: 60,
+                totalCalls: 330,
+                descricao: "Sistema com dados incompletos ou período diferente"
+            }
+        ];
+
+        function simularSistema() {
+            const resultDiv = document.getElementById('sistema-result');
+            let html = '<h3>🎯 Simulando diferentes cenários do sistema:</h3>';
+            
+            cenarios.forEach((cenario, index) => {
+                const diferencaComprou = dadosExcel.comprou - cenario.comprou;
+                const diferencaTotal = dadosExcel.calls - cenario.totalCalls;
+                const status = diferencaComprou === 0 && diferencaTotal === 0 ? 'success' : 
+                             Math.abs(diferencaComprou) <= 10 && Math.abs(diferencaTotal) <= 20 ? 'warning' : 'error';
+                
+                html += `
+                    <div class="result ${status}">
+                        <strong>${cenario.nome}</strong><br>
+                        ${cenario.descricao}<br><br>
+                        <strong>Resultados:</strong><br>
+                        COMPROU: ${cenario.comprou} (diferença: ${diferencaComprou})<br>
+                        NÃO COMPROU: ${cenario.naoComprou} (diferença: ${dadosExcel.naoComprou - cenario.naoComprou})<br>
+                        NO SHOW: ${cenario.noShow} (diferença: ${dadosExcel.noShow - cenario.noShow})<br>
+                        Total Calls: ${cenario.totalCalls} (diferença: ${diferencaTotal})<br>
+                    </div>
+                `;
+            });
+            
+            resultDiv.innerHTML = html;
+        }
+
+        function compararDados() {
+            const resultDiv = document.getElementById('comparison-result');
+            
+            let html = `
+                <h3>📊 Tabela de Comparação</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Métrica</th>
+                            <th>Excel</th>
+                            <th>Sistema (Cenário 1)</th>
+                            <th>Sistema (Cenário 2)</th>
+                            <th>Sistema (Cenário 3)</th>
+                            <th>Sistema (Cenário 4)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>COMPROU</td>
+                            <td>206</td>
+                            <td class="match">206 ✅</td>
+                            <td class="mismatch">200 ❌</td>
+                            <td class="mismatch">190 ❌</td>
+                            <td class="mismatch">180 ❌</td>
+                        </tr>
+                        <tr>
+                            <td>NÃO COMPROU</td>
+                            <td>110</td>
+                            <td class="match">110 ✅</td>
+                            <td class="mismatch">105 ❌</td>
+                            <td class="mismatch">120 ❌</td>
+                            <td class="mismatch">90 ❌</td>
+                        </tr>
+                        <tr>
+                            <td>NO SHOW</td>
+                            <td>77</td>
+                            <td class="match">77 ✅</td>
+                            <td class="mismatch">75 ❌</td>
+                            <td class="mismatch">100 ❌</td>
+                            <td class="mismatch">60 ❌</td>
+                        </tr>
+                        <tr>
+                            <td>TOTAL CALLS</td>
+                            <td>410</td>
+                            <td class="match">410 ✅</td>
+                            <td class="mismatch">380 ❌</td>
+                            <td class="match">410 ✅</td>
+                            <td class="mismatch">330 ❌</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="result success">
+                    <strong>✅ Cenário 1:</strong> Dados perfeitos - sistema funcionando corretamente<br>
+                    <strong>⚠️ Cenário 2:</strong> Filtros aplicados - verificar se são necessários<br>
+                    <strong>⚠️ Cenário 3:</strong> Lógica diferente - revisar processamento<br>
+                    <strong>❌ Cenário 4:</strong> Dados incompletos - verificar fonte de dados
+                </div>
+                
+                <div class="result warning">
+                    <strong>🔍 Próximos Passos:</strong><br>
+                    1. Execute o script no console da página real<br>
+                    2. Compare os resultados com os cenários acima<br>
+                    3. Identifique qual cenário mais se aproxima da realidade<br>
+                    4. Ajuste o código conforme necessário
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Executar automaticamente ao carregar
+        window.addEventListener('load', function() {
+            simularSistema();
+            compararDados();
+        });
+    </script>
+</body>
+</html>
+

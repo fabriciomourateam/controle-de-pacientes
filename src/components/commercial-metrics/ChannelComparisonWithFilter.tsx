@@ -18,22 +18,62 @@ export interface ChannelComparisonWithFilterProps {
   onMonthChange?: (month: string) => void;
 }
 
+// Função para obter o nome do mês atual
+const getCurrentMonthName = () => {
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  const currentMonth = new Date().getMonth();
+  return months[currentMonth];
+};
+
 export function ChannelComparisonWithFilter(props: ChannelComparisonWithFilterProps) {
   const { availableMonths, allMonthsData, initialMonth, onMonthChange } = props;
-  const [selectedMonth, setSelectedMonth] = useState(initialMonth || availableMonths[0] || '');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Sincronizar com o mês inicial e notificar o pai
+  // Inicializar com o mês atual quando os dados chegarem (apenas uma vez)
   useEffect(() => {
-    if (initialMonth) {
-      if (initialMonth !== selectedMonth) {
-        setSelectedMonth(initialMonth);
-      }
-      // Sempre notificar o pai quando o componente montar ou o mês inicial mudar
+    if (availableMonths && availableMonths.length > 0 && !hasInitialized) {
+      // Sempre tentar selecionar o mês atual primeiro (ignorar initialMonth se vier errado)
+      const currentMonth = getCurrentMonthName();
+      
+      // Mapa de meses para lidar com abreviações
+      const monthMap: { [key: string]: string[] } = {
+        'Janeiro': ['jan', 'janeiro'],
+        'Fevereiro': ['fev', 'fevereiro'],
+        'Março': ['mar', 'março', 'marco'],
+        'Abril': ['abr', 'abril'],
+        'Maio': ['mai', 'maio'],
+        'Junho': ['jun', 'junho'],
+        'Julho': ['jul', 'julho'],
+        'Agosto': ['ago', 'agosto'],
+        'Setembro': ['set', 'setembro'],
+        'Outubro': ['out', 'outubro'],
+        'Novembro': ['nov', 'novembro'],
+        'Dezembro': ['dez', 'dezembro']
+      };
+      
+      const currentMonthVariations = monthMap[currentMonth] || [currentMonth.toLowerCase()];
+      
+      const found = availableMonths.find(m => {
+        if (!m) return false;
+        const mLower = m.toLowerCase();
+        return currentMonthVariations.some(variant => 
+          mLower.includes(variant) || variant.includes(mLower)
+        );
+      });
+      
+      // Se não encontrou o mês atual, usar o mais recente (primeiro da lista)
+      const defaultMonth = found || availableMonths[0];
+      setSelectedMonth(defaultMonth);
       if (onMonthChange) {
-        onMonthChange(initialMonth);
+        onMonthChange(defaultMonth);
       }
+      setHasInitialized(true);
     }
-  }, [initialMonth, selectedMonth, onMonthChange]);
+  }, [availableMonths, hasInitialized, onMonthChange]);
 
   // Notificar o componente pai quando o mês mudar
   const handleMonthChange = (month: string) => {

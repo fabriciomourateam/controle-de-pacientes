@@ -1,13 +1,19 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CheckinsList } from "@/components/checkins/CheckinsList";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export default function Checkins() {
   return (
-    <DashboardLayout>
-      <CheckinsList />
-    </DashboardLayout>
+    <AuthGuard sectionName="Checkins" sectionIcon="📋">
+      <DashboardLayout>
+        <CheckinsList />
+      </DashboardLayout>
+    </AuthGuard>
   );
 }
+
+
+
 
 
 

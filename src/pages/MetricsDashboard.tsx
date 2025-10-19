@@ -9,6 +9,7 @@ import { DashboardSyncModal } from "@/components/dashboard/DashboardSyncModal";
 import { MetricsMonthSelector } from "@/components/dashboard/MetricsMonthSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useDashboardMetrics } from "@/hooks/use-metrics-dashboard";
 import { useFilteredMetrics } from "@/hooks/use-filtered-metrics";
 import { 
@@ -131,7 +132,8 @@ export default function MetricsDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <AuthGuard sectionName="Métricas Operacionais" sectionIcon="📊">
+      <DashboardLayout>
       <div className="space-y-6 animate-fadeIn">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -233,6 +235,7 @@ export default function MetricsDashboard() {
           onToggleMinimize={() => setIsMetricsTableMinimized(!isMetricsTableMinimized)}
         />
       </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AuthGuard>
   );
 }

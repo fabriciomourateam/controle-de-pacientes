@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Direto - Supabase Vendas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            padding: 40px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .result {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .error {
+            border-left-color: #ef4444;
+            color: #fca5a5;
+        }
+        .success {
+            border-left-color: #10b981;
+            color: #86efac;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 12px;
+            margin-bottom: 12px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+        .stat {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        .label {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Teste Direto - Dados de Vendas do Supabase</h1>
+        
+        <div class="card">
+            <button onclick="testarConexao()" id="btnTestar">🚀 Testar Conexão e Buscar Dados</button>
+            <button onclick="limparConsole()">🧹 Limpar Console</button>
+        </div>
+
+        <div id="resultados"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://qhzifnyjyxdushxorzrk.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function limparConsole() {
+            console.clear();
+            document.getElementById('resultados').innerHTML = '';
+        }
+
+        async function testarConexao() {
+            const btn = document.getElementById('btnTestar');
+            btn.disabled = true;
+            btn.textContent = '⏳ Buscando dados...';
+
+            const resultadosDiv = document.getElementById('resultados');
+            resultadosDiv.innerHTML = '<div class="card"><p>⏳ Carregando...</p></div>';
+
+            try {
+                console.log('🔍 Iniciando busca no Supabase...');
+                console.log('📡 URL:', SUPABASE_URL);
+                
+                // Buscar TODOS os dados
+                const { data, error, count } = await supabase
+                    .from('Total de Vendas')
+                    .select('*', { count: 'exact' })
+                    .order('DATA', { ascending: false });
+
+                if (error) {
+                    throw error;
+                }
+
+                console.log('✅ Dados recebidos:', data.length, 'registros');
+                console.log('📊 Count do Supabase:', count);
+
+                // Contar DIRETAMENTE
+                const contagem = {
+                    total: data.length,
+                    comprou1: data.filter(v => v.COMPROU === '1').length,
+                    comprou0: data.filter(v => v.COMPROU === '0').length,
+                    naoComprou1: data.filter(v => v['NÃO COMPROU'] === '1').length,
+                    naoComprou0: data.filter(v => v['NÃO COMPROU'] === '0').length,
+                    noShow1: data.filter(v => v['NO SHOW'] === '1').length,
+                    noShow0: data.filter(v => v['NO SHOW'] === '0').length,
+                };
+
+                console.log('🎯 CONTAGEM DIRETA:', contagem);
+
+                // 🔍 VERIFICAR REGISTROS COM MÚLTIPLOS "1"
+                const registrosComMultiplosUns = data.filter(v => {
+                    const count = [v.COMPROU === '1', v['NÃO COMPROU'] === '1', v['NO SHOW'] === '1'].filter(Boolean).length;
+                    return count > 1;
+                });
+
+                console.log('⚠️ REGISTROS COM MÚLTIPLOS "1":', registrosComMultiplosUns.length);
+                if (registrosComMultiplosUns.length > 0) {
+                    console.log('📋 Registros problemáticos:');
+                    registrosComMultiplosUns.forEach((v, i) => {
+                        console.log(`Registro ${i + 1}:`, {
+                            id: v.id,
+                            comprou: v.COMPROU,
+                            naoComprou: v['NÃO COMPROU'],
+                            noShow: v['NO SHOW'],
+                            mes: v.MÊS,
+                            funil: v.FUNIL
+                        });
+                    });
+                }
+
+                // 🔍 VERIFICAR REGISTROS SEM NENHUM "1"
+                const registrosSemClassificacao = data.filter(v => {
+                    return v.COMPROU !== '1' && v['NÃO COMPROU'] !== '1' && v['NO SHOW'] !== '1';
+                });
+
+                console.log('⚠️ REGISTROS SEM CLASSIFICAÇÃO (sem nenhum "1"):', registrosSemClassificacao.length);
+                if (registrosSemClassificacao.length > 0 && registrosSemClassificacao.length <= 10) {
+                    console.log('📋 Registros sem classificação:');
+                    registrosSemClassificacao.forEach((v, i) => {
+                        console.log(`Registro ${i + 1}:`, {
+                            id: v.id,
+                            comprou: v.COMPROU,
+                            naoComprou: v['NÃO COMPROU'],
+                            noShow: v['NO SHOW'],
+                            mes: v.MÊS,
+                            funil: v.FUNIL
+                        });
+                    });
+                }
+
+                // 🔍 CONTAGEM EXCLUSIVA (cada registro conta em apenas UMA categoria)
+                let comprouExclusivo = 0;
+                let naoComprouExclusivo = 0;
+                let noShowExclusivo = 0;
+                let multiplosStatus = 0;
+                let semStatus = 0;
+
+                data.forEach(v => {
+                    const temComprou = v.COMPROU === '1';
+                    const temNaoComprou = v['NÃO COMPROU'] === '1';
+                    const temNoShow = v['NO SHOW'] === '1';
+                    const count = [temComprou, temNaoComprou, temNoShow].filter(Boolean).length;
+
+                    if (count === 0) {
+                        semStatus++;
+                    } else if (count > 1) {
+                        multiplosStatus++;
+                    } else {
+                        if (temComprou) comprouExclusivo++;
+                        else if (temNaoComprou) naoComprouExclusivo++;
+                        else if (temNoShow) noShowExclusivo++;
+                    }
+                });
+
+                console.log('📊 CONTAGEM EXCLUSIVA (sem duplicatas):');
+                console.log({
+                    comprouExclusivo,
+                    naoComprouExclusivo,
+                    noShowExclusivo,
+                    multiplosStatus,
+                    semStatus,
+                    soma: comprouExclusivo + naoComprouExclusivo + noShowExclusivo + multiplosStatus + semStatus
+                });
+
+                // Mostrar primeiros 5 e últimos 5 registros
+                console.log('📋 Primeiros 5 registros:');
+                data.slice(0, 5).forEach((v, i) => {
+                    console.log(`Registro ${i + 1}:`, {
+                        id: v.id,
+                        comprou: v.COMPROU,
+                        naoComprou: v['NÃO COMPROU'],
+                        noShow: v['NO SHOW'],
+                        mes: v.MÊS,
+                        funil: v.FUNIL
+                    });
+                });
+
+                console.log('📋 Últimos 5 registros:');
+                data.slice(-5).forEach((v, i) => {
+                    console.log(`Registro ${data.length - 5 + i + 1}:`, {
+                        id: v.id,
+                        comprou: v.COMPROU,
+                        naoComprou: v['NÃO COMPROU'],
+                        noShow: v['NO SHOW'],
+                        mes: v.MÊS,
+                        funil: v.FUNIL
+                    });
+                });
+
+                // Mostrar HTML
+                const html = `
+                    <div class="card success">
+                        <h2>✅ Conexão Bem-Sucedida!</h2>
+                        <p>Total de registros: ${data.length}</p>
+                    </div>
+
+                    <div class="card">
+                        <h2>📊 Contagem Direta do Supabase</h2>
+                        <div class="grid">
+                            <div>
+                                <div class="label">COMPROU</div>
+                                <div class="stat" style="color: #60a5fa;">${contagem.comprou1}</div>
+                                <div class="label">com "1" | ${contagem.comprou0} com "0"</div>
+                            </div>
+                            <div>
+                                <div class="label">NÃO COMPROU</div>
+                                <div class="stat" style="color: #f59e0b;">${contagem.naoComprou1}</div>
+                                <div class="label">com "1" | ${contagem.naoComprou0} com "0"</div>
+                            </div>
+                            <div>
+                                <div class="label">NO SHOW</div>
+                                <div class="stat" style="color: #ef4444;">${contagem.noShow1}</div>
+                                <div class="label">com "1" | ${contagem.noShow0} com "0"</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>🎯 Comparação com Excel</h2>
+                        <div class="grid">
+                            <div>
+                                <div class="label">COMPROU</div>
+                                <div class="stat ${contagem.comprou1 === 204 ? 'success' : 'error'}" style="color: ${contagem.comprou1 === 204 ? '#10b981' : '#ef4444'};">
+                                    Excel: 204 | Supabase: ${contagem.comprou1}
+                                </div>
+                                <div class="label">Diferença: ${204 - contagem.comprou1}</div>
+                            </div>
+                            <div>
+                                <div class="label">NÃO COMPROU</div>
+                                <div class="stat ${contagem.naoComprou1 === 110 ? 'success' : 'error'}" style="color: ${contagem.naoComprou1 === 110 ? '#10b981' : '#ef4444'};">
+                                    Excel: 110 | Supabase: ${contagem.naoComprou1}
+                                </div>
+                                <div class="label">Diferença: ${110 - contagem.naoComprou1}</div>
+                            </div>
+                            <div>
+                                <div class="label">NO SHOW</div>
+                                <div class="stat ${contagem.noShow1 === 87 ? 'success' : 'error'}" style="color: ${contagem.noShow1 === 87 ? '#10b981' : '#ef4444'};">
+                                    Excel: 87 | Supabase: ${contagem.noShow1}
+                                </div>
+                                <div class="label">Diferença: ${87 - contagem.noShow1}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>📋 Primeiros 5 Registros</h2>
+                        <pre>${JSON.stringify(data.slice(0, 5).map(v => ({
+                            id: v.id,
+                            COMPROU: v.COMPROU,
+                            'NÃO COMPROU': v['NÃO COMPROU'],
+                            'NO SHOW': v['NO SHOW'],
+                            MÊS: v.MÊS,
+                            FUNIL: v.FUNIL
+                        })), null, 2)}</pre>
+                    </div>
+
+                    <div class="card">
+                        <h2>📋 Últimos 5 Registros</h2>
+                        <pre>${JSON.stringify(data.slice(-5).map(v => ({
+                            id: v.id,
+                            COMPROU: v.COMPROU,
+                            'NÃO COMPROU': v['NÃO COMPROU'],
+                            'NO SHOW': v['NO SHOW'],
+                            MÊS: v.MÊS,
+                            FUNIL: v.FUNIL
+                        })), null, 2)}</pre>
+                    </div>
+
+                    ${registrosComMultiplosUns.length > 0 ? `
+                        <div class="card error">
+                            <h2>⚠️ REGISTROS COM MÚLTIPLOS "1" (${registrosComMultiplosUns.length})</h2>
+                            <p style="color: #fca5a5;">Estes registros têm mais de uma coluna marcada com "1"!</p>
+                            <pre>${JSON.stringify(registrosComMultiplosUns.slice(0, 10).map(v => ({
+                                id: v.id,
+                                COMPROU: v.COMPROU,
+                                'NÃO COMPROU': v['NÃO COMPROU'],
+                                'NO SHOW': v['NO SHOW'],
+                                MÊS: v.MÊS,
+                                FUNIL: v.FUNIL
+                            })), null, 2)}</pre>
+                        </div>
+                    ` : ''}
+
+                    ${registrosSemClassificacao.length > 0 && registrosSemClassificacao.length <= 100 ? `
+                        <div class="card" style="border-left-color: #f59e0b;">
+                            <h2>⚠️ REGISTROS SEM CLASSIFICAÇÃO (${registrosSemClassificacao.length})</h2>
+                            <p style="color: #fbbf24;">Estes registros NÃO têm "1" em nenhuma coluna!</p>
+                            <pre>${JSON.stringify(registrosSemClassificacao.slice(0, 10).map(v => ({
+                                id: v.id,
+                                COMPROU: v.COMPROU,
+                                'NÃO COMPROU': v['NÃO COMPROU'],
+                                'NO SHOW': v['NO SHOW'],
+                                MÊS: v.MÊS,
+                                FUNIL: v.FUNIL
+                            })), null, 2)}</pre>
+                        </div>
+                    ` : ''}
+
+                    <div class="card">
+                        <h2>⚠️ Análise</h2>
+                        <p><strong>Total de registros:</strong> ${data.length}</p>
+                        <p><strong>Soma simples:</strong> ${contagem.comprou1} + ${contagem.naoComprou1} + ${contagem.noShow1} = ${contagem.comprou1 + contagem.naoComprou1 + contagem.noShow1}</p>
+                        <p><strong>Registros com múltiplos "1":</strong> ${multiplosStatus}</p>
+                        <p><strong>Registros sem classificação:</strong> ${semStatus}</p>
+                        <p><strong>Contagem exclusiva:</strong> ${comprouExclusivo} + ${naoComprouExclusivo} + ${noShowExclusivo} = ${comprouExclusivo + naoComprouExclusivo + noShowExclusivo}</p>
+                        
+                        ${contagem.comprou1 !== 204 || contagem.naoComprou1 !== 110 || contagem.noShow1 !== 87 ? `
+                            <div style="margin-top: 20px; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 4px solid #ef4444;">
+                                <p style="color: #fca5a5; font-weight: bold;">❌ OS DADOS NO SUPABASE ESTÃO DIFERENTES DO EXCEL!</p>
+                                <p style="color: #fca5a5;">Você precisa atualizar a tabela "Total de Vendas" no Supabase para que os valores com "1" sejam:</p>
+                                <ul style="color: #fca5a5;">
+                                    <li>COMPROU: 204 registros (atualmente: ${contagem.comprou1})</li>
+                                    <li>NÃO COMPROU: 110 registros (atualmente: ${contagem.naoComprou1})</li>
+                                    <li>NO SHOW: 87 registros (atualmente: ${contagem.noShow1})</li>
+                                </ul>
+                            </div>
+                        ` : `
+                            <div style="margin-top: 20px; padding: 16px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 4px solid #10b981;">
+                                <p style="color: #86efac; font-weight: bold;">✅ OS DADOS ESTÃO CORRETOS!</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+
+                resultadosDiv.innerHTML = html;
+
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                resultadosDiv.innerHTML = `
+                    <div class="card error">
+                        <h2>❌ Erro ao conectar com Supabase</h2>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Testar Conexão e Buscar Dados';
+            }
+        }
+
+        // Executar automaticamente ao carregar a página
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testarConexao();
+            }, 500);
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <p>Este é um teste DIRETO com o Supabase, fora da aplicação React.</p>
+            <p>Isso elimina qualquer problema de cache ou estado da aplicação.</p>
+        </div>
+        <div id="resultados">
+            <div class="card">
+                <p>⏳ Carregando dados automaticamente...</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

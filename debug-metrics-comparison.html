@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Comparação Métricas Excel vs Sistema</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e293b;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #475569;
+            padding: 8px;
+            text-align: center;
+        }
+        .comparison-table th {
+            background: #1e40af;
+            font-weight: bold;
+        }
+        .match {
+            background: #065f46;
+        }
+        .mismatch {
+            background: #991b1b;
+        }
+        .warning {
+            background: #92400e;
+        }
+        .excel-data {
+            background: #1e40af;
+        }
+        .system-data {
+            background: #7c3aed;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .loading {
+            color: #fbbf24;
+        }
+        .error {
+            color: #f87171;
+        }
+        .success {
+            color: #34d399;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug - Comparação Métricas Excel vs Sistema</h1>
+        
+        <div class="section">
+            <h2>📊 Dados do Excel (Baseado na Imagem)</h2>
+            <p>Dados extraídos da imagem do Excel fornecida:</p>
+            
+            <table class="comparison-table excel-data">
+                <thead>
+                    <tr>
+                        <th>Mês</th>
+                        <th>Funil</th>
+                        <th>COMPROU</th>
+                        <th>NÃO COMPROU NO SHOW</th>
+                        <th>CALLS</th>
+                        <th>Total (Coluna Direita)</th>
+                    </tr>
+                </thead>
+                <tbody id="excel-data">
+                    <!-- Dados do Excel serão inseridos aqui -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>🖥️ Dados do Sistema (Supabase)</h2>
+            <button class="button" onclick="loadSystemData()">Carregar Dados do Sistema</button>
+            <div id="system-loading" class="loading" style="display: none;">Carregando dados do Supabase...</div>
+            
+            <table class="comparison-table system-data" id="system-data-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Mês</th>
+                        <th>Funil</th>
+                        <th>COMPROU</th>
+                        <th>NÃO COMPROU</th>
+                        <th>NO SHOW</th>
+                        <th>Total Calls</th>
+                    </tr>
+                </thead>
+                <tbody id="system-data">
+                    <!-- Dados do sistema serão inseridos aqui -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>⚖️ Comparação e Análise</h2>
+            <button class="button" onclick="compareData()">Comparar Dados</button>
+            
+            <div id="comparison-results">
+                <!-- Resultados da comparação serão inseridos aqui -->
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Possíveis Causas das Discrepâncias</h2>
+            <ul>
+                <li><strong>Definições diferentes:</strong> O que é considerado "COMPROU", "NÃO COMPROU", "NO SHOW" pode estar diferente entre Excel e sistema</li>
+                <li><strong>Período de dados:</strong> As datas podem não estar alinhadas entre Excel e sistema</li>
+                <li><strong>Filtros:</strong> O sistema pode estar aplicando filtros que o Excel não tem</li>
+                <li><strong>Fonte de dados:</strong> Excel e sistema podem estar usando fontes diferentes</li>
+                <li><strong>Processamento:</strong> Lógica de cálculo pode ser diferente</li>
+                <li><strong>Status múltiplos:</strong> Uma venda pode ter múltiplos status marcados</li>
+                <li><strong>Dados duplicados:</strong> Pode haver registros duplicados no sistema</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Dados extraídos da imagem do Excel
+        const excelData = [
+            // Agosto
+            { mes: 'Agosto', funil: 'Facebook', comprou: 1, naoComprou: 5, calls: 5, total: 11 },
+            { mes: 'Agosto', funil: 'Google', comprou: 24, naoComprou: 14, calls: 15, total: 53 },
+            { mes: 'Agosto', funil: 'Indicação', comprou: 8, naoComprou: 3, calls: 3, total: 14 },
+            { mes: 'Agosto', funil: 'Instagram', comprou: 7, naoComprou: 3, calls: 3, total: 13 },
+            { mes: 'Agosto', funil: 'Total', comprou: 40, naoComprou: 25, calls: 26, total: 93 },
+            
+            // Julho
+            { mes: 'Julho', funil: 'Google', comprou: 24, naoComprou: 14, calls: 15, total: 53 },
+            { mes: 'Julho', funil: 'Indicação', comprou: 13, naoComprou: 3, calls: 0, total: 16 },
+            { mes: 'Julho', funil: 'Instagram', comprou: 9, naoComprou: 3, calls: 0, total: 12 },
+            { mes: 'Julho', funil: 'Total', comprou: 46, naoComprou: 20, calls: 15, total: 91 },
+            
+            // Junho
+            { mes: 'Junho', funil: 'Google', comprou: 22, naoComprou: 12, calls: 8, total: 42 },
+            { mes: 'Junho', funil: 'Indicação', comprou: 10, naoComprou: 5, calls: 1, total: 16 },
+            { mes: 'Junho', funil: 'Instagram', comprou: 6, naoComprou: 3, calls: 1, total: 10 },
+            { mes: 'Junho', funil: 'Social Selling', comprou: 3, naoComprou: 0, calls: 0, total: 3 },
+            { mes: 'Junho', funil: 'Total', comprou: 41, naoComprou: 20, calls: 10, total: 71 },
+            
+            // Outubro
+            { mes: 'Outubro', funil: 'Instagram', comprou: 10, naoComprou: 5, calls: 5, total: 20 },
+            { mes: 'Outubro', funil: 'Google', comprou: 9, naoComprou: 10, calls: 8, total: 27 },
+            { mes: 'Outubro', funil: 'Google Forms', comprou: 7, naoComprou: 3, calls: 2, total: 12 },
+            { mes: 'Outubro', funil: 'Social Selling', comprou: 2, naoComprou: 2, calls: 1, total: 5 },
+            { mes: 'Outubro', funil: 'Indicação', comprou: 3, naoComprou: 0, calls: 0, total: 3 },
+            { mes: 'Outubro', funil: 'Total', comprou: 31, naoComprou: 20, calls: 16, total: 73 },
+            
+            // Setembro
+            { mes: 'Setembro', funil: 'Google', comprou: 22, naoComprou: 17, calls: 11, total: 50 },
+            { mes: 'Setembro', funil: 'Instagram', comprou: 12, naoComprou: 4, calls: 0, total: 16 },
+            { mes: 'Setembro', funil: 'Indicação', comprou: 10, naoComprou: 3, calls: 0, total: 13 },
+            { mes: 'Setembro', funil: 'Total', comprou: 44, naoComprou: 24, calls: 11, total: 78 },
+            
+            // Total Geral
+            { mes: 'Total Geral', funil: 'TOTAL', comprou: 202, naoComprou: 109, calls: 78, total: 406 }
+        ];
+
+        let systemData = [];
+
+        // Preencher dados do Excel
+        function populateExcelData() {
+            const tbody = document.getElementById('excel-data');
+            tbody.innerHTML = '';
+            
+            excelData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.mes}</td>
+                    <td>${row.funil}</td>
+                    <td>${row.comprou}</td>
+                    <td>${row.naoComprou}</td>
+                    <td>${row.calls}</td>
+                    <td>${row.total}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Carregar dados do sistema
+        async function loadSystemData() {
+            const loading = document.getElementById('system-loading');
+            const table = document.getElementById('system-data-table');
+            const tbody = document.getElementById('system-data');
+            
+            loading.style.display = 'block';
+            table.style.display = 'none';
+            
+            try {
+                // Simular chamada para o Supabase (você pode substituir pela URL real)
+                const response = await fetch('/api/debug-sales-metrics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'get_all_sales_data'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    systemData = data;
+                    populateSystemData(data);
+                    loading.style.display = 'none';
+                    table.style.display = 'table';
+                } else {
+                    throw new Error('Erro ao carregar dados');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                loading.innerHTML = `<span class="error">Erro ao carregar dados: ${error.message}</span>`;
+                
+                // Dados de exemplo para demonstração
+                systemData = [
+                    { mes: 'Outubro', funil: 'Google', comprou: 9, naoComprou: 10, noShow: 0, totalCalls: 19 },
+                    { mes: 'Outubro', funil: 'Instagram', comprou: 10, naoComprou: 5, noShow: 0, totalCalls: 15 },
+                    { mes: 'Setembro', funil: 'Google', comprou: 22, naoComprou: 17, noShow: 0, totalCalls: 39 },
+                    { mes: 'Setembro', funil: 'Instagram', comprou: 12, naoComprou: 4, noShow: 0, totalCalls: 16 }
+                ];
+                
+                populateSystemData(systemData);
+                loading.style.display = 'none';
+                table.style.display = 'table';
+            }
+        }
+
+        // Preencher dados do sistema
+        function populateSystemData(data) {
+            const tbody = document.getElementById('system-data');
+            tbody.innerHTML = '';
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.mes}</td>
+                    <td>${row.funil}</td>
+                    <td>${row.comprou}</td>
+                    <td>${row.naoComprou}</td>
+                    <td>${row.noShow || 0}</td>
+                    <td>${row.totalCalls}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Comparar dados
+        function compareData() {
+            const resultsDiv = document.getElementById('comparison-results');
+            resultsDiv.innerHTML = '<h3>Análise de Comparação:</h3>';
+            
+            // Agrupar dados do Excel por mês e funil
+            const excelMap = new Map();
+            excelData.forEach(row => {
+                if (row.funil !== 'Total' && row.mes !== 'Total Geral') {
+                    const key = `${row.mes}-${row.funil}`;
+                    excelMap.set(key, row);
+                }
+            });
+            
+            // Agrupar dados do sistema por mês e funil
+            const systemMap = new Map();
+            systemData.forEach(row => {
+                const key = `${row.mes}-${row.funil}`;
+                systemMap.set(key, row);
+            });
+            
+            // Comparar
+            const allKeys = new Set([...excelMap.keys(), ...systemMap.keys()]);
+            let matches = 0;
+            let mismatches = 0;
+            
+            let comparisonHTML = '<table class="comparison-table"><thead><tr><th>Mês-Funil</th><th>COMPROU (Excel)</th><th>COMPROU (Sistema)</th><th>Status</th><th>Diferença</th></tr></thead><tbody>';
+            
+            allKeys.forEach(key => {
+                const excelRow = excelMap.get(key);
+                const systemRow = systemMap.get(key);
+                
+                let status = '';
+                let difference = 0;
+                
+                if (excelRow && systemRow) {
+                    difference = excelRow.comprou - systemRow.comprou;
+                    if (difference === 0) {
+                        status = 'match';
+                        matches++;
+                    } else {
+                        status = 'mismatch';
+                        mismatches++;
+                    }
+                } else if (excelRow) {
+                    status = 'warning';
+                    difference = excelRow.comprou;
+                    mismatches++;
+                } else if (systemRow) {
+                    status = 'warning';
+                    difference = -systemRow.comprou;
+                    mismatches++;
+                }
+                
+                comparisonHTML += `
+                    <tr class="${status}">
+                        <td>${key}</td>
+                        <td>${excelRow ? excelRow.comprou : 'N/A'}</td>
+                        <td>${systemRow ? systemRow.comprou : 'N/A'}</td>
+                        <td>${status}</td>
+                        <td>${difference}</td>
+                    </tr>
+                `;
+            });
+            
+            comparisonHTML += '</tbody></table>';
+            
+            comparisonHTML += `
+                <div class="section">
+                    <h4>Resumo:</h4>
+                    <p class="success">✅ Correspondências: ${matches}</p>
+                    <p class="error">❌ Discrepâncias: ${mismatches}</p>
+                    <p>Taxa de correspondência: ${((matches / (matches + mismatches)) * 100).toFixed(1)}%</p>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML += comparisonHTML;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            populateExcelData();
+        });
+    </script>
+</body>
+</html>
+

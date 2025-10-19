@@ -10,8 +10,10 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useCommercialMetrics } from "@/hooks/use-commercial-metrics";
 import { LeadsDailyChart, ChannelDistributionChart, MetricsTable } from "@/components/commercial-metrics/MetricsCharts";
 import { ChannelComparisonWithFilter } from "@/components/commercial-metrics/ChannelComparisonWithFilter";
+import { SalesMetricsSection } from "@/components/commercial-metrics/SalesMetricsSection";
 import { metricsCalculations } from "@/lib/commercial-metrics-service";
 import { useToast } from "@/hooks/use-toast";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export default function CommercialMetrics() {
   const [selectedMonthForComparison, setSelectedMonthForComparison] = useState<string>('');
@@ -153,8 +155,9 @@ export default function CommercialMetrics() {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 animate-fadeIn">
+    <AuthGuard sectionName="Métricas Comerciais" sectionIcon="📊">
+      <DashboardLayout>
+        <div className="space-y-6 animate-fadeIn">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
@@ -170,15 +173,17 @@ export default function CommercialMetrics() {
             <Badge variant="outline" className="text-xs border-slate-600/50 text-slate-300">
               Atualização automática a cada 30s
             </Badge>
-            <Button 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              variant="outline"
-              className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                variant="outline"
+                className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -253,7 +258,7 @@ export default function CommercialMetrics() {
             <h2 className="text-xl font-semibold text-white">Análise Detalhada</h2>
           </div>
           
-          <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border-slate-700/50">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 border-slate-700/50">
             <TabsTrigger 
               value="overview" 
               className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
@@ -265,6 +270,12 @@ export default function CommercialMetrics() {
               className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
             >
               Métricas Diárias
+            </TabsTrigger>
+            <TabsTrigger 
+              value="sales"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300"
+            >
+              Vendas
             </TabsTrigger>
           </TabsList>
 
@@ -408,8 +419,13 @@ export default function CommercialMetrics() {
           <TabsContent value="conversion" className="space-y-6">
             <MetricsTable data={dailyData} />
           </TabsContent>
+
+          <TabsContent value="sales" className="space-y-6">
+            <SalesMetricsSection initialMonth={currentMonth} />
+          </TabsContent>
         </Tabs>
-      </div>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
+    </AuthGuard>
   );
 }

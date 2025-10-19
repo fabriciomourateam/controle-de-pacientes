@@ -13,6 +13,7 @@ import Checkins from "./pages/Checkins";
 import Plans from "./pages/Plans";
 import MetricsDashboard from "./pages/MetricsDashboard";
 import CommercialMetrics from "./pages/CommercialMetrics";
+import DebugVendas from "./pages/DebugVendas";
 import Workspace from "./pages/Workspace";
 import Bioimpedancia from "./pages/Bioimpedancia";
 import Profile from "./pages/Profile";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/plans" element={<Plans />} />
           <Route path="/metrics" element={<MetricsDashboard />} />
           <Route path="/commercial-metrics" element={<CommercialMetrics />} />
+          <Route path="/debug-vendas" element={<DebugVendas />} />
           <Route path="/workspace" element={<Workspace />} />
           <Route path="/bioimpedancia" element={<Bioimpedancia />} />
           <Route path="/reports" element={<Reports />} />

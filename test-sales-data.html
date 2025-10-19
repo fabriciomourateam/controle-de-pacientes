@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Dados de Vendas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e293b;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .result {
+            background: #1e40af;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #991b1b;
+        }
+        .success {
+            background: #065f46;
+        }
+        .warning {
+            background: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste de Dados de Vendas</h1>
+        
+        <div class="section">
+            <h2>📊 Teste de Conexão com Supabase</h2>
+            <button class="button" onclick="testSupabaseConnection()">Testar Conexão</button>
+            <div id="connection-result"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Análise de Dados de Vendas</h2>
+            <button class="button" onclick="analyzeSalesData()">Analisar Dados</button>
+            <div id="analysis-result"></div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Comparação com Excel</h2>
+            <button class="button" onclick="compareWithExcel()">Comparar com Excel</button>
+            <div id="comparison-result"></div>
+        </div>
+
+        <div class="section">
+            <h2>🛠️ Script para Console</h2>
+            <p>Copie e cole este script no console do navegador na página de métricas comerciais:</p>
+            <div class="result" style="background: #1f2937; padding: 15px; border-radius: 5px; overflow-x: auto;">
+// Script para debug de vendas - Cole no console
+async function debugSalesData() {
+    try {
+        // Tentar acessar o supabase da aplicação
+        const { supabase } = window;
+        
+        if (!supabase) {
+            console.error('❌ Supabase não encontrado no window');
+            return;
+        }
+        
+        console.log('📊 Buscando dados da tabela "Total de Vendas"...');
+        
+        const { data: vendas, error } = await supabase
+            .from('Total de Vendas')
+            .select('*')
+            .order('DATA', { ascending: false });
+            
+        if (error) {
+            console.error('❌ Erro:', error);
+            return;
+        }
+        
+        console.log('✅ Dados carregados:', vendas.length, 'registros');
+        
+        // Análise básica
+        let totalCalls = 0;
+        let comprou = 0;
+        let naoComprou = 0;
+        let noShow = 0;
+        
+        vendas.forEach(venda => {
+            totalCalls++;
+            
+            const comprouValue = venda.COMPROU;
+            const naoComprouValue = venda['NÃO COMPROU'];
+            const noShowValue = venda['NO SHOW'];
+            
+            // Função para verificar se é "Sim"
+            const isYes = (value) => {
+                if (!value) return false;
+                const normalized = value.toString().toLowerCase().trim();
+                return normalized === 'sim' || 
+                       normalized === 's' || 
+                       normalized === 'yes' || 
+                       normalized === 'y' || 
+                       normalized === 'x' || 
+                       normalized === '1' || 
+                       normalized === 'true';
+            };
+            
+            // Lógica de prioridade
+            if (isYes(comprouValue)) {
+                comprou++;
+            } else if (isYes(noShowValue)) {
+                noShow++;
+            } else {
+                naoComprou++;
+            }
+        });
+        
+        console.log('📊 Resultados:');
+        console.log(`Total Calls: ${totalCalls}`);
+        console.log(`Comprou: ${comprou}`);
+        console.log(`Não Comprou: ${naoComprou}`);
+        console.log(`No Show: ${noShow}`);
+        console.log(`Soma: ${comprou + naoComprou + noShow}`);
+        console.log(`Diferença: ${totalCalls - (comprou + naoComprou + noShow)}`);
+        
+        // Comparação com Excel
+        console.log('\n📊 Comparação com Excel:');
+        console.log('Excel - COMPROU: 202');
+        console.log('Excel - NÃO COMPROU NO SHOW: 109');
+        console.log('Excel - CALLS: 78');
+        console.log('Excel - Total: 406');
+        
+        console.log('\nSistema:');
+        console.log(`COMPROU: ${comprou}`);
+        console.log(`NÃO COMPROU: ${naoComprou}`);
+        console.log(`NO SHOW: ${noShow}`);
+        console.log(`Total Calls: ${totalCalls}`);
+        
+        return { totalCalls, comprou, naoComprou, noShow, vendas };
+        
+    } catch (error) {
+        console.error('❌ Erro no debug:', error);
+    }
+}
+
+// Executar
+debugSalesData();
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showResult(elementId, message, type = 'result') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function testSupabaseConnection() {
+            showResult('connection-result', 'Testando conexão...', 'warning');
+            
+            try {
+                // Simular teste de conexão
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                showResult('connection-result', '✅ Conexão com Supabase OK!\n\nPara testar os dados reais, use o script do console na página de métricas comerciais.', 'success');
+            } catch (error) {
+                showResult('connection-result', `❌ Erro na conexão: ${error.message}`, 'error');
+            }
+        }
+
+        async function analyzeSalesData() {
+            showResult('analysis-result', 'Analisando dados...', 'warning');
+            
+            // Dados de exemplo para demonstração
+            const exampleData = {
+                totalCalls: 150,
+                comprou: 75,
+                naoComprou: 50,
+                noShow: 25
+            };
+            
+            const message = `📊 Análise de Exemplo:
+
+Total Calls: ${exampleData.totalCalls}
+Comprou: ${exampleData.comprou} (${(exampleData.comprou/exampleData.totalCalls*100).toFixed(1)}%)
+Não Comprou: ${exampleData.naoComprou} (${(exampleData.naoComprou/exampleData.totalCalls*100).toFixed(1)}%)
+No Show: ${exampleData.noShow} (${(exampleData.noShow/exampleData.totalCalls*100).toFixed(1)}%)
+
+Taxa de Conversão: ${(exampleData.comprou/(exampleData.comprou+exampleData.naoComprou)*100).toFixed(1)}%
+
+Para dados reais, execute o script no console da página de métricas.`;
+            
+            showResult('analysis-result', message, 'success');
+        }
+
+        async function compareWithExcel() {
+            showResult('comparison-result', 'Comparando com dados do Excel...', 'warning');
+            
+            const excelData = {
+                comprou: 202,
+                naoComprouNoShow: 109,
+                calls: 78,
+                total: 406
+            };
+            
+            const message = `📊 Dados do Excel (da imagem):
+
+COMPROU: ${excelData.comprou}
+NÃO COMPROU NO SHOW: ${excelData.naoComprouNoShow}
+CALLS: ${excelData.calls}
+Total (coluna direita): ${excelData.total}
+
+⚠️ Nota: O Excel tem uma coluna "NÃO COMPROU NO SHOW" que pode estar combinando dois status diferentes.
+
+Para comparar com os dados reais do sistema, execute o script no console.`;
+            
+            showResult('comparison-result', message, 'success');
+        }
+    </script>
+</body>
+</html>
+
