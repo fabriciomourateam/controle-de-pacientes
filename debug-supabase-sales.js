@@ -191,3 +191,4 @@ debugSalesData().then(result => {
     console.log('Resultado final:', result);
 });
 
+

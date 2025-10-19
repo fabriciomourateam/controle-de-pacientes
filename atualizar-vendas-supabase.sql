@@ -46,3 +46,4 @@ ORDER BY id;
 -- Existe algum campo que indica isso? (ex: coluna de STATUS, RESULTADO, etc.)
 
 
+

@@ -255,3 +255,4 @@ async function debugSalesData() {
 // Executar o debug
 debugSalesData();
 
+
