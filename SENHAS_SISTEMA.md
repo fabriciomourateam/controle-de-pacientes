@@ -73,6 +73,8 @@ Todas as seguintes páginas estão protegidas:
 - ✅ `src/pages/Bioimpedancia.tsx`
 - ✅ `src/pages/Reports.tsx`
 
+**Observação:** A página `src/pages/PatientEvolution.tsx` (Evolução do Paciente) **não possui proteção por senha** para facilitar o acesso direto aos dossiês de evolução.
+
 ## ☁️ Gerenciamento de Senhas no Supabase
 
 ### Como Criar a Tabela no Supabase

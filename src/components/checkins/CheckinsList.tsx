@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Search, 
   Calendar,
@@ -7,7 +8,8 @@ import {
   User,
   Activity,
   Eye,
-  BarChart3
+  BarChart3,
+  FileText
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,7 @@ import {
 } from "recharts";
 
 export function CheckinsList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("7d");
   const [selectedPatient, setSelectedPatient] = useState("all");
@@ -450,6 +453,23 @@ export function CheckinsList() {
                     >
                       {checkin.total_pontuacao ? `${checkin.total_pontuacao} pts` : 'N/A'}
                     </Badge>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => navigate(`/checkins/evolution/${checkin.telefone}`)}
+                            className="hover:bg-blue-500/20 hover:text-blue-300"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Ver dossiê de evolução</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
