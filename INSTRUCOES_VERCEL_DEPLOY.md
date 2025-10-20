@@ -11,8 +11,8 @@ Acesse o painel do Vercel → Settings → Environment Variables e adicione:
 
 ```bash
 # Supabase (OBRIGATÓRIO)
-VITE_SUPABASE_URL=sua_url_do_supabase
-VITE_SUPABASE_ANON_KEY=sua_chave_do_supabase
+VITE_SUPABASE_URL=https://qhzifnyjyxdushxorzrk.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA
 
 # Notion (Opcional - já tem valores padrão)
 VITE_NOTION_API_KEY=ntn_E50356294261kVEmTcoS17ZLs24AVhXystP6D6Th84L8Yb

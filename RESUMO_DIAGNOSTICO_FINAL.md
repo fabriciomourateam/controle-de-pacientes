@@ -67,11 +67,11 @@ Se você souber quais registros devem ser "Não Comprou" ou "No Show", pode atua
 
 ```bash
 # Nome: VITE_SUPABASE_URL
-# Valor: https://zxqnrhqjujqngljvzjto.supabase.co
+# Valor: https://qhzifnyjyxdushxorzrk.supabase.co
 # Ambientes: Production, Preview, Development
 
 # Nome: VITE_SUPABASE_ANON_KEY  
-# Valor: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4cW5yaHFqdWpxbmdsanZ6anRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMzI0NDcsImV4cCI6MjA2MDYwODQ0N30.BNLQ7sL_cEH3vz0dkv66VbkK6lx_Jg2PqVxMOLBYKBU
+# Valor: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA
 # Ambientes: Production, Preview, Development
 ```
 

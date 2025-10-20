@@ -12,8 +12,8 @@ function getProxyUrl() {
 }
 
 // Configuração do Supabase
-const supabaseUrl = 'https://zxqnrhqjujqngljvzjto.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4cW5yaHFqdWpxbmdsanZ6anRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMzI0NDcsImV4cCI6MjA2MDYwODQ0N30.BNLQ7sL_cEH3vz0dkv66VbkK6lx_Jg2PqVxMOLBYKBU';
+const supabaseUrl = 'https://qhzifnyjyxdushxorzrk.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export class DashboardNotionService {
