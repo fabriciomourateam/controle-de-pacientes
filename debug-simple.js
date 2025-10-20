@@ -176,3 +176,4 @@ window.debugManual = function(dadosVendas) {
 console.log('💡 Para usar o método manual: debugManual([seus_dados_aqui])');
 
 
+
