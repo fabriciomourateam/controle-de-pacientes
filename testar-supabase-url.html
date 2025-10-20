@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conectividade Supabase</title>
+    <style>
+        body {
+            font-family: system-ui;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .card {
+            background: #334155;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        pre {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Conectividade Supabase</h1>
+    
+    <div class="card">
+        <button onclick="testarURL1()">Testar URL 1 (zxqnrhqjujqngljvzjto)</button>
+        <button onclick="testarURL2()">Testar URL 2 (qhzifnyjyxdushxorzrk)</button>
+        <button onclick="testarTodos()">Testar Todos</button>
+    </div>
+
+    <div id="resultados"></div>
+
+    <script>
+        const URL1 = 'https://zxqnrhqjujqngljvzjto.supabase.co';
+        const KEY1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4cW5yaHFqdWpxbmdsanZ6anRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMzI0NDcsImV4cCI6MjA2MDYwODQ0N30.BNLQ7sL_cEH3vz0dkv66VbkK6lx_Jg2PqVxMOLBYKBU';
+        
+        const URL2 = 'https://qhzifnyjyxdushxorzrk.supabase.co';
+        const KEY2 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA';
+
+        async function testarConexao(nome, url, key) {
+            const resultDiv = document.getElementById('resultados');
+            
+            resultDiv.innerHTML += `<div class="card"><h3>🔍 Testando ${nome}...</h3>`;
+            
+            // Teste 1: Ping no domínio (via fetch)
+            resultDiv.innerHTML += `<p>📡 Testando conectividade com <code>${url}</code>...</p>`;
+            
+            try {
+                const pingStart = Date.now();
+                const pingResponse = await fetch(url, {
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                });
+                const pingTime = Date.now() - pingStart;
+                
+                resultDiv.innerHTML += `<p class="success">✅ Domínio ACESSÍVEL (${pingTime}ms)</p>`;
+            } catch (error) {
+                resultDiv.innerHTML += `<p class="error">❌ Domínio INACESSÍVEL: ${error.message}</p>`;
+                resultDiv.innerHTML += `<p class="error">⚠️ Este domínio NÃO PODE SER RESOLVIDO pelo DNS!</p>`;
+                resultDiv.innerHTML += '</div>';
+                return false;
+            }
+            
+            // Teste 2: Tentar buscar dados
+            resultDiv.innerHTML += `<p>📊 Testando API REST...</p>`;
+            
+            try {
+                const response = await fetch(`${url}/rest/v1/patients?select=count`, {
+                    headers: {
+                        'apikey': key,
+                        'Authorization': `Bearer ${key}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML += `<p class="success">✅ API FUNCIONANDO! Dados recebidos:</p>`;
+                    resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    return true;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML += `<p class="error">❌ API retornou erro ${response.status}:</p>`;
+                    resultDiv.innerHTML += `<pre>${errorText}</pre>`;
+                    return false;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `<p class="error">❌ Erro ao acessar API: ${error.message}</p>`;
+                return false;
+            } finally {
+                resultDiv.innerHTML += '</div>';
+            }
+        }
+
+        async function testarURL1() {
+            document.getElementById('resultados').innerHTML = '';
+            await testarConexao('URL 1 (zxqnrhqjujqngljvzjto)', URL1, KEY1);
+        }
+
+        async function testarURL2() {
+            document.getElementById('resultados').innerHTML = '';
+            await testarConexao('URL 2 (qhzifnyjyxdushxorzrk)', URL2, KEY2);
+        }
+
+        async function testarTodos() {
+            document.getElementById('resultados').innerHTML = '';
+            
+            const resultado1 = await testarConexao('URL 1 (zxqnrhqjujqngljvzjto)', URL1, KEY1);
+            const resultado2 = await testarConexao('URL 2 (qhzifnyjyxdushxorzrk)', URL2, KEY2);
+            
+            const resultDiv = document.getElementById('resultados');
+            resultDiv.innerHTML += `<div class="card"><h2>📊 Resumo</h2>`;
+            resultDiv.innerHTML += `<p>URL 1 (zxqnrhqjujqngljvzjto): ${resultado1 ? '<span class="success">✅ FUNCIONANDO</span>' : '<span class="error">❌ NÃO FUNCIONA</span>'}</p>`;
+            resultDiv.innerHTML += `<p>URL 2 (qhzifnyjyxdushxorzrk): ${resultado2 ? '<span class="success">✅ FUNCIONANDO</span>' : '<span class="error">❌ NÃO FUNCIONA</span>'}</p>`;
+            
+            if (resultado1) {
+                resultDiv.innerHTML += `<h3 class="success">✅ Use a URL 1 no seu projeto!</h3>`;
+            } else if (resultado2) {
+                resultDiv.innerHTML += `<h3 class="success">✅ Use a URL 2 no seu projeto!</h3>`;
+            } else {
+                resultDiv.innerHTML += `<h3 class="error">❌ NENHUMA URL FUNCIONA!</h3>`;
+                resultDiv.innerHTML += `<p>Possíveis problemas:</p>`;
+                resultDiv.innerHTML += `<ul>
+                    <li>Projeto Supabase foi pausado ou deletado</li>
+                    <li>URLs estão incorretas</li>
+                    <li>Problema de rede/firewall</li>
+                    <li>Supabase está fora do ar</li>
+                </ul>`;
+            }
+            resultDiv.innerHTML += '</div>';
+        }
+
+        // Testar automaticamente ao carregar
+        window.onload = () => {
+            testarTodos();
+        };
+    </script>
+</body>
+</html>
+
