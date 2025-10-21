@@ -17,7 +17,7 @@ export function AIInsights({ checkins }: AIInsightsProps) {
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [expandedSections, setExpandedSections] = useState({
     strengths: false,
-    warnings: true,
+    warnings: false,
     suggestions: false,
     goals: false
   });
