@@ -95,6 +95,12 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
     ? ((weightData[weightData.length - 1].peso || 0) - (weightData[0].peso || 0)).toFixed(1)
     : '0.0';
 
+  // Debug temporário
+  console.log('🔍 Debug EvolutionCharts:');
+  console.log('weightData:', weightData);
+  console.log('Peso Inicial (weightData[0]):', weightData[0]?.peso, weightData[0]?.data);
+  console.log('Peso Atual (weightData[weightData.length-1]):', weightData[weightData.length-1]?.peso, weightData[weightData.length-1]?.data);
+
   return (
     <div className="space-y-6">
       {/* Cards de Resumo */}
