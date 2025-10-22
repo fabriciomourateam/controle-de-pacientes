@@ -834,8 +834,8 @@ function generateDossieHTML(
           font-family: 'Arial', sans-serif;
           color: #1e293b;
           background: #fff;
-          padding: 20px;
-          max-width: 1100px;
+          padding: 50px;
+          max-width: 1000px;
           margin: 0 auto;
         }
         
@@ -1373,12 +1373,12 @@ export async function generateDossieImage(
   // Criar elemento temporário
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
-  tempDiv.style.width = '1100px';
+  tempDiv.style.width = '1000px';
   tempDiv.style.background = '#fff';
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '0';
-  tempDiv.style.padding = '15px';
+  tempDiv.style.padding = '40px';
   document.body.appendChild(tempDiv);
 
   try {
@@ -1388,7 +1388,7 @@ export async function generateDossieImage(
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 1130,
+      windowWidth: 1080,
       windowHeight: tempDiv.scrollHeight,
       scrollX: 0,
       scrollY: 0,
