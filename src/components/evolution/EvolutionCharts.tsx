@@ -90,16 +90,18 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
     { categoria: 'Libido', pontos: parseFloat(latestCheckin.pontos_libido || '0') || 0, fullMark: 10 }
   ] : [];
 
+  // Ordenar weightData por data para garantir ordem cronológica
+  const weightDataOrdenado = [...weightData].sort((a, b) => {
+    const dateA = new Date(a.data.split(' ').reverse().join('-'));
+    const dateB = new Date(b.data.split(' ').reverse().join('-'));
+    return dateA - dateB;
+  });
+
   // Calcular variação de peso (último - primeiro)
-  const weightChange = weightData.length >= 2 
-    ? ((weightData[weightData.length - 1].peso || 0) - (weightData[0].peso || 0)).toFixed(1)
+  const weightChange = weightDataOrdenado.length >= 2 
+    ? ((weightDataOrdenado[weightDataOrdenado.length - 1].peso || 0) - (weightDataOrdenado[0].peso || 0)).toFixed(1)
     : '0.0';
 
-  // Debug temporário
-  console.log('🔍 Debug EvolutionCharts:');
-  console.log('weightData:', weightData);
-  console.log('Peso Inicial (weightData[0]):', weightData[0]?.peso, weightData[0]?.data);
-  console.log('Peso Atual (weightData[weightData.length-1]):', weightData[weightData.length-1]?.peso, weightData[weightData.length-1]?.data);
 
   return (
     <div className="space-y-6">
@@ -124,11 +126,11 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
-              {weightData[0]?.peso?.toFixed(1) || 'N/A'}
-              {weightData[0]?.peso && <span className="text-lg ml-1">kg</span>}
+              {weightDataOrdenado[0]?.peso?.toFixed(1) || 'N/A'}
+              {weightDataOrdenado[0]?.peso && <span className="text-lg ml-1">kg</span>}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {weightData[0] && weightData[0].data}
+              {weightDataOrdenado[0] && weightDataOrdenado[0].data}
             </p>
           </CardContent>
         </Card>
@@ -139,11 +141,11 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
-              {weightData[weightData.length - 1]?.peso?.toFixed(1) || 'N/A'}
-              {weightData[weightData.length - 1]?.peso && <span className="text-lg ml-1">kg</span>}
+              {weightDataOrdenado[weightDataOrdenado.length - 1]?.peso?.toFixed(1) || 'N/A'}
+              {weightDataOrdenado[weightDataOrdenado.length - 1]?.peso && <span className="text-lg ml-1">kg</span>}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {weightData.length > 0 && weightData[weightData.length - 1].data}
+              {weightDataOrdenado.length > 0 && weightDataOrdenado[weightDataOrdenado.length - 1].data}
             </p>
           </CardContent>
         </Card>
@@ -195,7 +197,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weightData}>
+              <LineChart data={weightDataOrdenado}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis 
                   dataKey="data" 
