@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { checkinService } from '@/lib/checkin-service';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +36,9 @@ import {
   Calendar,
   Activity,
   AlertCircle,
-  Camera
+  Camera,
+  ZoomIn,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -52,6 +55,8 @@ export default function PatientEvolution() {
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
+  const [zoomedPhoto, setZoomedPhoto] = useState<{ url: string; label: string } | null>(null);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -69,6 +74,41 @@ export default function PatientEvolution() {
       idade--;
     }
     return idade;
+  };
+
+  // Função para abrir zoom da foto
+  const handleZoomPhoto = (url: string, label: string) => {
+    setZoomedPhoto({ url, label });
+    setIsZoomOpen(true);
+  };
+
+  // Função para excluir foto individual
+  const handleDeletePhoto = async (photoField: string) => {
+    if (!telefone || !patient) return;
+
+    try {
+      const { error } = await supabase
+        .from('patients')
+        .update({ [photoField]: null })
+        .eq('telefone', telefone);
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      setPatient({ ...patient, [photoField]: null });
+
+      toast({
+        title: 'Foto excluída',
+        description: 'A foto foi removida com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao excluir foto:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a foto',
+        variant: 'destructive'
+      });
+    }
   };
 
   useEffect(() => {
@@ -563,41 +603,125 @@ export default function PatientEvolution() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {patient.foto_inicial_frente && (
                         <div className="space-y-2">
-                          <img 
-                            src={patient.foto_inicial_frente} 
-                            alt="Foto Frontal Inicial"
-                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                          />
+                          <div className="relative group">
+                            <img 
+                              src={patient.foto_inicial_frente} 
+                              alt="Foto Frontal Inicial"
+                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(patient.foto_inicial_frente!, 'Foto Frontal')}
+                            />
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_frente!, 'Foto Frontal')}
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-8 w-8"
+                                onClick={() => handleDeletePhoto('foto_inicial_frente')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                           <p className="text-center text-sm text-purple-300 font-semibold">📷 Frontal</p>
                         </div>
                       )}
                       {patient.foto_inicial_lado && (
                         <div className="space-y-2">
-                          <img 
-                            src={patient.foto_inicial_lado} 
-                            alt="Foto Lateral 1"
-                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                          />
+                          <div className="relative group">
+                            <img 
+                              src={patient.foto_inicial_lado} 
+                              alt="Foto Lateral 1"
+                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral 1')}
+                            />
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral 1')}
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-8 w-8"
+                                onClick={() => handleDeletePhoto('foto_inicial_lado')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                           <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral 1</p>
                         </div>
                       )}
                       {patient.foto_inicial_lado_2 && (
                         <div className="space-y-2">
-                          <img 
-                            src={patient.foto_inicial_lado_2} 
-                            alt="Foto Lateral 2"
-                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                          />
+                          <div className="relative group">
+                            <img 
+                              src={patient.foto_inicial_lado_2} 
+                              alt="Foto Lateral 2"
+                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral 2')}
+                            />
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral 2')}
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-8 w-8"
+                                onClick={() => handleDeletePhoto('foto_inicial_lado_2')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                           <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral 2</p>
                         </div>
                       )}
                       {patient.foto_inicial_costas && (
                         <div className="space-y-2">
-                          <img 
-                            src={patient.foto_inicial_costas} 
-                            alt="Foto Costas Inicial"
-                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                          />
+                          <div className="relative group">
+                            <img 
+                              src={patient.foto_inicial_costas} 
+                              alt="Foto Costas Inicial"
+                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(patient.foto_inicial_costas!, 'Foto de Costas')}
+                            />
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_costas!, 'Foto de Costas')}
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-8 w-8"
+                                onClick={() => handleDeletePhoto('foto_inicial_costas')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                           <p className="text-center text-sm text-purple-300 font-semibold">📷 Costas</p>
                         </div>
                       )}
@@ -735,6 +859,24 @@ export default function PatientEvolution() {
             </>
           )}
         </motion.div>
+
+        {/* Dialog de Zoom da Foto */}
+        <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
+          <DialogContent className="max-w-4xl bg-slate-900 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">{zoomedPhoto?.label}</DialogTitle>
+            </DialogHeader>
+            {zoomedPhoto && (
+              <div className="flex items-center justify-center">
+                <img 
+                  src={zoomedPhoto.url} 
+                  alt={zoomedPhoto.label}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
   );
 }
