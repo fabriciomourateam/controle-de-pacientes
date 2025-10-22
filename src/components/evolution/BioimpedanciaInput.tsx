@@ -52,7 +52,9 @@ export function BioimpedanciaInput({
     data: getLocalDateString(),
     textoGPT: '',
     peso: '',
-    altura: altura?.toString() || ''
+    altura: altura?.toString() || '',
+    idade: idade?.toString() || '',
+    sexo: sexo || ''
   });
   const [calculosPreview, setCalculosPreview] = useState<any>(null);
 
@@ -129,17 +131,18 @@ export function BioimpedanciaInput({
 
   // Calcular valores em tempo real para preview
   useEffect(() => {
-    if (formData.peso && formData.altura && formData.textoGPT) {
+    if (formData.peso && formData.altura && formData.textoGPT && formData.idade && formData.sexo) {
       try {
         const parsedData = parseGPTText(formData.textoGPT);
         const peso = parseFloat(formData.peso);
         const alturaNum = parseFloat(formData.altura);
+        const idadeNum = parseInt(formData.idade);
         
-        if (peso && alturaNum && idade && sexo) {
+        if (peso && alturaNum && idadeNum && formData.sexo) {
           const imc = calcularIMC(peso, alturaNum);
           const massaGorda = calcularMassaGorda(peso, parsedData.percentual_gordura);
           const massaMagra = calcularMassaMagra(peso, massaGorda);
-          const tmb = calcularTMB(peso, alturaNum, idade, sexo as 'M' | 'F');
+          const tmb = calcularTMB(peso, alturaNum, idadeNum, formData.sexo as 'M' | 'F');
           
           setCalculosPreview({
             imc,
@@ -155,7 +158,7 @@ export function BioimpedanciaInput({
     } else {
       setCalculosPreview(null);
     }
-  }, [formData, idade, sexo]);
+  }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,10 +172,10 @@ export function BioimpedanciaInput({
       return;
     }
 
-    if (!idade || !sexo) {
+    if (!formData.idade || !formData.sexo) {
       toast({
-        title: 'Dados do paciente incompletos',
-        description: 'Idade e Sexo são necessários. Atualize o cadastro do paciente.',
+        title: 'Campos obrigatórios',
+        description: 'Idade e Sexo são necessários para os cálculos',
         variant: 'destructive'
       });
       return;
@@ -184,12 +187,13 @@ export function BioimpedanciaInput({
       const parsedData = parseGPTText(formData.textoGPT);
       const peso = parseFloat(formData.peso);
       const alturaNum = parseFloat(formData.altura);
+      const idadeNum = parseInt(formData.idade);
 
       // Cálculos automáticos
       const imc = calcularIMC(peso, alturaNum);
       const massaGorda = calcularMassaGorda(peso, parsedData.percentual_gordura);
       const massaMagra = calcularMassaMagra(peso, massaGorda);
-      const tmb = calcularTMB(peso, alturaNum, idade, sexo as 'M' | 'F');
+      const tmb = calcularTMB(peso, alturaNum, idadeNum, formData.sexo as 'M' | 'F');
 
       // Inserir no Supabase
       const { error } = await supabase
@@ -214,10 +218,12 @@ export function BioimpedanciaInput({
 
       setOpen(false);
       setFormData({ 
-        data: new Date().toISOString().split('T')[0], 
+        data: getLocalDateString(), 
         textoGPT: '',
         peso: '',
-        altura: altura?.toString() || ''
+        altura: altura?.toString() || '',
+        idade: idade?.toString() || '',
+        sexo: sexo || ''
       });
       setCalculosPreview(null);
       onSuccess();
@@ -311,6 +317,49 @@ export function BioimpedanciaInput({
                   disabled={loadingLastBio}
                   className="bg-slate-800 border-slate-600 text-slate-200"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="idade" className="text-slate-300">
+                  Idade (anos) * {idade && <span className="text-xs text-emerald-400">✓ Do cadastro</span>}
+                </Label>
+                <Input
+                  id="idade"
+                  type="number"
+                  placeholder="25"
+                  value={formData.idade}
+                  onChange={(e) => setFormData({ ...formData, idade: e.target.value })}
+                  required
+                  className="bg-slate-800 border-slate-600 text-slate-200"
+                />
+                {!idade && (
+                  <p className="text-xs text-amber-400">
+                    ℹ️ Preencha manualmente (não está no cadastro)
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sexo" className="text-slate-300">
+                  Sexo * {sexo && <span className="text-xs text-emerald-400">✓ Do cadastro</span>}
+                </Label>
+                <select
+                  id="sexo"
+                  value={formData.sexo}
+                  onChange={(e) => setFormData({ ...formData, sexo: e.target.value })}
+                  required
+                  className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Feminino</option>
+                </select>
+                {!sexo && (
+                  <p className="text-xs text-amber-400">
+                    ℹ️ Selecione manualmente (não está no cadastro)
+                  </p>
+                )}
               </div>
             </div>
 
