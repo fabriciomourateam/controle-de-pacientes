@@ -86,17 +86,6 @@ export default function PatientEvolution() {
         
         // Buscar check-ins do paciente
         const checkinsData = await checkinService.getByPhone(telefone);
-        
-        if (checkinsData.length === 0) {
-          toast({
-            title: 'Nenhum check-in encontrado',
-            description: 'Este paciente ainda não possui check-ins registrados',
-            variant: 'destructive'
-          });
-          navigate('/checkins');
-          return;
-        }
-
         setCheckins(checkinsData);
 
         // Buscar dados do paciente
