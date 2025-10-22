@@ -447,15 +447,6 @@ export default function PatientEvolution() {
                 sexo={patient?.genero || null}
                 onSuccess={handleBioSuccess}
               />
-              
-              <Button
-                onClick={handleExportPDF}
-                disabled={generatingPDF}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
-              >
-                <Download className="w-4 h-4" />
-                {generatingPDF ? 'Gerando...' : 'Exportar PDF'}
-              </Button>
             </div>
           </div>
 
