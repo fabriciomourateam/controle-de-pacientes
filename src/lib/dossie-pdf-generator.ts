@@ -1,4 +1,5 @@
 import html2pdf from 'html2pdf.js';
+import html2canvas from 'html2canvas';
 import { Chart, registerables } from 'chart.js';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -782,6 +783,625 @@ export async function generateDossiePDF(
   try {
     // Gerar PDF
     await html2pdf().set(options).from(tempDiv).save();
+  } finally {
+    // Remover elemento temporário
+    document.body.removeChild(tempDiv);
+  }
+}
+
+// Função auxiliar para gerar HTML do dossiê
+function generateDossieHTML(
+  patient: PatientInfo,
+  checkins: Checkin[],
+  bodyCompositions?: any[],
+  fullPatientData?: any,
+  weightChartImage?: string,
+  scoresChartImage?: string,
+  radarChartImage?: string,
+  bodyFatChartImage?: string
+) {
+  const checkinsOrdenados = [...checkins].reverse();
+  const hasCheckins = checkinsOrdenados.length > 0;
+
+  const weightData = checkinsOrdenados
+    .filter(c => c.peso)
+    .map(c => ({
+      date: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      peso: parseFloat(c.peso || '0')
+    }));
+
+  const firstWeight = weightData[0]?.peso || 0;
+  const lastWeight = weightData[weightData.length - 1]?.peso || 0;
+  const weightChange = (lastWeight - firstWeight).toFixed(1);
+
+  const avgScore = checkinsOrdenados.length > 0
+    ? (checkinsOrdenados.reduce((acc, c) => acc + parseFloat(c.total_pontuacao || '0'), 0) / checkinsOrdenados.length).toFixed(1)
+    : '0';
+
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Arial', sans-serif;
+          color: #1e293b;
+          background: #fff;
+          padding: 40px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 40px;
+          padding-bottom: 30px;
+          border-bottom: 4px solid #3b82f6;
+        }
+        
+        .header h1 {
+          color: #1e40af;
+          font-size: 42px;
+          margin-bottom: 15px;
+        }
+        
+        .header p {
+          color: #64748b;
+          font-size: 18px;
+        }
+        
+        .patient-info {
+          background: #f1f5f9;
+          padding: 30px;
+          border-radius: 12px;
+          margin-bottom: 40px;
+        }
+        
+        .patient-info h2 {
+          color: #1e40af;
+          font-size: 32px;
+          margin-bottom: 20px;
+        }
+        
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+        }
+        
+        .info-item {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .info-label {
+          color: #64748b;
+          font-size: 14px;
+          margin-bottom: 6px;
+        }
+        
+        .info-value {
+          color: #1e293b;
+          font-size: 20px;
+          font-weight: bold;
+        }
+        
+        .summary-cards {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+        
+        .summary-card {
+          background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+          color: white;
+          padding: 30px;
+          border-radius: 12px;
+          text-align: center;
+        }
+        
+        .summary-card.green {
+          background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        }
+        
+        .summary-card.purple {
+          background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+        }
+        
+        .summary-card.orange {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        .summary-label {
+          font-size: 16px;
+          opacity: 0.9;
+          margin-bottom: 12px;
+        }
+        
+        .summary-value {
+          font-size: 36px;
+          font-weight: bold;
+        }
+        
+        .section {
+          margin-bottom: 40px;
+        }
+        
+        .section-title {
+          color: #1e40af;
+          font-size: 28px;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 3px solid #e2e8f0;
+        }
+        
+        .checkin-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 30px;
+        }
+        
+        .checkin-table th {
+          background: #3b82f6;
+          color: white;
+          padding: 16px;
+          text-align: left;
+          font-size: 16px;
+          font-weight: 600;
+        }
+        
+        .checkin-table td {
+          padding: 14px 16px;
+          border-bottom: 1px solid #e2e8f0;
+          font-size: 15px;
+        }
+        
+        .checkin-table tr:nth-child(even) {
+          background: #f8fafc;
+        }
+        
+        .score-badge {
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-weight: bold;
+          font-size: 14px;
+        }
+        
+        .score-excellent {
+          background: #d1fae5;
+          color: #047857;
+        }
+        
+        .score-good {
+          background: #fef3c7;
+          color: #d97706;
+        }
+        
+        .score-poor {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+        
+        .observation-box {
+          background: #f8fafc;
+          border-left: 6px solid #3b82f6;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        
+        .observation-date {
+          color: #1e40af;
+          font-weight: bold;
+          font-size: 16px;
+          margin-bottom: 12px;
+        }
+        
+        .observation-text {
+          color: #475569;
+          font-size: 15px;
+          line-height: 1.8;
+        }
+        
+        .chart-container {
+          margin-bottom: 40px;
+          text-align: center;
+        }
+        
+        .chart-container img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .footer {
+          text-align: center;
+          margin-top: 60px;
+          padding-top: 30px;
+          border-top: 3px solid #e2e8f0;
+          color: #64748b;
+          font-size: 14px;
+        }
+      </style>
+    </head>
+    <body>
+      ${generateDossieContent(patient, checkinsOrdenados, hasCheckins, fullPatientData, bodyCompositions, weightChartImage, scoresChartImage, radarChartImage, bodyFatChartImage, firstWeight, lastWeight, weightChange)}
+    </body>
+    </html>
+  `;
+}
+
+// Função auxiliar para gerar conteúdo (reutilizável)
+function generateDossieContent(
+  patient: PatientInfo,
+  checkinsOrdenados: any[],
+  hasCheckins: boolean,
+  fullPatientData: any,
+  bodyCompositions: any[],
+  weightChartImage: string,
+  scoresChartImage: string,
+  radarChartImage: string,
+  bodyFatChartImage: string,
+  firstWeight: number,
+  lastWeight: number,
+  weightChange: string
+) {
+  return `
+    <!-- Cabeçalho -->
+    <div class="header">
+      <h1>📊 DOSSIÊ DE EVOLUÇÃO</h1>
+      <p>Relatório Completo de Progresso e Performance</p>
+    </div>
+    
+    <!-- Informações do Paciente -->
+    <div class="patient-info">
+      <h2>${patient.nome}</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Telefone</span>
+          <span class="info-value">${patient.telefone}</span>
+        </div>
+        ${patient.email ? `
+        <div class="info-item">
+          <span class="info-label">E-mail</span>
+          <span class="info-value">${patient.email}</span>
+        </div>
+        ` : ''}
+        ${patient.plano ? `
+        <div class="info-item">
+          <span class="info-label">Plano</span>
+          <span class="info-value">${patient.plano}</span>
+        </div>
+        ` : ''}
+        ${hasCheckins ? `
+        <div class="info-item">
+          <span class="info-label">Período</span>
+          <span class="info-value">${new Date(checkinsOrdenados[0]?.data_checkin).toLocaleDateString('pt-BR')} - ${new Date(checkinsOrdenados[checkinsOrdenados.length - 1]?.data_checkin).toLocaleDateString('pt-BR')}</span>
+        </div>
+        ` : `
+        <div class="info-item">
+          <span class="info-label">Data</span>
+          <span class="info-value">${new Date().toLocaleDateString('pt-BR')}</span>
+        </div>
+        `}
+      </div>
+    </div>
+    
+    <!-- Dados Iniciais (quando não há check-ins) -->
+    ${!hasCheckins && fullPatientData && (fullPatientData.peso_inicial || fullPatientData.altura_inicial) ? `
+    <div class="section">
+      <h3 class="section-title">📋 Dados Iniciais do Paciente</h3>
+      <div class="summary-cards">
+        ${fullPatientData.peso_inicial ? `
+        <div class="summary-card green">
+          <div class="summary-label">Peso Inicial</div>
+          <div class="summary-value">${fullPatientData.peso_inicial} kg</div>
+        </div>
+        ` : ''}
+        ${fullPatientData.altura_inicial ? `
+        <div class="summary-card purple">
+          <div class="summary-label">Altura</div>
+          <div class="summary-value">${fullPatientData.altura_inicial} m</div>
+        </div>
+        ` : ''}
+        ${fullPatientData.medida_cintura_inicial ? `
+        <div class="summary-card orange">
+          <div class="summary-label">Cintura</div>
+          <div class="summary-value">${fullPatientData.medida_cintura_inicial} cm</div>
+        </div>
+        ` : ''}
+        ${fullPatientData.medida_quadril_inicial ? `
+        <div class="summary-card">
+          <div class="summary-label">Quadril</div>
+          <div class="summary-value">${fullPatientData.medida_quadril_inicial} cm</div>
+        </div>
+        ` : ''}
+      </div>
+      ${fullPatientData.data_fotos_iniciais ? `
+      <div class="observation-box">
+        <p class="observation-text"><strong>Data do Registro:</strong> ${new Date(fullPatientData.data_fotos_iniciais).toLocaleDateString('pt-BR')}</p>
+      </div>
+      ` : ''}
+    </div>
+    ` : ''}
+    
+    <!-- Resumo Executivo (quando há check-ins) -->
+    ${hasCheckins ? `
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="summary-label">Check-ins</div>
+        <div class="summary-value">${checkinsOrdenados.length}</div>
+      </div>
+      <div class="summary-card green">
+        <div class="summary-label">Peso Inicial</div>
+        <div class="summary-value">${firstWeight.toFixed(1)} kg</div>
+      </div>
+      <div class="summary-card purple">
+        <div class="summary-label">Peso Atual</div>
+        <div class="summary-value">${lastWeight.toFixed(1)} kg</div>
+      </div>
+      <div class="summary-card orange">
+        <div class="summary-label">Variação</div>
+        <div class="summary-value">${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange} kg</div>
+      </div>
+    </div>
+    ` : ''}
+    
+    <!-- Composição Corporal (Bioimpedância) -->
+    ${bodyCompositions && bodyCompositions.length > 0 ? `
+    <div class="section">
+      <h3 class="section-title">📊 Análise de Composição Corporal</h3>
+      <table class="checkin-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>% Gordura</th>
+            <th>Peso</th>
+            <th>Massa Gorda</th>
+            <th>Massa Magra</th>
+            <th>IMC</th>
+            <th>TMB (kcal)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[...bodyCompositions].reverse().map(bc => `
+            <tr>
+              <td>${new Date(bc.data_avaliacao).toLocaleDateString('pt-BR')}</td>
+              <td><strong>${bc.percentual_gordura}%</strong></td>
+              <td>${bc.peso} kg</td>
+              <td>${bc.massa_gorda} kg</td>
+              <td>${bc.massa_magra} kg</td>
+              <td>${bc.imc}</td>
+              <td>${bc.tmb}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ${bodyCompositions[0].classificacao ? `
+      <div class="observation-box">
+        <p class="observation-text"><strong>Última Avaliação:</strong> ${bodyCompositions[0].classificacao}</p>
+      </div>
+      ` : ''}
+    </div>
+    ` : ''}
+    
+    <!-- Gráficos de Evolução -->
+    ${(weightChartImage || scoresChartImage || radarChartImage || bodyFatChartImage) ? `
+    <div class="section">
+      <h3 class="section-title">📈 Gráficos de Evolução</h3>
+      ${weightChartImage ? `
+      <div class="chart-container">
+        <img src="${weightChartImage}" alt="Gráfico de Peso" />
+      </div>
+      ` : ''}
+      ${bodyFatChartImage ? `
+      <div class="chart-container">
+        <img src="${bodyFatChartImage}" alt="Gráfico de % Gordura" />
+      </div>
+      ` : ''}
+      ${scoresChartImage ? `
+      <div class="chart-container">
+        <img src="${scoresChartImage}" alt="Gráfico de Pontuações" />
+      </div>
+      ` : ''}
+      ${radarChartImage ? `
+      <div class="chart-container">
+        <img src="${radarChartImage}" alt="Gráfico Radar" style="max-width: 70%;" />
+      </div>
+      ` : ''}
+    </div>
+    ` : ''}
+    
+    <!-- Rodapé -->
+    <div class="footer">
+      <p>Documento gerado em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+      <p>Sistema de Controle de Pacientes - Dossiê de Evolução</p>
+    </div>
+  `;
+}
+
+// Função para exportar como imagem (PNG ou JPEG)
+export async function generateDossieImage(
+  patient: PatientInfo,
+  checkins: Checkin[],
+  format: 'png' | 'jpeg' = 'png',
+  bodyCompositions?: any[],
+  fullPatientData?: any
+) {
+  // Gerar os mesmos gráficos do PDF
+  const checkinsOrdenados = [...checkins].reverse();
+  
+  const weightData = checkinsOrdenados
+    .filter(c => c.peso)
+    .map(c => ({
+      date: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      peso: parseFloat(c.peso || '0')
+    }));
+
+  let weightChartImage = '';
+  let scoresChartImage = '';
+  let radarChartImage = '';
+  let bodyFatChartImage = '';
+
+  // Gerar gráficos (mesma lógica do PDF)
+  if (weightData.length > 0) {
+    weightChartImage = await createChartImage({
+      type: 'line',
+      data: {
+        labels: weightData.map(d => d.date),
+        datasets: [{
+          label: 'Peso (kg)',
+          data: weightData.map(d => d.peso),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 4,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 6,
+          pointHoverRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { 
+            display: true, 
+            position: 'top',
+            labels: { font: { size: 20, weight: 'bold' }, padding: 20 }
+          },
+          title: { 
+            display: true, 
+            text: 'Evolução do Peso', 
+            font: { size: 28, weight: 'bold' },
+            padding: { top: 15, bottom: 25 }
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: false, 
+            title: { 
+              display: true, 
+              text: 'Peso (kg)',
+              font: { size: 20, weight: 'bold' }
+            },
+            ticks: { font: { size: 18 } }
+          },
+          x: {
+            ticks: { font: { size: 18 } }
+          }
+        }
+      }
+    });
+  }
+
+  if (bodyCompositions && bodyCompositions.length > 0) {
+    const bodyFatData = [...bodyCompositions].reverse().map(bc => ({
+      date: new Date(bc.data_avaliacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      gordura: bc.percentual_gordura
+    }));
+
+    bodyFatChartImage = await createChartImage({
+      type: 'line',
+      data: {
+        labels: bodyFatData.map(d => d.date),
+        datasets: [{
+          label: '% Gordura',
+          data: bodyFatData.map(d => d.gordura),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          borderWidth: 4,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 6,
+          pointHoverRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { 
+            display: true, 
+            position: 'top',
+            labels: { font: { size: 20, weight: 'bold' }, padding: 20 }
+          },
+          title: { 
+            display: true, 
+            text: 'Evolução do % de Gordura Corporal', 
+            font: { size: 28, weight: 'bold' },
+            padding: { top: 15, bottom: 25 }
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: false, 
+            title: { 
+              display: true, 
+              text: '% Gordura',
+              font: { size: 20, weight: 'bold' }
+            },
+            ticks: { font: { size: 18 } }
+          },
+          x: {
+            ticks: { font: { size: 18 } }
+          }
+        }
+      }
+    });
+  }
+
+  // Criar HTML
+  const htmlContent = generateDossieHTML(
+    patient,
+    checkins,
+    bodyCompositions,
+    fullPatientData,
+    weightChartImage,
+    scoresChartImage,
+    radarChartImage,
+    bodyFatChartImage
+  );
+
+  // Criar elemento temporário
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  tempDiv.style.width = '1200px';
+  tempDiv.style.background = '#fff';
+  document.body.appendChild(tempDiv);
+
+  try {
+    // Capturar como canvas
+    const canvas = await html2canvas(tempDiv, {
+      scale: 3, // Alta qualidade
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
+
+    // Converter para blob
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob(
+        (b) => resolve(b!),
+        format === 'jpeg' ? 'image/jpeg' : 'image/png',
+        0.98
+      );
+    });
+
+    // Fazer download
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `dossie-evolucao-${patient.nome.replace(/\s+/g, '-')}.${format}`;
+    link.click();
+    URL.revokeObjectURL(url);
   } finally {
     // Remover elemento temporário
     document.body.removeChild(tempDiv);

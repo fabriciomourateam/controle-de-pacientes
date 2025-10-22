@@ -7,10 +7,16 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { checkinService } from '@/lib/checkin-service';
 import { supabase } from '@/integrations/supabase/client';
-import { generateDossiePDF } from '@/lib/dossie-pdf-generator';
+import { generateDossiePDF, generateDossieImage } from '@/lib/dossie-pdf-generator';
 import { EvolutionCharts } from '@/components/evolution/EvolutionCharts';
 import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
@@ -38,7 +44,10 @@ import {
   AlertCircle,
   Camera,
   ZoomIn,
-  Trash2
+  Trash2,
+  FileDown,
+  Image,
+  ChevronDown
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -176,7 +185,7 @@ export default function PatientEvolution() {
     loadEvolution();
   }, [telefone, navigate, toast]);
 
-  const handleExportPDF = async () => {
+  const handleExport = async (format: 'pdf' | 'png' | 'jpeg') => {
     if (!patient) return;
 
     // Verificar se há algum dado para exportar
@@ -192,7 +201,7 @@ export default function PatientEvolution() {
     if (!hasData) {
       toast({
         title: 'Sem dados para exportar',
-        description: 'Adicione check-ins, bioimpedância ou dados iniciais antes de gerar o PDF',
+        description: 'Adicione check-ins, bioimpedância ou dados iniciais antes de exportar',
         variant: 'destructive'
       });
       return;
@@ -200,32 +209,46 @@ export default function PatientEvolution() {
 
     try {
       setGeneratingPDF(true);
+      
+      const formatLabel = format === 'pdf' ? 'PDF' : format === 'png' ? 'PNG' : 'JPEG';
       toast({
-        title: 'Gerando PDF',
+        title: `Gerando ${formatLabel}`,
         description: 'Por favor, aguarde...'
       });
 
-      await generateDossiePDF(
-        {
-          nome: patient.nome,
-          telefone: patient.telefone,
-          email: patient.email || undefined,
-          plano: patient.plano || undefined
-        },
-        checkins,
-        bodyCompositions,
-        patient
-      );
+      const patientInfo = {
+        nome: patient.nome,
+        telefone: patient.telefone,
+        email: patient.email || undefined,
+        plano: patient.plano || undefined
+      };
+
+      if (format === 'pdf') {
+        await generateDossiePDF(
+          patientInfo,
+          checkins,
+          bodyCompositions,
+          patient
+        );
+      } else {
+        await generateDossieImage(
+          patientInfo,
+          checkins,
+          format,
+          bodyCompositions,
+          patient
+        );
+      }
 
       toast({
-        title: 'PDF gerado com sucesso!',
+        title: `${formatLabel} gerado com sucesso!`,
         description: 'O download deve iniciar automaticamente'
       });
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      console.error('Erro ao gerar documento:', error);
       toast({
-        title: 'Erro ao gerar PDF',
-        description: 'Ocorreu um erro ao gerar o documento',
+        title: 'Erro ao gerar documento',
+        description: 'Ocorreu um erro ao gerar o arquivo',
         variant: 'destructive'
       });
     } finally {
@@ -860,14 +883,41 @@ export default function PatientEvolution() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={handleExportPDF}
-                  disabled={generatingPDF}
-                  className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
-                >
-                  <Download className="w-4 h-4" />
-                  {generatingPDF ? 'Gerando PDF...' : 'Baixar Dossiê em PDF'}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      disabled={generatingPDF}
+                      className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
+                    >
+                      <Download className="w-4 h-4" />
+                      {generatingPDF ? 'Gerando...' : 'Exportar Dossiê'}
+                      <ChevronDown className="w-4 h-4 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem 
+                      onClick={() => handleExport('pdf')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <FileDown className="w-4 h-4 text-red-500" />
+                      <span>Exportar como PDF</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleExport('png')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Image className="w-4 h-4 text-blue-500" />
+                      <span>Exportar como PNG</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleExport('jpeg')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Image className="w-4 h-4 text-green-500" />
+                      <span>Exportar como JPEG</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="outline"
                   onClick={() => navigate('/checkins')}
