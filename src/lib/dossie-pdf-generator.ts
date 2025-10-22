@@ -56,10 +56,12 @@ async function createChartImage(config: any): Promise<string> {
 export async function generateDossiePDF(
   patient: PatientInfo,
   checkins: Checkin[],
-  bodyCompositions?: any[]
+  bodyCompositions?: any[],
+  fullPatientData?: any
 ) {
   // IMPORTANTE: checkins vem DESC (mais recente primeiro), reverter para ordem cronológica
   const checkinsOrdenados = [...checkins].reverse();
+  const hasCheckins = checkinsOrdenados.length > 0;
 
   // Preparar dados
   const weightData = checkinsOrdenados
@@ -552,14 +554,60 @@ export async function generateDossiePDF(
             <span class="info-value">${patient.plano}</span>
           </div>
           ` : ''}
+          ${hasCheckins ? `
           <div class="info-item">
             <span class="info-label">Período</span>
             <span class="info-value">${new Date(checkinsOrdenados[0]?.data_checkin).toLocaleDateString('pt-BR')} - ${new Date(checkinsOrdenados[checkinsOrdenados.length - 1]?.data_checkin).toLocaleDateString('pt-BR')}</span>
           </div>
+          ` : `
+          <div class="info-item">
+            <span class="info-label">Data</span>
+            <span class="info-value">${new Date().toLocaleDateString('pt-BR')}</span>
+          </div>
+          `}
         </div>
       </div>
       
-      <!-- Resumo Executivo -->
+      <!-- Dados Iniciais (quando não há check-ins) -->
+      ${!hasCheckins && fullPatientData && (fullPatientData.peso_inicial || fullPatientData.altura_inicial) ? `
+      <div class="section">
+        <h3 class="section-title">📋 Dados Iniciais do Paciente</h3>
+        <div class="summary-cards">
+          ${fullPatientData.peso_inicial ? `
+          <div class="summary-card green">
+            <div class="summary-label">Peso Inicial</div>
+            <div class="summary-value">${fullPatientData.peso_inicial} kg</div>
+          </div>
+          ` : ''}
+          ${fullPatientData.altura_inicial ? `
+          <div class="summary-card purple">
+            <div class="summary-label">Altura</div>
+            <div class="summary-value">${fullPatientData.altura_inicial} m</div>
+          </div>
+          ` : ''}
+          ${fullPatientData.medida_cintura_inicial ? `
+          <div class="summary-card orange">
+            <div class="summary-label">Cintura</div>
+            <div class="summary-value">${fullPatientData.medida_cintura_inicial} cm</div>
+          </div>
+          ` : ''}
+          ${fullPatientData.medida_quadril_inicial ? `
+          <div class="summary-card">
+            <div class="summary-label">Quadril</div>
+            <div class="summary-value">${fullPatientData.medida_quadril_inicial} cm</div>
+          </div>
+          ` : ''}
+        </div>
+        ${fullPatientData.data_fotos_iniciais ? `
+        <div class="observation-box">
+          <p class="observation-text"><strong>Data do Registro:</strong> ${new Date(fullPatientData.data_fotos_iniciais).toLocaleDateString('pt-BR')}</p>
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
+      
+      <!-- Resumo Executivo (quando há check-ins) -->
+      ${hasCheckins ? `
       <div class="summary-cards">
         <div class="summary-card">
           <div class="summary-label">Check-ins</div>
@@ -578,6 +626,7 @@ export async function generateDossiePDF(
           <div class="summary-value">${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange} kg</div>
         </div>
       </div>
+      ` : ''}
       
       <!-- Composição Corporal (Bioimpedância) -->
       ${bodyCompositions && bodyCompositions.length > 0 ? `
@@ -644,7 +693,8 @@ export async function generateDossiePDF(
       </div>
       ` : ''}
       
-      <!-- Tabela de Evolução -->
+      <!-- Tabela de Evolução (quando há check-ins) -->
+      ${hasCheckins ? `
       <div class="section page-break">
         <h3 class="section-title">📈 Evolução Detalhada</h3>
         <table class="checkin-table">
@@ -680,9 +730,10 @@ export async function generateDossiePDF(
           </tbody>
         </table>
       </div>
+      ` : ''}
       
-      <!-- Observações e Dificuldades -->
-      ${checkinsOrdenados.some(c => c.dificuldades || c.objetivo || c.melhora_visual) ? `
+      <!-- Observações e Dificuldades (quando há check-ins) -->
+      ${hasCheckins && checkinsOrdenados.some(c => c.dificuldades || c.objetivo || c.melhora_visual) ? `
       <div class="section page-break">
         <h3 class="section-title">📝 Observações e Feedback</h3>
         ${checkinsOrdenados.filter(c => c.dificuldades || c.objetivo || c.melhora_visual).map(c => `

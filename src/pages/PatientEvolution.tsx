@@ -177,7 +177,26 @@ export default function PatientEvolution() {
   }, [telefone, navigate, toast]);
 
   const handleExportPDF = async () => {
-    if (!patient || checkins.length === 0) return;
+    if (!patient) return;
+
+    // Verificar se há algum dado para exportar
+    const hasData = checkins.length > 0 || 
+                    bodyCompositions.length > 0 || 
+                    patient.foto_inicial_frente || 
+                    patient.foto_inicial_lado || 
+                    patient.foto_inicial_lado_2 || 
+                    patient.foto_inicial_costas ||
+                    patient.peso_inicial ||
+                    patient.altura_inicial;
+
+    if (!hasData) {
+      toast({
+        title: 'Sem dados para exportar',
+        description: 'Adicione check-ins, bioimpedância ou dados iniciais antes de gerar o PDF',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     try {
       setGeneratingPDF(true);
@@ -194,7 +213,8 @@ export default function PatientEvolution() {
           plano: patient.plano || undefined
         },
         checkins,
-        bodyCompositions
+        bodyCompositions,
+        patient
       );
 
       toast({
@@ -824,8 +844,10 @@ export default function PatientEvolution() {
           >
             <Timeline checkins={checkins} />
           </motion.div>
+            </>
+          )}
 
-          {/* Card de Ações Finais */}
+          {/* Card de Ações Finais - Aparece sempre */}
           <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
@@ -857,8 +879,6 @@ export default function PatientEvolution() {
               </div>
             </CardContent>
           </Card>
-            </>
-          )}
         </motion.div>
 
         {/* Dialog de Zoom da Foto */}
