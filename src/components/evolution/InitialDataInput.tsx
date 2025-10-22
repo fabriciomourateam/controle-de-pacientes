@@ -72,23 +72,34 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
 
   const uploadPhoto = async (file: File, type: string): Promise<string | null> => {
     try {
+      console.log('📤 Iniciando upload:', { type, fileName: file.name, size: file.size });
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${telefone}_inicial_${type}_${Date.now()}.${fileExt}`;
       const filePath = `patient-photos/${fileName}`;
+
+      console.log('📁 Caminho do arquivo:', filePath);
 
       const { error: uploadError } = await supabase.storage
         .from('patient-photos')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('❌ Erro no upload:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Upload concluído!');
 
       const { data: { publicUrl } } = supabase.storage
         .from('patient-photos')
         .getPublicUrl(filePath);
 
+      console.log('🔗 URL gerada:', publicUrl);
+
       return publicUrl;
     } catch (error) {
-      console.error('Erro ao fazer upload da foto:', error);
+      console.error('💥 Erro ao fazer upload da foto:', error);
       return null;
     }
   };
@@ -96,6 +107,7 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      console.log('🚀 Iniciando salvamento dos dados iniciais...');
 
       // Validar se pelo menos uma foto foi enviada
       if (!fotoFrente && !fotoLado && !fotoCostas) {
@@ -107,20 +119,39 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
         return;
       }
 
+      console.log('📋 Dados para salvar:', {
+        peso: pesoInicial,
+        altura: alturaInicial,
+        cintura: cinturaInicial,
+        quadril: quadrilInicial,
+        temFotoFrente: !!fotoFrente,
+        temFotoLado: !!fotoLado,
+        temFotoCostas: !!fotoCostas
+      });
+
       // Upload das fotos
       let fotoFrenteUrl = null;
       let fotoLadoUrl = null;
       let fotoCostasUrl = null;
 
       if (fotoFrente) {
+        console.log('📸 Fazendo upload da foto frontal...');
         fotoFrenteUrl = await uploadPhoto(fotoFrente, 'frente');
       }
       if (fotoLado) {
+        console.log('📸 Fazendo upload da foto lateral...');
         fotoLadoUrl = await uploadPhoto(fotoLado, 'lado');
       }
       if (fotoCostas) {
+        console.log('📸 Fazendo upload da foto de costas...');
         fotoCostasUrl = await uploadPhoto(fotoCostas, 'costas');
       }
+
+      console.log('🔗 URLs geradas:', {
+        frente: fotoFrenteUrl,
+        lado: fotoLadoUrl,
+        costas: fotoCostasUrl
+      });
 
       // Atualizar o paciente com os dados iniciais
       const updateData: any = {
@@ -135,12 +166,19 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       if (cinturaInicial) updateData.medida_cintura_inicial = parseFloat(cinturaInicial);
       if (quadrilInicial) updateData.medida_quadril_inicial = parseFloat(quadrilInicial);
 
+      console.log('💾 Salvando no banco de dados:', updateData);
+
       const { error } = await supabase
         .from('patients')
         .update(updateData)
         .eq('telefone', telefone);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao salvar no banco:', error);
+        throw error;
+      }
+
+      console.log('✅ Dados salvos com sucesso!');
 
       toast({
         title: 'Sucesso!',
