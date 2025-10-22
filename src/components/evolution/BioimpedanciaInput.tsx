@@ -36,6 +36,8 @@ export function BioimpedanciaInput({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingLastBio, setLoadingLastBio] = useState(false);
+  const [hasLastBio, setHasLastBio] = useState(false);
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
     textoGPT: '',
@@ -43,6 +45,52 @@ export function BioimpedanciaInput({
     altura: altura?.toString() || ''
   });
   const [calculosPreview, setCalculosPreview] = useState<any>(null);
+
+  // Buscar última bioimpedância quando abrir o dialog
+  useEffect(() => {
+    async function loadLastBioimpedancia() {
+      if (!open) return;
+      
+      try {
+        setLoadingLastBio(true);
+        setHasLastBio(false);
+        
+        // Buscar última bioimpedância do paciente
+        const { data: lastBio } = await supabase
+          .from('body_composition')
+          .select('peso, data_avaliacao')
+          .eq('telefone', telefone)
+          .order('data_avaliacao', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (lastBio) {
+          // Pré-preencher com dados da última bioimpedância
+          setFormData(prev => ({
+            ...prev,
+            peso: lastBio.peso?.toString() || prev.peso,
+            // Altura já vem do cadastro do paciente, mantém se existir
+            altura: prev.altura || ''
+          }));
+          
+          setHasLastBio(true);
+          
+          toast({
+            title: 'Dados carregados ✅',
+            description: `Última avaliação: ${new Date(lastBio.data_avaliacao).toLocaleDateString('pt-BR')}`,
+          });
+        }
+      } catch (error) {
+        // Não há bioimpedância anterior, campos ficam vazios/com dados do cadastro
+        console.log('Primeira bioimpedância do paciente');
+        setHasLastBio(false);
+      } finally {
+        setLoadingLastBio(false);
+      }
+    }
+
+    loadLastBioimpedancia();
+  }, [open, telefone, toast]);
 
   const parseGPTText = (texto: string) => {
     const dataMatch = texto.match(/📆\s*Data:\s*(\d{2}\/\d{2}\/\d{4})/i);
@@ -209,6 +257,16 @@ export function BioimpedanciaInput({
               <p className="text-xs text-slate-400">
                 💡 Use o botão "Abrir InShape GPT" para obter a análise e cole a resposta abaixo
               </p>
+              {loadingLastBio && (
+                <p className="text-xs text-blue-400 mt-2 flex items-center gap-1">
+                  🔄 Carregando dados da última avaliação...
+                </p>
+              )}
+              {hasLastBio && !loadingLastBio && (
+                <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                  ✅ Dados pré-preenchidos da última avaliação (você pode editar se mudou)
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -224,6 +282,7 @@ export function BioimpedanciaInput({
                   value={formData.peso}
                   onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
                   required
+                  disabled={loadingLastBio}
                   className="bg-slate-800 border-slate-600 text-slate-200"
                 />
               </div>
@@ -239,6 +298,7 @@ export function BioimpedanciaInput({
                   value={formData.altura}
                   onChange={(e) => setFormData({ ...formData, altura: e.target.value })}
                   required
+                  disabled={loadingLastBio}
                   className="bg-slate-800 border-slate-600 text-slate-200"
                 />
               </div>
