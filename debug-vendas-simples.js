@@ -187,3 +187,4 @@ console.log('3. Ou vá na aba Network (F12) e procure por requisições Supabase
 
 
 
+

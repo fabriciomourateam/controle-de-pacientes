@@ -44,26 +44,15 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
       tipo: 'Inicial',
       aproveitamento: null
     });
-  } else if (checkinsOrdenados.length > 0) {
-    // Se não há peso inicial cadastrado, usar o check-in mais antigo como referência inicial
-    const checkinMaisAntigo = checkinsOrdenados[checkinsOrdenados.length - 1];
-    weightData.push({
-      data: new Date(checkinMaisAntigo.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-      peso: parseFloat(checkinMaisAntigo.peso?.replace(',', '.') || '0'),
-      tipo: 'Inicial (1º Check-in)',
-      aproveitamento: parseFloat(checkinMaisAntigo.percentual_aproveitamento || '0') || null
-    });
   }
   
-  // Adicionar dados dos check-ins (pular o mais antigo se foi usado como peso inicial)
-  const startIndex = patient?.peso_inicial ? 0 : 0; // Sempre começar do índice 0
-  const endIndex = patient?.peso_inicial ? undefined : -1; // Pular o último se foi usado como peso inicial
-  checkinsOrdenados.slice(startIndex, endIndex).forEach(c => {
+  // Adicionar dados dos check-ins
+  checkinsOrdenados.forEach((c, index) => {
     if (c.peso) {
       weightData.push({
         data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
         peso: parseFloat(c.peso.replace(',', '.')),
-        tipo: 'Check-in',
+        tipo: index === 0 ? '1º Check-in' : 'Check-in',
         aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
       });
     }
@@ -195,7 +184,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-green-500 border border-white"></div>
-                  <span>1º Check-in (Referência)</span>
+                  <span>1º Check-in</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
@@ -228,7 +217,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                   formatter={(value, name, props) => [
                     `${value} kg`,
                     props.payload?.tipo === 'Inicial' ? 'Peso Inicial' : 
-                    props.payload?.tipo === 'Inicial (1º Check-in)' ? 'Peso Inicial (1º Check-in)' : 
+                    props.payload?.tipo === '1º Check-in' ? '1º Check-in' : 
                     'Peso Check-in'
                   ]}
                   labelFormatter={(label) => `Data: ${label}`}
@@ -245,7 +234,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                     if (payload?.tipo === 'Inicial') {
                       return <circle cx={cx} cy={cy} r={6} fill="#8b5cf6" stroke="#fff" strokeWidth={2} />;
                     }
-                    if (payload?.tipo === 'Inicial (1º Check-in)') {
+                    if (payload?.tipo === '1º Check-in') {
                       return <circle cx={cx} cy={cy} r={6} fill="#10b981" stroke="#fff" strokeWidth={2} />;
                     }
                     return <circle cx={cx} cy={cy} r={5} fill="#3b82f6" />;

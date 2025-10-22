@@ -72,7 +72,7 @@ export function PortalPNGButton({ telefone, patientName }: PortalPNGButtonProps)
       ) : (
         <>
           <Download className="w-4 h-4" />
-          Baixar Portal PNG
+          Baixar Evolução
         </>
       )}
     </Button>

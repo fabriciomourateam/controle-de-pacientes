@@ -260,9 +260,12 @@ function calculateAverage(checkins: Checkin[], field: keyof Checkin): number {
  * Analisa tendência de peso
  */
 function analyzeWeightTrend(checkins: Checkin[]) {
-  const weights = checkins
+  // Ordenar checkins do mais antigo para o mais recente para análise correta
+  const sortedCheckins = [...checkins]
     .filter(c => c.peso)
-    .map(c => parseFloat(c.peso || '0'));
+    .sort((a, b) => new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime());
+  
+  const weights = sortedCheckins.map(c => parseFloat(c.peso || '0'));
   
   if (weights.length < 2) return null;
   
@@ -282,7 +285,12 @@ function analyzeWeightTrend(checkins: Checkin[]) {
 function analyzeRecentTrend(checkins: Checkin[]): 'improving' | 'stable' | 'declining' {
   if (checkins.length < 3) return 'stable';
   
-  const recent = checkins.slice(-3);
+  // Ordenar do mais antigo para o mais recente
+  const sortedCheckins = [...checkins].sort((a, b) => 
+    new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
+  );
+  
+  const recent = sortedCheckins.slice(-3);
   const scores = recent
     .map(c => parseFloat(c.total_pontuacao || '0'))
     .filter(s => !isNaN(s));

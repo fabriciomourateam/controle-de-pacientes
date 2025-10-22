@@ -182,3 +182,4 @@ console.log('💡 Para usar o método manual: debugManual([seus_dados_aqui])');
 
 
 
+
