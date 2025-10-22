@@ -15,8 +15,11 @@ export async function generateDossiePDF(
   checkins: Checkin[],
   bodyCompositions?: any[]
 ) {
+  // IMPORTANTE: checkins vem DESC (mais recente primeiro), reverter para ordem cronológica
+  const checkinsOrdenados = [...checkins].reverse();
+
   // Preparar dados
-  const weightData = checkins
+  const weightData = checkinsOrdenados
     .filter(c => c.peso)
     .map(c => ({
       date: new Date(c.data_checkin).toLocaleDateString('pt-BR'),
@@ -27,8 +30,8 @@ export async function generateDossiePDF(
   const lastWeight = weightData[weightData.length - 1]?.peso || 0;
   const weightChange = (lastWeight - firstWeight).toFixed(1);
 
-  const avgScore = checkins.length > 0
-    ? (checkins.reduce((acc, c) => acc + parseFloat(c.total_pontuacao || '0'), 0) / checkins.length).toFixed(1)
+  const avgScore = checkinsOrdenados.length > 0
+    ? (checkinsOrdenados.reduce((acc, c) => acc + parseFloat(c.total_pontuacao || '0'), 0) / checkinsOrdenados.length).toFixed(1)
     : '0';
 
   // Criar HTML para o PDF
@@ -268,7 +271,7 @@ export async function generateDossiePDF(
           ` : ''}
           <div class="info-item">
             <span class="info-label">Período</span>
-            <span class="info-value">${new Date(checkins[0]?.data_checkin).toLocaleDateString('pt-BR')} - ${new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')}</span>
+            <span class="info-value">${new Date(checkinsOrdenados[0]?.data_checkin).toLocaleDateString('pt-BR')} - ${new Date(checkinsOrdenados[checkinsOrdenados.length - 1]?.data_checkin).toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
       </div>
@@ -277,7 +280,7 @@ export async function generateDossiePDF(
       <div class="summary-cards">
         <div class="summary-card">
           <div class="summary-label">Check-ins</div>
-          <div class="summary-value">${checkins.length}</div>
+          <div class="summary-value">${checkinsOrdenados.length}</div>
         </div>
         <div class="summary-card green">
           <div class="summary-label">Peso Inicial</div>
@@ -348,7 +351,7 @@ export async function generateDossiePDF(
             </tr>
           </thead>
           <tbody>
-            ${checkins.map(c => {
+            ${checkinsOrdenados.map(c => {
               const score = parseFloat(c.total_pontuacao || '0');
               const scoreClass = score >= 8 ? 'score-excellent' : score >= 6 ? 'score-good' : 'score-poor';
               return `
@@ -369,10 +372,10 @@ export async function generateDossiePDF(
       </div>
       
       <!-- Observações e Dificuldades -->
-      ${checkins.some(c => c.dificuldades || c.objetivo || c.melhora_visual) ? `
+      ${checkinsOrdenados.some(c => c.dificuldades || c.objetivo || c.melhora_visual) ? `
       <div class="section page-break">
         <h3 class="section-title">📝 Observações e Feedback</h3>
-        ${checkins.filter(c => c.dificuldades || c.objetivo || c.melhora_visual).map(c => `
+        ${checkinsOrdenados.filter(c => c.dificuldades || c.objetivo || c.melhora_visual).map(c => `
           <div class="observation-box">
             <div class="observation-date">${new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
             ${c.objetivo ? `<p class="observation-text"><strong>Objetivo:</strong> ${c.objetivo}</p>` : ''}
