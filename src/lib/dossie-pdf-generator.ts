@@ -18,8 +18,9 @@ interface PatientInfo {
 async function createChartImage(config: any): Promise<string> {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 400;
+    // Aumentar resolução para melhor qualidade (2x maior)
+    canvas.width = 1600;
+    canvas.height = 800;
     canvas.style.display = 'none'; // Ocultar canvas
     
     // Anexar ao DOM (necessário para renderização em alguns navegadores)
@@ -35,7 +36,7 @@ async function createChartImage(config: any): Promise<string> {
 
     const chart = new Chart(ctx, config);
     
-    // Aguardar render completo e converter para base64
+    // Aguardar render completo e converter para base64 com máxima qualidade
     setTimeout(() => {
       try {
         const base64 = canvas.toDataURL('image/png', 1.0);
@@ -48,7 +49,7 @@ async function createChartImage(config: any): Promise<string> {
         document.body.removeChild(canvas);
         resolve('');
       }
-    }, 500); // Aumentar timeout para garantir render completo
+    }, 500);
   });
 }
 
@@ -103,11 +104,31 @@ export async function generateDossiePDF(
       options: {
         responsive: true,
         plugins: {
-          legend: { display: true, position: 'top' },
-          title: { display: true, text: 'Evolução do Peso', font: { size: 16 } }
+          legend: { 
+            display: true, 
+            position: 'top',
+            labels: { font: { size: 16, weight: 'bold' }, padding: 15 }
+          },
+          title: { 
+            display: true, 
+            text: 'Evolução do Peso', 
+            font: { size: 22, weight: 'bold' },
+            padding: { top: 10, bottom: 20 }
+          }
         },
         scales: {
-          y: { beginAtZero: false, title: { display: true, text: 'Peso (kg)' } }
+          y: { 
+            beginAtZero: false, 
+            title: { 
+              display: true, 
+              text: 'Peso (kg)',
+              font: { size: 16, weight: 'bold' }
+            },
+            ticks: { font: { size: 14 } }
+          },
+          x: {
+            ticks: { font: { size: 14 } }
+          }
         }
       }
     });
@@ -131,21 +152,42 @@ export async function generateDossiePDF(
       data: {
         labels: scoresData.map(d => d.date),
         datasets: [
-          { label: 'Treino', data: scoresData.map(d => d.treino), borderColor: '#3b82f6', borderWidth: 2, tension: 0.4 },
-          { label: 'Cardio', data: scoresData.map(d => d.cardio), borderColor: '#10b981', borderWidth: 2, tension: 0.4 },
-          { label: 'Sono', data: scoresData.map(d => d.sono), borderColor: '#8b5cf6', borderWidth: 2, tension: 0.4 },
-          { label: 'Água', data: scoresData.map(d => d.agua), borderColor: '#06b6d4', borderWidth: 2, tension: 0.4 },
-          { label: 'Stress', data: scoresData.map(d => d.stress), borderColor: '#f59e0b', borderWidth: 2, tension: 0.4 }
+          { label: 'Treino', data: scoresData.map(d => d.treino), borderColor: '#3b82f6', borderWidth: 3, tension: 0.4, pointRadius: 4 },
+          { label: 'Cardio', data: scoresData.map(d => d.cardio), borderColor: '#10b981', borderWidth: 3, tension: 0.4, pointRadius: 4 },
+          { label: 'Sono', data: scoresData.map(d => d.sono), borderColor: '#8b5cf6', borderWidth: 3, tension: 0.4, pointRadius: 4 },
+          { label: 'Água', data: scoresData.map(d => d.agua), borderColor: '#06b6d4', borderWidth: 3, tension: 0.4, pointRadius: 4 },
+          { label: 'Stress', data: scoresData.map(d => d.stress), borderColor: '#f59e0b', borderWidth: 3, tension: 0.4, pointRadius: 4 }
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { display: true, position: 'top' },
-          title: { display: true, text: 'Evolução das Pontuações', font: { size: 16 } }
+          legend: { 
+            display: true, 
+            position: 'top',
+            labels: { font: { size: 14, weight: 'bold' }, padding: 12 }
+          },
+          title: { 
+            display: true, 
+            text: 'Evolução das Pontuações', 
+            font: { size: 22, weight: 'bold' },
+            padding: { top: 10, bottom: 20 }
+          }
         },
         scales: {
-          y: { min: 0, max: 10, title: { display: true, text: 'Pontos' } }
+          y: { 
+            min: 0, 
+            max: 10, 
+            title: { 
+              display: true, 
+              text: 'Pontos',
+              font: { size: 16, weight: 'bold' }
+            },
+            ticks: { font: { size: 14 } }
+          },
+          x: {
+            ticks: { font: { size: 14 } }
+          }
         }
       }
     });
@@ -171,17 +213,34 @@ export async function generateDossiePDF(
           ],
           borderColor: '#8b5cf6',
           backgroundColor: 'rgba(139, 92, 246, 0.2)',
-          borderWidth: 2
+          borderWidth: 3,
+          pointRadius: 5,
+          pointHoverRadius: 7
         }]
       },
       options: {
         responsive: true,
         plugins: {
           legend: { display: false },
-          title: { display: true, text: 'Perfil Atual', font: { size: 16 } }
+          title: { 
+            display: true, 
+            text: 'Perfil Atual', 
+            font: { size: 22, weight: 'bold' },
+            padding: { top: 10, bottom: 20 }
+          }
         },
         scales: {
-          r: { min: 0, max: 10, ticks: { stepSize: 2 } }
+          r: { 
+            min: 0, 
+            max: 10, 
+            ticks: { 
+              stepSize: 2,
+              font: { size: 14 }
+            },
+            pointLabels: {
+              font: { size: 16, weight: 'bold' }
+            }
+          }
         }
       }
     });
@@ -207,17 +266,39 @@ export async function generateDossiePDF(
           backgroundColor: 'rgba(16, 185, 129, 0.1)',
           borderWidth: 3,
           tension: 0.4,
-          fill: true
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7
         }]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { display: true, position: 'top' },
-          title: { display: true, text: 'Evolução do % de Gordura Corporal', font: { size: 16 } }
+          legend: { 
+            display: true, 
+            position: 'top',
+            labels: { font: { size: 16, weight: 'bold' }, padding: 15 }
+          },
+          title: { 
+            display: true, 
+            text: 'Evolução do % de Gordura Corporal', 
+            font: { size: 22, weight: 'bold' },
+            padding: { top: 10, bottom: 20 }
+          }
         },
         scales: {
-          y: { beginAtZero: false, title: { display: true, text: '% Gordura' } }
+          y: { 
+            beginAtZero: false, 
+            title: { 
+              display: true, 
+              text: '% Gordura',
+              font: { size: 16, weight: 'bold' }
+            },
+            ticks: { font: { size: 14 } }
+          },
+          x: {
+            ticks: { font: { size: 14 } }
+          }
         }
       }
     });
