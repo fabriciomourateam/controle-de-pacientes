@@ -29,6 +29,13 @@ export async function getOrCreatePatientToken(telefone: string): Promise<{ token
 
     if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = nenhum resultado
       console.error('Erro ao buscar token:', fetchError);
+      
+      // Se a tabela não existe, mostrar erro específico
+      if (fetchError.code === '42P01') {
+        console.error('❌ TABELA patient_portal_tokens NÃO EXISTE!');
+        console.error('Execute o SQL: sql/create_patient_portal_tokens.sql no Supabase');
+      }
+      
       return null;
     }
 

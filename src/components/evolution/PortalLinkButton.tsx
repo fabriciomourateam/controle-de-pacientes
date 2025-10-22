@@ -41,9 +41,10 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
       
       if (!result) {
         toast({
-          title: 'Erro',
-          description: 'Não foi possível gerar o link do portal',
-          variant: 'destructive'
+          title: 'Tabela não encontrada',
+          description: 'Execute o SQL create_patient_portal_tokens.sql no Supabase primeiro. Verifique o console.',
+          variant: 'destructive',
+          duration: 8000
         });
         return;
       }

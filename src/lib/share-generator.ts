@@ -19,15 +19,15 @@ export async function generateShareImage(data: ShareData): Promise<string> {
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-9999px';
-  container.style.width = '1200px';
-  container.style.height = '630px';
+  container.style.width = '1080px';
+  container.style.height = '1080px';
   
   container.innerHTML = `
     <div style="
-      width: 1200px;
-      height: 630px;
+      width: 1080px;
+      height: 1080px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 60px;
+      padding: 50px;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: white;
       box-sizing: border-box;
@@ -111,7 +111,7 @@ export async function generateShareImage(data: ShareData): Promise<string> {
             📊 Performance
           </div>
           <div style="font-size: 56px; font-weight: 800; margin-bottom: 5px;">
-            ${data.avgScore.toFixed(1)}
+            ${(data.avgScore * 10).toFixed(0)}/100
           </div>
           <div style="font-size: 20px; opacity: 0.85;">
             Pontuação média
@@ -199,7 +199,7 @@ export function generateWhatsAppMessage(data: ShareData): string {
       `${data.initialBodyFat?.toFixed(1)}% → ${data.currentBodyFat?.toFixed(1)}%\n\n` 
       : '') +
     `📊 ${data.totalCheckins} check-ins em ${data.daysSinceStart} dias\n` +
-    `⭐ Performance média: ${data.avgScore.toFixed(1)}/10\n\n` +
+    `⭐ Performance média: ${(data.avgScore * 10).toFixed(0)}/100\n\n` +
     `💪 Transformação é consistência + dedicação! ✨`;
 
   return encodeURIComponent(message);
