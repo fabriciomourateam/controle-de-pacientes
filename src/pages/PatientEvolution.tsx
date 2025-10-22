@@ -32,6 +32,7 @@ import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
+import { migrateCheckinPhotos, isTypebotUrl } from '@/lib/photo-migration-service';
 import type { ShareData } from '@/lib/share-generator';
 import { 
   Download, 
@@ -66,6 +67,7 @@ export default function PatientEvolution() {
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
   const [zoomedPhoto, setZoomedPhoto] = useState<{ url: string; label: string } | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [migrating, setMigrating] = useState(false);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -138,6 +140,11 @@ export default function PatientEvolution() {
         // Buscar check-ins do paciente
         const checkinsData = await checkinService.getByPhone(telefone);
         setCheckins(checkinsData);
+
+        // Verificar e migrar fotos do Typebot automaticamente
+        if (checkinsData.length > 0) {
+          checkAndMigratePhotos(checkinsData);
+        }
 
         // Buscar dados do paciente
         const { data: patientData, error } = await supabase
@@ -291,6 +298,43 @@ export default function PatientEvolution() {
     });
   };
 
+  // Migrar fotos do Typebot para Supabase automaticamente
+  const checkAndMigratePhotos = async (checkinsToCheck: Checkin[]) => {
+    const checkinsWithTypebotPhotos = checkinsToCheck.filter(checkin => 
+      isTypebotUrl(checkin.foto_1) ||
+      isTypebotUrl(checkin.foto_2) ||
+      isTypebotUrl(checkin.foto_3) ||
+      isTypebotUrl(checkin.foto_4)
+    );
+
+    if (checkinsWithTypebotPhotos.length > 0) {
+      console.log(`🔍 Detectadas ${checkinsWithTypebotPhotos.length} check-ins com fotos do Typebot`);
+      
+      setMigrating(true);
+      
+      let migratedCount = 0;
+      for (const checkin of checkinsWithTypebotPhotos) {
+        const migrated = await migrateCheckinPhotos(checkin);
+        if (migrated) {
+          migratedCount++;
+        }
+      }
+      
+      // Recarregar check-ins após migração
+      if (telefone && migratedCount > 0) {
+        const updatedCheckins = await checkinService.getByPhone(telefone);
+        setCheckins(updatedCheckins);
+        
+        toast({
+          title: 'Fotos migradas! 📸',
+          description: `${migratedCount} check-in(s) com fotos agora salvas no Supabase`
+        });
+      }
+      
+      setMigrating(false);
+    }
+  };
+
   // Preparar dados para compartilhamento
   const getShareData = (): ShareData | null => {
     if (checkins.length < 2) return null;
@@ -412,6 +456,11 @@ export default function PatientEvolution() {
               <div>
                 <h1 className="text-3xl font-bold text-white flex items-center gap-2">
                   📊 Dossiê de Evolução
+                  {migrating && (
+                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 animate-pulse text-sm ml-2">
+                      📸 Migrando fotos...
+                    </Badge>
+                  )}
                 </h1>
                 <p className="text-slate-400 mt-1">
                   Análise completa do progresso do paciente
