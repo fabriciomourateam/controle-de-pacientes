@@ -474,11 +474,6 @@ export default function PatientEvolution() {
                 patientName={patient?.nome || 'Paciente'} 
               />
               
-              <PortalPNGButton
-                telefone={telefone!}
-                patientName={patient?.nome || 'Paciente'}
-              />
-              
               {shareData && <ShareButton data={shareData} />}
               
               {certificateData && (
@@ -964,6 +959,12 @@ export default function PatientEvolution() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                
+                <PortalPNGButton
+                  telefone={telefone!}
+                  patientName={patient?.nome || 'Paciente'}
+                />
+                
                 <Button
                   variant="outline"
                   onClick={() => navigate('/checkins')}
