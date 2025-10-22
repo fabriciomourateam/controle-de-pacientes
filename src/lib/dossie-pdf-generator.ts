@@ -20,21 +20,35 @@ async function createChartImage(config: any): Promise<string> {
     const canvas = document.createElement('canvas');
     canvas.width = 800;
     canvas.height = 400;
+    canvas.style.display = 'none'; // Ocultar canvas
+    
+    // Anexar ao DOM (necessário para renderização em alguns navegadores)
+    document.body.appendChild(canvas);
+    
     const ctx = canvas.getContext('2d');
     
     if (!ctx) {
+      document.body.removeChild(canvas);
       resolve('');
       return;
     }
 
     const chart = new Chart(ctx, config);
     
-    // Aguardar render e converter para base64
+    // Aguardar render completo e converter para base64
     setTimeout(() => {
-      const base64 = canvas.toDataURL('image/png');
-      chart.destroy();
-      resolve(base64);
-    }, 100);
+      try {
+        const base64 = canvas.toDataURL('image/png', 1.0);
+        chart.destroy();
+        document.body.removeChild(canvas);
+        resolve(base64);
+      } catch (error) {
+        console.error('Erro ao gerar gráfico:', error);
+        chart.destroy();
+        document.body.removeChild(canvas);
+        resolve('');
+      }
+    }, 500); // Aumentar timeout para garantir render completo
   });
 }
 
@@ -63,6 +77,7 @@ export async function generateDossiePDF(
     : '0';
 
   // Gerar gráficos
+  console.log('🎨 Iniciando geração de gráficos para o PDF...');
   let weightChartImage = '';
   let scoresChartImage = '';
   let radarChartImage = '';
@@ -70,6 +85,7 @@ export async function generateDossiePDF(
 
   // Gráfico de Peso
   if (weightData.length > 0) {
+    console.log('📊 Gerando gráfico de peso...');
     weightChartImage = await createChartImage({
       type: 'line',
       data: {
@@ -95,10 +111,12 @@ export async function generateDossiePDF(
         }
       }
     });
+    console.log('✅ Gráfico de peso gerado:', weightChartImage ? 'OK' : 'FALHOU');
   }
 
   // Gráfico de Pontuações
   if (checkinsOrdenados.length > 0) {
+    console.log('📊 Gerando gráfico de pontuações...');
     const scoresData = checkinsOrdenados.map(c => ({
       date: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
       treino: parseFloat(c.pontos_treinos || '0'),
@@ -132,7 +150,10 @@ export async function generateDossiePDF(
       }
     });
 
+    console.log('✅ Gráfico de pontuações gerado:', scoresChartImage ? 'OK' : 'FALHOU');
+
     // Gráfico Radar (último check-in)
+    console.log('📊 Gerando gráfico radar...');
     const latestCheckin = checkinsOrdenados[checkinsOrdenados.length - 1];
     radarChartImage = await createChartImage({
       type: 'radar',
@@ -164,10 +185,12 @@ export async function generateDossiePDF(
         }
       }
     });
+    console.log('✅ Gráfico radar gerado:', radarChartImage ? 'OK' : 'FALHOU');
   }
 
   // Gráfico de % Gordura
   if (bodyCompositions && bodyCompositions.length > 0) {
+    console.log('📊 Gerando gráfico de % gordura...');
     const bodyFatData = [...bodyCompositions].reverse().map(bc => ({
       date: new Date(bc.data_avaliacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
       gordura: bc.percentual_gordura
@@ -198,7 +221,18 @@ export async function generateDossiePDF(
         }
       }
     });
+    console.log('✅ Gráfico de % gordura gerado:', bodyFatChartImage ? 'OK' : 'FALHOU');
   }
+
+  // Resumo dos gráficos gerados
+  const graficosGerados = [weightChartImage, scoresChartImage, radarChartImage, bodyFatChartImage].filter(img => img).length;
+  console.log(`✅ Total de gráficos gerados: ${graficosGerados}/4`);
+  console.log('Tamanho das imagens:', {
+    peso: weightChartImage.substring(0, 50) + '...',
+    pontuacoes: scoresChartImage.substring(0, 50) + '...',
+    radar: radarChartImage.substring(0, 50) + '...',
+    gordura: bodyFatChartImage.substring(0, 50) + '...'
+  });
 
   // Criar HTML para o PDF
   const htmlContent = `
