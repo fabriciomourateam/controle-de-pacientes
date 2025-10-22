@@ -115,8 +115,10 @@ export function AIInsights({ checkins }: AIInsightsProps) {
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-300">Pontuação Média</p>
-              <p className="text-3xl font-bold text-white">{analysis.overallScore.toFixed(1)}</p>
-              <p className="text-xs text-slate-400">/10</p>
+              <p className="text-3xl font-bold text-white">
+                {(analysis.overallScore * 10).toFixed(1).replace('.', ',')}
+                <span className="text-xl text-slate-400">/100</span>
+              </p>
             </div>
           </div>
         </div>
