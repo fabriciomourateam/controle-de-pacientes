@@ -28,11 +28,13 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
   // Estados para as fotos
   const [fotoFrente, setFotoFrente] = useState<File | null>(null);
   const [fotoLado, setFotoLado] = useState<File | null>(null);
+  const [fotoLado2, setFotoLado2] = useState<File | null>(null);
   const [fotoCostas, setFotoCostas] = useState<File | null>(null);
   
   // Preview URLs
   const [previewFrente, setPreviewFrente] = useState<string>('');
   const [previewLado, setPreviewLado] = useState<string>('');
+  const [previewLado2, setPreviewLado2] = useState<string>('');
   const [previewCostas, setPreviewCostas] = useState<string>('');
 
   // Estados para as medidas
@@ -45,6 +47,7 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
   // Refs para inputs de arquivo
   const frenteInputRef = useRef<HTMLInputElement>(null);
   const ladoInputRef = useRef<HTMLInputElement>(null);
+  const lado2InputRef = useRef<HTMLInputElement>(null);
   const costasInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (
@@ -110,7 +113,7 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       console.log('🚀 Iniciando salvamento dos dados iniciais...');
 
       // Validar se pelo menos uma foto foi enviada
-      if (!fotoFrente && !fotoLado && !fotoCostas) {
+      if (!fotoFrente && !fotoLado && !fotoLado2 && !fotoCostas) {
         toast({
           title: 'Atenção',
           description: 'Adicione pelo menos uma foto',
@@ -126,12 +129,14 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
         quadril: quadrilInicial,
         temFotoFrente: !!fotoFrente,
         temFotoLado: !!fotoLado,
+        temFotoLado2: !!fotoLado2,
         temFotoCostas: !!fotoCostas
       });
 
       // Upload das fotos
       let fotoFrenteUrl = null;
       let fotoLadoUrl = null;
+      let fotoLado2Url = null;
       let fotoCostasUrl = null;
 
       if (fotoFrente) {
@@ -139,8 +144,12 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
         fotoFrenteUrl = await uploadPhoto(fotoFrente, 'frente');
       }
       if (fotoLado) {
-        console.log('📸 Fazendo upload da foto lateral...');
+        console.log('📸 Fazendo upload da foto lateral 1...');
         fotoLadoUrl = await uploadPhoto(fotoLado, 'lado');
+      }
+      if (fotoLado2) {
+        console.log('📸 Fazendo upload da foto lateral 2...');
+        fotoLado2Url = await uploadPhoto(fotoLado2, 'lado_2');
       }
       if (fotoCostas) {
         console.log('📸 Fazendo upload da foto de costas...');
@@ -150,6 +159,7 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       console.log('🔗 URLs geradas:', {
         frente: fotoFrenteUrl,
         lado: fotoLadoUrl,
+        lado2: fotoLado2Url,
         costas: fotoCostasUrl
       });
 
@@ -160,6 +170,7 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
 
       if (fotoFrenteUrl) updateData.foto_inicial_frente = fotoFrenteUrl;
       if (fotoLadoUrl) updateData.foto_inicial_lado = fotoLadoUrl;
+      if (fotoLado2Url) updateData.foto_inicial_lado_2 = fotoLado2Url;
       if (fotoCostasUrl) updateData.foto_inicial_costas = fotoCostasUrl;
       if (pesoInicial) updateData.peso_inicial = parseFloat(pesoInicial);
       if (alturaInicial) updateData.altura_inicial = parseFloat(alturaInicial);
@@ -191,9 +202,11 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       // Limpar formulário
       setFotoFrente(null);
       setFotoLado(null);
+      setFotoLado2(null);
       setFotoCostas(null);
       setPreviewFrente('');
       setPreviewLado('');
+      setPreviewLado2('');
       setPreviewCostas('');
       setPesoInicial('');
       setAlturaInicial('');
@@ -340,9 +353,9 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
               </div>
             </div>
 
-            {/* Foto Lado */}
+            {/* Foto Lado 1 */}
             <div>
-              <Label>Foto Lateral</Label>
+              <Label>Foto Lateral 1</Label>
               <div className="mt-2">
                 {previewLado ? (
                   <div className="relative inline-block">
@@ -380,6 +393,50 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => handleFileChange(e.target.files?.[0] || null, setFotoLado, setPreviewLado)}
+                />
+              </div>
+            </div>
+
+            {/* Foto Lado 2 */}
+            <div>
+              <Label>Foto Lateral 2 (opcional)</Label>
+              <div className="mt-2">
+                {previewLado2 ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={previewLado2}
+                      alt="Preview Lado 2"
+                      className="w-40 h-40 object-cover rounded-lg border-2 border-blue-500"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                      onClick={() => removePhoto(setFotoLado2, setPreviewLado2)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => lado2InputRef.current?.click()}
+                    className="w-40 h-40 border-dashed"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-8 h-8" />
+                      <span className="text-xs">Upload</span>
+                    </div>
+                  </Button>
+                )}
+                <input
+                  ref={lado2InputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileChange(e.target.files?.[0] || null, setFotoLado2, setPreviewLado2)}
                 />
               </div>
             </div>

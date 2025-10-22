@@ -503,7 +503,7 @@ export default function PatientEvolution() {
 
           {/* Dados Iniciais (quando não há check-ins mas há fotos/medidas cadastradas) */}
           {(() => {
-            const hasInitialData = patient && (patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_costas || patient.peso_inicial || patient.altura_inicial);
+            const hasInitialData = patient && (patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_lado_2 || patient.foto_inicial_costas || patient.peso_inicial || patient.altura_inicial);
             console.log('🔍 Verificando dados iniciais:', {
               checkinsLength: checkins.length,
               hasPatient: !!patient,
@@ -554,13 +554,13 @@ export default function PatientEvolution() {
                 )}
 
                 {/* Fotos Iniciais */}
-                {(patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_costas) && (
+                {(patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_lado_2 || patient.foto_inicial_costas) && (
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                       <Camera className="w-5 h-5 text-purple-400" />
                       Fotos Baseline
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {patient.foto_inicial_frente && (
                         <div className="space-y-2">
                           <img 
@@ -575,10 +575,20 @@ export default function PatientEvolution() {
                         <div className="space-y-2">
                           <img 
                             src={patient.foto_inicial_lado} 
-                            alt="Foto Lateral Inicial"
+                            alt="Foto Lateral 1"
                             className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                           />
-                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral</p>
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral 1</p>
+                        </div>
+                      )}
+                      {patient.foto_inicial_lado_2 && (
+                        <div className="space-y-2">
+                          <img 
+                            src={patient.foto_inicial_lado_2} 
+                            alt="Foto Lateral 2"
+                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                          />
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral 2</p>
                         </div>
                       )}
                       {patient.foto_inicial_costas && (

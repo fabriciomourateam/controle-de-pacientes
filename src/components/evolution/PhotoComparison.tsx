@@ -50,6 +50,16 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         isInitial: true
       });
     }
+    if (patient.foto_inicial_lado_2) {
+      initialPhotos.push({
+        url: patient.foto_inicial_lado_2,
+        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patient.peso_inicial?.toString() || 'N/A',
+        checkinId: 'initial-lado-2',
+        photoNumber: 0,
+        isInitial: true
+      });
+    }
     if (patient.foto_inicial_costas) {
       initialPhotos.push({
         url: patient.foto_inicial_costas,
