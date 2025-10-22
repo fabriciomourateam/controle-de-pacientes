@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Flame, TrendingDown, Scale } from 'lucide-react';
-import { classificarIMC, corIMC } from '@/lib/body-calculations';
+import { classificarIMC } from '@/lib/body-calculations';
 
 interface BodyComposition {
   data_avaliacao: string;
@@ -56,28 +56,28 @@ export function BodyCompositionMetrics({ data }: BodyCompositionMetricsProps) {
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* % Gordura */}
-          <div className="bg-gradient-to-br from-red-900/30 to-orange-900/30 p-4 rounded-lg border border-red-700/30">
+          <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 p-4 rounded-lg border border-rose-500/30 hover:border-rose-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
-              <TrendingDown className="w-4 h-4 text-red-400" />
+              <TrendingDown className="w-4 h-4 text-rose-400" />
               {data.length > 1 && (
-                <Badge className={`text-xs ${parseFloat(diferencas.gordura) < 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>
+                <Badge className={`text-xs ${parseFloat(diferencas.gordura) < 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
                   {parseFloat(diferencas.gordura) < 0 ? '↓' : '↑'} {Math.abs(parseFloat(diferencas.gordura))}%
                 </Badge>
               )}
             </div>
             <p className="text-2xl font-bold text-white">{ultima.percentual_gordura}%</p>
             <p className="text-xs text-slate-400 mt-1">% Gordura</p>
-            <p className="text-xs text-slate-500 truncate" title={ultima.classificacao}>
+            <p className="text-xs text-rose-300/70 truncate" title={ultima.classificacao}>
               {ultima.classificacao}
             </p>
           </div>
 
           {/* Peso */}
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 rounded-lg border border-slate-700/30">
+          <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 p-4 rounded-lg border border-blue-500/30 hover:border-blue-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
-              <Scale className="w-4 h-4 text-slate-400" />
+              <Scale className="w-4 h-4 text-blue-400" />
               {data.length > 1 && (
-                <Badge className="text-xs bg-slate-500/20 text-slate-300">
+                <Badge className="text-xs bg-blue-500/20 text-blue-300">
                   {parseFloat(diferencas.peso) > 0 ? '+' : ''}{diferencas.peso} kg
                 </Badge>
               )}
@@ -87,9 +87,9 @@ export function BodyCompositionMetrics({ data }: BodyCompositionMetricsProps) {
           </div>
 
           {/* Massa Gorda */}
-          <div className="bg-gradient-to-br from-red-900/20 to-red-800/20 p-4 rounded-lg border border-red-700/20">
+          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 p-4 rounded-lg border border-red-500/30 hover:border-red-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-4 h-4 bg-red-500/30 rounded-full"></div>
+              <div className="w-4 h-4 bg-red-500/40 rounded-full"></div>
               {data.length > 1 && (
                 <Badge className={`text-xs ${parseFloat(diferencas.massaGorda) < 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>
                   {parseFloat(diferencas.massaGorda) < 0 ? '↓' : '↑'} {Math.abs(parseFloat(diferencas.massaGorda))} kg
@@ -101,7 +101,7 @@ export function BodyCompositionMetrics({ data }: BodyCompositionMetricsProps) {
           </div>
 
           {/* Massa Magra */}
-          <div className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 p-4 rounded-lg border border-emerald-700/20">
+          <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 p-4 rounded-lg border border-emerald-500/30 hover:border-emerald-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
               <Activity className="w-4 h-4 text-emerald-400" />
               {data.length > 1 && (
@@ -115,31 +115,31 @@ export function BodyCompositionMetrics({ data }: BodyCompositionMetricsProps) {
           </div>
 
           {/* IMC */}
-          <div className={`bg-gradient-to-br p-4 rounded-lg border ${corIMC(ultima.imc)}`}>
+          <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 p-4 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
-              <Scale className="w-4 h-4" />
+              <Scale className="w-4 h-4 text-purple-400" />
               {data.length > 1 && (
-                <Badge className={`text-xs ${corIMC(ultima.imc)}`}>
+                <Badge className="text-xs bg-purple-500/20 text-purple-300">
                   {parseFloat(diferencas.imc) > 0 ? '+' : ''}{diferencas.imc}
                 </Badge>
               )}
             </div>
             <p className="text-2xl font-bold text-white">{ultima.imc}</p>
             <p className="text-xs text-slate-400 mt-1">IMC</p>
-            <p className="text-xs text-slate-500">{classificarIMC(ultima.imc)}</p>
+            <p className="text-xs text-purple-300/70">{classificarIMC(ultima.imc)}</p>
           </div>
 
           {/* TMB */}
-          <div className="bg-gradient-to-br from-orange-900/20 to-yellow-900/20 p-4 rounded-lg border border-orange-700/20">
+          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 p-4 rounded-lg border border-amber-500/30 hover:border-amber-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
-              <Flame className="w-4 h-4 text-orange-400" />
+              <Flame className="w-4 h-4 text-amber-400" />
               {data.length > 1 && (
-                <Badge className="text-xs bg-orange-500/20 text-orange-300">
+                <Badge className="text-xs bg-amber-500/20 text-amber-300">
                   {parseFloat(diferencas.tmb) > 0 ? '+' : ''}{diferencas.tmb} kcal
                 </Badge>
               )}
             </div>
-            <p className="text-2xl font-bold text-orange-300">{ultima.tmb}</p>
+            <p className="text-2xl font-bold text-amber-300">{ultima.tmb}</p>
             <p className="text-xs text-slate-400 mt-1">TMB (kcal/dia)</p>
           </div>
         </div>
