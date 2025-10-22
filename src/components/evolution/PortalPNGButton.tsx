@@ -43,7 +43,7 @@ export function PortalPNGButton({ telefone, patientName }: PortalPNGButtonProps)
       
       toast({
         title: 'Portal aberto! 📸',
-        description: 'O download do PNG iniciará automaticamente',
+        description: 'O download iniciará em breve. A aba fechará automaticamente.',
       });
       
     } catch (error) {
@@ -62,7 +62,7 @@ export function PortalPNGButton({ telefone, patientName }: PortalPNGButtonProps)
     <Button
       onClick={handleDownloadPortalPNG}
       disabled={loading}
-      className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all"
+      className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
     >
       {loading ? (
         <>

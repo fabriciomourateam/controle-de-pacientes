@@ -60,9 +60,19 @@ export default function PatientPortal() {
       const shouldAutoDownload = urlParams.get('autoDownload') === 'true';
       
       if (shouldAutoDownload) {
+        console.log('🎯 Auto-download detectado! Iniciando captura...');
+        
         // Aguardar um pouco para garantir que tudo renderizou
-        setTimeout(() => {
-          handleExportPNG();
+        setTimeout(async () => {
+          console.log('📸 Capturando portal como PNG...');
+          await handleExportPNG();
+          
+          console.log('✅ Download iniciado! Fechando aba em 1 segundo...');
+          
+          // Fechar aba automaticamente após iniciar o download
+          setTimeout(() => {
+            window.close();
+          }, 1000);
         }, 2000);
       }
     }
