@@ -834,34 +834,34 @@ function generateDossieHTML(
           font-family: 'Arial', sans-serif;
           color: #1e293b;
           background: #fff;
-          padding: 30px;
-          max-width: 1140px;
+          padding: 20px;
+          max-width: 1100px;
           margin: 0 auto;
         }
         
         .header {
           text-align: center;
-          margin-bottom: 40px;
-          padding-bottom: 30px;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
           border-bottom: 4px solid #3b82f6;
         }
         
         .header h1 {
           color: #1e40af;
-          font-size: 42px;
-          margin-bottom: 15px;
+          font-size: 38px;
+          margin-bottom: 12px;
         }
         
         .header p {
           color: #64748b;
-          font-size: 18px;
+          font-size: 16px;
         }
         
         .patient-info {
           background: #f1f5f9;
-          padding: 30px;
+          padding: 25px;
           border-radius: 12px;
-          margin-bottom: 40px;
+          margin-bottom: 30px;
         }
         
         .patient-info h2 {
@@ -896,15 +896,15 @@ function generateDossieHTML(
         .summary-cards {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
-          margin-bottom: 40px;
+          gap: 15px;
+          margin-bottom: 30px;
         }
         
         .summary-card {
           background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
           color: white;
-          padding: 30px;
-          border-radius: 12px;
+          padding: 25px;
+          border-radius: 10px;
           text-align: center;
         }
         
@@ -932,14 +932,14 @@ function generateDossieHTML(
         }
         
         .section {
-          margin-bottom: 40px;
+          margin-bottom: 30px;
         }
         
         .section-title {
           color: #1e40af;
-          font-size: 28px;
-          margin-bottom: 20px;
-          padding-bottom: 15px;
+          font-size: 26px;
+          margin-bottom: 18px;
+          padding-bottom: 12px;
           border-bottom: 3px solid #e2e8f0;
         }
         
@@ -1012,7 +1012,7 @@ function generateDossieHTML(
         }
         
         .chart-container {
-          margin-bottom: 40px;
+          margin-bottom: 30px;
           text-align: center;
         }
         
@@ -1373,12 +1373,12 @@ export async function generateDossieImage(
   // Criar elemento temporário
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
-  tempDiv.style.width = '1140px';
+  tempDiv.style.width = '1100px';
   tempDiv.style.background = '#fff';
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '0';
-  tempDiv.style.padding = '20px';
+  tempDiv.style.padding = '15px';
   document.body.appendChild(tempDiv);
 
   try {
@@ -1388,7 +1388,7 @@ export async function generateDossieImage(
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 1180,
+      windowWidth: 1130,
       windowHeight: tempDiv.scrollHeight,
       scrollX: 0,
       scrollY: 0,
