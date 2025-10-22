@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,8 @@ import {
   Calendar,
   AlertCircle,
   RefreshCw,
-  Lock
+  Lock,
+  Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -40,6 +42,8 @@ export default function PatientPortal() {
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const portalRef = useRef<HTMLDivElement>(null);
 
   // Calcular dados
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -118,6 +122,57 @@ export default function PatientPortal() {
     }
   }
 
+  async function handleExportPNG() {
+    if (!portalRef.current || !patient) return;
+
+    try {
+      setExporting(true);
+      toast({
+        title: 'Gerando imagem...',
+        description: 'Aguarde enquanto criamos seu relatório em PNG'
+      });
+
+      // Capturar o portal inteiro como imagem
+      const canvas = await html2canvas(portalRef.current, {
+        scale: 2.5, // Alta qualidade
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#0f172a', // Cor do fundo do portal
+        windowWidth: portalRef.current.scrollWidth,
+        windowHeight: portalRef.current.scrollHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY
+      });
+
+      // Converter para blob e fazer download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `minha-evolucao-${patient.nome.replace(/\s+/g, '-')}.png`;
+          link.click();
+          URL.revokeObjectURL(url);
+
+          toast({
+            title: 'Imagem gerada! 🎉',
+            description: 'Seu relatório foi baixado com sucesso'
+          });
+        }
+      }, 'image/png', 0.98);
+
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar a imagem',
+        variant: 'destructive'
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -149,7 +204,7 @@ export default function PatientPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div ref={portalRef} className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header do Portal */}
         <motion.div
@@ -166,14 +221,24 @@ export default function PatientPortal() {
               Acompanhe seu progresso e conquistas
             </p>
           </div>
-          <Button
-            onClick={loadPortalData}
-            variant="outline"
-            className="border-slate-600 hover:bg-slate-800"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleExportPNG}
+              disabled={exporting}
+              className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all"
+            >
+              <Download className="w-4 h-4" />
+              {exporting ? 'Gerando...' : 'Baixar PNG'}
+            </Button>
+            <Button
+              onClick={loadPortalData}
+              variant="outline"
+              className="border-slate-600 hover:bg-slate-800"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
         </motion.div>
 
         {/* Card de Informações do Paciente */}
