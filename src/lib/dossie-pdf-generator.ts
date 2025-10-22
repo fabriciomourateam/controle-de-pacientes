@@ -12,7 +12,8 @@ interface PatientInfo {
 
 export async function generateDossiePDF(
   patient: PatientInfo,
-  checkins: Checkin[]
+  checkins: Checkin[],
+  bodyCompositions?: any[]
 ) {
   // Preparar dados
   const weightData = checkins
@@ -291,6 +292,44 @@ export async function generateDossiePDF(
           <div class="summary-value">${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange} kg</div>
         </div>
       </div>
+      
+      <!-- Composição Corporal (Bioimpedância) -->
+      ${bodyCompositions && bodyCompositions.length > 0 ? `
+      <div class="section">
+        <h3 class="section-title">📊 Análise de Composição Corporal</h3>
+        <table class="checkin-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>% Gordura</th>
+              <th>Peso</th>
+              <th>Massa Gorda</th>
+              <th>Massa Magra</th>
+              <th>IMC</th>
+              <th>TMB (kcal)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[...bodyCompositions].reverse().map(bc => `
+              <tr>
+                <td>${new Date(bc.data_avaliacao).toLocaleDateString('pt-BR')}</td>
+                <td><strong>${bc.percentual_gordura}%</strong></td>
+                <td>${bc.peso} kg</td>
+                <td>${bc.massa_gorda} kg</td>
+                <td>${bc.massa_magra} kg</td>
+                <td>${bc.imc}</td>
+                <td>${bc.tmb}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ${bodyCompositions[0].classificacao ? `
+        <div class="observation-box">
+          <p class="observation-text"><strong>Última Avaliação:</strong> ${bodyCompositions[0].classificacao}</p>
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
       
       <!-- Tabela de Evolução -->
       <div class="section">

@@ -1,0 +1,321 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Activity, Plus, ExternalLink, Calculator } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  calcularIMC, 
+  calcularMassaGorda, 
+  calcularMassaMagra, 
+  calcularTMB,
+  classificarIMC 
+} from '@/lib/body-calculations';
+
+interface BioimpedanciaInputProps {
+  telefone: string;
+  nome: string;
+  idade: number | null;
+  altura: number | null; // em metros, ex: 1.75
+  sexo: string | null; // 'M' ou 'F'
+  onSuccess: () => void;
+}
+
+export function BioimpedanciaInput({ 
+  telefone, 
+  nome, 
+  idade, 
+  altura, 
+  sexo, 
+  onSuccess 
+}: BioimpedanciaInputProps) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    data: new Date().toISOString().split('T')[0],
+    textoGPT: '',
+    peso: '',
+    altura: altura?.toString() || ''
+  });
+  const [calculosPreview, setCalculosPreview] = useState<any>(null);
+
+  const parseGPTText = (texto: string) => {
+    const dataMatch = texto.match(/📆\s*Data:\s*(\d{2}\/\d{2}\/\d{4})/i);
+    const gorduraMatch = texto.match(/🧍\s*Percentual de Gordura Estimado:\s*([\d,]+)%/i);
+    const classificacaoMatch = texto.match(/🏅\s*Classificação do Shape:\s*(.+?)(?:\n|$)/i);
+
+    if (!gorduraMatch) {
+      throw new Error('Formato inválido: % de Gordura não encontrado no texto');
+    }
+
+    const percentualGordura = parseFloat(gorduraMatch[1].replace(',', '.'));
+    const classificacao = classificacaoMatch ? classificacaoMatch[1].trim() : null;
+    
+    let dataAvaliacao = formData.data;
+    if (dataMatch) {
+      const [dia, mes, ano] = dataMatch[1].split('/');
+      dataAvaliacao = `${ano}-${mes}-${dia}`;
+    }
+
+    return {
+      data_avaliacao: dataAvaliacao,
+      percentual_gordura: percentualGordura,
+      classificacao
+    };
+  };
+
+  // Calcular valores em tempo real para preview
+  useEffect(() => {
+    if (formData.peso && formData.altura && formData.textoGPT) {
+      try {
+        const parsedData = parseGPTText(formData.textoGPT);
+        const peso = parseFloat(formData.peso);
+        const alturaNum = parseFloat(formData.altura);
+        
+        if (peso && alturaNum && idade && sexo) {
+          const imc = calcularIMC(peso, alturaNum);
+          const massaGorda = calcularMassaGorda(peso, parsedData.percentual_gordura);
+          const massaMagra = calcularMassaMagra(peso, massaGorda);
+          const tmb = calcularTMB(peso, alturaNum, idade, sexo as 'M' | 'F');
+          
+          setCalculosPreview({
+            imc,
+            massaGorda,
+            massaMagra,
+            tmb,
+            classificacaoIMC: classificarIMC(imc)
+          });
+        }
+      } catch (error) {
+        setCalculosPreview(null);
+      }
+    } else {
+      setCalculosPreview(null);
+    }
+  }, [formData, idade, sexo]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.peso || !formData.altura) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Peso e Altura são necessários para os cálculos',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!idade || !sexo) {
+      toast({
+        title: 'Dados do paciente incompletos',
+        description: 'Idade e Sexo são necessários. Atualize o cadastro do paciente.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    try {
+      setLoading(true);
+
+      const parsedData = parseGPTText(formData.textoGPT);
+      const peso = parseFloat(formData.peso);
+      const alturaNum = parseFloat(formData.altura);
+
+      // Cálculos automáticos
+      const imc = calcularIMC(peso, alturaNum);
+      const massaGorda = calcularMassaGorda(peso, parsedData.percentual_gordura);
+      const massaMagra = calcularMassaMagra(peso, massaGorda);
+      const tmb = calcularTMB(peso, alturaNum, idade, sexo as 'M' | 'F');
+
+      // Inserir no Supabase
+      const { error } = await supabase
+        .from('body_composition')
+        .insert({
+          telefone,
+          ...parsedData,
+          peso,
+          massa_gorda: massaGorda,
+          massa_magra: massaMagra,
+          imc,
+          tmb,
+          observacoes: formData.textoGPT
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Bioimpedância adicionada! ✅',
+        description: `${parsedData.percentual_gordura}% BF | IMC: ${imc} | TMB: ${tmb} kcal`,
+      });
+
+      setOpen(false);
+      setFormData({ 
+        data: new Date().toISOString().split('T')[0], 
+        textoGPT: '',
+        peso: '',
+        altura: altura?.toString() || ''
+      });
+      setCalculosPreview(null);
+      onSuccess();
+    } catch (error: any) {
+      console.error('Erro ao salvar bioimpedância:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message || 'Verifique o formato dos dados',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      {/* BOTÃO PARA ABRIR O INSHAPE GPT */}
+      <Button
+        onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
+        className="gap-2 bg-purple-600 hover:bg-purple-700"
+      >
+        <ExternalLink className="w-4 h-4" />
+        Abrir InShape GPT
+      </Button>
+
+      {/* DIALOG PARA ADICIONAR BIOIMPEDÂNCIA */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+            <Plus className="w-4 h-4" />
+            Adicionar Bioimpedância
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-slate-900 border-slate-700 max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-emerald-400" />
+              Adicionar Análise de Bioimpedância
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+              <p className="text-sm text-slate-300 mb-2">
+                📋 <strong>Paciente:</strong> {nome}
+              </p>
+              <p className="text-xs text-slate-400">
+                💡 Use o botão "Abrir InShape GPT" para obter a análise e cole a resposta abaixo
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="peso" className="text-slate-300">
+                  Peso (kg) *
+                </Label>
+                <Input
+                  id="peso"
+                  type="number"
+                  step="0.1"
+                  placeholder="75.5"
+                  value={formData.peso}
+                  onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
+                  required
+                  className="bg-slate-800 border-slate-600 text-slate-200"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="altura" className="text-slate-300">
+                  Altura (m) *
+                </Label>
+                <Input
+                  id="altura"
+                  type="number"
+                  step="0.01"
+                  placeholder="1.75"
+                  value={formData.altura}
+                  onChange={(e) => setFormData({ ...formData, altura: e.target.value })}
+                  required
+                  className="bg-slate-800 border-slate-600 text-slate-200"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="textoGPT" className="text-slate-300">
+                Resposta do GPT InShape *
+              </Label>
+              <Textarea
+                id="textoGPT"
+                placeholder="📆 Data: 21/10/2025
+🧍 Percentual de Gordura Estimado: 18,5%
+🏅 Classificação do Shape: Percentual de gordura mediano"
+                value={formData.textoGPT}
+                onChange={(e) => setFormData({ ...formData, textoGPT: e.target.value })}
+                required
+                rows={6}
+                className="bg-slate-800 border-slate-600 text-slate-200 font-mono text-sm"
+              />
+              <p className="text-xs text-slate-500">
+                Cole aqui o texto completo retornado pelo GPT InShape
+              </p>
+            </div>
+
+            {/* PREVIEW DOS CÁLCULOS */}
+            {calculosPreview && (
+              <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calculator className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-sm font-semibold text-emerald-300">
+                    Cálculos Automáticos (Preview)
+                  </h4>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-slate-800/50 p-2 rounded">
+                    <p className="text-xs text-slate-400">IMC</p>
+                    <p className="text-lg font-bold text-white">{calculosPreview.imc}</p>
+                    <p className="text-xs text-slate-500">{calculosPreview.classificacaoIMC}</p>
+                  </div>
+                  <div className="bg-slate-800/50 p-2 rounded">
+                    <p className="text-xs text-slate-400">Massa Gorda</p>
+                    <p className="text-lg font-bold text-red-400">{calculosPreview.massaGorda} kg</p>
+                  </div>
+                  <div className="bg-slate-800/50 p-2 rounded">
+                    <p className="text-xs text-slate-400">Massa Magra</p>
+                    <p className="text-lg font-bold text-emerald-400">{calculosPreview.massaMagra} kg</p>
+                  </div>
+                  <div className="bg-slate-800/50 p-2 rounded">
+                    <p className="text-xs text-slate-400">TMB</p>
+                    <p className="text-lg font-bold text-blue-400">{calculosPreview.tmb} kcal</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                className="border-slate-600 text-slate-300"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || !formData.textoGPT || !formData.peso || !formData.altura}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {loading ? 'Salvando...' : 'Salvar Bioimpedância'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+

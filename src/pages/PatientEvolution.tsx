@@ -14,6 +14,9 @@ import { EvolutionCharts } from '@/components/evolution/EvolutionCharts';
 import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
 import { AIInsights } from '@/components/evolution/AIInsights';
+import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
+import { BodyFatChart } from '@/components/evolution/BodyFatChart';
+import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { 
   Download, 
   ArrowLeft, 
@@ -38,6 +41,21 @@ export default function PatientEvolution() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
+
+  // Calcular idade do paciente
+  const calcularIdade = (dataNascimento: string | null) => {
+    if (!dataNascimento) return null;
+    const hoje = new Date();
+    const nascimento = new Date(dataNascimento);
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const mesAtual = hoje.getMonth();
+    const mesNascimento = nascimento.getMonth();
+    if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < nascimento.getDate())) {
+      idade--;
+    }
+    return idade;
+  };
 
   useEffect(() => {
     async function loadEvolution() {
@@ -81,6 +99,17 @@ export default function PatientEvolution() {
         } else {
           setPatient(patientData);
         }
+
+        // Buscar bioimpedâncias
+        const { data: bioData } = await supabase
+          .from('body_composition')
+          .select('*')
+          .eq('telefone', telefone)
+          .order('data_avaliacao', { ascending: false });
+        
+        if (bioData) {
+          setBodyCompositions(bioData);
+        }
       } catch (error) {
         console.error('Erro ao carregar evolução:', error);
         toast({
@@ -113,7 +142,8 @@ export default function PatientEvolution() {
           email: patient.email || undefined,
           plano: patient.plano || undefined
         },
-        checkins
+        checkins,
+        bodyCompositions
       );
 
       toast({
@@ -129,6 +159,21 @@ export default function PatientEvolution() {
       });
     } finally {
       setGeneratingPDF(false);
+    }
+  };
+
+  const handleBioSuccess = async () => {
+    // Recarregar bioimpedâncias após adicionar nova
+    if (!telefone) return;
+    
+    const { data } = await supabase
+      .from('body_composition')
+      .select('*')
+      .eq('telefone', telefone)
+      .order('data_avaliacao', { ascending: false });
+    
+    if (data) {
+      setBodyCompositions(data);
     }
   };
 
@@ -172,14 +217,24 @@ export default function PatientEvolution() {
                 </p>
               </div>
             </div>
-            <Button
-              onClick={handleExportPDF}
-              disabled={generatingPDF}
-              className="gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              <Download className="w-4 h-4" />
-              {generatingPDF ? 'Gerando...' : 'Exportar PDF'}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <BioimpedanciaInput
+                telefone={telefone!}
+                nome={patient?.nome || 'Paciente'}
+                idade={patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null}
+                altura={null}
+                sexo={patient?.genero || null}
+                onSuccess={handleBioSuccess}
+              />
+              <Button
+                onClick={handleExportPDF}
+                disabled={generatingPDF}
+                className="gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <Download className="w-4 h-4" />
+                {generatingPDF ? 'Gerando...' : 'Exportar PDF'}
+              </Button>
+            </div>
           </div>
 
           {/* Card de Informações do Paciente */}
@@ -247,20 +302,42 @@ export default function PatientEvolution() {
             </Card>
           )}
 
+          {/* Métricas de Composição Corporal */}
+          {bodyCompositions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <BodyCompositionMetrics data={bodyCompositions} />
+            </motion.div>
+          )}
+
           {/* Análise Inteligente com IA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
           >
             <AIInsights checkins={checkins} />
           </motion.div>
+
+          {/* Gráfico de Evolução de % Gordura */}
+          {bodyCompositions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <BodyFatChart data={bodyCompositions} />
+            </motion.div>
+          )}
 
           {/* Gráficos de Evolução */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
           >
             <EvolutionCharts checkins={checkins} />
           </motion.div>
@@ -278,7 +355,7 @@ export default function PatientEvolution() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.35 }}
           >
             <Timeline checkins={checkins} />
           </motion.div>
