@@ -45,23 +45,24 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
       aproveitamento: null
     });
   } else if (checkinsOrdenados.length > 0) {
-    // Se não há peso inicial cadastrado, usar o primeiro check-in como referência inicial
-    const primeiroCheckin = checkinsOrdenados[0];
+    // Se não há peso inicial cadastrado, usar o check-in mais antigo como referência inicial
+    const checkinMaisAntigo = checkinsOrdenados[checkinsOrdenados.length - 1];
     weightData.push({
-      data: new Date(primeiroCheckin.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-      peso: parseFloat(primeiroCheckin.peso || '0'),
+      data: new Date(checkinMaisAntigo.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      peso: parseFloat(checkinMaisAntigo.peso?.replace(',', '.') || '0'),
       tipo: 'Inicial (1º Check-in)',
-      aproveitamento: parseFloat(primeiroCheckin.percentual_aproveitamento || '0') || null
+      aproveitamento: parseFloat(checkinMaisAntigo.percentual_aproveitamento || '0') || null
     });
   }
   
-  // Adicionar dados dos check-ins (pular o primeiro se foi usado como peso inicial)
-  const startIndex = patient?.peso_inicial ? 0 : 1;
-  checkinsOrdenados.slice(startIndex).forEach(c => {
+  // Adicionar dados dos check-ins (pular o mais antigo se foi usado como peso inicial)
+  const startIndex = patient?.peso_inicial ? 0 : 0; // Sempre começar do índice 0
+  const endIndex = patient?.peso_inicial ? undefined : -1; // Pular o último se foi usado como peso inicial
+  checkinsOrdenados.slice(startIndex, endIndex).forEach(c => {
     if (c.peso) {
       weightData.push({
         data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-        peso: parseFloat(c.peso),
+        peso: parseFloat(c.peso.replace(',', '.')),
         tipo: 'Check-in',
         aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
       });
@@ -121,7 +122,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
               {weightData[0]?.peso && <span className="text-lg ml-1">kg</span>}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {weightData[0] && new Date(checkinsOrdenados[0].data_checkin).toLocaleDateString('pt-BR')}
+              {weightData[0] && weightData[0].data}
             </p>
           </CardContent>
         </Card>
@@ -136,7 +137,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
               {weightData[weightData.length - 1]?.peso && <span className="text-lg ml-1">kg</span>}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {weightData.length > 0 && new Date(checkinsOrdenados[checkinsOrdenados.length - 1].data_checkin).toLocaleDateString('pt-BR')}
+              {weightData.length > 0 && weightData[weightData.length - 1].data}
             </p>
           </CardContent>
         </Card>
