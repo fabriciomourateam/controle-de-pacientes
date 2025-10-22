@@ -90,11 +90,20 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
     { categoria: 'Libido', pontos: parseFloat(latestCheckin.pontos_libido || '0') || 0, fullMark: 10 }
   ] : [];
 
-  // Ordenar weightData por data para garantir ordem cronológica
+  // Ordenar weightData por data para garantir ordem cronológica (mais antigo primeiro)
   const weightDataOrdenado = [...weightData].sort((a, b) => {
-    const dateA = new Date(a.data.split(' ').reverse().join('-'));
-    const dateB = new Date(b.data.split(' ').reverse().join('-'));
-    return dateA - dateB;
+    // Converter formato "22 de set." para Date
+    const parseDate = (dateStr) => {
+      const [day, month] = dateStr.split(' de ');
+      const monthMap = {
+        'jan.': '01', 'fev.': '02', 'mar.': '03', 'abr.': '04', 'mai.': '05', 'jun.': '06',
+        'jul.': '07', 'ago.': '08', 'set.': '09', 'out.': '10', 'nov.': '11', 'dez.': '12'
+      };
+      const currentYear = new Date().getFullYear();
+      return new Date(`${currentYear}-${monthMap[month]}-${day.padStart(2, '0')}`);
+    };
+    
+    return parseDate(a.data) - parseDate(b.data);
   });
 
   // Calcular variação de peso (último - primeiro)
