@@ -30,6 +30,7 @@ import { TrendsAnalysis } from '@/components/evolution/TrendsAnalysis';
 import { ShareButton } from '@/components/evolution/ShareButton';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
+import { PortalPNGButton } from '@/components/evolution/PortalPNGButton';
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
 import { migrateCheckinPhotos, isTypebotUrl } from '@/lib/photo-migration-service';
@@ -471,6 +472,11 @@ export default function PatientEvolution() {
               <PortalLinkButton 
                 telefone={telefone!} 
                 patientName={patient?.nome || 'Paciente'} 
+              />
+              
+              <PortalPNGButton
+                telefone={telefone!}
+                patientName={patient?.nome || 'Paciente'}
               />
               
               {shareData && <ShareButton data={shareData} />}

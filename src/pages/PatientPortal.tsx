@@ -53,6 +53,21 @@ export default function PatientPortal() {
     loadPortalData();
   }, [token]);
 
+  // Auto-download do PNG quando parâmetro autoDownload=true
+  useEffect(() => {
+    if (!loading && patient && portalRef.current) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shouldAutoDownload = urlParams.get('autoDownload') === 'true';
+      
+      if (shouldAutoDownload) {
+        // Aguardar um pouco para garantir que tudo renderizou
+        setTimeout(() => {
+          handleExportPNG();
+        }, 2000);
+      }
+    }
+  }, [loading, patient]);
+
   async function loadPortalData() {
     if (!token) {
       setUnauthorized(true);
