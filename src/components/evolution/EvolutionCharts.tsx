@@ -20,22 +20,43 @@ import { TrendingUp, Activity, Target } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
+type Patient = Database['public']['Tables']['patients']['Row'];
 
 interface EvolutionChartsProps {
   checkins: Checkin[];
+  patient?: Patient | null;
 }
 
-export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
+export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
   // IMPORTANTE: checkins vem ordenado DESC (mais recente primeiro)
   // Precisamos reverter para ordem cronológica (mais antigo primeiro)
   const checkinsOrdenados = [...checkins].reverse();
 
-  // Preparar dados para gráfico de peso
-  const weightData = checkinsOrdenados.map(c => ({
-    data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-    peso: parseFloat(c.peso || '0') || null,
-    aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
-  })).filter(d => d.peso !== null);
+  // Preparar dados para gráfico de peso - incluindo peso inicial
+  const weightData = [];
+  
+  // Adicionar peso inicial se existir
+  if (patient?.peso_inicial) {
+    const dataInicial = patient.data_fotos_iniciais || patient.created_at;
+    weightData.push({
+      data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      peso: parseFloat(patient.peso_inicial.toString()),
+      tipo: 'Inicial',
+      aproveitamento: null
+    });
+  }
+  
+  // Adicionar dados dos check-ins
+  checkinsOrdenados.forEach(c => {
+    if (c.peso) {
+      weightData.push({
+        data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        peso: parseFloat(c.peso),
+        tipo: 'Check-in',
+        aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
+      });
+    }
+  });
 
   // Preparar dados para gráfico de pontuações
   const scoresData = checkinsOrdenados.map(c => ({
@@ -139,6 +160,16 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
             </CardTitle>
             <CardDescription className="text-slate-400">
               Acompanhamento do peso ao longo do tempo
+              <div className="flex items-center gap-4 mt-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-purple-500 border border-white"></div>
+                  <span>Peso Inicial</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span>Check-ins</span>
+                </div>
+              </div>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -162,6 +193,11 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
                     borderRadius: '8px',
                     color: '#fff'
                   }}
+                  formatter={(value, name, props) => [
+                    `${value} kg`,
+                    props.payload?.tipo === 'Inicial' ? 'Peso Inicial' : 'Peso Check-in'
+                  ]}
+                  labelFormatter={(label) => `Data: ${label}`}
                 />
                 <Legend />
                 <Line 
@@ -170,7 +206,13 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
                   stroke="#3b82f6" 
                   strokeWidth={3}
                   name="Peso (kg)"
-                  dot={{ fill: '#3b82f6', r: 5 }}
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (payload?.tipo === 'Inicial') {
+                      return <circle cx={cx} cy={cy} r={6} fill="#8b5cf6" stroke="#fff" strokeWidth={2} />;
+                    }
+                    return <circle cx={cx} cy={cy} r={5} fill="#3b82f6" />;
+                  }}
                   activeDot={{ r: 7 }}
                 />
               </LineChart>
