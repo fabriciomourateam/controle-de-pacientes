@@ -10,6 +10,9 @@ interface TimelineProps {
 }
 
 export function Timeline({ checkins }: TimelineProps) {
+  // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
+  const checkinsOrdenados = [...checkins].reverse();
+
   const getScoreColor = (score: string | null) => {
     if (!score) return "bg-slate-500/20 text-slate-400 border-slate-500/30";
     const numScore = parseFloat(score);
@@ -60,12 +63,12 @@ export function Timeline({ checkins }: TimelineProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {checkins.map((checkin, index) => {
-            const previousCheckin = index > 0 ? checkins[index - 1] : null;
+          {checkinsOrdenados.map((checkin, index) => {
+            const previousCheckin = index > 0 ? checkinsOrdenados[index - 1] : null;
             const weightTrend = getWeightTrend(checkin.peso, previousCheckin?.peso || null);
             const checkinDate = new Date(checkin.data_checkin);
             const isFirst = index === 0;
-            const isLast = index === checkins.length - 1;
+            const isLast = index === checkinsOrdenados.length - 1;
 
             return (
               <div key={checkin.id} className="relative pl-8 pb-6 border-l-2 border-blue-500/30 last:border-l-0 last:pb-0">

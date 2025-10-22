@@ -26,15 +26,19 @@ interface EvolutionChartsProps {
 }
 
 export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
+  // IMPORTANTE: checkins vem ordenado DESC (mais recente primeiro)
+  // Precisamos reverter para ordem cronológica (mais antigo primeiro)
+  const checkinsOrdenados = [...checkins].reverse();
+
   // Preparar dados para gráfico de peso
-  const weightData = checkins.map(c => ({
+  const weightData = checkinsOrdenados.map(c => ({
     data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
     peso: parseFloat(c.peso || '0') || null,
     aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
   })).filter(d => d.peso !== null);
 
   // Preparar dados para gráfico de pontuações
-  const scoresData = checkins.map(c => ({
+  const scoresData = checkinsOrdenados.map(c => ({
     data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
     treino: parseFloat(c.pontos_treinos || '0') || 0,
     cardio: parseFloat(c.pontos_cardios || '0') || 0,
@@ -43,8 +47,8 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
     stress: parseFloat(c.pontos_stress || '0') || 0
   }));
 
-  // Preparar dados para radar (último check-in)
-  const latestCheckin = checkins[checkins.length - 1];
+  // Preparar dados para radar (último check-in = primeiro do array original)
+  const latestCheckin = checkins[0]; // Mais recente
   const radarData = latestCheckin ? [
     { categoria: 'Treino', pontos: parseFloat(latestCheckin.pontos_treinos || '0') || 0, fullMark: 10 },
     { categoria: 'Cardio', pontos: parseFloat(latestCheckin.pontos_cardios || '0') || 0, fullMark: 10 },
@@ -54,7 +58,7 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
     { categoria: 'Libido', pontos: parseFloat(latestCheckin.pontos_libido || '0') || 0, fullMark: 10 }
   ] : [];
 
-  // Calcular variação de peso
+  // Calcular variação de peso (último - primeiro)
   const weightChange = weightData.length >= 2 
     ? ((weightData[weightData.length - 1].peso || 0) - (weightData[0].peso || 0)).toFixed(1)
     : '0.0';
@@ -86,7 +90,7 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
               {weightData[0]?.peso && <span className="text-lg ml-1">kg</span>}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {weightData[0] && new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR')}
+              {weightData[0] && new Date(checkinsOrdenados[0].data_checkin).toLocaleDateString('pt-BR')}
             </p>
           </CardContent>
         </Card>
@@ -101,7 +105,7 @@ export function EvolutionCharts({ checkins }: EvolutionChartsProps) {
               {weightData[weightData.length - 1]?.peso && <span className="text-lg ml-1">kg</span>}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {weightData.length > 0 && new Date(checkins[checkins.length - 1].data_checkin).toLocaleDateString('pt-BR')}
+              {weightData.length > 0 && new Date(checkinsOrdenados[checkinsOrdenados.length - 1].data_checkin).toLocaleDateString('pt-BR')}
             </p>
           </CardContent>
         </Card>

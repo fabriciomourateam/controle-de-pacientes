@@ -267,7 +267,7 @@ export default function PatientEvolution() {
                     <div className="flex items-center gap-2 text-slate-300">
                       <Calendar className="w-4 h-4 text-purple-400" />
                       <span className="text-sm">
-                        {new Date(checkins[0]?.data_checkin).toLocaleDateString('pt-BR')} - {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')}
+                        {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')} - {new Date(checkins[0]?.data_checkin).toLocaleDateString('pt-BR')}
                       </span>
                     </div>
                   </div>
