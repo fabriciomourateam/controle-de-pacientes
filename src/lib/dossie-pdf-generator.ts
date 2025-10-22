@@ -18,9 +18,9 @@ interface PatientInfo {
 async function createChartImage(config: any): Promise<string> {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
-    // Aumentar resolução para melhor qualidade (2x maior)
-    canvas.width = 1600;
-    canvas.height = 800;
+    // Aumentar resolução para máxima qualidade (3x maior)
+    canvas.width = 2400;
+    canvas.height = 1200;
     canvas.style.display = 'none'; // Ocultar canvas
     
     // Anexar ao DOM (necessário para renderização em alguns navegadores)
@@ -96,9 +96,11 @@ export async function generateDossiePDF(
           data: weightData.map(d => d.peso),
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 3,
+          borderWidth: 4,
           tension: 0.4,
-          fill: true
+          fill: true,
+          pointRadius: 6,
+          pointHoverRadius: 8
         }]
       },
       options: {
@@ -107,13 +109,13 @@ export async function generateDossiePDF(
           legend: { 
             display: true, 
             position: 'top',
-            labels: { font: { size: 16, weight: 'bold' }, padding: 15 }
+            labels: { font: { size: 20, weight: 'bold' }, padding: 20 }
           },
           title: { 
             display: true, 
             text: 'Evolução do Peso', 
-            font: { size: 22, weight: 'bold' },
-            padding: { top: 10, bottom: 20 }
+            font: { size: 28, weight: 'bold' },
+            padding: { top: 15, bottom: 25 }
           }
         },
         scales: {
@@ -122,12 +124,12 @@ export async function generateDossiePDF(
             title: { 
               display: true, 
               text: 'Peso (kg)',
-              font: { size: 16, weight: 'bold' }
+              font: { size: 20, weight: 'bold' }
             },
-            ticks: { font: { size: 14 } }
+            ticks: { font: { size: 18 } }
           },
           x: {
-            ticks: { font: { size: 14 } }
+            ticks: { font: { size: 18 } }
           }
         }
       }
@@ -152,11 +154,11 @@ export async function generateDossiePDF(
       data: {
         labels: scoresData.map(d => d.date),
         datasets: [
-          { label: 'Treino', data: scoresData.map(d => d.treino), borderColor: '#3b82f6', borderWidth: 3, tension: 0.4, pointRadius: 4 },
-          { label: 'Cardio', data: scoresData.map(d => d.cardio), borderColor: '#10b981', borderWidth: 3, tension: 0.4, pointRadius: 4 },
-          { label: 'Sono', data: scoresData.map(d => d.sono), borderColor: '#8b5cf6', borderWidth: 3, tension: 0.4, pointRadius: 4 },
-          { label: 'Água', data: scoresData.map(d => d.agua), borderColor: '#06b6d4', borderWidth: 3, tension: 0.4, pointRadius: 4 },
-          { label: 'Stress', data: scoresData.map(d => d.stress), borderColor: '#f59e0b', borderWidth: 3, tension: 0.4, pointRadius: 4 }
+          { label: 'Treino', data: scoresData.map(d => d.treino), borderColor: '#3b82f6', borderWidth: 4, tension: 0.4, pointRadius: 5 },
+          { label: 'Cardio', data: scoresData.map(d => d.cardio), borderColor: '#10b981', borderWidth: 4, tension: 0.4, pointRadius: 5 },
+          { label: 'Sono', data: scoresData.map(d => d.sono), borderColor: '#8b5cf6', borderWidth: 4, tension: 0.4, pointRadius: 5 },
+          { label: 'Água', data: scoresData.map(d => d.agua), borderColor: '#06b6d4', borderWidth: 4, tension: 0.4, pointRadius: 5 },
+          { label: 'Stress', data: scoresData.map(d => d.stress), borderColor: '#f59e0b', borderWidth: 4, tension: 0.4, pointRadius: 5 }
         ]
       },
       options: {
@@ -165,13 +167,13 @@ export async function generateDossiePDF(
           legend: { 
             display: true, 
             position: 'top',
-            labels: { font: { size: 14, weight: 'bold' }, padding: 12 }
+            labels: { font: { size: 18, weight: 'bold' }, padding: 18 }
           },
           title: { 
             display: true, 
             text: 'Evolução das Pontuações', 
-            font: { size: 22, weight: 'bold' },
-            padding: { top: 10, bottom: 20 }
+            font: { size: 28, weight: 'bold' },
+            padding: { top: 15, bottom: 25 }
           }
         },
         scales: {
@@ -181,12 +183,12 @@ export async function generateDossiePDF(
             title: { 
               display: true, 
               text: 'Pontos',
-              font: { size: 16, weight: 'bold' }
+              font: { size: 20, weight: 'bold' }
             },
-            ticks: { font: { size: 14 } }
+            ticks: { font: { size: 18 } }
           },
           x: {
-            ticks: { font: { size: 14 } }
+            ticks: { font: { size: 18 } }
           }
         }
       }
@@ -213,9 +215,9 @@ export async function generateDossiePDF(
           ],
           borderColor: '#8b5cf6',
           backgroundColor: 'rgba(139, 92, 246, 0.2)',
-          borderWidth: 3,
-          pointRadius: 5,
-          pointHoverRadius: 7
+          borderWidth: 4,
+          pointRadius: 6,
+          pointHoverRadius: 8
         }]
       },
       options: {
@@ -225,8 +227,8 @@ export async function generateDossiePDF(
           title: { 
             display: true, 
             text: 'Perfil Atual', 
-            font: { size: 22, weight: 'bold' },
-            padding: { top: 10, bottom: 20 }
+            font: { size: 28, weight: 'bold' },
+            padding: { top: 15, bottom: 25 }
           }
         },
         scales: {
@@ -235,10 +237,10 @@ export async function generateDossiePDF(
             max: 10, 
             ticks: { 
               stepSize: 2,
-              font: { size: 14 }
+              font: { size: 18 }
             },
             pointLabels: {
-              font: { size: 16, weight: 'bold' }
+              font: { size: 20, weight: 'bold' }
             }
           }
         }
@@ -264,11 +266,11 @@ export async function generateDossiePDF(
           data: bodyFatData.map(d => d.gordura),
           borderColor: '#10b981',
           backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          borderWidth: 3,
+          borderWidth: 4,
           tension: 0.4,
           fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7
+          pointRadius: 6,
+          pointHoverRadius: 8
         }]
       },
       options: {
@@ -277,13 +279,13 @@ export async function generateDossiePDF(
           legend: { 
             display: true, 
             position: 'top',
-            labels: { font: { size: 16, weight: 'bold' }, padding: 15 }
+            labels: { font: { size: 20, weight: 'bold' }, padding: 20 }
           },
           title: { 
             display: true, 
             text: 'Evolução do % de Gordura Corporal', 
-            font: { size: 22, weight: 'bold' },
-            padding: { top: 10, bottom: 20 }
+            font: { size: 28, weight: 'bold' },
+            padding: { top: 15, bottom: 25 }
           }
         },
         scales: {
@@ -292,12 +294,12 @@ export async function generateDossiePDF(
             title: { 
               display: true, 
               text: '% Gordura',
-              font: { size: 16, weight: 'bold' }
+              font: { size: 20, weight: 'bold' }
             },
-            ticks: { font: { size: 14 } }
+            ticks: { font: { size: 18 } }
           },
           x: {
-            ticks: { font: { size: 14 } }
+            ticks: { font: { size: 18 } }
           }
         }
       }
