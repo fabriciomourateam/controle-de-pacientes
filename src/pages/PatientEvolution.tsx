@@ -741,11 +741,8 @@ export default function PatientEvolution() {
             </Card>
           )}
 
-          {/* Seções que só aparecem quando há check-ins */}
-          {checkins.length > 0 && (
-            <>
-              {/* Métricas de Composição Corporal */}
-              {bodyCompositions.length > 0 && (
+          {/* Métricas de Composição Corporal - Aparece independente de check-ins */}
+          {bodyCompositions.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -754,6 +751,21 @@ export default function PatientEvolution() {
               <BodyCompositionMetrics data={bodyCompositions} />
             </motion.div>
           )}
+
+          {/* Gráfico de Evolução de % Gordura - Aparece independente de check-ins */}
+          {bodyCompositions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
+              <BodyFatChart data={bodyCompositions} />
+            </motion.div>
+          )}
+
+          {/* Seções que só aparecem quando há check-ins */}
+          {checkins.length > 0 && (
+            <>
 
           {/* Badges de Conquistas */}
           {achievements.length > 0 && (
@@ -785,17 +797,6 @@ export default function PatientEvolution() {
           >
             <AIInsights checkins={checkins} />
           </motion.div>
-
-          {/* Gráfico de Evolução de % Gordura */}
-          {bodyCompositions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <BodyFatChart data={bodyCompositions} />
-            </motion.div>
-          )}
 
           {/* Gráficos de Evolução */}
           <motion.div
