@@ -834,8 +834,8 @@ function generateDossieHTML(
           font-family: 'Arial', sans-serif;
           color: #1e293b;
           background: #fff;
-          padding: 40px;
-          max-width: 1200px;
+          padding: 30px;
+          max-width: 1140px;
           margin: 0 auto;
         }
         
@@ -1373,17 +1373,27 @@ export async function generateDossieImage(
   // Criar elemento temporário
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
-  tempDiv.style.width = '1200px';
+  tempDiv.style.width = '1140px';
   tempDiv.style.background = '#fff';
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '0';
+  tempDiv.style.padding = '20px';
   document.body.appendChild(tempDiv);
 
   try {
     // Capturar como canvas
     const canvas = await html2canvas(tempDiv, {
-      scale: 3, // Alta qualidade
+      scale: 2.5, // Boa qualidade sem cortes
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      windowWidth: 1180,
+      windowHeight: tempDiv.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0
     });
 
     // Converter para blob
