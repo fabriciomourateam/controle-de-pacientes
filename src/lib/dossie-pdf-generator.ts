@@ -1,5 +1,9 @@
 import html2pdf from 'html2pdf.js';
+import { Chart, registerables } from 'chart.js';
 import type { Database } from '@/integrations/supabase/types';
+
+// Registrar componentes do Chart.js
+Chart.register(...registerables);
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 
@@ -8,6 +12,30 @@ interface PatientInfo {
   telefone: string;
   email?: string;
   plano?: string;
+}
+
+// Função auxiliar para criar gráfico e converter para base64
+async function createChartImage(config: any): Promise<string> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      resolve('');
+      return;
+    }
+
+    const chart = new Chart(ctx, config);
+    
+    // Aguardar render e converter para base64
+    setTimeout(() => {
+      const base64 = canvas.toDataURL('image/png');
+      chart.destroy();
+      resolve(base64);
+    }, 100);
+  });
 }
 
 export async function generateDossiePDF(
@@ -22,7 +50,7 @@ export async function generateDossiePDF(
   const weightData = checkinsOrdenados
     .filter(c => c.peso)
     .map(c => ({
-      date: new Date(c.data_checkin).toLocaleDateString('pt-BR'),
+      date: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
       peso: parseFloat(c.peso || '0')
     }));
 
@@ -33,6 +61,144 @@ export async function generateDossiePDF(
   const avgScore = checkinsOrdenados.length > 0
     ? (checkinsOrdenados.reduce((acc, c) => acc + parseFloat(c.total_pontuacao || '0'), 0) / checkinsOrdenados.length).toFixed(1)
     : '0';
+
+  // Gerar gráficos
+  let weightChartImage = '';
+  let scoresChartImage = '';
+  let radarChartImage = '';
+  let bodyFatChartImage = '';
+
+  // Gráfico de Peso
+  if (weightData.length > 0) {
+    weightChartImage = await createChartImage({
+      type: 'line',
+      data: {
+        labels: weightData.map(d => d.date),
+        datasets: [{
+          label: 'Peso (kg)',
+          data: weightData.map(d => d.peso),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          title: { display: true, text: 'Evolução do Peso', font: { size: 16 } }
+        },
+        scales: {
+          y: { beginAtZero: false, title: { display: true, text: 'Peso (kg)' } }
+        }
+      }
+    });
+  }
+
+  // Gráfico de Pontuações
+  if (checkinsOrdenados.length > 0) {
+    const scoresData = checkinsOrdenados.map(c => ({
+      date: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      treino: parseFloat(c.pontos_treinos || '0'),
+      cardio: parseFloat(c.pontos_cardios || '0'),
+      sono: parseFloat(c.pontos_sono || '0'),
+      agua: parseFloat(c.pontos_agua || '0'),
+      stress: parseFloat(c.pontos_stress || '0')
+    }));
+
+    scoresChartImage = await createChartImage({
+      type: 'line',
+      data: {
+        labels: scoresData.map(d => d.date),
+        datasets: [
+          { label: 'Treino', data: scoresData.map(d => d.treino), borderColor: '#3b82f6', borderWidth: 2, tension: 0.4 },
+          { label: 'Cardio', data: scoresData.map(d => d.cardio), borderColor: '#10b981', borderWidth: 2, tension: 0.4 },
+          { label: 'Sono', data: scoresData.map(d => d.sono), borderColor: '#8b5cf6', borderWidth: 2, tension: 0.4 },
+          { label: 'Água', data: scoresData.map(d => d.agua), borderColor: '#06b6d4', borderWidth: 2, tension: 0.4 },
+          { label: 'Stress', data: scoresData.map(d => d.stress), borderColor: '#f59e0b', borderWidth: 2, tension: 0.4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          title: { display: true, text: 'Evolução das Pontuações', font: { size: 16 } }
+        },
+        scales: {
+          y: { min: 0, max: 10, title: { display: true, text: 'Pontos' } }
+        }
+      }
+    });
+
+    // Gráfico Radar (último check-in)
+    const latestCheckin = checkinsOrdenados[checkinsOrdenados.length - 1];
+    radarChartImage = await createChartImage({
+      type: 'radar',
+      data: {
+        labels: ['Treino', 'Cardio', 'Água', 'Sono', 'Stress', 'Libido'],
+        datasets: [{
+          label: 'Última Avaliação',
+          data: [
+            parseFloat(latestCheckin.pontos_treinos || '0'),
+            parseFloat(latestCheckin.pontos_cardios || '0'),
+            parseFloat(latestCheckin.pontos_agua || '0'),
+            parseFloat(latestCheckin.pontos_sono || '0'),
+            parseFloat(latestCheckin.pontos_stress || '0'),
+            parseFloat(latestCheckin.pontos_libido || '0')
+          ],
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139, 92, 246, 0.2)',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Perfil Atual', font: { size: 16 } }
+        },
+        scales: {
+          r: { min: 0, max: 10, ticks: { stepSize: 2 } }
+        }
+      }
+    });
+  }
+
+  // Gráfico de % Gordura
+  if (bodyCompositions && bodyCompositions.length > 0) {
+    const bodyFatData = [...bodyCompositions].reverse().map(bc => ({
+      date: new Date(bc.data_avaliacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      gordura: bc.percentual_gordura
+    }));
+
+    bodyFatChartImage = await createChartImage({
+      type: 'line',
+      data: {
+        labels: bodyFatData.map(d => d.date),
+        datasets: [{
+          label: '% Gordura',
+          data: bodyFatData.map(d => d.gordura),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          title: { display: true, text: 'Evolução do % de Gordura Corporal', font: { size: 16 } }
+        },
+        scales: {
+          y: { beginAtZero: false, title: { display: true, text: '% Gordura' } }
+        }
+      }
+    });
+  }
 
   // Criar HTML para o PDF
   const htmlContent = `
@@ -334,8 +500,35 @@ export async function generateDossiePDF(
       </div>
       ` : ''}
       
+      <!-- Gráficos de Evolução -->
+      ${(weightChartImage || scoresChartImage || radarChartImage || bodyFatChartImage) ? `
+      <div class="section page-break">
+        <h3 class="section-title">📈 Gráficos de Evolução</h3>
+        ${weightChartImage ? `
+        <div style="margin-bottom: 30px; text-align: center;">
+          <img src="${weightChartImage}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Gráfico de Peso" />
+        </div>
+        ` : ''}
+        ${bodyFatChartImage ? `
+        <div style="margin-bottom: 30px; text-align: center;">
+          <img src="${bodyFatChartImage}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Gráfico de % Gordura" />
+        </div>
+        ` : ''}
+        ${scoresChartImage ? `
+        <div style="margin-bottom: 30px; text-align: center; page-break-before: always;">
+          <img src="${scoresChartImage}" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Gráfico de Pontuações" />
+        </div>
+        ` : ''}
+        ${radarChartImage ? `
+        <div style="margin-bottom: 30px; text-align: center;">
+          <img src="${radarChartImage}" style="max-width: 60%; height: auto; border-radius: 8px; margin: 0 auto;" alt="Gráfico Radar" />
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
+      
       <!-- Tabela de Evolução -->
-      <div class="section">
+      <div class="section page-break">
         <h3 class="section-title">📈 Evolução Detalhada</h3>
         <table class="checkin-table">
           <thead>
