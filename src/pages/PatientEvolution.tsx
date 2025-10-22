@@ -384,12 +384,14 @@ export default function PatientEvolution() {
                       <Activity className="w-4 h-4 text-emerald-400" />
                       <span className="text-sm">{checkins.length} check-ins realizados</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <Calendar className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm">
-                        {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')} - {new Date(checkins[0]?.data_checkin).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
+                    {checkins.length > 0 && (
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Calendar className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm">
+                          {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')} - {new Date(checkins[0]?.data_checkin).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {patient?.objetivo && (
                     <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-600/30">
@@ -404,8 +406,61 @@ export default function PatientEvolution() {
             </CardContent>
           </Card>
 
+          {/* Card especial quando não há check-ins */}
+          {checkins.length === 0 && (
+            <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20">
+              <CardContent className="p-8 text-center">
+                <Activity className="w-16 h-16 mx-auto mb-4 text-blue-400 opacity-50" />
+                <h3 className="text-xl font-semibold mb-2 text-white">
+                  Nenhum check-in registrado ainda
+                </h3>
+                <p className="text-slate-400 mb-6">
+                  Este paciente ainda não possui check-ins, mas você já pode:
+                </p>
+                <div className="flex flex-col gap-3 max-w-md mx-auto mb-6">
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      📊
+                    </div>
+                    <span className="text-left">Cadastrar bioimpedâncias e acompanhar composição corporal</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      📸
+                    </div>
+                    <span className="text-left">Registrar o primeiro check-in com fotos de evolução</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                      📈
+                    </div>
+                    <span className="text-left">Acompanhar métricas e progresso ao longo do tempo</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <BioimpedanciaInput
+                    telefone={telefone!}
+                    nome={patient?.nome || 'Paciente'}
+                    idade={patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null}
+                    altura={null}
+                    sexo={patient?.genero || null}
+                    onSuccess={handleBioSuccess}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/checkins')}
+                    className="gap-2 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Voltar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Aviso se houver poucos check-ins */}
-          {checkins.length < 3 && (
+          {checkins.length > 0 && checkins.length < 3 && (
             <Card className="bg-amber-900/20 border-amber-700/30">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -422,8 +477,11 @@ export default function PatientEvolution() {
             </Card>
           )}
 
-          {/* Métricas de Composição Corporal */}
-          {bodyCompositions.length > 0 && (
+          {/* Seções que só aparecem quando há check-ins */}
+          {checkins.length > 0 && (
+            <>
+              {/* Métricas de Composição Corporal */}
+              {bodyCompositions.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -534,6 +592,8 @@ export default function PatientEvolution() {
               </div>
             </CardContent>
           </Card>
+            </>
+          )}
         </motion.div>
       </DashboardLayout>
   );

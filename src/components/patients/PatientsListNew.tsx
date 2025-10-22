@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Plus, 
   MoreHorizontal, 
@@ -11,7 +12,8 @@ import {
   Download,
   MessageSquare,
   Users,
-  Settings
+  Settings,
+  TrendingUp
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@/integrations/supabase/types";
 
 export function PatientsListNew() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { preferences, loading: preferencesLoading, updateFilters, updateSorting, updateVisibleColumns } = usePatientPreferences();
   
@@ -495,6 +498,10 @@ export function PatientsListNew() {
                             <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
                               <Eye className="w-4 h-4 mr-2" />
                               Ver detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(`/checkins/evolution/${patient.telefone}`)}>
+                              <TrendingUp className="w-4 h-4 mr-2" />
+                              Ver Evolução
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
                               <Edit className="w-4 h-4 mr-2" />
