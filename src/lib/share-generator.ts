@@ -111,7 +111,7 @@ export async function generateShareImage(data: ShareData): Promise<string> {
             📊 Performance
           </div>
           <div style="font-size: 56px; font-weight: 800; margin-bottom: 5px;">
-            ${(data.avgScore * 10).toFixed(1).replace('.', ',')}/100
+            ${data.avgScore.toFixed(1).replace('.', ',')}/100
           </div>
           <div style="font-size: 20px; opacity: 0.85;">
             Pontuação média
@@ -199,7 +199,7 @@ export function generateWhatsAppMessage(data: ShareData): string {
       `${data.initialBodyFat?.toFixed(1)}% → ${data.currentBodyFat?.toFixed(1)}%\n\n` 
       : '') +
     `📊 ${data.totalCheckins} check-ins em ${data.daysSinceStart} dias\n` +
-    `⭐ Performance média: ${(data.avgScore * 10).toFixed(1).replace('.', ',')}/100\n\n` +
+    `⭐ Performance média: ${data.avgScore.toFixed(1).replace('.', ',')}/100\n\n` +
     `💪 Transformação é consistência + dedicação! ✨`;
 
   return encodeURIComponent(message);
