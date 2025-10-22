@@ -38,8 +38,18 @@ export function BioimpedanciaInput({
   const [loading, setLoading] = useState(false);
   const [loadingLastBio, setLoadingLastBio] = useState(false);
   const [hasLastBio, setHasLastBio] = useState(false);
+  
+  // Função para obter data local sem problema de timezone
+  const getLocalDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
   const [formData, setFormData] = useState({
-    data: new Date().toISOString().split('T')[0],
+    data: getLocalDateString(),
     textoGPT: '',
     peso: '',
     altura: altura?.toString() || ''

@@ -42,7 +42,17 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
   const [alturaInicial, setAlturaInicial] = useState('');
   const [cinturaInicial, setCinturaInicial] = useState('');
   const [quadrilInicial, setQuadrilInicial] = useState('');
-  const [dataFotos, setDataFotos] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Função para obter data local sem problema de timezone
+  const getLocalDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  const [dataFotos, setDataFotos] = useState(getLocalDateString());
 
   // Refs para inputs de arquivo
   const frenteInputRef = useRef<HTMLInputElement>(null);
