@@ -34,7 +34,8 @@ import {
   FileText,
   Calendar,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -99,6 +100,14 @@ export default function PatientEvolution() {
         if (error) {
           console.error('Erro ao buscar paciente:', error);
         } else {
+          console.log('📋 Dados do paciente carregados:', patientData);
+          console.log('📸 Fotos iniciais:', {
+            frente: patientData?.foto_inicial_frente,
+            lado: patientData?.foto_inicial_lado,
+            costas: patientData?.foto_inicial_costas,
+            peso: patientData?.peso_inicial,
+            altura: patientData?.altura_inicial
+          });
           setPatient(patientData);
         }
 
@@ -487,6 +496,112 @@ export default function PatientEvolution() {
                       Alguns gráficos e análises de evolução podem ter informações limitadas.
                     </p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Dados Iniciais (quando não há check-ins mas há fotos/medidas cadastradas) */}
+          {(() => {
+            const hasInitialData = patient && (patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_costas || patient.peso_inicial || patient.altura_inicial);
+            console.log('🔍 Verificando dados iniciais:', {
+              checkinsLength: checkins.length,
+              hasPatient: !!patient,
+              hasInitialData,
+              patient: patient
+            });
+            return checkins.length === 0 && hasInitialData;
+          })() && (
+            <Card className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 backdrop-blur-sm border-purple-700/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Camera className="w-5 h-5 text-purple-400" />
+                  Dados Iniciais Cadastrados
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Baseline do paciente - {patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data não informada'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Medidas Iniciais */}
+                {(patient.peso_inicial || patient.altura_inicial || patient.medida_cintura_inicial || patient.medida_quadril_inicial) && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {patient.peso_inicial && (
+                      <div className="bg-slate-800/50 p-4 rounded-lg border border-purple-500/30">
+                        <p className="text-xs text-slate-400 mb-1">Peso Inicial</p>
+                        <p className="text-2xl font-bold text-white">{patient.peso_inicial} kg</p>
+                      </div>
+                    )}
+                    {patient.altura_inicial && (
+                      <div className="bg-slate-800/50 p-4 rounded-lg border border-purple-500/30">
+                        <p className="text-xs text-slate-400 mb-1">Altura</p>
+                        <p className="text-2xl font-bold text-white">{patient.altura_inicial} m</p>
+                      </div>
+                    )}
+                    {patient.medida_cintura_inicial && (
+                      <div className="bg-slate-800/50 p-4 rounded-lg border border-purple-500/30">
+                        <p className="text-xs text-slate-400 mb-1">Cintura</p>
+                        <p className="text-2xl font-bold text-white">{patient.medida_cintura_inicial} cm</p>
+                      </div>
+                    )}
+                    {patient.medida_quadril_inicial && (
+                      <div className="bg-slate-800/50 p-4 rounded-lg border border-purple-500/30">
+                        <p className="text-xs text-slate-400 mb-1">Quadril</p>
+                        <p className="text-2xl font-bold text-white">{patient.medida_quadril_inicial} cm</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Fotos Iniciais */}
+                {(patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_costas) && (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-purple-400" />
+                      Fotos Baseline
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {patient.foto_inicial_frente && (
+                        <div className="space-y-2">
+                          <img 
+                            src={patient.foto_inicial_frente} 
+                            alt="Foto Frontal Inicial"
+                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                          />
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Frontal</p>
+                        </div>
+                      )}
+                      {patient.foto_inicial_lado && (
+                        <div className="space-y-2">
+                          <img 
+                            src={patient.foto_inicial_lado} 
+                            alt="Foto Lateral Inicial"
+                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                          />
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral</p>
+                        </div>
+                      )}
+                      {patient.foto_inicial_costas && (
+                        <div className="space-y-2">
+                          <img 
+                            src={patient.foto_inicial_costas} 
+                            alt="Foto Costas Inicial"
+                            className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                          />
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Costas</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Botão para editar */}
+                <div className="flex justify-center pt-4">
+                  <InitialDataInput
+                    telefone={telefone!}
+                    nome={patient?.nome || 'Paciente'}
+                    onSuccess={handleInitialDataSuccess}
+                  />
                 </div>
               </CardContent>
             </Card>
