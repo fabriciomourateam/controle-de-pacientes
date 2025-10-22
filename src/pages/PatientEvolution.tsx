@@ -17,6 +17,14 @@ import { AIInsights } from '@/components/evolution/AIInsights';
 import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
+import { AchievementBadges } from '@/components/evolution/AchievementBadges';
+import { TrendsAnalysis } from '@/components/evolution/TrendsAnalysis';
+import { ShareButton } from '@/components/evolution/ShareButton';
+import { CertificateButton } from '@/components/evolution/CertificateButton';
+import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
+import { detectAchievements } from '@/lib/achievement-system';
+import { analyzeTrends } from '@/lib/trends-analysis';
+import type { ShareData } from '@/lib/share-generator';
 import { 
   Download, 
   ArrowLeft, 
@@ -42,6 +50,10 @@ export default function PatientEvolution() {
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
+  
+  // Calcular dados para as novas features
+  const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
+  const trends = checkins.length >= 3 ? analyzeTrends(checkins) : [];
 
   // Calcular idade do paciente
   const calcularIdade = (dataNascimento: string | null) => {
@@ -177,6 +189,93 @@ export default function PatientEvolution() {
     }
   };
 
+  // Preparar dados para compartilhamento
+  const getShareData = (): ShareData | null => {
+    if (checkins.length < 2) return null;
+
+    const sortedCheckins = [...checkins].sort((a, b) => 
+      new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
+    );
+
+    const initialWeight = parseFloat(sortedCheckins[0].peso || '0');
+    const currentWeight = parseFloat(sortedCheckins[sortedCheckins.length - 1].peso || '0');
+    const weightLost = initialWeight - currentWeight;
+
+    const avgScore = sortedCheckins.reduce((acc, c) => 
+      acc + parseFloat(c.total_pontuacao || '0'), 0
+    ) / sortedCheckins.length;
+
+    const daysSinceStart = Math.floor(
+      (new Date(sortedCheckins[sortedCheckins.length - 1].data_checkin).getTime() - 
+       new Date(sortedCheckins[0].data_checkin).getTime()) / 
+      (1000 * 60 * 60 * 24)
+    );
+
+    let bodyFatData;
+    if (bodyCompositions.length >= 2) {
+      const sortedBio = [...bodyCompositions].sort((a, b) => 
+        new Date(a.data_avaliacao).getTime() - new Date(b.data_avaliacao).getTime()
+      );
+      bodyFatData = {
+        initialBodyFat: sortedBio[0].percentual_gordura,
+        currentBodyFat: sortedBio[sortedBio.length - 1].percentual_gordura,
+        bodyFatLost: sortedBio[0].percentual_gordura - sortedBio[sortedBio.length - 1].percentual_gordura
+      };
+    }
+
+    return {
+      patientName: patient?.nome || 'Paciente',
+      initialWeight,
+      currentWeight,
+      weightLost,
+      ...bodyFatData,
+      totalCheckins: sortedCheckins.length,
+      daysSinceStart,
+      avgScore
+    };
+  };
+
+  // Preparar dados para certificado
+  const getCertificateData = () => {
+    if (checkins.length < 2) return null;
+
+    const sortedCheckins = [...checkins].sort((a, b) => 
+      new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
+    );
+
+    const initialWeight = parseFloat(sortedCheckins[0].peso || '0');
+    const currentWeight = parseFloat(sortedCheckins[sortedCheckins.length - 1].peso || '0');
+    const weightLost = initialWeight - currentWeight;
+
+    const totalWeeks = Math.floor(
+      (new Date(sortedCheckins[sortedCheckins.length - 1].data_checkin).getTime() - 
+       new Date(sortedCheckins[0].data_checkin).getTime()) / 
+      (1000 * 60 * 60 * 24 * 7)
+    );
+
+    let bodyFatLost;
+    if (bodyCompositions.length >= 2) {
+      const sortedBio = [...bodyCompositions].sort((a, b) => 
+        new Date(a.data_avaliacao).getTime() - new Date(b.data_avaliacao).getTime()
+      );
+      bodyFatLost = sortedBio[0].percentual_gordura - sortedBio[sortedBio.length - 1].percentual_gordura;
+    }
+
+    return {
+      patientName: patient?.nome || 'Paciente',
+      weightLost,
+      bodyFatLost,
+      startDate: new Date(sortedCheckins[0].data_checkin).toLocaleDateString('pt-BR'),
+      endDate: new Date(sortedCheckins[sortedCheckins.length - 1].data_checkin).toLocaleDateString('pt-BR'),
+      totalWeeks,
+      coachName: 'Equipe InShape', // Pode ser configurável
+      coachTitle: 'Personal Trainer'
+    };
+  };
+
+  const shareData = getShareData();
+  const certificateData = getCertificateData();
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -218,6 +317,26 @@ export default function PatientEvolution() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <PortalLinkButton 
+                telefone={telefone!} 
+                patientName={patient?.nome || 'Paciente'} 
+              />
+              
+              {shareData && <ShareButton data={shareData} />}
+              
+              {certificateData && (
+                <CertificateButton
+                  patientName={certificateData.patientName}
+                  weightLost={certificateData.weightLost}
+                  bodyFatLost={certificateData.bodyFatLost}
+                  startDate={certificateData.startDate}
+                  endDate={certificateData.endDate}
+                  totalWeeks={certificateData.totalWeeks}
+                  coachName={certificateData.coachName}
+                  coachTitle={certificateData.coachTitle}
+                />
+              )}
+              
               <BioimpedanciaInput
                 telefone={telefone!}
                 nome={patient?.nome || 'Paciente'}
@@ -226,6 +345,7 @@ export default function PatientEvolution() {
                 sexo={patient?.genero || null}
                 onSuccess={handleBioSuccess}
               />
+              
               <Button
                 onClick={handleExportPDF}
                 disabled={generatingPDF}
@@ -313,11 +433,33 @@ export default function PatientEvolution() {
             </motion.div>
           )}
 
+          {/* Badges de Conquistas */}
+          {achievements.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
+              <AchievementBadges achievements={achievements} />
+            </motion.div>
+          )}
+
+          {/* Análise de Tendências */}
+          {trends.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <TrendsAnalysis trends={trends} />
+            </motion.div>
+          )}
+
           {/* Análise Inteligente com IA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
           >
             <AIInsights checkins={checkins} />
           </motion.div>
