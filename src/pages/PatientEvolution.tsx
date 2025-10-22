@@ -15,6 +15,7 @@ import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
 import { AIInsights } from '@/components/evolution/AIInsights';
 import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
+import { InitialDataInput } from '@/components/evolution/InitialDataInput';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { AchievementBadges } from '@/components/evolution/AchievementBadges';
@@ -176,6 +177,26 @@ export default function PatientEvolution() {
     if (data) {
       setBodyCompositions(data);
     }
+  };
+
+  const handleInitialDataSuccess = async () => {
+    // Recarregar dados do paciente após adicionar dados iniciais
+    if (!telefone) return;
+    
+    const { data: patientData } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('telefone', telefone)
+      .single();
+    
+    if (patientData) {
+      setPatient(patientData);
+    }
+    
+    toast({
+      title: 'Dados atualizados',
+      description: 'Os dados iniciais foram carregados'
+    });
   };
 
   // Preparar dados para compartilhamento
@@ -427,6 +448,11 @@ export default function PatientEvolution() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 justify-center">
+                  <InitialDataInput
+                    telefone={telefone!}
+                    nome={patient?.nome || 'Paciente'}
+                    onSuccess={handleInitialDataSuccess}
+                  />
                   <BioimpedanciaInput
                     telefone={telefone!}
                     nome={patient?.nome || 'Paciente'}
@@ -537,7 +563,7 @@ export default function PatientEvolution() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <PhotoComparison checkins={checkins} />
+            <PhotoComparison checkins={checkins} patient={patient} />
           </motion.div>
 
           {/* Timeline Detalhada */}

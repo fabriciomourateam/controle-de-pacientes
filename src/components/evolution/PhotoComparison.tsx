@@ -7,9 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
+type Patient = Database['public']['Tables']['patients']['Row'];
 
 interface PhotoComparisonProps {
   checkins: Checkin[];
+  patient?: Patient | null;
 }
 
 interface PhotoData {
@@ -18,14 +20,50 @@ interface PhotoData {
   weight: string;
   checkinId: string;
   photoNumber: number;
+  isInitial?: boolean;
 }
 
-export function PhotoComparison({ checkins }: PhotoComparisonProps) {
+export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoData | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
+  // Adicionar fotos iniciais do paciente (se existirem)
+  const initialPhotos: PhotoData[] = [];
+  if (patient) {
+    if (patient.foto_inicial_frente) {
+      initialPhotos.push({
+        url: patient.foto_inicial_frente,
+        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patient.peso_inicial?.toString() || 'N/A',
+        checkinId: 'initial-frente',
+        photoNumber: 0,
+        isInitial: true
+      });
+    }
+    if (patient.foto_inicial_lado) {
+      initialPhotos.push({
+        url: patient.foto_inicial_lado,
+        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patient.peso_inicial?.toString() || 'N/A',
+        checkinId: 'initial-lado',
+        photoNumber: 0,
+        isInitial: true
+      });
+    }
+    if (patient.foto_inicial_costas) {
+      initialPhotos.push({
+        url: patient.foto_inicial_costas,
+        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patient.peso_inicial?.toString() || 'N/A',
+        checkinId: 'initial-costas',
+        photoNumber: 0,
+        isInitial: true
+      });
+    }
+  }
+
   // Extrair todas as fotos dos check-ins
-  const allPhotos: PhotoData[] = checkins.flatMap(checkin => {
+  const checkinPhotos: PhotoData[] = checkins.flatMap(checkin => {
     const photos: PhotoData[] = [];
     if (checkin.foto_1) photos.push({
       url: checkin.foto_1,
@@ -57,6 +95,9 @@ export function PhotoComparison({ checkins }: PhotoComparisonProps) {
     });
     return photos;
   });
+
+  // Combinar fotos iniciais com fotos de check-ins
+  const allPhotos = [...initialPhotos, ...checkinPhotos];
 
   const handleZoomPhoto = (photo: PhotoData) => {
     setSelectedPhoto(photo);
@@ -130,8 +171,8 @@ export function PhotoComparison({ checkins }: PhotoComparisonProps) {
                     >
                       <ZoomIn className="w-4 h-4" />
                     </Button>
-                    <Badge className="absolute top-2 left-2 bg-blue-600/90 text-white">
-                      INICIAL
+                    <Badge className={`absolute top-2 left-2 ${firstPhoto.isInitial ? 'bg-purple-600/90' : 'bg-blue-600/90'} text-white`}>
+                      {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
                     </Badge>
                   </div>
                   <div className="bg-slate-700/50 p-3 rounded-lg">
@@ -208,8 +249,8 @@ export function PhotoComparison({ checkins }: PhotoComparisonProps) {
                     >
                       <ZoomIn className="w-4 h-4" />
                     </Button>
-                    <Badge className="absolute top-2 left-2 bg-slate-800/90 text-white text-xs">
-                      #{index + 1}
+                    <Badge className={`absolute top-2 left-2 ${photo.isInitial ? 'bg-purple-600/90' : 'bg-slate-800/90'} text-white text-xs`}>
+                      {photo.isInitial ? '⭐' : `#${index + 1}`}
                     </Badge>
                   </div>
                   <div className="text-xs text-center">
