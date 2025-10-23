@@ -123,73 +123,73 @@ export default function PatientEvolution() {
     }
   };
 
-  useEffect(() => {
-    async function loadEvolution() {
-      if (!telefone) {
-        toast({
-          title: 'Erro',
-          description: 'Telefone do paciente não informado',
-          variant: 'destructive'
-        });
-        navigate('/checkins');
-        return;
-      }
-
-      try {
-        setLoading(true);
-        
-        // Buscar check-ins do paciente
-        const checkinsData = await checkinService.getByPhone(telefone);
-        setCheckins(checkinsData);
-
-        // Verificar e migrar fotos do Typebot automaticamente
-        if (checkinsData.length > 0) {
-          checkAndMigratePhotos(checkinsData);
-        }
-
-        // Buscar dados do paciente
-        const { data: patientData, error } = await supabase
-          .from('patients')
-          .select('*')
-          .eq('telefone', telefone)
-          .single();
-
-        if (error) {
-          console.error('Erro ao buscar paciente:', error);
-        } else {
-          console.log('📋 Dados do paciente carregados:', patientData);
-          console.log('📸 Fotos iniciais:', {
-            frente: patientData?.foto_inicial_frente,
-            lado: patientData?.foto_inicial_lado,
-            costas: patientData?.foto_inicial_costas,
-            peso: patientData?.peso_inicial,
-            altura: patientData?.altura_inicial
-          });
-          setPatient(patientData);
-        }
-
-        // Buscar bioimpedâncias
-        const { data: bioData } = await supabase
-          .from('body_composition')
-          .select('*')
-          .eq('telefone', telefone)
-          .order('data_avaliacao', { ascending: false });
-        
-        if (bioData) {
-          setBodyCompositions(bioData);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar evolução:', error);
-        toast({
-          title: 'Erro ao carregar dados',
-          description: 'Ocorreu um erro ao carregar a evolução do paciente',
-          variant: 'destructive'
-        });
-      } finally {
-        setLoading(false);
-      }
+  const loadEvolution = async () => {
+    if (!telefone) {
+      toast({
+        title: 'Erro',
+        description: 'Telefone do paciente não informado',
+        variant: 'destructive'
+      });
+      navigate('/checkins');
+      return;
     }
 
+    try {
+      setLoading(true);
+      
+      // Buscar check-ins do paciente
+      const checkinsData = await checkinService.getByPhone(telefone);
+      setCheckins(checkinsData);
+
+      // Verificar e migrar fotos do Typebot automaticamente
+      if (checkinsData.length > 0) {
+        checkAndMigratePhotos(checkinsData);
+      }
+
+      // Buscar dados do paciente
+      const { data: patientData, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('telefone', telefone)
+        .single();
+
+      if (error) {
+        console.error('Erro ao buscar paciente:', error);
+      } else {
+        console.log('📋 Dados do paciente carregados:', patientData);
+        console.log('📸 Fotos iniciais:', {
+          frente: patientData?.foto_inicial_frente,
+          lado: patientData?.foto_inicial_lado,
+          costas: patientData?.foto_inicial_costas,
+          peso: patientData?.peso_inicial,
+          altura: patientData?.altura_inicial
+        });
+        setPatient(patientData);
+      }
+
+      // Buscar bioimpedâncias
+      const { data: bioData } = await supabase
+        .from('body_composition')
+        .select('*')
+        .eq('telefone', telefone)
+        .order('data_avaliacao', { ascending: false });
+      
+      if (bioData) {
+        setBodyCompositions(bioData);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar evolução:', error);
+      toast({
+        title: 'Erro ao carregar dados',
+        description: 'Ocorreu um erro ao carregar a evolução do paciente',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadEvolution();
   }, [telefone, navigate, toast]);
 
@@ -906,7 +906,7 @@ export default function PatientEvolution() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35 }}
           >
-            <Timeline checkins={checkins} />
+            <Timeline checkins={checkins} onCheckinUpdated={loadEvolution} />
           </motion.div>
             </>
           )}

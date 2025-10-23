@@ -1,17 +1,35 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit } from "lucide-react";
+import { EditCheckinModal } from "./EditCheckinModal";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 
 interface TimelineProps {
   checkins: Checkin[];
+  onCheckinUpdated?: () => void;
 }
 
-export function Timeline({ checkins }: TimelineProps) {
+export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
+  const [editingCheckin, setEditingCheckin] = useState<Checkin | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  
   // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
   const checkinsOrdenados = [...checkins].reverse();
+
+  const handleEditClick = (checkin: Checkin) => {
+    setEditingCheckin(checkin);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    if (onCheckinUpdated) {
+      onCheckinUpdated();
+    }
+  };
 
   const getScoreColor = (score: string | null) => {
     if (!score) return "bg-slate-500/20 text-slate-400 border-slate-500/30";
@@ -100,17 +118,28 @@ export function Timeline({ checkins }: TimelineProps) {
                       </div>
                     </div>
                     
-                    {/* Pontuação Total */}
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-white">
-                        {checkin.total_pontuacao || 'N/A'}
+                    {/* Pontuação Total e Botão Editar */}
+                    <div className="flex items-start gap-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditClick(checkin)}
+                        className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Editar
+                      </Button>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-white">
+                          {checkin.total_pontuacao || 'N/A'}
+                        </div>
+                        <p className="text-xs text-slate-400">pontos totais</p>
+                        {checkin.percentual_aproveitamento && (
+                          <Badge className="mt-1 bg-purple-600/20 text-purple-300 border-purple-500/30">
+                            {checkin.percentual_aproveitamento}% aproveitamento
+                          </Badge>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-400">pontos totais</p>
-                      {checkin.percentual_aproveitamento && (
-                        <Badge className="mt-1 bg-purple-600/20 text-purple-300 border-purple-500/30">
-                          {checkin.percentual_aproveitamento}% aproveitamento
-                        </Badge>
-                      )}
                     </div>
                   </div>
 
@@ -259,6 +288,14 @@ export function Timeline({ checkins }: TimelineProps) {
           })}
         </div>
       </CardContent>
+
+      {/* Modal de Edição */}
+      <EditCheckinModal
+        checkin={editingCheckin}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSuccess={handleEditSuccess}
+      />
     </Card>
   );
 }
