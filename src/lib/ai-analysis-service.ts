@@ -325,7 +325,7 @@ function generateGoals(
         icon: '🎯',
         title: 'Otimizar composição corporal',
         description: 'Reduzir percentual de gordura mantendo/aumentando massa muscular',
-        recommendation: 'Déficit calórico moderado (300-500 kcal), alto consumo de proteína (2g/kg), treino de força 4x/semana',
+        recommendation: 'Déficit calórico moderado (300-500 kcal), proteína 2-2.5g/kg, treino de força 4x/semana com progressão de carga, descanso 60-90s entre séries para preservar músculo',
         priority: 'high'
       });
     } else if (weightData.change < -3) {
@@ -334,7 +334,7 @@ function generateGoals(
         icon: '💪',
         title: 'Preservar massa muscular magra',
         description: 'Continuar reduzindo gordura sem perder músculo',
-        recommendation: 'Manter ingestão proteica alta, não reduzir calorias drasticamente, priorizar treino de força',
+        recommendation: 'Proteína alta (2.5g/kg), treino de força intenso com progressão de carga, descanso adequado 60-90s, não reduzir calorias drasticamente para manter força e músculo',
         priority: 'high'
       });
     } else {
@@ -343,7 +343,7 @@ function generateGoals(
         icon: '⚖️',
         title: 'Recomposição corporal',
         description: 'Ganhar massa muscular enquanto reduz gordura',
-        recommendation: 'Calorias de manutenção, proteína alta (2-2.5g/kg), treino intenso com progressão de carga',
+        recommendation: 'Calorias de manutenção, proteína alta (2-2.5g/kg), treino intenso com progressão de carga semanal (2-5%), descanso 60-90s entre séries, foco em compostos',
         priority: 'high'
       });
     }
@@ -354,7 +354,7 @@ function generateGoals(
       icon: '🎯',
       title: 'Melhorar composição corporal',
       description: 'Foco em ganho de massa muscular e redução de gordura',
-      recommendation: 'Treino de força progressivo, nutrição adequada com proteína suficiente, acompanhar medidas',
+      recommendation: 'Treino de força com progressão de carga semanal, descanso adequado 60-90s entre séries, proteína 2-2.5g/kg, acompanhar medidas e força nos exercícios',
       priority: 'high'
     });
   }
@@ -366,7 +366,7 @@ function generateGoals(
       icon: '💪',
       title: 'Maximizar ganho de massa muscular',
       description: `Elevar consistência de treinos de ${avgWorkout.toFixed(1)} para 8.5+`,
-      recommendation: 'Mínimo 4 treinos de força/semana, foco em compostos, progressão de carga, 8-12 reps',
+      recommendation: 'Progressão de carga semanal (2-5%), descanso 60-90s entre séries, 8-12 reps até falha técnica, foco em exercícios compostos (agachamento, supino, terra)',
       priority: 'high'
     });
   } else {
@@ -375,7 +375,7 @@ function generateGoals(
       icon: '🔥',
       title: 'Manter hipertrofia e definição',
       description: 'Continuar com treinos intensos para preservar/ganhar músculo',
-      recommendation: 'Variar estímulos, incluir técnicas avançadas, manter volume adequado',
+      recommendation: 'Progressão de carga constante (aumentar 2-5% semanalmente), descanso adequado 60-90s entre séries, variar rep ranges (6-15 reps), priorizar exercícios compostos',
       priority: 'medium'
     });
   }
@@ -387,7 +387,7 @@ function generateGoals(
       icon: '😴',
       title: 'Otimizar recuperação e síntese proteica',
       description: `Melhorar sono de ${avgSleep.toFixed(1)} para 8+ (crucial para ganho muscular)`,
-      recommendation: '7-9 horas por noite - hormônio do crescimento é liberado durante sono profundo',
+      recommendation: '7-9 horas por noite para máxima recuperação muscular e liberação de hormônio do crescimento. Descanso adequado = mais força e hipertrofia nos treinos',
       priority: 'high'
     });
   }
@@ -396,9 +396,9 @@ function generateGoals(
   goals.push({
     type: 'goal',
     icon: '🍗',
-    title: 'Nutrição estratégica para recomposição',
-    description: 'Otimizar macronutrientes para mudar composição corporal',
-    recommendation: 'Proteína: 2-2.5g/kg | Carbos nos treinos | Gorduras saudáveis 20-30% | Timing adequado',
+    title: 'Nutrição estratégica para hipertrofia',
+    description: 'Otimizar macronutrientes para maximizar ganho muscular',
+    recommendation: 'Proteína: 2-2.5g/kg (essencial para síntese proteica), carboidratos pré/pós-treino (energia e recuperação), superávit calórico leve 200-300kcal para ganho muscular limpo',
     priority: 'high'
   });
   
@@ -408,7 +408,7 @@ function generateGoals(
     icon: '🏆',
     title: 'Meta de transformação física',
     description: 'Alcançar melhor relação músculo/gordura nos próximos 30 dias',
-    recommendation: 'Integração: treino progressivo + nutrição precisa + sono adequado + controle de stress',
+    recommendation: 'Treino: progressão de carga semanal + descanso 60-90s | Nutrição: proteína alta + timing correto | Recuperação: 7-9h sono + controle de stress para otimizar hipertrofia',
     priority: 'high'
   });
   
