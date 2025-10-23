@@ -17,7 +17,6 @@ import MetricsDashboard from "./pages/MetricsDashboard";
 import CommercialMetrics from "./pages/CommercialMetrics";
 import DebugVendas from "./pages/DebugVendas";
 import Workspace from "./pages/Workspace";
-import Bioimpedancia from "./pages/Bioimpedancia";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
@@ -46,7 +45,6 @@ const App = () => (
           <Route path="/commercial-metrics" element={<CommercialMetrics />} />
           <Route path="/debug-vendas" element={<DebugVendas />} />
           <Route path="/workspace" element={<Workspace />} />
-          <Route path="/bioimpedancia" element={<Bioimpedancia />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />

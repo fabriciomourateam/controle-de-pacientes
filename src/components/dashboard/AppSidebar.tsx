@@ -41,7 +41,6 @@ const mainNavItems = [
   { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },
   { title: "Métricas Comerciais", url: "/commercial-metrics", icon: Target },
   { title: "Workspace", url: "/workspace", icon: Monitor },
-  { title: "Bioimpedância", url: "/bioimpedancia", icon: Activity },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
 
