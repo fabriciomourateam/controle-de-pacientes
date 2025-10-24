@@ -57,7 +57,7 @@ const CHART_TYPES = [
   { 
     value: 'area', 
     label: 'Área', 
-    icon: AreaChart, 
+    icon: Activity, 
     color: 'text-green-500',
     description: 'Destaque visual da evolução'
   },
@@ -84,16 +84,10 @@ const COLORS = {
 export function InteractiveChart({ data, title, description, icon: Icon, iconColor }: InteractiveChartProps) {
   const [chartType, setChartType] = useState('line');
   const [isExpanded, setIsExpanded] = useState(true);
-  const [selectedData, setSelectedData] = useState<ChartData | null>(null);
-
-  const handleDataClick = (data: any) => {
-    setSelectedData(data);
-  };
 
   const renderChart = () => {
     const commonProps = {
       data,
-      onClick: handleDataClick,
       margin: { top: 5, right: 30, left: 20, bottom: 5 }
     };
 
@@ -281,7 +275,7 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2 bg-gradient-to-br from-${iconColor.split('-')[1]}-500/20 to-${iconColor.split('-')[1]}-600/20 rounded-lg`}>
+            <div className="p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg border border-blue-500/30">
               <Icon className={`w-6 h-6 ${iconColor}`} />
             </div>
             <div>
@@ -345,39 +339,7 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
                   {renderChart()}
                 </ResponsiveContainer>
               </div>
-              
-              {selectedData && (
-                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Info className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-medium text-white">Dados Selecionados</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-400">Período</p>
-                      <p className="text-white font-semibold">{selectedData.month}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Novos Pacientes</p>
-                      <p className="text-blue-400 font-semibold">{selectedData.novos}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Renovação</p>
-                      <p className="text-amber-400 font-semibold">{(selectedData.renovacao || 0).toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Churn</p>
-                      <p className="text-red-400 font-semibold">{(selectedData.churn || 0).toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Crescimento</p>
-                      <p className="text-white font-semibold">
-                        {((selectedData.renovacao || 0) - (selectedData.churn || 0)).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+
             </>
           )}
         </CardContent>

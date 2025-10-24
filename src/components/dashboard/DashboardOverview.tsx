@@ -20,7 +20,8 @@ import {
   ArrowRight,
   Star,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  BarChart3
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
@@ -185,7 +186,7 @@ export function DashboardOverview() {
             data={monthlyData}
             title="Evolução Mensal"
             description="Novos pacientes, % de renovação e % de churn por mês"
-            icon={Activity}
+            icon={BarChart3}
             iconColor="text-blue-400"
           />
         </div>
