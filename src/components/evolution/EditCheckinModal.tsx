@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import { cleanWeight } from '@/lib/weight-utils';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 
@@ -87,7 +88,7 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
             const { error } = await supabase
                 .from('checkin')
                 .update({
-                    peso: formData.peso || null,
+                    peso: cleanWeight(formData.peso) || null,
                     pontos_treinos: formData.pontos_treinos || null,
                     pontos_cardios: formData.pontos_cardios || null,
                     pontos_sono: formData.pontos_sono || null,

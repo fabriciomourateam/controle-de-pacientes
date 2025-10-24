@@ -9,7 +9,8 @@ import {
   Activity,
   Eye,
   BarChart3,
-  FileText
+  FileText,
+  Edit
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinItemSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import { CheckinForm } from "@/components/forms/CheckinForm";
+import { formatWeight } from "@/lib/weight-utils";
+import { EditCheckinModal } from "@/components/evolution/EditCheckinModal";
 import { RankingPanel } from "@/components/checkins/RankingPanel";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import {
@@ -52,6 +55,8 @@ export function CheckinsList() {
   const [loading, setLoading] = useState(false);
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinWithPatient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCheckin, setEditingCheckin] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { checkins: recentCheckins, loading: checkinsLoading, refetch } = useCheckinsWithPatient();
 
@@ -72,6 +77,7 @@ export function CheckinsList() {
           workout: [],
           cardio: [],
           sleep: [],
+          water: [],
           overall: []
         };
       }
@@ -80,11 +86,13 @@ export function CheckinsList() {
       const workout = parseFloat(checkin.pontos_treinos || '0');
       const cardio = parseFloat(checkin.pontos_cardios || '0');
       const sleep = parseFloat(checkin.pontos_sono || '0');
+      const water = parseFloat(checkin.pontos_agua || '0');
       const overall = parseFloat(checkin.total_pontuacao || '0');
       
       if (!isNaN(workout)) acc[dateKey].workout.push(workout);
       if (!isNaN(cardio)) acc[dateKey].cardio.push(cardio);
       if (!isNaN(sleep)) acc[dateKey].sleep.push(sleep);
+      if (!isNaN(water)) acc[dateKey].water.push(water);
       if (!isNaN(overall)) acc[dateKey].overall.push(overall);
       
       return acc;
@@ -97,6 +105,7 @@ export function CheckinsList() {
         workout: group.workout.length > 0 ? (group.workout.reduce((a: number, b: number) => a + b, 0) / group.workout.length).toFixed(1) : 0,
         cardio: group.cardio.length > 0 ? (group.cardio.reduce((a: number, b: number) => a + b, 0) / group.cardio.length).toFixed(1) : 0,
         sleep: group.sleep.length > 0 ? (group.sleep.reduce((a: number, b: number) => a + b, 0) / group.sleep.length).toFixed(1) : 0,
+        water: group.water.length > 0 ? (group.water.reduce((a: number, b: number) => a + b, 0) / group.water.length).toFixed(1) : 0,
         overall: group.overall.length > 0 ? (group.overall.reduce((a: number, b: number) => a + b, 0) / group.overall.length).toFixed(1) : 0
       }))
       .sort((a, b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime())
@@ -158,6 +167,15 @@ export function CheckinsList() {
   const handleViewCheckin = (checkin: CheckinWithPatient) => {
     setSelectedCheckin(checkin);
     setIsModalOpen(true);
+  };
+
+  const handleEditCheckin = (checkin: CheckinWithPatient) => {
+    setEditingCheckin(checkin);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    refetch();
   };
 
   const handleSaveCheckin = () => {
@@ -351,6 +369,7 @@ export function CheckinsList() {
                     <Line type="monotone" dataKey="workout" stroke="#8884d8" strokeWidth={2} name="Treino" />
                     <Line type="monotone" dataKey="cardio" stroke="#82ca9d" strokeWidth={2} name="Cardio" />
                     <Line type="monotone" dataKey="sleep" stroke="#ffc658" strokeWidth={2} name="Sono" />
+                    <Line type="monotone" dataKey="water" stroke="#3b82f6" strokeWidth={2} name="Hidratação" />
                   </LineChart>
                 </ResponsiveContainer>
                 
@@ -367,6 +386,10 @@ export function CheckinsList() {
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-0.5 bg-[#ffc658]"></div>
                     <span className="text-slate-300">Sono</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-0.5 bg-[#3b82f6]"></div>
+                    <span className="text-slate-300">Hidratação</span>
                   </div>
                 </div>
               </>
@@ -441,7 +464,7 @@ export function CheckinsList() {
                       <p className="text-sm text-slate-400 font-medium">
                         {checkin.data_preenchimento ? new Date(checkin.data_preenchimento).toLocaleDateString('pt-BR') : 
                          checkin.data_checkin ? new Date(checkin.data_checkin).toLocaleDateString('pt-BR') : 'Data não informada'} • 
-                        Peso: {checkin.peso ? `${checkin.peso}kg` : 'N/A'}
+                        Peso: {formatWeight(checkin.peso)}
                       </p>
                     </div>
                   </div>
@@ -483,6 +506,22 @@ export function CheckinsList() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Ver detalhes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => handleEditCheckin(checkin)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Editar checkin</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -529,6 +568,14 @@ export function CheckinsList() {
           setIsModalOpen(false);
           setSelectedCheckin(null);
         }}
+      />
+
+      {/* Modal de Edição */}
+      <EditCheckinModal
+        checkin={editingCheckin}
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onSuccess={handleEditSuccess}
       />
     </div>
   );

@@ -1,174 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Clock, 
-  Play, 
-  Pause, 
-  Settings, 
-  CheckCircle, 
-  AlertTriangle,
-  RefreshCw 
+  RefreshCw,
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
-import { dashboardAutoSyncService } from '@/lib/dashboard-auto-sync-service';
 
-// Credenciais padrão do Notion para sincronização do Dashboard
-const DEFAULT_NOTION_API_KEY = 'ntn_E50356294261kVEmTcoS17ZLs24AVhXystP6D6Th84L8Yb';
-const DEFAULT_NOTION_DATABASE_ID = '631cf85b608d4c1693b772bfe0822f64';
+// URL do webhook N8N
+const N8N_WEBHOOK_URL = 'https://n8n.shapepro.shop/webhook/atualizardash';
 
 export function DashboardAutoSyncManager() {
-  const [enabled, setEnabled] = useState(false);
-  const [intervalDays, setIntervalDays] = useState(1);
-  const [intervalMinutes, setIntervalMinutes] = useState(1440); // 1 dia = 1440 minutos
-  const [apiKey, setApiKey] = useState(DEFAULT_NOTION_API_KEY);
-  const [databaseId, setDatabaseId] = useState(DEFAULT_NOTION_DATABASE_ID);
-  const [lastSync, setLastSync] = useState<any>(null);
-  const [isRunning, setIsRunning] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(() => {
+    const saved = localStorage.getItem('lastDashboardSync');
+    return saved ? new Date(saved) : null;
+  });
   const { toast } = useToast();
 
-  // Carregar configurações salvas
-  useEffect(() => {
-    const savedConfig = localStorage.getItem('dashboardAutoSyncConfig');
-    if (savedConfig) {
-      try {
-        const config = JSON.parse(savedConfig);
-        setEnabled(config.enabled || false);
-        setIntervalDays(config.intervalDays || 1);
-        setIntervalMinutes(config.intervalMinutes || 1440);
-        // Se não houver credenciais salvas, usar as padrões
-        setApiKey(config.apiKey || DEFAULT_NOTION_API_KEY);
-        setDatabaseId(config.databaseId || DEFAULT_NOTION_DATABASE_ID);
-      } catch (error) {
-        console.error('Erro ao carregar config do localStorage:', error);
-        // Se houver erro, usar valores padrão
-        setApiKey(DEFAULT_NOTION_API_KEY);
-        setDatabaseId(DEFAULT_NOTION_DATABASE_ID);
-      }
-    } else {
-      // Se não houver configuração salva, garantir que os valores padrão estejam definidos
-      setApiKey(DEFAULT_NOTION_API_KEY);
-      setDatabaseId(DEFAULT_NOTION_DATABASE_ID);
-    }
-
-    // Carregar status da sincronização
-    const status = dashboardAutoSyncService.getSyncStatus();
-    if (status) {
-      setLastSync(status);
-      setIsRunning(status.isRunning);
-    }
-  }, []);
-
-  // Converter dias para minutos
-  const convertDaysToMinutes = (days: number) => {
-    return days * 24 * 60; // 1 dia = 1440 minutos
-  };
-
-  // Atualizar minutos quando dias mudarem
-  useEffect(() => {
-    setIntervalMinutes(convertDaysToMinutes(intervalDays));
-  }, [intervalDays]);
-
-  // Salvar configurações
-  const saveConfig = () => {
-    const config = {
-      enabled,
-      intervalDays,
-      intervalMinutes: convertDaysToMinutes(intervalDays),
-      apiKey,
-      databaseId
-    };
-    localStorage.setItem('dashboardAutoSyncConfig', JSON.stringify(config));
-    toast({
-      title: "Configurações salvas",
-      description: "Configurações de auto-sync salvas com sucesso"
-    });
-  };
-
-  // Iniciar sincronização automática
-  const startAutoSync = async () => {
-    if (!apiKey.trim() || !databaseId.trim()) {
-      toast({
-        title: "Erro",
-        description: "Por favor, configure a API Key e Database ID",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await dashboardAutoSyncService.startAutoSync({
-        apiKey: apiKey.trim(),
-        databaseId: databaseId.trim(),
-        intervalDays,
-        intervalMinutes,
-        enabled: true
-      });
-      
-      setIsRunning(true);
-      setEnabled(true);
-      saveConfig();
-      
-      toast({
-        title: "Auto-sync iniciado",
-        description: `Sincronização automática a cada ${intervalDays} ${intervalDays === 1 ? 'dia' : 'dias'}`
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao iniciar auto-sync",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Parar sincronização automática
-  const stopAutoSync = () => {
-    dashboardAutoSyncService.stopAutoSync();
-    setIsRunning(false);
-    setEnabled(false);
-    saveConfig();
+  // Executar sincronização via webhook N8N
+  const syncDashboard = async () => {
+    setSyncing(true);
     
-    toast({
-      title: "Auto-sync parado",
-      description: "Sincronização automática interrompida"
-    });
-  };
-
-  // Executar sincronização manual
-  const runManualSync = async () => {
-    if (!apiKey.trim() || !databaseId.trim()) {
-      toast({
-        title: "Erro",
-        description: "Por favor, configure a API Key e Database ID",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      await dashboardAutoSyncService.startAutoSync({
-        apiKey: apiKey.trim(),
-        databaseId: databaseId.trim(),
-        intervalDays,
-        intervalMinutes,
-        enabled: false
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          timestamp: new Date().toISOString(),
+          source: 'dashboard'
+        })
       });
+
+      if (!response.ok) {
+        throw new Error('Erro na sincronização');
+      }
+
+      const now = new Date();
+      setLastSync(now);
+      localStorage.setItem('lastDashboardSync', now.toISOString());
       
       toast({
-        title: "Sincronização executada",
-        description: "Sincronização manual concluída"
+        title: "Sincronização iniciada! ✅",
+        description: "O dashboard está sendo atualizado via N8N",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro ao sincronizar:', error);
       toast({
-        title: "Erro",
-        description: "Erro na sincronização manual",
+        title: "Erro na sincronização",
+        description: error.message || "Não foi possível conectar ao N8N",
         variant: "destructive"
       });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -176,11 +64,11 @@ export function DashboardAutoSyncManager() {
     <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
-          <Clock className="w-5 h-5 text-blue-400" />
-          Sincronização Automática
+          <RefreshCw className="w-5 h-5 text-blue-400" />
+          Sincronização do Dashboard
         </CardTitle>
         <CardDescription className="text-slate-400">
-          Configure sincronização automática das métricas do Notion
+          Sincronize as métricas do dashboard via N8N
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -188,16 +76,16 @@ export function DashboardAutoSyncManager() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-300">Status:</span>
-            <Badge variant={isRunning ? "default" : "secondary"}>
-              {isRunning ? (
+            <Badge variant={syncing ? "default" : "secondary"}>
+              {syncing ? (
                 <>
-                  <Play className="w-3 h-3 mr-1" />
-                  Ativo
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Sincronizando
                 </>
               ) : (
                 <>
-                  <Pause className="w-3 h-3 mr-1" />
-                  Inativo
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Pronto
                 </>
               )}
             </Badge>
@@ -205,130 +93,41 @@ export function DashboardAutoSyncManager() {
           
           {lastSync && (
             <div className="text-xs text-slate-400">
-              Última sync: {new Date(lastSync.lastSync).toLocaleString('pt-BR')}
+              Última sync: {lastSync.toLocaleString('pt-BR')}
             </div>
           )}
         </div>
 
-        {/* Configurações */}
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="api-key" className="text-white">API Key do Notion</Label>
-            <Input
-              id="api-key"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="secret_..."
-              className="mt-1 bg-slate-700/50 border-slate-600/50 text-white"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="database-id" className="text-white">Database ID</Label>
-            <Input
-              id="database-id"
-              value={databaseId}
-              onChange={(e) => setDatabaseId(e.target.value)}
-              placeholder="631cf85b-608d-4c16-93b7-72bfe0822f64"
-              className="mt-1 bg-slate-700/50 border-slate-600/50 text-white"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="interval" className="text-white">Intervalo (dias)</Label>
-            <Input
-              id="interval"
-              type="number"
-              min="1"
-              max="30"
-              value={intervalDays}
-              onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
-              className="w-20 bg-slate-700/50 border-slate-600/50 text-white"
-            />
-          </div>
-          <div className="text-xs text-slate-400">
-            Equivale a {convertDaysToMinutes(intervalDays)} minutos ({intervalDays} {intervalDays === 1 ? 'dia' : 'dias'})
-          </div>
+        {/* Informações */}
+        <div className="bg-slate-700/30 rounded-lg p-4">
+          <p className="text-sm text-slate-300">
+            Clique no botão abaixo para iniciar a sincronização das métricas do dashboard através do webhook N8N.
+          </p>
+          <p className="text-xs text-slate-400 mt-2">
+            Webhook: {N8N_WEBHOOK_URL}
+          </p>
         </div>
 
-        {/* Estatísticas da última sincronização */}
-        {lastSync && (
-          <div className="bg-slate-700/30 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-white mb-2">Última Sincronização</h4>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Inseridos:</span>
-                <span className="text-green-400">{lastSync.inserted || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Atualizados:</span>
-                <span className="text-blue-400">{lastSync.updated || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Erros:</span>
-                <span className="text-red-400">{lastSync.errors || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Total:</span>
-                <span className="text-white">{lastSync.totalRecords || 0}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Controles */}
-        <div className="flex gap-2">
-          {!isRunning ? (
-            <Button
-              onClick={startAutoSync}
-              disabled={!apiKey.trim() || !databaseId.trim()}
-              className="bg-green-600 text-white hover:bg-green-700"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Iniciar Auto-sync
-            </Button>
+        {/* Botão de Sincronização */}
+        <Button
+          onClick={syncDashboard}
+          disabled={syncing}
+          className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+          size="lg"
+        >
+          {syncing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Sincronizando...
+            </>
           ) : (
-            <Button
-              onClick={stopAutoSync}
-              variant="destructive"
-            >
-              <Pause className="w-4 h-4 mr-2" />
-              Parar Auto-sync
-            </Button>
+            <>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sincronizar Dashboard
+            </>
           )}
-          
-          <Button
-            onClick={runManualSync}
-            disabled={!apiKey.trim() || !databaseId.trim()}
-            variant="outline"
-            className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Sync Manual
-          </Button>
-          
-          <Button
-            onClick={saveConfig}
-            variant="outline"
-            className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Salvar
-          </Button>
-        </div>
+        </Button>
       </CardContent>
     </Card>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
