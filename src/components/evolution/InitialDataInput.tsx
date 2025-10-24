@@ -38,6 +38,7 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
   const [previewCostas, setPreviewCostas] = useState<string>('');
 
   // Estados para as medidas
+  const [idade, setIdade] = useState('');
   const [pesoInicial, setPesoInicial] = useState('');
   const [alturaInicial, setAlturaInicial] = useState('');
   const [cinturaInicial, setCinturaInicial] = useState('');
@@ -122,17 +123,8 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       setLoading(true);
       console.log('🚀 Iniciando salvamento dos dados iniciais...');
 
-      // Validar se pelo menos uma foto foi enviada
-      if (!fotoFrente && !fotoLado && !fotoLado2 && !fotoCostas) {
-        toast({
-          title: 'Atenção',
-          description: 'Adicione pelo menos uma foto',
-          variant: 'destructive'
-        });
-        return;
-      }
-
       console.log('📋 Dados para salvar:', {
+        idade: idade,
         peso: pesoInicial,
         altura: alturaInicial,
         cintura: cinturaInicial,
@@ -182,6 +174,12 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       if (fotoLadoUrl) updateData.foto_inicial_lado = fotoLadoUrl;
       if (fotoLado2Url) updateData.foto_inicial_lado_2 = fotoLado2Url;
       if (fotoCostasUrl) updateData.foto_inicial_costas = fotoCostasUrl;
+      // Calcular data de nascimento a partir da idade informada
+      if (idade) {
+        const anoAtual = new Date().getFullYear();
+        const anoNascimento = anoAtual - parseInt(idade);
+        updateData.data_nascimento = `${anoNascimento}-01-01`; // Define como 1º de janeiro do ano calculado
+      }
       if (pesoInicial) updateData.peso_inicial = parseFloat(pesoInicial);
       if (alturaInicial) updateData.altura_inicial = parseFloat(alturaInicial);
       if (cinturaInicial) updateData.medida_cintura_inicial = parseFloat(cinturaInicial);
@@ -218,15 +216,16 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
       setPreviewLado('');
       setPreviewLado2('');
       setPreviewCostas('');
+      setIdade('');
       setPesoInicial('');
       setAlturaInicial('');
       setCinturaInicial('');
       setQuadrilInicial('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar dados iniciais:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível salvar os dados iniciais',
+        description: error?.message || 'Não foi possível salvar os dados iniciais',
         variant: 'destructive'
       });
     } finally {
@@ -265,6 +264,17 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
 
           {/* Medidas */}
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="idade">🎂 Idade</Label>
+              <Input
+                id="idade"
+                type="number"
+                placeholder="Ex: 30"
+                value={idade}
+                onChange={(e) => setIdade(e.target.value)}
+                className="mt-1"
+              />
+            </div>
             <div>
               <Label htmlFor="peso">⚖️ Peso Inicial (kg)</Label>
               <Input
@@ -363,15 +373,15 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
               </div>
             </div>
 
-            {/* Foto Lado 1 */}
+            {/* Foto Lateral Esquerda */}
             <div>
-              <Label>Foto Lateral 1</Label>
+              <Label>Foto Lateral Esquerda</Label>
               <div className="mt-2">
                 {previewLado ? (
                   <div className="relative inline-block">
                     <img
                       src={previewLado}
-                      alt="Preview Lado"
+                      alt="Preview Lateral Esquerda"
                       className="w-40 h-40 object-cover rounded-lg border-2 border-blue-500"
                     />
                     <Button
@@ -407,15 +417,15 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
               </div>
             </div>
 
-            {/* Foto Lado 2 */}
+            {/* Foto Lateral Direita */}
             <div>
-              <Label>Foto Lateral 2 (opcional)</Label>
+              <Label>Foto Lateral Direita</Label>
               <div className="mt-2">
                 {previewLado2 ? (
                   <div className="relative inline-block">
                     <img
                       src={previewLado2}
-                      alt="Preview Lado 2"
+                      alt="Preview Lateral Direita"
                       className="w-40 h-40 object-cover rounded-lg border-2 border-blue-500"
                     />
                     <Button

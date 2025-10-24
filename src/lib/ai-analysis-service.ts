@@ -251,7 +251,7 @@ function calculateAverage(checkins: Checkin[], field: keyof Checkin): number {
   const values = checkins
     .map(c => parseFloat(c[field] as string || '0'))
     .filter(v => !isNaN(v) && v > 0);
-  
+
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
@@ -264,15 +264,15 @@ function analyzeWeightTrend(checkins: Checkin[]) {
   const sortedCheckins = [...checkins]
     .filter(c => c.peso)
     .sort((a, b) => new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime());
-  
+
   const weights = sortedCheckins.map(c => parseFloat(c.peso || '0'));
-  
+
   if (weights.length < 2) return null;
-  
+
   const firstWeight = weights[0];
   const lastWeight = weights[weights.length - 1];
   const change = lastWeight - firstWeight;
-  
+
   return {
     change,
     trend: change < -0.5 ? 'losing' : change > 0.5 ? 'gaining' : 'stable'
@@ -284,21 +284,21 @@ function analyzeWeightTrend(checkins: Checkin[]) {
  */
 function analyzeRecentTrend(checkins: Checkin[]): 'improving' | 'stable' | 'declining' {
   if (checkins.length < 3) return 'stable';
-  
+
   // Ordenar do mais antigo para o mais recente
-  const sortedCheckins = [...checkins].sort((a, b) => 
+  const sortedCheckins = [...checkins].sort((a, b) =>
     new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
   );
-  
+
   const recent = sortedCheckins.slice(-3);
   const scores = recent
     .map(c => parseFloat(c.total_pontuacao || '0'))
     .filter(s => !isNaN(s));
-  
+
   if (scores.length < 2) return 'stable';
-  
+
   const trend = scores[scores.length - 1] - scores[0];
-  
+
   if (trend > 0.5) return 'improving';
   if (trend < -0.5) return 'declining';
   return 'stable';
@@ -315,7 +315,7 @@ function generateGoals(
   avgWater: number
 ): AnalysisInsight[] {
   const goals: AnalysisInsight[] = [];
-  
+
   // Meta de composição corporal
   const weightData = analyzeWeightTrend(checkins);
   if (weightData) {
@@ -358,7 +358,7 @@ function generateGoals(
       priority: 'high'
     });
   }
-  
+
   // Meta de treino para hipertrofia/força
   if (avgWorkout < 8) {
     goals.push({
@@ -379,7 +379,7 @@ function generateGoals(
       priority: 'medium'
     });
   }
-  
+
   // Meta de sono para recuperação muscular
   if (avgSleep < 8) {
     goals.push({
@@ -391,17 +391,17 @@ function generateGoals(
       priority: 'high'
     });
   }
-  
+
   // Meta de nutrição para composição corporal
   goals.push({
     type: 'goal',
-    icon: '🍗',
+    icon: '🥗',
     title: 'Nutrição estratégica para hipertrofia',
     description: 'Otimizar macronutrientes para maximizar ganho muscular',
     recommendation: 'Proteína: 2-2.5g/kg (essencial para síntese proteica), carboidratos pré/pós-treino (energia e recuperação), superávit calórico leve 200-300kcal para ganho muscular limpo',
     priority: 'high'
   });
-  
+
   // Meta geral de composição corporal
   goals.push({
     type: 'goal',
@@ -411,7 +411,7 @@ function generateGoals(
     recommendation: 'Treino: progressão de carga semanal + descanso 60-90s | Nutrição: proteína alta + timing correto | Recuperação: 7-9h sono + controle de stress para otimizar hipertrofia',
     priority: 'high'
   });
-  
+
   return goals;
 }
 
@@ -481,7 +481,7 @@ Seja específico, encorajador e prático nas recomendações.
     // Por enquanto, retorna análise baseada em regras
     console.log('API de IA não configurada, usando análise local');
     return analyzePatientProgress(checkins);
-    
+
   } catch (error) {
     console.error('Erro ao analisar com IA:', error);
     // Fallback para análise local

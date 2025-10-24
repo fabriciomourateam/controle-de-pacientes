@@ -246,13 +246,21 @@ export function PatientsListNew() {
     if (!patientToDelete) return;
     
     try {
-      // Implementar delete
+      // Excluir paciente do Supabase
+      const { error } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', patientToDelete.id);
+
+      if (error) throw error;
+
       toast({
         title: "Sucesso",
         description: "Paciente excluído com sucesso"
       });
       await loadPatients();
     } catch (error) {
+      console.error('Erro ao excluir paciente:', error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir o paciente",

@@ -21,6 +21,7 @@ interface BioimpedanciaInputProps {
   nome: string;
   idade: number | null;
   altura: number | null; // em metros, ex: 1.75
+  pesoInicial?: number | null; // peso inicial do paciente
   sexo: string | null; // 'M' ou 'F'
   onSuccess: () => void;
 }
@@ -29,7 +30,8 @@ export function BioimpedanciaInput({
   telefone, 
   nome, 
   idade, 
-  altura, 
+  altura,
+  pesoInicial, 
   sexo, 
   onSuccess 
 }: BioimpedanciaInputProps) {
@@ -91,11 +93,25 @@ export function BioimpedanciaInput({
             title: 'Dados carregados ✅',
             description: `Última avaliação: ${new Date(lastBio.data_avaliacao).toLocaleDateString('pt-BR')}`,
           });
+        } else {
+          // Se não há bioimpedância anterior, usar peso inicial do cadastro
+          if (pesoInicial) {
+            setFormData(prev => ({
+              ...prev,
+              peso: pesoInicial.toString()
+            }));
+          }
         }
       } catch (error) {
-        // Não há bioimpedância anterior, campos ficam vazios/com dados do cadastro
+        // Não há bioimpedância anterior, usar peso inicial do cadastro
         console.log('Primeira bioimpedância do paciente');
         setHasLastBio(false);
+        if (pesoInicial) {
+          setFormData(prev => ({
+            ...prev,
+            peso: pesoInicial.toString()
+          }));
+        }
       } finally {
         setLoadingLastBio(false);
       }

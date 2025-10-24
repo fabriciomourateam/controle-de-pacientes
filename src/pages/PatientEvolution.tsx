@@ -492,8 +492,9 @@ export default function PatientEvolution() {
               <BioimpedanciaInput
                 telefone={telefone!}
                 nome={patient?.nome || 'Paciente'}
-                idade={patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null}
-                altura={null}
+                idade={patient?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
+                altura={(patient as any)?.altura_inicial || null}
+                pesoInicial={(patient as any)?.peso_inicial || null}
                 sexo={patient?.genero || null}
                 onSuccess={handleBioSuccess}
               />
@@ -589,8 +590,9 @@ export default function PatientEvolution() {
                   <BioimpedanciaInput
                     telefone={telefone!}
                     nome={patient?.nome || 'Paciente'}
-                    idade={patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null}
-                    altura={null}
+                    idade={patient?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
+                    altura={(patient as any)?.altura_inicial || null}
+                    pesoInicial={(patient as any)?.peso_inicial || null}
                     sexo={patient?.genero || null}
                     onSuccess={handleBioSuccess}
                   />
@@ -648,8 +650,14 @@ export default function PatientEvolution() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Medidas Iniciais */}
-                {(patient.peso_inicial || patient.altura_inicial || patient.medida_cintura_inicial || patient.medida_quadril_inicial) && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(patient.data_nascimento || patient.peso_inicial || patient.altura_inicial || patient.medida_cintura_inicial || patient.medida_quadril_inicial) && (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {patient.data_nascimento && (
+                      <div className="bg-slate-800/50 p-4 rounded-lg border border-purple-500/30">
+                        <p className="text-xs text-slate-400 mb-1">Idade</p>
+                        <p className="text-2xl font-bold text-white">{calcularIdade(patient.data_nascimento)} anos</p>
+                      </div>
+                    )}
                     {patient.peso_inicial && (
                       <div className="bg-slate-800/50 p-4 rounded-lg border border-purple-500/30">
                         <p className="text-xs text-slate-400 mb-1">Peso Inicial</p>
@@ -721,16 +729,16 @@ export default function PatientEvolution() {
                           <div className="relative group">
                             <img 
                               src={patient.foto_inicial_lado} 
-                              alt="Foto Lateral 1"
+                              alt="Foto Lateral Esquerda"
                               className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                              onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral 1')}
+                              onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
                             />
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="icon"
                                 variant="secondary"
                                 className="h-8 w-8"
-                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral 1')}
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
@@ -744,7 +752,7 @@ export default function PatientEvolution() {
                               </Button>
                             </div>
                           </div>
-                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral 1</p>
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral Esquerda</p>
                         </div>
                       )}
                       {patient.foto_inicial_lado_2 && (
@@ -752,16 +760,16 @@ export default function PatientEvolution() {
                           <div className="relative group">
                             <img 
                               src={patient.foto_inicial_lado_2} 
-                              alt="Foto Lateral 2"
+                              alt="Foto Lateral Direita"
                               className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                              onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral 2')}
+                              onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
                             />
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="icon"
                                 variant="secondary"
                                 className="h-8 w-8"
-                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral 2')}
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
@@ -775,7 +783,7 @@ export default function PatientEvolution() {
                               </Button>
                             </div>
                           </div>
-                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral 2</p>
+                          <p className="text-center text-sm text-purple-300 font-semibold">📷 Lateral Direita</p>
                         </div>
                       )}
                       {patient.foto_inicial_costas && (
