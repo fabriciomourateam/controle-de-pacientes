@@ -49,12 +49,24 @@ import { PatientSorting, PatientSortingProps } from "@/components/patients/Patie
 import { ColumnSelector, ColumnOption } from "@/components/patients/ColumnSelector";
 import { TableRowSkeleton } from "@/components/ui/loading-skeleton";
 import { DeleteConfirmation } from "@/components/ui/confirmation-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 import { PatientForm } from "@/components/forms/PatientForm";
 import { PatientDetailsModal } from "@/components/modals/PatientDetailsModal";
 import { RenewPlanModal } from "@/components/modals/RenewPlanModal";
 import { patientService } from "@/lib/supabase-services";
 import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 
 export function PatientsListNew() {
   const navigate = useNavigate();
@@ -238,32 +250,48 @@ export function PatientsListNew() {
   };
 
   const handleDeletePatient = (patient: Patient) => {
+    console.log('🗑️ Tentando excluir paciente:', patient.nome);
     setPatientToDelete(patient);
     setIsDeleteModalOpen(true);
+    console.log('Modal de exclusão aberto:', true);
   };
 
   const confirmDelete = async () => {
-    if (!patientToDelete) return;
+    console.log('✅ Confirmando exclusão do paciente:', patientToDelete?.nome);
+    if (!patientToDelete) {
+      console.log('❌ Nenhum paciente selecionado para exclusão');
+      return;
+    }
     
     try {
+      console.log('🔄 Excluindo paciente do Supabase...', patientToDelete.id);
       // Excluir paciente do Supabase
       const { error } = await supabase
         .from('patients')
         .delete()
         .eq('id', patientToDelete.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        throw error;
+      }
 
+      console.log('✅ Paciente excluído com sucesso!');
       toast({
         title: "Sucesso",
         description: "Paciente excluído com sucesso"
       });
+      
+      // Recarregar ambas as listas
+      console.log('🔄 Recarregando listas de pacientes...');
       await loadPatients();
-    } catch (error) {
-      console.error('Erro ao excluir paciente:', error);
+      await loadAllPatients();
+      console.log('✅ Listas recarregadas!');
+    } catch (error: any) {
+      console.error('❌ Erro ao excluir paciente:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o paciente",
+        description: error.message || "Não foi possível excluir o paciente",
         variant: "destructive"
       });
     } finally {
@@ -604,16 +632,37 @@ export function PatientsListNew() {
         }}
       />
 
-      <DeleteConfirmation
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setPatientToDelete(null);
-        }}
-        onConfirm={confirmDelete}
-        title="Excluir Paciente"
-        description={`Tem certeza que deseja excluir o paciente ${patientToDelete?.nome}? Esta ação não pode ser desfeita.`}
-      />
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Excluir Paciente
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Tem certeza que deseja excluir o paciente <span className="font-semibold text-white">{patientToDelete?.nome}</span>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setIsDeleteModalOpen(false);
+                setPatientToDelete(null);
+              }}
+              className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Sim, excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
