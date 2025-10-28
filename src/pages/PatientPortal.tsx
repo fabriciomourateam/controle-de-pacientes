@@ -333,7 +333,7 @@ export default function PatientPortal() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
           >
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Check-ins Realizados */}
               <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
                 <CardHeader className="pb-2">
@@ -365,18 +365,20 @@ export default function PatientPortal() {
               )}
 
               {/* Altura */}
-              <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-slate-300">Altura</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-white">
-                    {patient?.altura_inicial || 'N/A'}
-                    {patient?.altura_inicial && <span className="text-lg ml-1">m</span>}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Altura</p>
-                </CardContent>
-              </Card>
+              {patient?.altura_inicial && (
+                <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-slate-300">Altura</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-white">
+                      {patient.altura_inicial}
+                      <span className="text-lg ml-1">m</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Altura</p>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Peso Inicial */}
               {(() => {
