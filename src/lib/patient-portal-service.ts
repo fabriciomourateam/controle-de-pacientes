@@ -85,6 +85,35 @@ export async function getOrCreatePatientToken(telefone: string): Promise<{ token
  */
 export async function validateToken(token: string): Promise<string | null> {
   try {
+    // Verificar se é um token temporário do login (formato: base64 de "telefone:timestamp")
+    try {
+      const decoded = atob(token);
+      const [phone, timestamp] = decoded.split(':');
+      
+      if (phone && timestamp) {
+        const tokenTime = parseInt(timestamp);
+        const now = Date.now();
+        const hoursDiff = (now - tokenTime) / (1000 * 60 * 60);
+        
+        // Token válido por 24 horas
+        if (hoursDiff < 24) {
+          // Verificar se o paciente existe
+          const { data: patient } = await supabase
+            .from('patients')
+            .select('telefone')
+            .eq('telefone', phone)
+            .single();
+          
+          if (patient) {
+            return phone;
+          }
+        }
+      }
+    } catch (e) {
+      // Não é um token temporário, continuar com validação normal
+    }
+
+    // Validação normal do token do banco
     const { data, error } = await supabase
       .from('patient_portal_tokens')
       .select('telefone, expires_at, is_active')

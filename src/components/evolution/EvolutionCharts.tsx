@@ -103,70 +103,6 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Check-ins Realizados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{checkins.length}</div>
-            <p className="text-xs text-slate-400 mt-1">Total de avaliações</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300">Peso Inicial</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">
-              {weightDataOrdenado[0]?.peso?.toFixed(1) || 'N/A'}
-              {weightDataOrdenado[0]?.peso && <span className="text-lg ml-1">kg</span>}
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {weightDataOrdenado[0] && weightDataOrdenado[0].data}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300">Peso Atual</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">
-              {weightDataOrdenado[weightDataOrdenado.length - 1]?.peso?.toFixed(1) || 'N/A'}
-              {weightDataOrdenado[weightDataOrdenado.length - 1]?.peso && <span className="text-lg ml-1">kg</span>}
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {weightDataOrdenado.length > 0 && weightDataOrdenado[weightDataOrdenado.length - 1].data}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className={`bg-gradient-to-br ${parseFloat(weightChange) < 0 ? 'from-emerald-500/20 to-emerald-600/20 border-emerald-500/30' : 'from-orange-500/20 to-orange-600/20 border-orange-500/30'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Variação
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">
-              {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange}
-              <span className="text-lg ml-1">kg</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {parseFloat(weightChange) < 0 ? 'Perda de peso' : parseFloat(weightChange) > 0 ? 'Ganho de peso' : 'Sem variação'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Gráfico de Peso */}
       {weightData.length > 0 && (
         <Card className="bg-slate-800/40 border-slate-700/50">
@@ -177,21 +113,21 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
             </CardTitle>
             <CardDescription className="text-slate-400">
               Acompanhamento do peso ao longo do tempo
-              <div className="flex items-center gap-4 mt-2 text-xs">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-purple-500 border border-white"></div>
-                  <span>Peso Inicial</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500 border border-white"></div>
-                  <span>1º Check-in</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span>Check-ins</span>
-                </div>
-              </div>
             </CardDescription>
+            <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-purple-500 border border-white"></div>
+                <span>Peso Inicial</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-green-500 border border-white"></div>
+                <span>1º Check-in</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span>Check-ins</span>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

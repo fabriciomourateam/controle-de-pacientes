@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -11,9 +11,10 @@ type Checkin = Database['public']['Tables']['checkin']['Row'];
 interface TimelineProps {
   checkins: Checkin[];
   onCheckinUpdated?: () => void;
+  showEditButton?: boolean; // Controla se mostra o botão de editar
 }
 
-export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
+export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: TimelineProps) {
   const [editingCheckin, setEditingCheckin] = useState<Checkin | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   
@@ -100,10 +101,10 @@ export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
                 {/* Card do Check-in */}
                 <div className="bg-gradient-to-br from-slate-700/40 to-slate-800/40 rounded-lg p-4 border border-slate-600/50 hover:border-slate-500/50 transition-all">
                   {/* Cabeçalho */}
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
                       <div>
-                        <h4 className="text-white font-semibold text-lg flex items-center gap-2">
+                        <h4 className="text-white font-semibold text-lg flex items-center gap-2 flex-wrap">
                           {checkinDate.toLocaleDateString('pt-BR', { 
                             day: '2-digit', 
                             month: 'long', 
@@ -119,23 +120,25 @@ export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
                     </div>
                     
                     {/* Pontuação Total e Botão Editar */}
-                    <div className="flex items-start gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditClick(checkin)}
-                        className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Editar
-                      </Button>
-                      <div className="text-right">
+                    <div className="flex items-start gap-3 w-full sm:w-auto">
+                      {showEditButton && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditClick(checkin)}
+                          className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                      )}
+                      <div className="flex flex-col items-end flex-1 sm:flex-initial">
                         <div className="text-2xl font-bold text-white">
                           {checkin.total_pontuacao || 'N/A'}
                         </div>
-                        <p className="text-xs text-slate-400">pontos totais</p>
+                        <p className="text-xs text-slate-400 whitespace-nowrap">pontos totais</p>
                         {checkin.percentual_aproveitamento && (
-                          <Badge className="mt-1 bg-purple-600/20 text-purple-300 border-purple-500/30">
+                          <Badge className="mt-1 bg-purple-600/20 text-purple-300 border-purple-500/30 whitespace-nowrap">
                             {checkin.percentual_aproveitamento}% aproveitamento
                           </Badge>
                         )}
@@ -146,7 +149,10 @@ export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
                   {/* Dados Físicos */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <p className="text-xs text-slate-400 mb-1">Peso</p>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Weight className="w-3 h-3 text-slate-400" />
+                        <p className="text-xs text-slate-400">Peso</p>
+                      </div>
                       <div className="flex items-center gap-2">
                         <p className="text-lg font-bold text-white">{checkin.peso || 'N/A'}</p>
                         {checkin.peso && <span className="text-xs text-slate-400">kg</span>}
@@ -215,14 +221,20 @@ export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
                     </div>
 
                     <div className="bg-slate-800/50 p-2 rounded-lg">
-                      <p className="text-xs text-slate-400 mb-1">Libido</p>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Flame className="w-3 h-3 text-pink-400" />
+                        <p className="text-xs text-slate-400">Libido</p>
+                      </div>
                       <Badge variant="outline" className={getScoreColor(checkin.pontos_libido)}>
                         {checkin.pontos_libido || 'N/A'}
                       </Badge>
                     </div>
 
                     <div className="bg-slate-800/50 p-2 rounded-lg">
-                      <p className="text-xs text-slate-400 mb-1">Qualidade Sono</p>
+                      <div className="flex items-center gap-1 mb-1">
+                        <BedDouble className="w-3 h-3 text-indigo-400" />
+                        <p className="text-xs text-slate-400">Qualidade Sono</p>
+                      </div>
                       <Badge variant="outline" className={getScoreColor(checkin.pontos_qualidade_sono)}>
                         {checkin.pontos_qualidade_sono || 'N/A'}
                       </Badge>
@@ -266,18 +278,18 @@ export function Timeline({ checkins, onCheckinUpdated }: TimelineProps) {
                   {(checkin.foto_1 || checkin.foto_2 || checkin.foto_3 || checkin.foto_4) && (
                     <div className="pt-3 mt-3 border-t border-slate-600/50">
                       <p className="text-xs text-slate-400 mb-2 font-semibold">Fotos do Check-in:</p>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {checkin.foto_1 && (
-                          <img src={checkin.foto_1} alt="Foto 1" className="w-full h-20 object-cover rounded border border-slate-600" />
+                          <img src={checkin.foto_1} alt="Foto 1" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                         )}
                         {checkin.foto_2 && (
-                          <img src={checkin.foto_2} alt="Foto 2" className="w-full h-20 object-cover rounded border border-slate-600" />
+                          <img src={checkin.foto_2} alt="Foto 2" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                         )}
                         {checkin.foto_3 && (
-                          <img src={checkin.foto_3} alt="Foto 3" className="w-full h-20 object-cover rounded border border-slate-600" />
+                          <img src={checkin.foto_3} alt="Foto 3" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                         )}
                         {checkin.foto_4 && (
-                          <img src={checkin.foto_4} alt="Foto 4" className="w-full h-20 object-cover rounded border border-slate-600" />
+                          <img src={checkin.foto_4} alt="Foto 4" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                         )}
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +25,10 @@ import {
   AlertCircle,
   RefreshCw,
   Lock,
-  Download
+  Download,
+  TrendingUp,
+  Weight,
+  Flame
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -48,6 +51,20 @@ export default function PatientPortal() {
   // Calcular dados
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
   const trends = checkins.length >= 3 ? analyzeTrends(checkins) : [];
+
+  // Calcular idade do paciente
+  const calcularIdade = (dataNascimento: string | null) => {
+    if (!dataNascimento) return null;
+    const hoje = new Date();
+    const nascimento = new Date(dataNascimento);
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const mesAtual = hoje.getMonth();
+    const mesNascimento = nascimento.getMonth();
+    if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < nascimento.getDate())) {
+      idade--;
+    }
+    return idade;
+  };
 
   useEffect(() => {
     loadPortalData();
@@ -309,6 +326,155 @@ export default function PatientPortal() {
           </Card>
         </motion.div>
 
+        {/* Cards de Resumo */}
+        {checkins.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {/* Check-ins Realizados */}
+              <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Check-ins Realizados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-white">{checkins.length}</div>
+                  <p className="text-xs text-slate-400 mt-1">Total de avaliações</p>
+                </CardContent>
+              </Card>
+
+              {/* Idade */}
+              {patient?.data_nascimento && (
+                <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 border-cyan-500/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-slate-300">Idade</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-white">
+                      {calcularIdade(patient.data_nascimento)}
+                      <span className="text-lg ml-1">anos</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Idade atual</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Altura */}
+              <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-slate-300">Altura</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-white">
+                    {patient?.altura_inicial || 'N/A'}
+                    {patient?.altura_inicial && <span className="text-lg ml-1">m</span>}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Altura</p>
+                </CardContent>
+              </Card>
+
+              {/* Peso Inicial */}
+              {(() => {
+                const weightData = [];
+                if (patient?.peso_inicial) {
+                  const dataInicial = patient.data_fotos_iniciais || patient.created_at;
+                  weightData.push({
+                    data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                    peso: parseFloat(patient.peso_inicial.toString())
+                  });
+                }
+                checkins.slice().reverse().forEach((c) => {
+                  if (c.peso) {
+                    weightData.push({
+                      data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                      peso: parseFloat(c.peso.replace(',', '.'))
+                    });
+                  }
+                });
+
+                return weightData.length > 0 ? (
+                  <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-slate-300">Peso Inicial</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">
+                        {weightData[0]?.peso?.toFixed(1) || 'N/A'}
+                        {weightData[0]?.peso && <span className="text-lg ml-1">kg</span>}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {weightData[0]?.data}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : null;
+              })()}
+
+              {/* Peso Atual */}
+              {checkins[0]?.peso && (
+                <Card className="bg-gradient-to-br from-indigo-500/20 to-indigo-600/20 border-indigo-500/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-slate-300">Peso Atual</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-white">
+                      {parseFloat(checkins[0].peso.replace(',', '.')).toFixed(1)}
+                      <span className="text-lg ml-1">kg</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Variação */}
+              {(() => {
+                const weightData = [];
+                if (patient?.peso_inicial) {
+                  weightData.push(parseFloat(patient.peso_inicial.toString()));
+                }
+                checkins.slice().reverse().forEach((c) => {
+                  if (c.peso) {
+                    weightData.push(parseFloat(c.peso.replace(',', '.')));
+                  }
+                });
+
+                const weightChange = weightData.length >= 2 
+                  ? (weightData[weightData.length - 1] - weightData[0]).toFixed(1)
+                  : '0.0';
+                const isNegative = parseFloat(weightChange) < 0;
+                const isNeutral = Math.abs(parseFloat(weightChange)) < 0.1;
+
+                return (
+                  <Card className={`bg-gradient-to-br ${isNeutral ? 'from-slate-500/20 to-slate-600/20 border-slate-500/30' : isNegative ? 'from-emerald-500/20 to-emerald-600/20 border-emerald-500/30' : 'from-orange-500/20 to-orange-600/20 border-orange-500/30'}`}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        Variação
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-white">
+                        {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange}
+                        <span className="text-lg ml-1">kg</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {isNeutral ? 'Sem variação' : isNegative ? 'Perda de peso' : 'Ganho de peso'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+            </div>
+          </motion.div>
+        )}
+
         {/* Aviso se houver poucos check-ins */}
         {checkins.length < 3 && (
           <Card className="bg-amber-900/20 border-amber-700/30">
@@ -399,7 +565,7 @@ export default function PatientPortal() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
           >
-            <Timeline checkins={checkins} />
+            <Timeline checkins={checkins} showEditButton={false} />
           </motion.div>
         )}
 

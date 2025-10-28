@@ -166,7 +166,7 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
                 </Badge>
               )}
 
-              {/* Campo do Link */}
+              {/* Campo do Link Pessoal */}
               <div className="space-y-2">
                 <Label htmlFor="portal-url" className="text-slate-300">
                   Link de Acesso Pessoal
@@ -196,6 +196,48 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
                     )}
                   </Button>
                 </div>
+              </div>
+
+              {/* Divisor */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-700"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-slate-900 px-2 text-slate-400">ou</span>
+                </div>
+              </div>
+
+              {/* Link Universal */}
+              <div className="space-y-2">
+                <Label htmlFor="universal-url" className="text-slate-300 flex items-center gap-2">
+                  🌐 Link Universal (para todos os alunos)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="universal-url"
+                    value={`${window.location.origin}/portal`}
+                    readOnly
+                    className="bg-slate-800/50 border-slate-700 text-slate-200 font-mono text-sm"
+                  />
+                  <Button
+                    onClick={() => {
+                      window.open(`${window.location.origin}/portal`, '_blank');
+                      toast({
+                        title: 'Portal aberto!',
+                        description: 'Uma nova aba foi aberta com o portal de login',
+                      });
+                    }}
+                    variant="outline"
+                    className="border-slate-600 hover:bg-slate-800"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Abrir Portal
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-400">
+                  💡 Com este link, cada aluno acessa digitando seu próprio telefone
+                </p>
               </div>
 
               {/* Ações */}

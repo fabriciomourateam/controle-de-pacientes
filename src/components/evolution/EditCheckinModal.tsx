@@ -26,6 +26,9 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
         peso: '',
         pontos_treinos: '',
         pontos_cardios: '',
+        pontos_descanso_entre_series: '',
+        pontos_refeicao_livre: '',
+        pontos_beliscos: '',
         pontos_sono: '',
         pontos_agua: '',
         pontos_stress: '',
@@ -43,6 +46,9 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
                 peso: checkin.peso || '',
                 pontos_treinos: checkin.pontos_treinos || '',
                 pontos_cardios: checkin.pontos_cardios || '',
+                pontos_descanso_entre_series: checkin.pontos_descanso_entre_series || '',
+                pontos_refeicao_livre: checkin.pontos_refeicao_livre || '',
+                pontos_beliscos: checkin.pontos_beliscos || '',
                 pontos_sono: checkin.pontos_sono || '',
                 pontos_agua: checkin.pontos_agua || '',
                 pontos_stress: checkin.pontos_stress || '',
@@ -60,6 +66,9 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
         const scores = [
             parseFloat(formData.pontos_treinos) || 0,
             parseFloat(formData.pontos_cardios) || 0,
+            parseFloat(formData.pontos_descanso_entre_series) || 0,
+            parseFloat(formData.pontos_refeicao_livre) || 0,
+            parseFloat(formData.pontos_beliscos) || 0,
             parseFloat(formData.pontos_sono) || 0,
             parseFloat(formData.pontos_agua) || 0,
             parseFloat(formData.pontos_stress) || 0,
@@ -67,13 +76,13 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
             parseFloat(formData.pontos_qualidade_sono) || 0
         ];
         const total = scores.reduce((a, b) => a + b, 0);
-        const avg = total / scores.filter(s => s > 0).length || 0;
-        return avg.toFixed(1);
+        return total.toFixed(1);
     };
 
     const calculateAproveitamento = () => {
         const total = parseFloat(calculateTotalScore());
-        return ((total / 10) * 100).toFixed(1);
+        // Aproveitamento baseado no total de 100 pontos possíveis (10 categorias x 10 pontos)
+        return ((total / 100) * 100).toFixed(1);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +100,9 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
                     peso: cleanWeight(formData.peso) || null,
                     pontos_treinos: formData.pontos_treinos || null,
                     pontos_cardios: formData.pontos_cardios || null,
+                    pontos_descanso_entre_series: formData.pontos_descanso_entre_series || null,
+                    pontos_refeicao_livre: formData.pontos_refeicao_livre || null,
+                    pontos_beliscos: formData.pontos_beliscos || null,
                     pontos_sono: formData.pontos_sono || null,
                     pontos_agua: formData.pontos_agua || null,
                     pontos_stress: formData.pontos_stress || null,
@@ -177,6 +189,48 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
                                 step="0.1"
                                 value={formData.pontos_cardios}
                                 onChange={(e) => setFormData({ ...formData, pontos_cardios: e.target.value })}
+                                className="bg-slate-800 border-slate-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="descanso" className="text-slate-300">Descanso Séries</Label>
+                            <Input
+                                id="descanso"
+                                type="number"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                                value={formData.pontos_descanso_entre_series}
+                                onChange={(e) => setFormData({ ...formData, pontos_descanso_entre_series: e.target.value })}
+                                className="bg-slate-800 border-slate-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="refeicao" className="text-slate-300">Refeição Livre</Label>
+                            <Input
+                                id="refeicao"
+                                type="number"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                                value={formData.pontos_refeicao_livre}
+                                onChange={(e) => setFormData({ ...formData, pontos_refeicao_livre: e.target.value })}
+                                className="bg-slate-800 border-slate-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="beliscos" className="text-slate-300">Beliscos</Label>
+                            <Input
+                                id="beliscos"
+                                type="number"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                                value={formData.pontos_beliscos}
+                                onChange={(e) => setFormData({ ...formData, pontos_beliscos: e.target.value })}
                                 className="bg-slate-800 border-slate-700 text-white"
                             />
                         </div>

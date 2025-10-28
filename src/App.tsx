@@ -12,6 +12,7 @@ import PatientDetails from "./pages/PatientDetails";
 import Checkins from "./pages/Checkins";
 import PatientEvolution from "./pages/PatientEvolution";
 import PatientPortal from "./pages/PatientPortal";
+import PortalLogin from "./pages/PortalLogin";
 import Plans from "./pages/Plans";
 import MetricsDashboard from "./pages/MetricsDashboard";
 import CommercialMetrics from "./pages/CommercialMetrics";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/patients/:id" element={<PatientDetails />} />
           <Route path="/checkins" element={<Checkins />} />
           <Route path="/checkins/evolution/:telefone" element={<PatientEvolution />} />
+          <Route path="/portal" element={<PortalLogin />} />
           <Route path="/portal/:token" element={<PatientPortal />} />
           <Route path="/plans" element={<Plans />} />
           <Route path="/metrics" element={<MetricsDashboard />} />
