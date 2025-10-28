@@ -38,9 +38,10 @@ export function convertGoogleDriveUrl(url: string | null): string | null {
       fileId = match ? match[1] : null;
     }
 
-    // Se encontrou o ID, retorna URL de visualização direta (mais confiável)
+    // Se encontrou o ID, retorna URL de visualização direta para embed
+    // Formato que funciona em tags <img>
     if (fileId) {
-      return `https://drive.google.com/uc?export=view&id=${fileId}`;
+      return `https://lh3.googleusercontent.com/d/${fileId}`;
     }
 
     // Se não conseguiu extrair, retorna a URL original
