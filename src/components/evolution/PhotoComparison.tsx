@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Camera, ChevronLeft, ChevronRight, ZoomIn, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getMediaType } from "@/lib/media-utils";
+import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -21,6 +23,7 @@ interface PhotoData {
   checkinId: string;
   photoNumber: number;
   isInitial?: boolean;
+  isVideo?: boolean;
 }
 
 export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
@@ -30,41 +33,42 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
   // Adicionar fotos iniciais do paciente (se existirem)
   const initialPhotos: PhotoData[] = [];
   if (patient) {
-    if (patient.foto_inicial_frente) {
+    const patientWithInitialData = patient as any;
+    if (patientWithInitialData.foto_inicial_frente) {
       initialPhotos.push({
-        url: patient.foto_inicial_frente,
-        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
-        weight: patient.peso_inicial?.toString() || 'N/A',
+        url: patientWithInitialData.foto_inicial_frente,
+        date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-frente',
         photoNumber: 0,
         isInitial: true
       });
     }
-    if (patient.foto_inicial_lado) {
+    if (patientWithInitialData.foto_inicial_lado) {
       initialPhotos.push({
-        url: patient.foto_inicial_lado,
-        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
-        weight: patient.peso_inicial?.toString() || 'N/A',
+        url: patientWithInitialData.foto_inicial_lado,
+        date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-lado',
         photoNumber: 0,
         isInitial: true
       });
     }
-    if (patient.foto_inicial_lado_2) {
+    if (patientWithInitialData.foto_inicial_lado_2) {
       initialPhotos.push({
-        url: patient.foto_inicial_lado_2,
-        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
-        weight: patient.peso_inicial?.toString() || 'N/A',
+        url: patientWithInitialData.foto_inicial_lado_2,
+        date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-lado-2',
         photoNumber: 0,
         isInitial: true
       });
     }
-    if (patient.foto_inicial_costas) {
+    if (patientWithInitialData.foto_inicial_costas) {
       initialPhotos.push({
-        url: patient.foto_inicial_costas,
-        date: patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
-        weight: patient.peso_inicial?.toString() || 'N/A',
+        url: patientWithInitialData.foto_inicial_costas,
+        date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
+        weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-costas',
         photoNumber: 0,
         isInitial: true
@@ -72,37 +76,65 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
     }
   }
 
-  // Extrair todas as fotos dos check-ins
+  // Extrair todas as fotos/vídeos dos check-ins
   const checkinPhotos: PhotoData[] = checkins.flatMap(checkin => {
     const photos: PhotoData[] = [];
-    if (checkin.foto_1) photos.push({
-      url: checkin.foto_1,
-      date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
-      weight: checkin.peso || 'N/A',
-      checkinId: checkin.id,
-      photoNumber: 1
-    });
-    if (checkin.foto_2) photos.push({
-      url: checkin.foto_2,
-      date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
-      weight: checkin.peso || 'N/A',
-      checkinId: checkin.id,
-      photoNumber: 2
-    });
-    if (checkin.foto_3) photos.push({
-      url: checkin.foto_3,
-      date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
-      weight: checkin.peso || 'N/A',
-      checkinId: checkin.id,
-      photoNumber: 3
-    });
-    if (checkin.foto_4) photos.push({
-      url: checkin.foto_4,
-      date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
-      weight: checkin.peso || 'N/A',
-      checkinId: checkin.id,
-      photoNumber: 4
-    });
+    if (checkin.foto_1) {
+      const isVideo = getMediaType(checkin.foto_1) === 'video';
+      const url = checkin.foto_1.includes('drive.google.com') 
+        ? convertGoogleDriveUrl(checkin.foto_1, isVideo) 
+        : checkin.foto_1;
+      photos.push({
+        url: url || checkin.foto_1,
+        date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
+        weight: checkin.peso || 'N/A',
+        checkinId: checkin.id,
+        photoNumber: 1,
+        isVideo
+      });
+    }
+    if (checkin.foto_2) {
+      const isVideo = getMediaType(checkin.foto_2) === 'video';
+      const url = checkin.foto_2.includes('drive.google.com') 
+        ? convertGoogleDriveUrl(checkin.foto_2, isVideo) 
+        : checkin.foto_2;
+      photos.push({
+        url: url || checkin.foto_2,
+        date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
+        weight: checkin.peso || 'N/A',
+        checkinId: checkin.id,
+        photoNumber: 2,
+        isVideo
+      });
+    }
+    if (checkin.foto_3) {
+      const isVideo = getMediaType(checkin.foto_3) === 'video';
+      const url = checkin.foto_3.includes('drive.google.com') 
+        ? convertGoogleDriveUrl(checkin.foto_3, isVideo) 
+        : checkin.foto_3;
+      photos.push({
+        url: url || checkin.foto_3,
+        date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
+        weight: checkin.peso || 'N/A',
+        checkinId: checkin.id,
+        photoNumber: 3,
+        isVideo
+      });
+    }
+    if (checkin.foto_4) {
+      const isVideo = getMediaType(checkin.foto_4) === 'video';
+      const url = checkin.foto_4.includes('drive.google.com') 
+        ? convertGoogleDriveUrl(checkin.foto_4, isVideo) 
+        : checkin.foto_4;
+      photos.push({
+        url: url || checkin.foto_4,
+        date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
+        weight: checkin.peso || 'N/A',
+        checkinId: checkin.id,
+        photoNumber: 4,
+        isVideo
+      });
+    }
     return photos;
   });
 
@@ -164,23 +196,33 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                 Comparação: Antes e Depois
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Foto Inicial */}
+                {/* Foto/Vídeo Inicial */}
                 <div className="space-y-3">
                   <div className="relative group">
-                    <img 
-                      src={firstPhoto.url} 
-                      alt="Foto Inicial"
-                      className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
-                      onClick={() => handleZoomPhoto(firstPhoto)}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleZoomPhoto(firstPhoto)}
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </Button>
+                    {firstPhoto.isVideo ? (
+                      <video 
+                        src={firstPhoto.url} 
+                        controls
+                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all"
+                      />
+                    ) : (
+                      <img 
+                        src={firstPhoto.url} 
+                        alt="Foto Inicial"
+                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
+                        onClick={() => handleZoomPhoto(firstPhoto)}
+                      />
+                    )}
+                    {!firstPhoto.isVideo && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleZoomPhoto(firstPhoto)}
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Badge className={`absolute top-2 left-2 ${firstPhoto.isInitial ? 'bg-purple-600/90' : 'bg-blue-600/90'} text-white`}>
                       {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
                     </Badge>
@@ -198,23 +240,33 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                   </div>
                 </div>
 
-                {/* Foto Final */}
+                {/* Foto/Vídeo Final */}
                 <div className="space-y-3">
                   <div className="relative group">
-                    <img 
-                      src={lastPhoto.url} 
-                      alt="Foto Atual"
-                      className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
-                      onClick={() => handleZoomPhoto(lastPhoto)}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleZoomPhoto(lastPhoto)}
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </Button>
+                    {lastPhoto.isVideo ? (
+                      <video 
+                        src={lastPhoto.url} 
+                        controls
+                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all"
+                      />
+                    ) : (
+                      <img 
+                        src={lastPhoto.url} 
+                        alt="Foto Atual"
+                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
+                        onClick={() => handleZoomPhoto(lastPhoto)}
+                      />
+                    )}
+                    {!lastPhoto.isVideo && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleZoomPhoto(lastPhoto)}
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Badge className="absolute top-2 left-2 bg-emerald-600/90 text-white">
                       ATUAL
                     </Badge>
@@ -245,20 +297,30 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
               {allPhotos.map((photo, index) => (
                 <div key={`${photo.checkinId}-${photo.photoNumber}`} className="space-y-2">
                   <div className="relative group">
-                    <img 
-                      src={photo.url} 
-                      alt={`Foto ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
-                      onClick={() => handleZoomPhoto(photo)}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleZoomPhoto(photo)}
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </Button>
+                    {photo.isVideo ? (
+                      <video 
+                        src={photo.url} 
+                        controls
+                        className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
+                      />
+                    ) : (
+                      <img 
+                        src={photo.url} 
+                        alt={`Foto ${index + 1}`}
+                        className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                        onClick={() => handleZoomPhoto(photo)}
+                      />
+                    )}
+                    {!photo.isVideo && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleZoomPhoto(photo)}
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Badge className={`absolute top-2 left-2 ${photo.isInitial ? 'bg-purple-600/90' : 'bg-slate-800/90'} text-white text-xs`}>
                       {photo.isInitial ? '⭐' : `#${index + 1}`}
                     </Badge>
@@ -287,11 +349,19 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
           </DialogHeader>
           {selectedPhoto && (
             <div className="relative">
-              <img 
-                src={selectedPhoto.url} 
-                alt="Foto ampliada"
-                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-              />
+              {selectedPhoto.isVideo ? (
+                <video 
+                  src={selectedPhoto.url} 
+                  controls
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                />
+              ) : (
+                <img 
+                  src={selectedPhoto.url} 
+                  alt="Foto ampliada"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                />
+              )}
             </div>
           )}
         </DialogContent>

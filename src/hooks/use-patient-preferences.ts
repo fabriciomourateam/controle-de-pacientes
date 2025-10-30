@@ -89,6 +89,11 @@ export function usePatientPreferences() {
     await savePreferences({ visible_columns: visibleColumns });
   }, [savePreferences]);
 
+  // Atualizar ordem das colunas
+  const updateColumnOrder = useCallback(async (columnOrder: string[]) => {
+    await savePreferences({ column_order: columnOrder });
+  }, [savePreferences]);
+
   // Atualizar tamanho da página
   const updatePageSize = useCallback(async (pageSize: number) => {
     await savePreferences({ page_size: pageSize });
@@ -111,6 +116,7 @@ export function usePatientPreferences() {
     updateFilters,
     updateSorting,
     updateVisibleColumns,
+    updateColumnOrder,
     updatePageSize,
     resetToDefault,
     refetch: loadPreferences

@@ -32,15 +32,16 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
   // Precisamos reverter para ordem cronológica (mais antigo primeiro)
   const checkinsOrdenados = [...checkins].reverse();
 
-  // Preparar dados para gráfico de peso - incluindo peso inicial
+  // Preparar dados para gráfico de peso - incluindo peso inicial se existir
   const weightData = [];
   
-  // Adicionar peso inicial se existir
-  if (patient?.peso_inicial) {
-    const dataInicial = patient.data_fotos_iniciais || patient.created_at;
+  // Adicionar peso inicial se existir (pacientes cadastrados manualmente)
+  const patientWithInitialData = patient as any;
+  if (patientWithInitialData?.peso_inicial) {
+    const dataInicial = patientWithInitialData.data_fotos_iniciais || patient?.created_at;
     weightData.push({
       data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-      peso: parseFloat(patient.peso_inicial.toString()),
+      peso: parseFloat(patientWithInitialData.peso_inicial.toString()),
       tipo: 'Inicial',
       aproveitamento: null
     });
@@ -79,26 +80,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
     { categoria: 'Libido', pontos: parseFloat(latestCheckin.pontos_libido || '0') || 0, fullMark: 10 }
   ] : [];
 
-  // Ordenar weightData por data para garantir ordem cronológica (mais antigo primeiro)
-  const weightDataOrdenado = [...weightData].sort((a, b) => {
-    // Converter formato "22 de set." para Date
-    const parseDate = (dateStr) => {
-      const [day, month] = dateStr.split(' de ');
-      const monthMap = {
-        'jan.': '01', 'fev.': '02', 'mar.': '03', 'abr.': '04', 'mai.': '05', 'jun.': '06',
-        'jul.': '07', 'ago.': '08', 'set.': '09', 'out.': '10', 'nov.': '11', 'dez.': '12'
-      };
-      const currentYear = new Date().getFullYear();
-      return new Date(`${currentYear}-${monthMap[month]}-${day.padStart(2, '0')}`);
-    };
-    
-    return parseDate(a.data) - parseDate(b.data);
-  });
-
-  // Calcular variação de peso (último - primeiro)
-  const weightChange = weightDataOrdenado.length >= 2 
-    ? ((weightDataOrdenado[weightDataOrdenado.length - 1].peso || 0) - (weightDataOrdenado[0].peso || 0)).toFixed(1)
-    : '0.0';
+  // weightData já está ordenado cronologicamente (mais antigo primeiro)
 
 
   return (
@@ -131,7 +113,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weightDataOrdenado}>
+              <LineChart data={weightData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis 
                   dataKey="data" 
@@ -166,14 +148,14 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                   strokeWidth={3}
                   name="Peso (kg)"
                   dot={(props) => {
-                    const { cx, cy, payload } = props;
+                    const { cx, cy, payload, index } = props;
                     if (payload?.tipo === 'Inicial') {
-                      return <circle cx={cx} cy={cy} r={6} fill="#8b5cf6" stroke="#fff" strokeWidth={2} />;
+                      return <circle key={`dot-inicial-${index}`} cx={cx} cy={cy} r={6} fill="#8b5cf6" stroke="#fff" strokeWidth={2} />;
                     }
                     if (payload?.tipo === '1º Check-in') {
-                      return <circle cx={cx} cy={cy} r={6} fill="#10b981" stroke="#fff" strokeWidth={2} />;
+                      return <circle key={`dot-primeiro-${index}`} cx={cx} cy={cy} r={6} fill="#10b981" stroke="#fff" strokeWidth={2} />;
                     }
-                    return <circle cx={cx} cy={cy} r={5} fill="#3b82f6" />;
+                    return <circle key={`dot-${index}`} cx={cx} cy={cy} r={5} fill="#3b82f6" />;
                   }}
                   activeDot={{ r: 7 }}
                 />

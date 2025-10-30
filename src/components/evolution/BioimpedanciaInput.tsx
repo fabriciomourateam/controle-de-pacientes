@@ -227,6 +227,18 @@ export function BioimpedanciaInput({
 
       if (error) throw error;
 
+      // Se o paciente não tem altura cadastrada, atualizar com a altura da bioimpedância
+      if (!altura && alturaNum) {
+        const { error: updateError } = await supabase
+          .from('patients')
+          .update({ altura_inicial: alturaNum })
+          .eq('telefone', telefone);
+
+        if (!updateError) {
+          console.log('✅ Altura do paciente atualizada:', alturaNum);
+        }
+      }
+
       toast({
         title: 'Bioimpedância adicionada! ✅',
         description: `${parsedData.percentual_gordura}% BF | IMC: ${imc} | TMB: ${tmb} kcal`,

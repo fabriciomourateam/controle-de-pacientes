@@ -26,6 +26,7 @@ export interface PatientViewPreferences {
     direction: 'asc' | 'desc';
   };
   visible_columns: string[];
+  column_order?: string[]; // Ordem das colunas
   page_size: number;
 }
 

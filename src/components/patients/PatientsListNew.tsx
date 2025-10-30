@@ -47,6 +47,7 @@ import { usePatientPreferences } from "@/hooks/use-patient-preferences";
 import { PatientFilters, PatientFiltersProps } from "@/components/patients/PatientFilters";
 import { PatientSorting, PatientSortingProps } from "@/components/patients/PatientSorting";
 import { ColumnSelector, ColumnOption } from "@/components/patients/ColumnSelector";
+import { ColumnOrderManager } from "@/components/patients/ColumnOrderManager";
 import { TableRowSkeleton } from "@/components/ui/loading-skeleton";
 import { DeleteConfirmation } from "@/components/ui/confirmation-dialog";
 import {
@@ -71,7 +72,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function PatientsListNew() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { preferences, loading: preferencesLoading, updateFilters, updateSorting, updateVisibleColumns } = usePatientPreferences();
+  const { preferences, loading: preferencesLoading, updateFilters, updateSorting, updateVisibleColumns, updateColumnOrder } = usePatientPreferences();
   
   // Estados locais
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -123,6 +124,7 @@ export function PatientsListNew() {
     { key: 'plano', label: 'Plano' },
     { key: 'vencimento', label: 'Vencimento' },
     { key: 'dias_para_vencer', label: 'Dias para vencer' },
+    { key: 'ultimo_contato', label: 'Último Contato' },
     { key: 'status', label: 'Status' },
     { key: 'created_at', label: 'Data de criação' }
   ];
@@ -327,9 +329,17 @@ export function PatientsListNew() {
     }
   };
 
-  // Filtrar colunas visíveis
+  // Filtrar e ordenar colunas visíveis
   const visibleColumns = preferences?.visible_columns || columnOptions.map(col => col.key);
-  const filteredColumnOptions = columnOptions.filter(col => visibleColumns.includes(col.key));
+  const columnOrder = preferences?.column_order || columnOptions.map(col => col.key);
+  
+  // Filtrar colunas visíveis
+  const visibleColumnOptions = columnOptions.filter(col => visibleColumns.includes(col.key));
+  
+  // Ordenar colunas conforme a ordem salva
+  const filteredColumnOptions = columnOrder
+    .map(key => visibleColumnOptions.find(col => col.key === key))
+    .filter(Boolean) as typeof columnOptions;
 
   if (preferencesLoading) {
     return (
@@ -399,6 +409,13 @@ export function PatientsListNew() {
               />
             </div>
             <div className="flex items-center gap-2">
+              <ColumnOrderManager
+                columns={columnOptions}
+                columnOrder={columnOrder}
+                onOrderChange={async (newOrder) => {
+                  await updateColumnOrder(newOrder);
+                }}
+              />
               <ColumnSelector
                 columns={columnOptions}
                 visibleColumns={visibleColumns}
@@ -504,6 +521,76 @@ export function PatientsListNew() {
                           case 'dias_para_vencer':
                             content = <span className='text-slate-300'>{patient.dias_para_vencer !== null ? 
                               `${patient.dias_para_vencer} dias` : 'N/A'}</span>;
+                            break;
+                          case 'ultimo_contato':
+                            content = (() => {
+                              const ultimoContatoRaw = (patient as any).ultimo_contato;
+                              
+                              console.log('🔍 Debug ultimo_contato:', {
+                                paciente: patient.nome,
+                                raw: ultimoContatoRaw,
+                                tipo: typeof ultimoContatoRaw,
+                                isNull: ultimoContatoRaw === null,
+                                isUndefined: ultimoContatoRaw === undefined
+                              });
+                              
+                              if (!ultimoContatoRaw) {
+                                return <span className='text-slate-400'>Nunca</span>;
+                              }
+                              
+                              // Extrair a data do objeto JSON
+                              let dataContatoStr: string | null = null;
+                              
+                              // Se for string JSON, fazer parse
+                              if (typeof ultimoContatoRaw === 'string') {
+                                try {
+                                  const parsed = JSON.parse(ultimoContatoRaw);
+                                  dataContatoStr = parsed.start;
+                                  console.log('📝 Parsed string JSON:', { parsed, dataContatoStr });
+                                } catch (e) {
+                                  dataContatoStr = ultimoContatoRaw;
+                                  console.log('⚠️ Não é JSON, usando como string:', dataContatoStr);
+                                }
+                              } 
+                              // Se já for objeto
+                              else if (typeof ultimoContatoRaw === 'object' && ultimoContatoRaw.start) {
+                                dataContatoStr = ultimoContatoRaw.start;
+                                console.log('📦 Objeto direto:', { ultimoContatoRaw, dataContatoStr });
+                              }
+                              
+                              if (!dataContatoStr) {
+                                console.log('❌ Nenhuma data encontrada');
+                                return <span className='text-slate-400'>Nunca</span>;
+                              }
+                              
+                              const dataContato = new Date(dataContatoStr);
+                              const hoje = new Date();
+                              const diffTime = Math.abs(hoje.getTime() - dataContato.getTime());
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              
+                              const dataFormatada = dataContato.toLocaleDateString('pt-BR');
+                              
+                              console.log('✅ Data processada:', { dataContatoStr, dataContato, diffDays, dataFormatada });
+                              
+                              // Definir cor baseado nos dias sem contato
+                              let badgeClass = 'bg-green-500/20 text-green-400 border-green-500/30'; // < 20 dias
+                              if (diffDays >= 30) {
+                                badgeClass = 'bg-red-500/20 text-red-400 border-red-500/30'; // >= 30 dias
+                              } else if (diffDays >= 20) {
+                                badgeClass = 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'; // >= 20 dias
+                              }
+                              
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className={badgeClass}>
+                                    {dataFormatada}
+                                  </Badge>
+                                  <span className="text-xs text-slate-400">
+                                    há {diffDays} {diffDays === 1 ? 'dia' : 'dias'}
+                                  </span>
+                                </div>
+                              );
+                            })();
                             break;
                           case 'status':
                             content = getStatusBadge(status);

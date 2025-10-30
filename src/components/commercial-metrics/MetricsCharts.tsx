@@ -74,25 +74,46 @@ export function LeadsDailyChart({ data }: LeadsChartProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data.map((item, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">{item.date}</span>
-                <span className="text-white font-semibold">{item.total} leads</span>
-              </div>
-              <div className="relative h-8 bg-slate-700/30 rounded-lg overflow-hidden">
-                <div 
-                  className="absolute h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-                  style={{ width: `${(item.total / maxTotal) * 100}%` }}
-                />
-                <div className="absolute inset-0 flex items-center justify-between px-3 text-xs text-white font-medium">
-                  <span>Google: {item.google}</span>
-                  <span>Instagram: {item.instagram}</span>
-                  <span>Facebook: {item.facebook}</span>
+          {data.map((item, index) => {
+            // Criar array com todos os funis e seus valores
+            const channels = [
+              { name: 'Google', value: item.google },
+              { name: 'G.Forms', value: item.googleForms },
+              { name: 'Instagram', value: item.instagram },
+              { name: 'Facebook', value: item.facebook },
+              { name: 'Seller', value: item.seller },
+              { name: 'Indicação', value: item.indicacao },
+              { name: 'Outros', value: item.outros }
+            ];
+            
+            // Ordenar por valor e pegar os 5 maiores
+            const topChannels = channels
+              .filter(c => c.value > 0)
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 5);
+            
+            return (
+              <div key={index} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-300">{item.date}</span>
+                  <span className="text-white font-semibold">{item.total} leads</span>
+                </div>
+                <div className="relative h-8 bg-slate-700/30 rounded-lg overflow-hidden">
+                  <div 
+                    className="absolute h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                    style={{ width: `${(item.total / maxTotal) * 100}%` }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between px-3 text-xs text-white font-medium overflow-hidden">
+                    {topChannels.map((channel, idx) => (
+                      <span key={idx} className="whitespace-nowrap">
+                        {channel.name}: {Math.round(channel.value)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

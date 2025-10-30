@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
+import { getMediaType } from "@/lib/media-utils";
+import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -274,23 +276,88 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                     </div>
                   )}
 
-                  {/* Fotos do Check-in */}
+                  {/* Fotos/Vídeos do Check-in */}
                   {(checkin.foto_1 || checkin.foto_2 || checkin.foto_3 || checkin.foto_4) && (
                     <div className="pt-3 mt-3 border-t border-slate-600/50">
-                      <p className="text-xs text-slate-400 mb-2 font-semibold">Fotos do Check-in:</p>
+                      <p className="text-xs text-slate-400 mb-2 font-semibold">Mídia do Check-in:</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {checkin.foto_1 && (
-                          <img src={checkin.foto_1} alt="Foto 1" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
-                        )}
-                        {checkin.foto_2 && (
-                          <img src={checkin.foto_2} alt="Foto 2" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
-                        )}
-                        {checkin.foto_3 && (
-                          <img src={checkin.foto_3} alt="Foto 3" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
-                        )}
-                        {checkin.foto_4 && (
-                          <img src={checkin.foto_4} alt="Foto 4" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
-                        )}
+                        {checkin.foto_1 && (() => {
+                          const isVideo = getMediaType(checkin.foto_1) === 'video';
+                          const mediaUrl = checkin.foto_1.includes('drive.google.com') 
+                            ? convertGoogleDriveUrl(checkin.foto_1, isVideo) 
+                            : checkin.foto_1;
+                          
+                          return (
+                            <div key={`media-1-${checkin.id}`}>
+                              {isVideo ? (
+                                <video 
+                                  src={mediaUrl || checkin.foto_1} 
+                                  controls 
+                                  className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
+                                />
+                              ) : (
+                                <img src={mediaUrl || checkin.foto_1} alt="Foto 1" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {checkin.foto_2 && (() => {
+                          const isVideo = getMediaType(checkin.foto_2) === 'video';
+                          const mediaUrl = checkin.foto_2.includes('drive.google.com') 
+                            ? convertGoogleDriveUrl(checkin.foto_2, isVideo) 
+                            : checkin.foto_2;
+                          return (
+                            <div key={`media-2-${checkin.id}`}>
+                              {isVideo ? (
+                                <video 
+                                  src={mediaUrl || checkin.foto_2} 
+                                  controls 
+                                  className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
+                                />
+                              ) : (
+                                <img src={mediaUrl || checkin.foto_2} alt="Foto 2" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {checkin.foto_3 && (() => {
+                          const isVideo = getMediaType(checkin.foto_3) === 'video';
+                          const mediaUrl = checkin.foto_3.includes('drive.google.com') 
+                            ? convertGoogleDriveUrl(checkin.foto_3, isVideo) 
+                            : checkin.foto_3;
+                          return (
+                            <div key={`media-3-${checkin.id}`}>
+                              {isVideo ? (
+                                <video 
+                                  src={mediaUrl || checkin.foto_3} 
+                                  controls 
+                                  className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
+                                />
+                              ) : (
+                                <img src={mediaUrl || checkin.foto_3} alt="Foto 3" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {checkin.foto_4 && (() => {
+                          const isVideo = getMediaType(checkin.foto_4) === 'video';
+                          const mediaUrl = checkin.foto_4.includes('drive.google.com') 
+                            ? convertGoogleDriveUrl(checkin.foto_4, isVideo) 
+                            : checkin.foto_4;
+                          return (
+                            <div key={`media-4-${checkin.id}`}>
+                              {isVideo ? (
+                                <video 
+                                  src={mediaUrl || checkin.foto_4} 
+                                  controls 
+                                  className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
+                                />
+                              ) : (
+                                <img src={mediaUrl || checkin.foto_4} alt="Foto 4" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}

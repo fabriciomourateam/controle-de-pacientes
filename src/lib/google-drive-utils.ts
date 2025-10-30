@@ -6,9 +6,10 @@
  * - https://drive.google.com/file/d/FILE_ID/view
  * - https://drive.google.com/uc?id=FILE_ID
  * 
- * Retorna: https://drive.google.com/uc?export=view&id=FILE_ID
+ * Para imagens: https://lh3.googleusercontent.com/d/FILE_ID
+ * Para vídeos: https://drive.google.com/uc?export=download&id=FILE_ID
  */
-export function convertGoogleDriveUrl(url: string | null): string | null {
+export function convertGoogleDriveUrl(url: string | null, isVideo: boolean = false): string | null {
   if (!url) return null;
   
   // Se não for URL do Google Drive, retorna como está
@@ -38,9 +39,13 @@ export function convertGoogleDriveUrl(url: string | null): string | null {
       fileId = match ? match[1] : null;
     }
 
-    // Se encontrou o ID, retorna URL de visualização direta para embed
-    // Formato que funciona em tags <img>
+    // Se encontrou o ID, retorna URL apropriada
     if (fileId) {
+      // Para vídeos, usar formato de download direto
+      if (isVideo) {
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+      }
+      // Para imagens, usar googleusercontent
       return `https://lh3.googleusercontent.com/d/${fileId}`;
     }
 

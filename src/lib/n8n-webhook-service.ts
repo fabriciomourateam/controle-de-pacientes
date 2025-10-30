@@ -45,21 +45,21 @@ export class N8NWebhookService {
   static processWebhookData(webhookData: N8NWebhookData): void {
     console.log(`📊 Processando dados do N8N - Tabela: ${webhookData.table}`);
     console.log(`📋 Dados recebidos:`, webhookData.data);
-    
+
     try {
       // Verificar se os dados foram limpos intencionalmente
       const dadosLimpos = localStorage.getItem('DADOS_LIMPOS_INTENCIONALMENTE');
       const bloqueioAtivo = localStorage.getItem('BLOQUEAR_RECRIACAO_AUTOMATICA');
-      
+
       if (dadosLimpos === 'true' && bloqueioAtivo === 'true') {
         console.log('🚫 Dados foram limpos intencionalmente, removendo bloqueio para processar dados reais do N8N');
         localStorage.removeItem('DADOS_LIMPOS_INTENCIONALMENTE');
         localStorage.removeItem('BLOQUEAR_RECRIACAO_AUTOMATICA');
       }
-      
+
       // Obter dados existentes do localStorage
       const existingData = this.getStoredData();
-      
+
       // Processar dados baseado na tabela
       switch (webhookData.table) {
         case 'leads_que_entraram':
@@ -80,16 +80,16 @@ export class N8NWebhookService {
         default:
           console.warn(`Tabela desconhecida: ${webhookData.table}`);
       }
-      
+
       // Atualizar timestamp
       existingData.lastUpdated = webhookData.timestamp;
-      
+
       // Salvar dados atualizados
       this.saveData(existingData);
-      
+
       console.log('✅ Dados processados e salvos com sucesso');
       console.log('📊 Dados finais:', existingData);
-      
+
     } catch (error) {
       console.error('❌ Erro ao processar dados do webhook:', error);
     }
@@ -98,7 +98,7 @@ export class N8NWebhookService {
   // Processar dados de leads diários
   private static processLeadsData(data: any, existingData: CommercialMetricsData): void {
     if (!data.DATA) return;
-    
+
     const leadData = {
       date: this.formatDate(data.DATA),
       google: this.parseNumber(data.GOOGLE || 0),
@@ -126,7 +126,7 @@ export class N8NWebhookService {
   // Processar dados de calls
   private static processCallsData(data: any, existingData: CommercialMetricsData): void {
     if (!data.AGENDADAS) return;
-    
+
     const callData = {
       date: this.formatDate(data.AGENDADAS),
       scheduled: this.parseNumber(data.TOTAL_DE_CALLS_AGENDADAS || 0),
@@ -169,7 +169,7 @@ export class N8NWebhookService {
       // Verificar se os dados foram limpos intencionalmente
       const dadosLimpos = localStorage.getItem('DADOS_LIMPOS_INTENCIONALMENTE');
       const bloqueioAtivo = localStorage.getItem('BLOQUEAR_RECRIACAO_AUTOMATICA');
-      
+
       if (dadosLimpos === 'true' && bloqueioAtivo === 'true') {
         console.log('🚫 Dados foram limpos intencionalmente, não recriando');
         return {
@@ -183,7 +183,7 @@ export class N8NWebhookService {
           lastUpdated: new Date().toISOString(),
         };
       }
-      
+
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
@@ -217,7 +217,7 @@ export class N8NWebhookService {
   // Obter métricas processadas
   static getMetrics(): CommercialMetricsData {
     const data = this.getStoredData();
-    
+
     // Calcular totais
     data.totalLeads = data.dailyLeads.reduce((sum, item) => sum + item.total, 0);
     data.totalCalls = data.dailyCalls.reduce((sum, item) => sum + item.scheduled, 0);
@@ -230,14 +230,14 @@ export class N8NWebhookService {
   static async fetchDataFromN8N(): Promise<void> {
     try {
       console.log('🔄 Buscando dados do N8N...');
-      
+
       // Verificar se já há dados no localStorage
       const existingData = this.getStoredData();
       if (existingData.dailyLeads.length > 0 || existingData.dailyCalls.length > 0) {
         console.log('✅ Dados já existem no localStorage, não é necessário buscar');
         return;
       }
-      
+
       // Buscar dados do endpoint de dados do N8N
       try {
         const response = await fetch('https://dashboard-fmteam.vercel.app/api/get-n8n-data', {
@@ -246,11 +246,11 @@ export class N8NWebhookService {
             'Content-Type': 'application/json',
           }
         });
-        
+
         if (response.ok) {
           const result = await response.json();
           console.log('📡 Dados do N8N recebidos:', result);
-          
+
           if (result.success && result.data) {
             // Processar cada tabela de dados
             Object.keys(result.data).forEach(tableName => {
@@ -263,12 +263,12 @@ export class N8NWebhookService {
                   data: latestRecord.data,
                   timestamp: latestRecord.timestamp
                 };
-                
+
                 console.log(`📊 Processando dados da tabela ${tableName}:`, webhookData);
                 this.processWebhookData(webhookData);
               }
             });
-            
+
             console.log('✅ Dados do N8N processados com sucesso');
           } else {
             console.log('⚠️ Nenhum dado válido encontrado no N8N');
@@ -279,7 +279,7 @@ export class N8NWebhookService {
       } catch (webhookError) {
         console.log('⚠️ Erro ao buscar dados do N8N:', webhookError);
       }
-      
+
     } catch (error) {
       console.error('❌ Erro ao buscar dados do N8N:', error);
     }
@@ -290,7 +290,7 @@ export class N8NWebhookService {
     console.log('🔄 Processando dados reais do N8N...');
     console.log('📊 Tabela:', webhookData.table);
     console.log('📋 Dados:', webhookData.data);
-    
+
     try {
       this.processWebhookData(webhookData);
       console.log('✅ Dados reais do N8N processados com sucesso');
@@ -302,11 +302,11 @@ export class N8NWebhookService {
   // Simular dados do N8N (para teste)
   static simulateN8NData(): void {
     console.log('🔄 Simulando dados do N8N...');
-    
+
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const mockData = [
       {
         table: 'leads_que_entraram',
@@ -359,7 +359,7 @@ export class N8NWebhookService {
     mockData.forEach(data => {
       this.processWebhookData(data);
     });
-    
+
     console.log('✅ Dados simulados do N8N processados');
   }
 
@@ -372,12 +372,12 @@ export class N8NWebhookService {
   static async testConnection(): Promise<boolean> {
     // Modo offline - sempre retorna true para permitir uso local
     console.log('🔄 Testando conexão (modo offline)...');
-    
+
     try {
       // Verificar se há dados no localStorage
       const existingData = this.getStoredData();
       const hasData = existingData.dailyLeads.length > 0 || existingData.dailyCalls.length > 0;
-      
+
       if (hasData) {
         console.log('✅ Dados encontrados no localStorage');
         return true;
@@ -395,7 +395,7 @@ export class N8NWebhookService {
   // Utilitários
   private static formatDate(dateStr: string): string {
     if (!dateStr) return '';
-    
+
     try {
       const date = new Date(dateStr);
       return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
@@ -407,7 +407,7 @@ export class N8NWebhookService {
   private static parseNumber(value: any): number {
     if (value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
-    
+
     const cleaned = value.toString().replace(/[^\d,.-]/g, '');
     const normalized = cleaned.replace(',', '.');
     return parseFloat(normalized) || 0;

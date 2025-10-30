@@ -93,7 +93,7 @@ export function ChannelComparisonWithFilter(props: ChannelComparisonWithFilterPr
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Target className="w-6 h-6 text-blue-400" />
-            Comparação Detalhada por Canal
+            Leads que vão para Call
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -181,10 +181,10 @@ export function ChannelComparisonWithFilter(props: ChannelComparisonWithFilterPr
           <div>
             <CardTitle className="text-white flex items-center gap-2">
               <Target className="w-6 h-6 text-blue-400" />
-              Comparação Detalhada por Canal
+              Leads que vão para Call
             </CardTitle>
             <CardDescription className="text-slate-400 mt-1">
-              Análise completa: Leads → Calls → Taxa de Conversão
+              Percentual de leads que entram em contato e vão para Call de Vendas
             </CardDescription>
           </div>
           
