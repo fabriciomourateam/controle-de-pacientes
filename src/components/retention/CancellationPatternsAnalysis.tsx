@@ -201,12 +201,12 @@ export function CancellationPatternsAnalysis() {
       </Card>
 
       {/* KPIs de Cancelamento */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-red-500/10 to-red-600/10 border-red-500/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-red-400 flex items-center gap-2">
               <TrendingDown className="w-4 h-4" />
-              Total Cancelamentos
+              Cancelamentos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -219,7 +219,7 @@ export function CancellationPatternsAnalysis() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-yellow-400 flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Total Congelamentos
+              Congelamentos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -232,14 +232,29 @@ export function CancellationPatternsAnalysis() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-blue-400 flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              Tempo Médio
+              Até Cancelar
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">
               {Math.round(patterns.tempoMedioCancelamento / 30)}
             </div>
-            <p className="text-xs text-slate-400 mt-1">meses até cancelar</p>
+            <p className="text-xs text-slate-400 mt-1">meses (média)</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 border-cyan-500/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Até Congelar
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-white">
+              {Math.round(patterns.tempoMedioCongelamento / 30)}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">meses (média)</p>
           </CardContent>
         </Card>
 
@@ -247,12 +262,12 @@ export function CancellationPatternsAnalysis() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-orange-400 flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Dias Sem Contato
+              Sem Contato
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">{patterns.diasSemContatoAntesCancelar}</div>
-            <p className="text-xs text-slate-400 mt-1">média antes de cancelar</p>
+            <p className="text-xs text-slate-400 mt-1">dias antes de cancelar</p>
           </CardContent>
         </Card>
       </div>
