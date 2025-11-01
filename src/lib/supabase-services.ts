@@ -73,7 +73,9 @@ export const patientService = {
         dezembro,
         created_at,
         updated_at,
-        ultimo_contato
+        ultimo_contato,
+        data_cancelamento,
+        data_congelamento
       `)
       .order('created_at', { ascending: false });
 
@@ -335,7 +337,9 @@ export const patientService = {
       dezembro,
       created_at,
       updated_at,
-      ultimo_contato
+      ultimo_contato,
+      data_cancelamento,
+      data_congelamento
     `);
 
     // Aplicar filtros

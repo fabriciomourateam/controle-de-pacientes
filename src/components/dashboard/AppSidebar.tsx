@@ -13,7 +13,8 @@ import {
   LogOut,
   Monitor,
   Activity,
-  Target
+  Target,
+  AlertTriangle
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -36,6 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Pacientes", url: "/patients", icon: Users },
+  { title: "Retenção", url: "/retention", icon: AlertTriangle },
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
   { title: "Planos", url: "/plans", icon: Calendar },
   { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },

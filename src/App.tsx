@@ -23,6 +23,7 @@ import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import Reports from "./pages/Reports";
+import RetentionDashboard from "./pages/RetentionDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/plans" element={<Plans />} />
           <Route path="/metrics" element={<MetricsDashboard />} />
           <Route path="/commercial-metrics" element={<CommercialMetrics />} />
+          <Route path="/retention" element={<RetentionDashboard />} />
           <Route path="/debug-vendas" element={<DebugVendas />} />
           <Route path="/workspace" element={<Workspace />} />
           <Route path="/reports" element={<Reports />} />
