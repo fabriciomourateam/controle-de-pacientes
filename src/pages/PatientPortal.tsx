@@ -70,19 +70,35 @@ export default function PatientPortal() {
     loadPortalData();
   }, [token]);
 
-  // Auto-download do PNG quando parâmetro autoDownload=true
+  // Auto-download do PNG ou PDF quando parâmetros autoDownload=true ou autoDownloadPDF=true
   useEffect(() => {
     if (!loading && patient && portalRef.current) {
       const urlParams = new URLSearchParams(window.location.search);
       const shouldAutoDownload = urlParams.get('autoDownload') === 'true';
+      const shouldAutoDownloadPDF = urlParams.get('autoDownloadPDF') === 'true';
       
       if (shouldAutoDownload) {
-        console.log('🎯 Auto-download detectado! Iniciando captura...');
+        console.log('🎯 Auto-download PNG detectado! Iniciando captura...');
         
         // Aguardar um pouco para garantir que tudo renderizou
         setTimeout(async () => {
           console.log('📸 Capturando portal como PNG...');
           await handleExportPNG();
+          
+          console.log('✅ Download iniciado! Fechando aba em 1 segundo...');
+          
+          // Fechar aba automaticamente após iniciar o download
+          setTimeout(() => {
+            window.close();
+          }, 1000);
+        }, 2000);
+      } else if (shouldAutoDownloadPDF) {
+        console.log('🎯 Auto-download PDF detectado! Iniciando captura...');
+        
+        // Aguardar um pouco para garantir que tudo renderizou
+        setTimeout(async () => {
+          console.log('📄 Capturando portal como PDF...');
+          await handleExportPDF();
           
           console.log('✅ Download iniciado! Fechando aba em 1 segundo...');
           
@@ -174,6 +190,17 @@ export default function PatientPortal() {
         description: 'Aguarde enquanto criamos seu relatório em PNG'
       });
 
+      // Ocultar apenas elementos marcados para ocultar no PNG
+      const elementsToHide = portalRef.current.querySelectorAll('.hide-in-pdf');
+      const originalDisplay: string[] = [];
+      elementsToHide.forEach((el, index) => {
+        originalDisplay[index] = (el as HTMLElement).style.display;
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      // Aguardar um pouco para garantir que elementos foram ocultados
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Capturar o portal inteiro como imagem
       const canvas = await html2canvas(portalRef.current, {
         scale: 2.5, // Alta qualidade
@@ -183,7 +210,16 @@ export default function PatientPortal() {
         windowWidth: portalRef.current.scrollWidth,
         windowHeight: portalRef.current.scrollHeight,
         scrollX: 0,
-        scrollY: -window.scrollY
+        scrollY: -window.scrollY,
+        ignoreElements: (element) => {
+          // Ignorar apenas elementos marcados para ocultar
+          return element.classList.contains('hide-in-pdf');
+        }
+      });
+
+      // Restaurar elementos ocultos
+      elementsToHide.forEach((el, index) => {
+        (el as HTMLElement).style.display = originalDisplay[index];
       });
 
       // Converter para blob e fazer download
@@ -208,6 +244,94 @@ export default function PatientPortal() {
       toast({
         title: 'Erro',
         description: 'Não foi possível gerar a imagem',
+        variant: 'destructive'
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleExportPDF() {
+    if (!portalRef.current || !patient) return;
+
+    try {
+      setExporting(true);
+      toast({
+        title: 'Gerando PDF...',
+        description: 'Aguarde enquanto criamos seu relatório em PDF'
+      });
+
+      // Importar jsPDF dinamicamente
+      const { jsPDF } = await import('jspdf');
+
+      // Ocultar apenas elementos marcados para ocultar no PDF
+      const elementsToHide = portalRef.current.querySelectorAll('.hide-in-pdf');
+      const originalDisplay: string[] = [];
+      elementsToHide.forEach((el, index) => {
+        originalDisplay[index] = (el as HTMLElement).style.display;
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      // Aguardar um pouco para garantir que elementos foram ocultados
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capturar o portal inteiro como imagem
+      const canvas = await html2canvas(portalRef.current, {
+        scale: 2.5, // Alta qualidade
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#0f172a', // Cor do fundo do portal
+        windowWidth: portalRef.current.scrollWidth,
+        windowHeight: portalRef.current.scrollHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        ignoreElements: (element) => {
+          // Ignorar apenas elementos marcados para ocultar
+          return element.classList.contains('hide-in-pdf');
+        }
+      });
+
+      // Restaurar elementos ocultos
+      elementsToHide.forEach((el, index) => {
+        (el as HTMLElement).style.display = originalDisplay[index];
+      });
+
+      // Converter canvas para imagem
+      const imgData = canvas.toDataURL('image/png', 0.98);
+      
+      // Dimensões do canvas em pixels
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      
+      // Largura fixa A4 em mm
+      const pdfWidth = 210;
+      
+      // Calcular altura proporcional (página contínua)
+      const imgHeightMM = (imgHeight * pdfWidth) / imgWidth;
+      
+      // Criar PDF com altura customizada (página contínua)
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [pdfWidth, imgHeightMM] // Largura A4, altura ajustada ao conteúdo
+      });
+
+      // Adicionar imagem ocupando toda a página (sem margens)
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM, undefined, 'FAST');
+      
+      // Fazer download
+      pdf.save(`minha-evolucao-${patient.nome.replace(/\s+/g, '-')}.pdf`);
+
+      toast({
+        title: 'PDF gerado! 🎉',
+        description: 'Seu relatório foi baixado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar o PDF',
         variant: 'destructive'
       });
     } finally {
@@ -289,7 +413,7 @@ export default function PatientPortal() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 backdrop-blur-sm border-slate-700/50">
+          <Card className="bg-slate-800/60 backdrop-blur-sm border-slate-700/50">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <Avatar className="w-20 h-20 border-4 border-blue-500/30">
@@ -555,6 +679,7 @@ export default function PatientPortal() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.45 }}
+            className="hide-in-pdf"
           >
             <PhotoComparison checkins={checkins} />
           </motion.div>

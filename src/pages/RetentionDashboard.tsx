@@ -49,12 +49,12 @@ function RetentionDashboard() {
     try {
       setLoading(true);
       
-      // Buscar apenas alunos com planos PREMIUM ou BASIC e que tenham último contato preenchido
+      // Buscar alunos com planos PREMIUM, BASIC ou CONGELADO e que tenham último contato preenchido
       const { data, error } = await supabase
         .from('patients')
         .select('id, nome, telefone, plano, ultimo_contato, created_at')
         .not('ultimo_contato', 'is', null) // Apenas com último contato preenchido
-        .or('plano.ilike.%PREMIUM%,plano.ilike.%BASIC%') // Apenas planos PREMIUM ou BASIC
+        .or('plano.ilike.%PREMIUM%,plano.ilike.%BASIC%,plano.ilike.%CONGELADO%') // PREMIUM, BASIC ou CONGELADO
         .order('nome');
 
       if (error) throw error;
@@ -190,18 +190,42 @@ function RetentionDashboard() {
     }
   };
 
-  // Preparar tarefas do dia (top 3 mais urgentes)
+  // Preparar tarefas do dia (top 5: críticos + congelados mais urgentes)
   const dailyTasks = useMemo(() => {
-    return patients
-      .filter(p => p.riskLevel === 'critical')
-      .slice(0, 3)
+    const criticalTasks = patients
+      .filter(p => p.riskLevel === 'critical' && !p.plano?.toUpperCase().includes('CONGELADO'))
       .map(p => ({
         telefone: p.telefone,
         nome: p.nome,
         diasSemContato: p.diasSemContato,
         prioridade: p.diasSemContato >= 45 ? 'urgente' as const : 
-                    p.diasSemContato >= 35 ? 'alta' as const : 'media' as const
+                    p.diasSemContato >= 35 ? 'alta' as const : 'media' as const,
+        isCongelado: false
       }));
+
+    const frozenTasks = patients
+      .filter(p => p.plano?.toUpperCase().includes('CONGELADO') && p.diasSemContato >= 30)
+      .map(p => ({
+        telefone: p.telefone,
+        nome: p.nome,
+        diasSemContato: p.diasSemContato,
+        prioridade: p.diasSemContato >= 60 ? 'urgente' as const : 
+                    p.diasSemContato >= 45 ? 'alta' as const : 'media' as const,
+        isCongelado: true
+      }));
+
+    // Combinar e ordenar por prioridade e dias
+    return [...criticalTasks, ...frozenTasks]
+      .sort((a, b) => {
+        // Urgente > Alta > Média
+        const priorityOrder = { urgente: 3, alta: 2, media: 1 };
+        if (priorityOrder[a.prioridade] !== priorityOrder[b.prioridade]) {
+          return priorityOrder[b.prioridade] - priorityOrder[a.prioridade];
+        }
+        // Mesmo nível de prioridade: mais dias sem contato primeiro
+        return b.diasSemContato - a.diasSemContato;
+      })
+      .slice(0, 5); // Top 5 tarefas
   }, [patients]);
 
   if (loading) {
@@ -225,7 +249,7 @@ function RetentionDashboard() {
           </p>
           <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
             <Activity className="w-3 h-3" />
-            <span>Exibindo apenas alunos com planos PREMIUM ou BASIC e histórico de contato</span>
+            <span>Exibindo alunos PREMIUM, BASIC e CONGELADOS com histórico de contato</span>
           </div>
         </div>
 

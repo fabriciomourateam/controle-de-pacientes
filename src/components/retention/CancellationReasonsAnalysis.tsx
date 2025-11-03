@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { TrendingDown, Snowflake } from "lucide-react";
+import { TrendingDown, Snowflake, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ReasonData {
   motivo: string;
@@ -16,6 +17,8 @@ export function CancellationReasonsAnalysis() {
   const [loading, setLoading] = useState(true);
   const [cancelamentoReasons, setCancelamentoReasons] = useState<ReasonData[]>([]);
   const [congelamentoReasons, setCongelamentoReasons] = useState<ReasonData[]>([]);
+  const [showCancelamentos, setShowCancelamentos] = useState(false);
+  const [showCongelamentos, setShowCongelamentos] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -106,15 +109,31 @@ export function CancellationReasonsAnalysis() {
       {/* Análise de Cancelamentos */}
       <Card className="bg-slate-800/40 border-red-500/30">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <TrendingDown className="w-5 h-5 text-red-400" />
-            Motivos de Cancelamento
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            {cancelamentoReasons.reduce((sum, r) => sum + r.count, 0)} cancelamentos analisados
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <TrendingDown className="w-5 h-5 text-red-400" />
+                Motivos de Cancelamento
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {cancelamentoReasons.reduce((sum, r) => sum + r.count, 0)} cancelamentos analisados
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCancelamentos(!showCancelamentos)}
+              className="text-slate-400 hover:text-white"
+            >
+              {showCancelamentos ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        {showCancelamentos && <CardContent>
           {cancelamentoReasons.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum motivo registrado ainda
@@ -166,21 +185,37 @@ export function CancellationReasonsAnalysis() {
               </div>
             </div>
           )}
-        </CardContent>
+        </CardContent>}
       </Card>
 
       {/* Análise de Congelamentos */}
       <Card className="bg-slate-800/40 border-cyan-500/30">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Snowflake className="w-5 h-5 text-cyan-400" />
-            Motivos de Congelamento
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            {congelamentoReasons.reduce((sum, r) => sum + r.count, 0)} congelamentos analisados
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Snowflake className="w-5 h-5 text-cyan-400" />
+                Motivos de Congelamento
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {congelamentoReasons.reduce((sum, r) => sum + r.count, 0)} congelamentos analisados
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCongelamentos(!showCongelamentos)}
+              className="text-slate-400 hover:text-white"
+            >
+              {showCongelamentos ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        {showCongelamentos && <CardContent>
           {congelamentoReasons.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum motivo registrado ainda
@@ -232,7 +267,7 @@ export function CancellationReasonsAnalysis() {
               </div>
             </div>
           )}
-        </CardContent>
+        </CardContent>}
       </Card>
     </div>
   );

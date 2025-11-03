@@ -12,6 +12,7 @@ interface DailyTask {
   nome: string;
   diasSemContato: number;
   prioridade: 'urgente' | 'alta' | 'media';
+  isCongelado?: boolean; // Indica se é aluno congelado
 }
 
 interface DailyTasksWidgetProps {
@@ -104,6 +105,7 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
         </CardTitle>
         <CardDescription className="text-slate-400">
           {tasks.length} aluno(s) precisam de contato urgente hoje
+          {tasks.some(t => t.isCongelado) && ' • Inclui alunos congelados para reativação'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -125,12 +127,18 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-white">{task.nome}</h4>
+                      {task.isCongelado && (
+                        <Badge variant="outline" className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-xs">
+                          ❄️ Congelado
+                        </Badge>
+                      )}
                       <Badge variant="outline" className={getPriorityColor(task.prioridade)}>
                         {getPriorityLabel(task.prioridade)}
                       </Badge>
                     </div>
                     <p className="text-xs text-slate-400">
                       {task.diasSemContato} dias sem contato
+                      {task.isCongelado && ' • Reativar aluno'}
                     </p>
                   </div>
 

@@ -137,7 +137,7 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
         {/* Mensagem motivacional */}
         <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
           <p className="text-center text-sm text-slate-300">
-            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+            <span className="font-bold text-purple-400">
               Continue assim! 
             </span>
             {' '}Cada conquista é uma prova do seu esforço e dedicação. 💪✨
