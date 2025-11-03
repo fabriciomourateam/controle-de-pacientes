@@ -463,6 +463,36 @@ export class NotionService {
       mapped.antes_depois = properties['Antes e Depois'].rollup.array[0].select.name;
     }
 
+    // Mapear Motivo de Cancelamento com múltiplos tipos
+    if (properties['Motivo de Cancelamento']?.rich_text?.[0]?.text?.content) {
+      mapped.motivo_cancelamento = properties['Motivo de Cancelamento'].rich_text[0].text.content;
+    } else if (properties['Motivo Cancelamento']?.rich_text?.[0]?.text?.content) {
+      mapped.motivo_cancelamento = properties['Motivo Cancelamento'].rich_text[0].text.content;
+    } else if (properties['Motivo de Cancelamento']?.select?.name) {
+      mapped.motivo_cancelamento = properties['Motivo de Cancelamento'].select.name;
+    } else if (properties['Motivo Cancelamento']?.select?.name) {
+      mapped.motivo_cancelamento = properties['Motivo Cancelamento'].select.name;
+    } else if (properties['Motivo de Cancelamento']?.title?.[0]?.text?.content) {
+      mapped.motivo_cancelamento = properties['Motivo de Cancelamento'].title[0].text.content;
+    } else if (properties['Motivo Cancelamento']?.title?.[0]?.text?.content) {
+      mapped.motivo_cancelamento = properties['Motivo Cancelamento'].title[0].text.content;
+    }
+
+    // Mapear Motivo de Congelamento com múltiplos tipos
+    if (properties['Motivo de Congelamento']?.rich_text?.[0]?.text?.content) {
+      mapped.motivo_congelamento = properties['Motivo de Congelamento'].rich_text[0].text.content;
+    } else if (properties['Motivo Congelamento']?.rich_text?.[0]?.text?.content) {
+      mapped.motivo_congelamento = properties['Motivo Congelamento'].rich_text[0].text.content;
+    } else if (properties['Motivo de Congelamento']?.select?.name) {
+      mapped.motivo_congelamento = properties['Motivo de Congelamento'].select.name;
+    } else if (properties['Motivo Congelamento']?.select?.name) {
+      mapped.motivo_congelamento = properties['Motivo Congelamento'].select.name;
+    } else if (properties['Motivo de Congelamento']?.title?.[0]?.text?.content) {
+      mapped.motivo_congelamento = properties['Motivo de Congelamento'].title[0].text.content;
+    } else if (properties['Motivo Congelamento']?.title?.[0]?.text?.content) {
+      mapped.motivo_congelamento = properties['Motivo Congelamento'].title[0].text.content;
+    }
+
     // Campos mensais
     if (properties.Janeiro?.select?.name) {
       mapped.janeiro = properties.Janeiro.select.name;

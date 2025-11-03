@@ -13,11 +13,16 @@ import {
   Calendar,
   Activity,
   Target,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CancellationPatternsAnalysis } from "@/components/retention/CancellationPatternsAnalysis";
+import { RecentCancellationsAndFreezes } from "@/components/retention/RecentCancellationsAndFreezes";
+import { DailyTasksWidget } from "@/components/retention/DailyTasksWidget";
+import { CancellationReasonsAnalysis } from "@/components/retention/CancellationReasonsAnalysis";
+import { ContactHistoryService } from "@/lib/contact-history-service";
 
 interface PatientWithRisk {
   id: string;
@@ -154,6 +159,51 @@ function RetentionDashboard() {
     window.open(`https://wa.me/55${telefone.replace(/\D/g, '')}?text=${message}`, '_blank');
   };
 
+  const handleMarkAsContacted = async (telefone: string, patientName: string) => {
+    try {
+      // Registrar contato no histórico (salva permanentemente)
+      const result = await ContactHistoryService.registerContact(
+        telefone,
+        patientName,
+        'manual',
+        'Contato registrado via Dashboard de Retenção'
+      );
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      toast({
+        title: "✅ Contato registrado!",
+        description: `${patientName} foi marcado como contatado hoje. Histórico salvo permanentemente.`,
+      });
+
+      // Recarregar dados
+      loadPatients();
+    } catch (error) {
+      console.error('Erro ao marcar como contatado:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar o contato",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Preparar tarefas do dia (top 3 mais urgentes)
+  const dailyTasks = useMemo(() => {
+    return patients
+      .filter(p => p.riskLevel === 'critical')
+      .slice(0, 3)
+      .map(p => ({
+        telefone: p.telefone,
+        nome: p.nome,
+        diasSemContato: p.diasSemContato,
+        prioridade: p.diasSemContato >= 45 ? 'urgente' as const : 
+                    p.diasSemContato >= 35 ? 'alta' as const : 'media' as const
+      }));
+  }, [patients]);
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -234,6 +284,12 @@ function RetentionDashboard() {
           </Card>
         </div>
 
+        {/* Widget de Tarefas do Dia */}
+        <DailyTasksWidget 
+          tasks={dailyTasks} 
+          onTaskComplete={() => loadPatients()} 
+        />
+
         {/* Alunos Críticos */}
         {criticalPatients.length > 0 && (
           <Card className="bg-slate-800/40 border-red-500/30">
@@ -293,14 +349,25 @@ function RetentionDashboard() {
                           </div>
                         </div>
                         
-                        <Button
-                          size="sm"
-                          onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
-                          className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
-                        >
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          WhatsApp
-                        </Button>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
+                            className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            WhatsApp
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkAsContacted(patient.telefone, patient.nome)}
+                            className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600 flex-shrink-0"
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Contatado
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -369,14 +436,25 @@ function RetentionDashboard() {
                           </div>
                         </div>
                         
-                        <Button
-                          size="sm"
-                          onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
-                          className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
-                        >
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          WhatsApp
-                        </Button>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
+                            className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            WhatsApp
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkAsContacted(patient.telefone, patient.nome)}
+                            className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600 flex-shrink-0"
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Contatado
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -410,6 +488,16 @@ function RetentionDashboard() {
         {/* Análise de Padrões de Cancelamento */}
         <div className="mt-8">
           <CancellationPatternsAnalysis />
+        </div>
+
+        {/* Análise de Motivos de Cancelamento e Congelamento */}
+        <div className="mt-8">
+          <CancellationReasonsAnalysis />
+        </div>
+
+        {/* Cancelamentos e Congelamentos Recentes */}
+        <div className="mt-8">
+          <RecentCancellationsAndFreezes />
         </div>
       </div>
     </DashboardLayout>
