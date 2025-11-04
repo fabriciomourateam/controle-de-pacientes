@@ -8,46 +8,31 @@ export const patientSchema = z.object({
   
   apelido: z.string().optional(),
   
-  cpf: z.string()
-    .regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "Formato: 000.000.000-00")
-    .optional(),
+  cpf: z.string().optional(),
   
-  email: z.string()
-    .email("Email inválido")
-    .optional(),
+  email: z.string().optional(),
   
-  telefone: z.string()
-    .regex(/^\(\d{2}\)\s\d{4,5}-\d{4}$/, "Formato: (11) 99999-9999")
-    .transform(val => val.replace(/\D/g, '')), // Remove formatação
+  telefone: z.string().min(1, "Telefone é obrigatório"),
   
   genero: z.enum(['Masculino', 'Feminino', 'Outro']).optional(),
   
-  data_nascimento: z.date().optional(),
+  data_nascimento: z.union([z.date(), z.string()]).optional(),
   
   plano: z.string().optional(),
   
-  tempo_acompanhamento: z.number()
-    .min(1, "Duração mínima: 1 mês")
-    .max(24, "Duração máxima: 24 meses")
-    .optional(),
+  tempo_acompanhamento: z.union([z.number(), z.string()]).optional(),
   
-  vencimento: z.date()
-    .refine(date => date > new Date(), "Data deve ser futura")
-    .transform(date => date.toISOString().split('T')[0]) // Converter para string YYYY-MM-DD
-    .optional(),
+  vencimento: z.union([z.date(), z.string()]).optional(),
   
-  valor: z.number().optional(),
+  valor: z.union([z.number(), z.string()]).optional(),
   
   observacao: z.string().optional(),
   
   objetivo: z.string().optional(),
   
-  peso: z.number()
-    .min(30, "Peso mínimo: 30kg")
-    .max(300, "Peso máximo: 300kg")
-    .optional(),
+  peso: z.union([z.number(), z.string()]).optional(),
   
-  medida: z.number().optional(),
+  medida: z.union([z.number(), z.string()]).optional(),
 });
 
 // Schema para planos

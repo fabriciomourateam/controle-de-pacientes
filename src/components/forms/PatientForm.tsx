@@ -86,47 +86,50 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
     },
   });
 
-  // Resetar formulário quando o paciente muda
+  // Resetar formulário apenas quando o modal abre/fecha ou quando o ID do paciente muda
   useEffect(() => {
-    if (patient) {
-      const formData = {
-        ...patient,
-        vencimento: patient.vencimento ? new Date(patient.vencimento) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        data_nascimento: patient.data_nascimento ? new Date(patient.data_nascimento) : undefined,
-      };
-      form.reset(formData);
-    } else {
-      form.reset({
-        nome: "",
-        apelido: "",
-        cpf: "",
-        email: "",
-        telefone: "",
-        genero: undefined,
-        data_nascimento: undefined,
-        plano: "",
-        tempo_acompanhamento: 3,
-        vencimento: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        valor: undefined,
-        observacao: "",
-        objetivo: "",
-        peso: undefined,
-        medida: undefined,
-      });
-    }
-  }, [patient, form]);
-
-  // Auto-save (apenas para edição)
-  const { isSaving } = useAutoSave({
-    data: form.watch(),
-    onSave: async (data) => {
-      if (patient && form.formState.isValid) {
-        await onSave(data);
+    if (open) {
+      if (patient) {
+        const formData = {
+          ...patient,
+          vencimento: patient.vencimento ? new Date(patient.vencimento) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          data_nascimento: patient.data_nascimento ? new Date(patient.data_nascimento) : undefined,
+        };
+        form.reset(formData);
+      } else {
+        form.reset({
+          nome: "",
+          apelido: "",
+          cpf: "",
+          email: "",
+          telefone: "",
+          genero: undefined,
+          data_nascimento: undefined,
+          plano: "",
+          tempo_acompanhamento: 3,
+          vencimento: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          valor: undefined,
+          observacao: "",
+          objetivo: "",
+          peso: undefined,
+          medida: undefined,
+        });
       }
-    },
-    enabled: !!patient && form.formState.isDirty,
-    delay: 3000,
-  });
+    }
+  }, [open, patient?.id]);
+
+  // Auto-save desabilitado - causava conflitos com edição manual
+  // const { isSaving } = useAutoSave({
+  //   data: form.watch(),
+  //   onSave: async (data) => {
+  //     if (patient && form.formState.isValid) {
+  //       await onSave(data);
+  //     }
+  //   },
+  //   enabled: !!patient && form.formState.isDirty,
+  //   delay: 3000,
+  // });
+  const isSaving = false;
 
   const activePlans = plans.filter(p => p.active);
 
@@ -151,14 +154,6 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
     }
   };
 
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3');
-    }
-    return value;
-  };
-
   return (
     <TooltipProvider>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -178,7 +173,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
               )}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Preencha as informações do paciente. {patient ? "As alterações são salvas automaticamente." : ""}
+              Preencha as informações do paciente. {patient ? "Clique em 'Atualizar Paciente' para salvar as alterações." : ""}
             </DialogDescription>
           </DialogHeader>
 
@@ -214,25 +209,11 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <FormLabel className="flex items-center gap-2">
                         <Phone className="w-4 h-4" />
                         Telefone *
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <div className="w-4 h-4 rounded-full bg-slate-600 text-slate-300 flex items-center justify-center text-xs">
-                              ?
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Formato: (11) 99999-9999</p>
-                          </TooltipContent>
-                        </Tooltip>
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="(11) 99999-9999"
+                          placeholder="Digite o telefone"
                           {...field}
-                          onChange={(e) => {
-                            const formatted = formatPhoneNumber(e.target.value);
-                            field.onChange(formatted);
-                          }}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
@@ -410,7 +391,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <FormLabel className="text-slate-300">CPF</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="000.000.000-00"
+                          placeholder="Digite o CPF"
                           {...field}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
@@ -580,7 +561,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading || !form.formState.isValid}
+                  disabled={loading}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {loading ? (

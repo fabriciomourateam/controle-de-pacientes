@@ -661,30 +661,75 @@ export function PatientsListNew() {
         open={isPatientFormOpen}
         onOpenChange={setIsPatientFormOpen}
         onSave={async (data) => {
+          console.log('💾 Salvando paciente:', { selectedPatient: selectedPatient?.id, data });
           try {
+            // Converter todos os campos para string, já que o Supabase espera strings
+            // Apenas incluir campos que existem na tabela patients
+            const dataToSave: any = {
+              nome: data.nome,
+              telefone: data.telefone,
+            };
+            
+            // Campos opcionais que existem na tabela
+            if (data.apelido) dataToSave.apelido = data.apelido;
+            if (data.cpf) dataToSave.cpf = data.cpf;
+            if (data.email) dataToSave.email = data.email;
+            if (data.genero) dataToSave.genero = data.genero;
+            if (data.plano) dataToSave.plano = data.plano;
+            if (data.observacao) dataToSave.observacao = data.observacao;
+            
+            // Converter data_nascimento para string
+            if (data.data_nascimento) {
+              dataToSave.data_nascimento = data.data_nascimento instanceof Date 
+                ? data.data_nascimento.toISOString().split('T')[0] 
+                : data.data_nascimento;
+            }
+            
+            // Converter vencimento para string
+            if (data.vencimento) {
+              dataToSave.vencimento = data.vencimento instanceof Date 
+                ? data.vencimento.toISOString().split('T')[0] 
+                : data.vencimento;
+            }
+            
+            // Converter números para string (apenas se existirem na tabela)
+            if (data.tempo_acompanhamento !== undefined) {
+              dataToSave.tempo_acompanhamento = Number(data.tempo_acompanhamento);
+            }
+            if (data.valor !== undefined) {
+              dataToSave.valor = Number(data.valor);
+            }
+            
             if (selectedPatient) {
               // Atualizar paciente existente
-              await patientService.update(selectedPatient.id, data);
+              console.log('🔄 Atualizando paciente no Supabase...', selectedPatient.id, dataToSave);
+              const result = await patientService.update(selectedPatient.id, dataToSave);
+              console.log('✅ Paciente atualizado com sucesso:', result);
               toast({
                 title: "Sucesso",
                 description: "Paciente atualizado com sucesso"
               });
             } else {
               // Criar novo paciente
-              await patientService.create(data);
+              console.log('➕ Criando novo paciente no Supabase...', dataToSave);
+              const result = await patientService.create(dataToSave);
+              console.log('✅ Paciente criado com sucesso:', result);
               toast({
                 title: "Sucesso", 
                 description: "Paciente criado com sucesso"
               });
             }
+            console.log('🔄 Recarregando listas de pacientes...');
             await loadPatients();
             await loadAllPatients(); // Recarregar todos os pacientes para atualizar lista de planos
+            console.log('✅ Listas recarregadas!');
             setIsPatientFormOpen(false);
             setSelectedPatient(null);
-          } catch (error) {
+          } catch (error: any) {
+            console.error('❌ Erro ao salvar paciente:', error);
             toast({
               title: "Erro",
-              description: "Não foi possível salvar o paciente",
+              description: error.message || "Não foi possível salvar o paciente",
               variant: "destructive"
             });
           }
