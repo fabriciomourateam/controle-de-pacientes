@@ -39,23 +39,30 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
   const patientWithInitialData = patient as any;
   if (patientWithInitialData?.peso_inicial) {
     const dataInicial = patientWithInitialData.data_fotos_iniciais || patient?.created_at;
-    weightData.push({
+    const dataInicialPoint = {
+      id: 'inicial',
       data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      dataCompleta: new Date(dataInicial).toISOString(),
       peso: parseFloat(patientWithInitialData.peso_inicial.toString()),
       tipo: 'Inicial',
       aproveitamento: null
-    });
+    };
+    weightData.push(dataInicialPoint);
   }
   
   // Adicionar dados dos check-ins
   checkinsOrdenados.forEach((c, index) => {
     if (c.peso) {
-      weightData.push({
+      const pesoValue = parseFloat(c.peso.replace(',', '.'));
+      const dataPoint = {
+        id: c.id,
         data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-        peso: parseFloat(c.peso.replace(',', '.')),
+        dataCompleta: c.data_checkin,
+        peso: pesoValue,
         tipo: index === 0 ? '1º Check-in' : 'Check-in',
         aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
-      });
+      };
+      weightData.push(dataPoint);
     }
   });
 
@@ -116,9 +123,13 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
               <LineChart data={weightData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis 
-                  dataKey="data" 
+                  dataKey="dataCompleta"
                   stroke="#94a3b8"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                  }}
                 />
                 <YAxis 
                   stroke="#94a3b8"
@@ -132,13 +143,26 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                     borderRadius: '8px',
                     color: '#fff'
                   }}
-                  formatter={(value, name, props) => [
-                    `${value} kg`,
-                    props.payload?.tipo === 'Inicial' ? 'Peso Inicial' : 
-                    props.payload?.tipo === '1º Check-in' ? '1º Check-in' : 
-                    'Peso Check-in'
-                  ]}
-                  labelFormatter={(label) => `Data: ${label}`}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      let tipoLabel = 'Peso Check-in';
+                      
+                      if (data.tipo === 'Inicial') {
+                        tipoLabel = 'Peso Inicial';
+                      } else if (data.tipo === '1º Check-in') {
+                        tipoLabel = '1º Check-in';
+                      }
+                      
+                      return (
+                        <div className="bg-slate-800 p-3 rounded-lg border border-slate-600">
+                          <p className="text-slate-300 text-sm mb-1">Data: {data.data}</p>
+                          <p className="text-white font-semibold">{tipoLabel}: {data.peso} kg</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Legend />
                 <Line 

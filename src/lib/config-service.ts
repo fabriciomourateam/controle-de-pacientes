@@ -88,7 +88,7 @@ export class ConfigService {
         ...config,
         savedAt: new Date().toISOString()
       };
-      
+
       localStorage.setItem('dashboard-sync-config', JSON.stringify(configData));
       return { success: true, data: configData };
     } catch (error) {

@@ -22,6 +22,8 @@ interface CertificateButtonProps {
   totalWeeks: number;
   coachName?: string;
   coachTitle?: string;
+  initialWeight?: number;
+  currentWeight?: number;
 }
 
 export function CertificateButton({
@@ -32,7 +34,9 @@ export function CertificateButton({
   endDate,
   totalWeeks,
   coachName,
-  coachTitle
+  coachTitle,
+  initialWeight,
+  currentWeight
 }: CertificateButtonProps) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -57,7 +61,9 @@ export function CertificateButton({
         bodyFatLost: bodyFatLost && bodyFatLost > 0 ? bodyFatLost : undefined,
         totalWeeks,
         coachName,
-        coachTitle
+        coachTitle,
+        initialWeight,
+        currentWeight
       };
 
       await generateCertificate(certificateData);
@@ -217,13 +223,13 @@ export function CertificateButton({
             ) : (
               <>
                 <Award className="w-4 h-4 mr-2" />
-                Baixar Certificado em PDF
+                Baixar Certificado Premium
               </>
             )}
           </Button>
 
           <p className="text-xs text-center text-slate-400">
-            O certificado será baixado em formato PDF de alta qualidade
+            O certificado será baixado em formato PNG de alta qualidade
           </p>
         </div>
       </DialogContent>

@@ -386,19 +386,34 @@ export default function PatientEvolution() {
 
   // Preparar dados para certificado
   const getCertificateData = () => {
-    if (checkins.length < 2) return null;
+    if (checkins.length < 1) return null;
 
     const sortedCheckins = [...checkins].sort((a, b) => 
       new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
     );
 
-    const initialWeight = parseFloat(sortedCheckins[0].peso || '0');
+    // Usar peso_inicial do paciente se existir, senão usar primeiro checkin
+    const patientWithInitialData = patient as any;
+    const initialWeight = patientWithInitialData?.peso_inicial 
+      ? parseFloat(patientWithInitialData.peso_inicial.toString())
+      : parseFloat(sortedCheckins[0].peso || '0');
+    
     const currentWeight = parseFloat(sortedCheckins[sortedCheckins.length - 1].peso || '0');
     const weightLost = initialWeight - currentWeight;
 
+    // Calcular semanas desde o peso inicial ou primeiro checkin
+    // Se tem peso_inicial, usar data_fotos_iniciais ou created_at, senão usar primeiro checkin
+    let startDate;
+    if (patientWithInitialData?.peso_inicial) {
+      startDate = patientWithInitialData?.data_fotos_iniciais || patient?.created_at || sortedCheckins[0].data_checkin;
+    } else {
+      startDate = sortedCheckins[0].data_checkin;
+    }
+    
+    const endDate = sortedCheckins[sortedCheckins.length - 1].data_checkin;
+    
     const totalWeeks = Math.floor(
-      (new Date(sortedCheckins[sortedCheckins.length - 1].data_checkin).getTime() - 
-       new Date(sortedCheckins[0].data_checkin).getTime()) / 
+      (new Date(endDate).getTime() - new Date(startDate).getTime()) / 
       (1000 * 60 * 60 * 24 * 7)
     );
 
@@ -414,10 +429,12 @@ export default function PatientEvolution() {
       patientName: patient?.nome || 'Paciente',
       weightLost,
       bodyFatLost,
-      startDate: new Date(sortedCheckins[0].data_checkin).toLocaleDateString('pt-BR'),
-      endDate: new Date(sortedCheckins[sortedCheckins.length - 1].data_checkin).toLocaleDateString('pt-BR'),
+      initialWeight,
+      currentWeight,
+      startDate: new Date(startDate).toLocaleDateString('pt-BR'),
+      endDate: new Date(endDate).toLocaleDateString('pt-BR'),
       totalWeeks,
-      coachName: 'Equipe InShape', // Pode ser configurável
+      coachName: 'Fabricio Moura Team',
       coachTitle: 'Personal Trainer'
     };
   };
@@ -488,6 +505,8 @@ export default function PatientEvolution() {
                   totalWeeks={certificateData.totalWeeks}
                   coachName={certificateData.coachName}
                   coachTitle={certificateData.coachTitle}
+                  initialWeight={certificateData.initialWeight}
+                  currentWeight={certificateData.currentWeight}
                 />
               )}
               
@@ -622,9 +641,17 @@ export default function PatientEvolution() {
                 });
 
                 return weightData.length > 0 ? (
-                  <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
+                  <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30 relative group">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-slate-300">Peso Inicial</CardTitle>
+                      <CardTitle className="text-sm text-slate-300 flex items-center justify-between">
+                        Peso Inicial
+                        <InitialDataInput
+                          telefone={telefone!}
+                          nome={patient?.nome || 'Paciente'}
+                          onSuccess={handleInitialDataSuccess}
+                          editMode={true}
+                        />
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-white">

@@ -18,9 +18,10 @@ interface InitialDataInputProps {
   telefone: string;
   nome: string;
   onSuccess: () => void;
+  editMode?: boolean;
 }
 
-export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInputProps) {
+export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }: InitialDataInputProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -236,10 +237,20 @@ export function InitialDataInput({ telefone, nome, onSuccess }: InitialDataInput
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
-          <Camera className="w-4 h-4" />
-          Adicionar Dados Iniciais
-        </Button>
+        {editMode ? (
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Camera className="w-3 h-3" />
+          </Button>
+        ) : (
+          <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
+            <Camera className="w-4 h-4" />
+            Adicionar Dados Iniciais
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
