@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Camera, Upload, X, Save } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, X, Save, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,6 +61,54 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
   const ladoInputRef = useRef<HTMLInputElement>(null);
   const lado2InputRef = useRef<HTMLInputElement>(null);
   const costasInputRef = useRef<HTMLInputElement>(null);
+
+  // Carregar dados existentes quando abrir o modal em modo de edição
+  useEffect(() => {
+    if (open && editMode) {
+      loadExistingData();
+    }
+  }, [open, editMode]);
+
+  const loadExistingData = async () => {
+    try {
+      const { data: patientData, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('telefone', telefone)
+        .single();
+
+      if (error) throw error;
+
+      if (patientData) {
+        const patient = patientData as any;
+        // Carregar medidas
+        if (patient.data_nascimento) {
+          const hoje = new Date();
+          const nascimento = new Date(patient.data_nascimento);
+          let idadeCalculada = hoje.getFullYear() - nascimento.getFullYear();
+          const mesAtual = hoje.getMonth();
+          const mesNascimento = nascimento.getMonth();
+          if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < nascimento.getDate())) {
+            idadeCalculada--;
+          }
+          setIdade(idadeCalculada.toString());
+        }
+        if (patient.peso_inicial) setPesoInicial(patient.peso_inicial.toString());
+        if (patient.altura_inicial) setAlturaInicial(patient.altura_inicial.toString());
+        if (patient.medida_cintura_inicial) setCinturaInicial(patient.medida_cintura_inicial.toString());
+        if (patient.medida_quadril_inicial) setQuadrilInicial(patient.medida_quadril_inicial.toString());
+        if (patient.data_fotos_iniciais) setDataFotos(patient.data_fotos_iniciais);
+
+        // Carregar previews das fotos existentes
+        if (patient.foto_inicial_frente) setPreviewFrente(patient.foto_inicial_frente);
+        if (patient.foto_inicial_lado) setPreviewLado(patient.foto_inicial_lado);
+        if (patient.foto_inicial_lado_2) setPreviewLado2(patient.foto_inicial_lado_2);
+        if (patient.foto_inicial_costas) setPreviewCostas(patient.foto_inicial_costas);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados existentes:', error);
+    }
+  };
 
   const handleFileChange = (
     file: File | null,
@@ -171,6 +219,7 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
         data_fotos_iniciais: dataFotos
       };
 
+      // Só atualizar fotos se houver novas fotos (arquivos File)
       if (fotoFrenteUrl) updateData.foto_inicial_frente = fotoFrenteUrl;
       if (fotoLadoUrl) updateData.foto_inicial_lado = fotoLadoUrl;
       if (fotoLado2Url) updateData.foto_inicial_lado_2 = fotoLado2Url;
@@ -202,26 +251,28 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
 
       toast({
         title: 'Sucesso!',
-        description: 'Dados iniciais cadastrados com sucesso'
+        description: editMode ? 'Dados atualizados com sucesso' : 'Dados iniciais cadastrados com sucesso'
       });
 
       setOpen(false);
       onSuccess();
       
-      // Limpar formulário
-      setFotoFrente(null);
-      setFotoLado(null);
-      setFotoLado2(null);
-      setFotoCostas(null);
-      setPreviewFrente('');
-      setPreviewLado('');
-      setPreviewLado2('');
-      setPreviewCostas('');
-      setIdade('');
-      setPesoInicial('');
-      setAlturaInicial('');
-      setCinturaInicial('');
-      setQuadrilInicial('');
+      // Limpar formulário apenas se não estiver em modo de edição
+      if (!editMode) {
+        setFotoFrente(null);
+        setFotoLado(null);
+        setFotoLado2(null);
+        setFotoCostas(null);
+        setPreviewFrente('');
+        setPreviewLado('');
+        setPreviewLado2('');
+        setPreviewCostas('');
+        setIdade('');
+        setPesoInicial('');
+        setAlturaInicial('');
+        setCinturaInicial('');
+        setQuadrilInicial('');
+      }
     } catch (error: any) {
       console.error('Erro ao salvar dados iniciais:', error);
       toast({
@@ -242,8 +293,9 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
             variant="ghost" 
             size="icon"
             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Editar dados iniciais"
           >
-            <Camera className="w-3 h-3" />
+            <Edit className="w-3 h-3" />
           </Button>
         ) : (
           <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
@@ -254,9 +306,9 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>📸 Dados Iniciais - {nome}</DialogTitle>
+          <DialogTitle>📸 {editMode ? 'Editar' : 'Adicionar'} Dados Iniciais - {nome}</DialogTitle>
           <DialogDescription>
-            Cadastre fotos, peso, altura e medidas iniciais do paciente
+            {editMode ? 'Atualize' : 'Cadastre'} fotos, peso, altura e medidas iniciais do paciente
           </DialogDescription>
         </DialogHeader>
 
