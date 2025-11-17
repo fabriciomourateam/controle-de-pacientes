@@ -1107,42 +1107,6 @@ export default function PatientEvolution() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      disabled={generatingPDF}
-                      className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
-                    >
-                      <Download className="w-4 h-4" />
-                      {generatingPDF ? 'Gerando...' : 'Exportar Dossiê'}
-                      <ChevronDown className="w-4 h-4 ml-1" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <DropdownMenuItem 
-                      onClick={() => handleExport('pdf')}
-                      className="gap-2 cursor-pointer"
-                    >
-                      <FileDown className="w-4 h-4 text-red-500" />
-                      <span>Exportar como PDF</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleExport('png')}
-                      className="gap-2 cursor-pointer"
-                    >
-                      <Image className="w-4 h-4 text-blue-500" />
-                      <span>Exportar como PNG</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleExport('jpeg')}
-                      className="gap-2 cursor-pointer"
-                    >
-                      <Image className="w-4 h-4 text-green-500" />
-                      <span>Exportar como JPEG</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
                 <PortalPNGButton
                   telefone={telefone!}
                   patientName={patient?.nome || 'Paciente'}

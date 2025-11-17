@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
@@ -19,9 +19,22 @@ interface TimelineProps {
 export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: TimelineProps) {
   const [editingCheckin, setEditingCheckin] = useState<Checkin | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   
   // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
   const checkinsOrdenados = [...checkins].reverse();
+
+  const toggleCard = (checkinId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(checkinId)) {
+        newSet.delete(checkinId);
+      } else {
+        newSet.add(checkinId);
+      }
+      return newSet;
+    });
+  };
 
   const handleEditClick = (checkin: Checkin) => {
     setEditingCheckin(checkin);
@@ -90,6 +103,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
             const checkinDate = new Date(checkin.data_checkin);
             const isFirst = index === 0;
             const isLast = index === checkinsOrdenados.length - 1;
+            const isExpanded = expandedCards.has(checkin.id);
 
             return (
               <div key={checkin.id} className="relative pl-8 pb-6 border-l-2 border-blue-500/30 last:border-l-0 last:pb-0">
@@ -121,8 +135,17 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                       </div>
                     </div>
                     
-                    {/* Pontuação Total e Botão Editar */}
-                    <div className="flex items-start gap-3 w-full sm:w-auto">
+                    {/* Pontuação Total e Botões */}
+                    <div className="flex items-start gap-2 w-full sm:w-auto">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toggleCard(checkin.id)}
+                        className="bg-slate-700/30 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0 px-2"
+                        title={isExpanded ? "Minimizar" : "Expandir"}
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </Button>
                       {showEditButton && (
                         <Button
                           size="sm"
@@ -243,8 +266,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                     </div>
                   </div>
 
-                  {/* Observações e Dificuldades */}
-                  {(checkin.objetivo || checkin.dificuldades || checkin.melhora_visual) && (
+                  {/* Observações e Dificuldades - Apenas quando expandido */}
+                  {isExpanded && (checkin.objetivo || checkin.dificuldades || checkin.melhora_visual) && (
                     <div className="space-y-2 pt-3 border-t border-slate-600/50">
                       {checkin.objetivo && (
                         <div className="bg-slate-800/30 p-2 rounded">
@@ -276,8 +299,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                     </div>
                   )}
 
-                  {/* Fotos/Vídeos do Check-in */}
-                  {(checkin.foto_1 || checkin.foto_2 || checkin.foto_3 || checkin.foto_4) && (
+                  {/* Fotos/Vídeos do Check-in - Apenas quando expandido */}
+                  {isExpanded && (checkin.foto_1 || checkin.foto_2 || checkin.foto_3 || checkin.foto_4) && (
                     <div className="pt-3 mt-3 border-t border-slate-600/50">
                       <p className="text-xs text-slate-400 mb-2 font-semibold">Mídia do Check-in:</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
