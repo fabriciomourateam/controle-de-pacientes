@@ -70,42 +70,35 @@ export default function PatientPortal() {
     loadPortalData();
   }, [token]);
 
-  // Auto-download do PNG ou PDF quando parâmetros autoDownload=true ou autoDownloadPDF=true
+  // Auto-download quando parâmetro autoDownload está presente
   useEffect(() => {
     if (!loading && patient && portalRef.current) {
       const urlParams = new URLSearchParams(window.location.search);
-      const shouldAutoDownload = urlParams.get('autoDownload') === 'true';
-      const shouldAutoDownloadPDF = urlParams.get('autoDownloadPDF') === 'true';
+      const autoDownloadFormat = urlParams.get('autoDownload'); // 'png', 'pdf', ou 'jpeg'
       
-      if (shouldAutoDownload) {
-        console.log('🎯 Auto-download PNG detectado! Iniciando captura...');
+      if (autoDownloadFormat) {
+        console.log(`🎯 Auto-download ${autoDownloadFormat.toUpperCase()} detectado! Iniciando captura...`);
         
-        // Aguardar um pouco para garantir que tudo renderizou
+        // Aguardar renderização completa
         setTimeout(async () => {
-          console.log('📸 Capturando portal como PNG...');
-          await handleExportPNG();
+          console.log(`📸 Capturando portal como ${autoDownloadFormat.toUpperCase()}...`);
           
-          console.log('✅ Download iniciado! Fechando aba em 1 segundo...');
+          if (autoDownloadFormat === 'png' || autoDownloadFormat === 'jpeg') {
+            await handleExportPNG();
+          } else if (autoDownloadFormat === 'pdf') {
+            toast({
+              title: 'PDF em desenvolvimento',
+              description: 'Use a exportação PNG por enquanto',
+              variant: 'destructive'
+            });
+          }
           
-          // Fechar aba automaticamente após iniciar o download
+          console.log('✅ Download iniciado! Fechando aba em 2 segundos...');
+          
+          // Fechar aba automaticamente após download
           setTimeout(() => {
             window.close();
-          }, 1000);
-        }, 2000);
-      } else if (shouldAutoDownloadPDF) {
-        console.log('🎯 Auto-download PDF detectado! Iniciando captura...');
-        
-        // Aguardar um pouco para garantir que tudo renderizou
-        setTimeout(async () => {
-          console.log('📄 Capturando portal como PDF...');
-          await handleExportPDF();
-          
-          console.log('✅ Download iniciado! Fechando aba em 1 segundo...');
-          
-          // Fechar aba automaticamente após iniciar o download
-          setTimeout(() => {
-            window.close();
-          }, 1000);
+          }, 2000);
         }, 2000);
       }
     }
@@ -190,7 +183,7 @@ export default function PatientPortal() {
         description: 'Aguarde enquanto criamos seu relatório em PNG'
       });
 
-      // Ocultar apenas elementos marcados para ocultar no PNG
+      // Ocultar botões
       const elementsToHide = portalRef.current.querySelectorAll('.hide-in-pdf');
       const originalDisplay: string[] = [];
       elementsToHide.forEach((el, index) => {
@@ -198,26 +191,36 @@ export default function PatientPortal() {
         (el as HTMLElement).style.display = 'none';
       });
 
-      // Aguardar um pouco para garantir que elementos foram ocultados
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Aguardar
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Capturar o portal inteiro como imagem
+      // Capturar com configurações otimizadas
       const canvas = await html2canvas(portalRef.current, {
-        scale: 2.5, // Alta qualidade
+        scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
-        backgroundColor: '#0f172a', // Cor do fundo do portal
-        windowWidth: portalRef.current.scrollWidth,
-        windowHeight: portalRef.current.scrollHeight,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        ignoreElements: (element) => {
-          // Ignorar apenas elementos marcados para ocultar
-          return element.classList.contains('hide-in-pdf');
+        backgroundColor: '#0f172a',
+        imageTimeout: 0, // Não esperar por imagens de background
+        removeContainer: true,
+        onclone: (clonedDoc) => {
+          // Adicionar CSS para remover backdrop-blur e background-images problemáticos
+          const style = clonedDoc.createElement('style');
+          style.textContent = `
+            * { 
+              backdrop-filter: none !important; 
+              -webkit-backdrop-filter: none !important;
+            }
+            /* Remover background-image de pseudo-elementos */
+            *::before, *::after {
+              background-image: none !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
         }
       });
 
-      // Restaurar elementos ocultos
+      // Restaurar elementos
       elementsToHide.forEach((el, index) => {
         (el as HTMLElement).style.display = originalDisplay[index];
       });
@@ -624,6 +627,7 @@ export default function PatientPortal() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
+            className="hide-in-pdf"
           >
             <AchievementBadges achievements={achievements} />
           </motion.div>
@@ -646,6 +650,7 @@ export default function PatientPortal() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
+            className="hide-in-pdf"
           >
             <TrendsAnalysis trends={trends} />
           </motion.div>
@@ -691,6 +696,7 @@ export default function PatientPortal() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
+            className="hide-in-pdf"
           >
             <Timeline checkins={checkins} showEditButton={false} />
           </motion.div>

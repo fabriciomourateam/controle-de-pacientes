@@ -34,9 +34,10 @@ export function PortalPNGButton({ telefone, patientName }: PortalPNGButtonProps)
         return;
       }
 
-      // Gerar URL do portal com parâmetro de auto-download
+      // Gerar URL do portal com parâmetro de auto-download PNG
       const portalUrl = getPortalUrl(result.token);
-      const downloadUrl = `${portalUrl}?autoDownload=true&name=${encodeURIComponent(patientName)}`;
+      const timestamp = Date.now();
+      const downloadUrl = `${portalUrl}?autoDownload=png&name=${encodeURIComponent(patientName)}&t=${timestamp}`;
       
       // Abrir portal em nova aba (ele automaticamente iniciará o download)
       window.open(downloadUrl, '_blank');

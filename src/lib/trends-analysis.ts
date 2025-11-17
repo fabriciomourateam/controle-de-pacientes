@@ -20,7 +20,7 @@ export function analyzeTrends(checkins: Checkin[]): Trend[] {
   if (checkins.length < 3) {
     return [{
       id: 'not_enough_data',
-      title: '📊 Dados Insuficientes',
+      title: 'Dados Insuficientes',
       description: 'Continue fazendo check-ins para gerar análises personalizadas',
       icon: '📊',
       type: 'neutral',
@@ -85,7 +85,7 @@ function analyzeWeightTrend(checkins: Checkin[]): Trend | null {
   if (Math.abs(diff) < 0.3) {
     return {
       id: 'weight_stable',
-      title: '⚖️ Peso Estável',
+      title: 'Peso Estável',
       description: `Seu peso manteve-se estável (±${Math.abs(diff).toFixed(1)}kg) nos últimos check-ins`,
       icon: '⚖️',
       type: 'neutral',
@@ -98,7 +98,7 @@ function analyzeWeightTrend(checkins: Checkin[]): Trend | null {
   if (diff < 0) {
     return {
       id: 'weight_decreasing',
-      title: '📉 Tendência de Perda',
+      title: 'Tendência de Perda',
       description: `Você perdeu ${Math.abs(diff).toFixed(1)}kg (${Math.abs(percentChange).toFixed(1)}%) nos últimos check-ins`,
       icon: '📉',
       type: 'positive',
@@ -109,7 +109,7 @@ function analyzeWeightTrend(checkins: Checkin[]): Trend | null {
   } else {
     return {
       id: 'weight_increasing',
-      title: '📈 Tendência de Ganho',
+      title: 'Tendência de Ganho',
       description: `Seu peso aumentou ${diff.toFixed(1)}kg (${percentChange.toFixed(1)}%) recentemente`,
       icon: '📈',
       type: 'negative',
@@ -127,7 +127,7 @@ function analyzeSleepPattern(checkins: Checkin[]): Trend | null {
   if (avgSleep >= 8) {
     return {
       id: 'sleep_excellent',
-      title: '😴 Sono Excelente',
+      title: 'Sono Excelente',
       description: `Média de ${avgSleep.toFixed(1)}/10 pontos de sono - Recuperação ideal!`,
       icon: '😴',
       type: 'positive',
@@ -137,7 +137,7 @@ function analyzeSleepPattern(checkins: Checkin[]): Trend | null {
   } else if (avgSleep < 6) {
     return {
       id: 'sleep_poor',
-      title: '⚠️ Sono Insuficiente',
+      title: 'Sono Insuficiente',
       description: `Média de ${avgSleep.toFixed(1)}/10 pontos - Isso pode afetar seus resultados`,
       icon: '⚠️',
       type: 'negative',
@@ -157,7 +157,7 @@ function analyzeWaterPattern(checkins: Checkin[]): Trend | null {
   if (avgWater >= 8) {
     return {
       id: 'water_excellent',
-      title: '💧 Hidratação Perfeita',
+      title: 'Hidratação Perfeita',
       description: `Média de ${avgWater.toFixed(1)}/10 pontos - Você está bem hidratado!`,
       icon: '💧',
       type: 'positive',
@@ -167,7 +167,7 @@ function analyzeWaterPattern(checkins: Checkin[]): Trend | null {
   } else if (avgWater < 5) {
     return {
       id: 'water_low',
-      title: '💧 Hidratação Baixa',
+      title: 'Hidratação Baixa',
       description: `Média de ${avgWater.toFixed(1)}/10 pontos - Beba mais água!`,
       icon: '💧',
       type: 'negative',
@@ -187,7 +187,7 @@ function analyzeWorkoutPattern(checkins: Checkin[]): Trend | null {
   if (avgWorkout >= 8) {
     return {
       id: 'workout_consistent',
-      title: '💪 Treinos Consistentes',
+      title: 'Treinos Consistentes',
       description: `Média de ${avgWorkout.toFixed(1)}/10 pontos - Dedicação exemplar!`,
       icon: '💪',
       type: 'positive',
@@ -197,7 +197,7 @@ function analyzeWorkoutPattern(checkins: Checkin[]): Trend | null {
   } else if (avgWorkout < 5) {
     return {
       id: 'workout_low',
-      title: '⚠️ Frequência de Treino Baixa',
+      title: 'Frequência de Treino Baixa',
       description: `Média de ${avgWorkout.toFixed(1)}/10 pontos - Aumente a frequência`,
       icon: '⚠️',
       type: 'negative',
@@ -217,7 +217,7 @@ function analyzeStressPattern(checkins: Checkin[]): Trend | null {
   if (avgStress < 4) {
     return {
       id: 'stress_high',
-      title: '😰 Stress Elevado',
+      title: 'Stress Elevado',
       description: `Média de ${avgStress.toFixed(1)}/10 pontos - Cuide da sua saúde mental`,
       icon: '😰',
       type: 'negative',
@@ -228,7 +228,7 @@ function analyzeStressPattern(checkins: Checkin[]): Trend | null {
   } else if (avgStress >= 7) {
     return {
       id: 'stress_low',
-      title: '😌 Stress Controlado',
+      title: 'Stress Controlado',
       description: `Média de ${avgStress.toFixed(1)}/10 pontos - Equilíbrio mental excelente!`,
       icon: '😌',
       type: 'positive',
@@ -266,7 +266,7 @@ function analyzeWeekendVsWeekday(checkins: Checkin[]): Trend | null {
   if (diff > 1.5) {
     return {
       id: 'weekend_dip',
-      title: '📅 Queda no Fim de Semana',
+      title: 'Queda no Fim de Semana',
       description: `Sua pontuação cai ${diff.toFixed(1)} pontos nos fins de semana`,
       icon: '📅',
       type: 'insight',
@@ -277,7 +277,7 @@ function analyzeWeekendVsWeekday(checkins: Checkin[]): Trend | null {
   } else if (diff < -1.5) {
     return {
       id: 'weekend_better',
-      title: '🎉 Melhor no Fim de Semana',
+      title: 'Melhor no Fim de Semana',
       description: `Você performa ${Math.abs(diff).toFixed(1)} pontos melhor nos fins de semana!`,
       icon: '🎉',
       type: 'positive',
@@ -301,7 +301,7 @@ function analyzeCorrelations(checkins: Checkin[]): Trend[] {
   if (sleepVsTotal > 0.6) {
     trends.push({
       id: 'sleep_performance_correlation',
-      title: '🌙 Sono Afeta Performance',
+      title: 'Sono Afeta Performance',
       description: 'Você performa melhor quando dorme bem! Correlação forte detectada',
       icon: '🌙',
       type: 'insight',
@@ -320,7 +320,7 @@ function analyzeCorrelations(checkins: Checkin[]): Trend[] {
   if (waterVsTotal > 0.5) {
     trends.push({
       id: 'water_performance_correlation',
-      title: '💦 Hidratação é Chave',
+      title: 'Hidratação é Chave',
       description: 'Dias com boa hidratação resultam em melhor desempenho geral',
       icon: '💦',
       type: 'insight',
@@ -342,7 +342,7 @@ function analyzeConsistency(checkins: Checkin[]): Trend | null {
   if (stdDev < 1.5) {
     return {
       id: 'high_consistency',
-      title: '🎯 Consistência Impressionante',
+      title: 'Consistência Impressionante',
       description: `Suas pontuações são muito consistentes (desvio: ${stdDev.toFixed(2)})`,
       icon: '🎯',
       type: 'positive',
@@ -353,7 +353,7 @@ function analyzeConsistency(checkins: Checkin[]): Trend | null {
   } else if (stdDev > 3) {
     return {
       id: 'low_consistency',
-      title: '📊 Variação Alta',
+      title: 'Variação Alta',
       description: `Suas pontuações variam bastante (desvio: ${stdDev.toFixed(2)})`,
       icon: '📊',
       type: 'insight',

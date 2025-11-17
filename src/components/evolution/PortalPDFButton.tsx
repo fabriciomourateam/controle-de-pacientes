@@ -36,7 +36,8 @@ export function PortalPDFButton({ telefone, patientName }: PortalPDFButtonProps)
 
       // Gerar URL do portal com parâmetro de auto-download em PDF
       const portalUrl = getPortalUrl(result.token);
-      const downloadUrl = `${portalUrl}?autoDownloadPDF=true&name=${encodeURIComponent(patientName)}`;
+      const timestamp = Date.now();
+      const downloadUrl = `${portalUrl}?autoDownload=pdf&name=${encodeURIComponent(patientName)}&t=${timestamp}`;
       
       // Abrir portal em nova aba (ele automaticamente iniciará o download do PDF)
       window.open(downloadUrl, '_blank');

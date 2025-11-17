@@ -76,8 +76,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
     }
   }
 
-  // Extrair todas as fotos/vídeos dos check-ins
-  const checkinPhotos: PhotoData[] = checkins.flatMap(checkin => {
+  // Extrair todas as fotos/vídeos dos check-ins (inverter ordem para ter do mais antigo ao mais recente)
+  const checkinPhotos: PhotoData[] = [...checkins].reverse().flatMap(checkin => {
     const photos: PhotoData[] = [];
     if (checkin.foto_1) {
       const isVideo = getMediaType(checkin.foto_1) === 'video';
@@ -138,7 +138,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
     return photos;
   });
 
-  // Combinar fotos iniciais com fotos de check-ins
+  // Combinar fotos iniciais com fotos de check-ins e ordenar por data
   const allPhotos = [...initialPhotos, ...checkinPhotos];
 
   const handleZoomPhoto = (photo: PhotoData) => {
@@ -171,9 +171,11 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
     );
   }
 
-  // Fotos de comparação: primeira e última
-  const firstPhoto = allPhotos[0];
-  const lastPhoto = allPhotos[allPhotos.length - 1];
+  // Fotos de comparação: primeira (mais antiga) e última (mais recente)
+  // Fotos iniciais sempre vêm primeiro, depois os checkins em ordem decrescente
+  // Então: primeira = inicial ou primeiro checkin, última = último checkin
+  const firstPhoto = allPhotos[0]; // Foto mais antiga (inicial ou primeiro checkin)
+  const lastPhoto = allPhotos[allPhotos.length - 1]; // Foto mais recente (último checkin)
 
   return (
     <>

@@ -221,43 +221,22 @@ export default function PatientEvolution() {
       setGeneratingPDF(true);
       
       const formatLabel = format === 'pdf' ? 'PDF' : format === 'png' ? 'PNG' : 'JPEG';
+      
+      // Abrir portal em nova aba com parâmetro de auto-download
+      const timestamp = Date.now();
+      const portalUrl = `/portal/${patient.telefone}?autoDownload=${format}&t=${timestamp}`;
+      window.open(portalUrl, '_blank');
+      
       toast({
-        title: `Gerando ${formatLabel}`,
-        description: 'Por favor, aguarde...'
+        title: `Abrindo Portal`,
+        description: `O download ${formatLabel} iniciará automaticamente`
       });
 
-      const patientInfo = {
-        nome: patient.nome,
-        telefone: patient.telefone,
-        email: patient.email || undefined,
-        plano: patient.plano || undefined
-      };
-
-      if (format === 'pdf') {
-        await generateDossiePDF(
-          patientInfo,
-          checkins,
-          bodyCompositions,
-          patient
-        );
-      } else {
-        await generateDossieImage(
-          patientInfo,
-          checkins,
-          format,
-          bodyCompositions,
-          patient
-        );
-      }
-
-      toast({
-        title: `${formatLabel} gerado com sucesso!`,
-        description: 'O download deve iniciar automaticamente'
-      });
+      setGeneratingPDF(false);
     } catch (error) {
-      console.error('Erro ao gerar documento:', error);
+      console.error('Erro ao abrir portal:', error);
       toast({
-        title: 'Erro ao gerar documento',
+        title: 'Erro ao abrir portal',
         description: 'Ocorreu um erro ao gerar o arquivo',
         variant: 'destructive'
       });
@@ -575,7 +554,7 @@ export default function PatientEvolution() {
           {checkins.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Check-ins Realizados */}
-              <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
+              <Card className="bg-gradient-to-br from-blue-500/5 to-blue-600/5 border-blue-500/10">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
                     <Activity className="w-4 h-4" />
@@ -590,7 +569,7 @@ export default function PatientEvolution() {
 
               {/* Idade */}
               {patient?.data_nascimento && (
-                <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 border-cyan-500/30">
+                <Card className="bg-gradient-to-br from-cyan-500/5 to-cyan-600/5 border-cyan-500/10">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-slate-300">Idade</CardTitle>
                   </CardHeader>
@@ -606,7 +585,7 @@ export default function PatientEvolution() {
 
               {/* Altura */}
               {patient?.altura_inicial && (
-                <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
+                <Card className="bg-gradient-to-br from-purple-500/5 to-purple-600/5 border-purple-500/10">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-slate-300">Altura</CardTitle>
                   </CardHeader>
@@ -641,7 +620,7 @@ export default function PatientEvolution() {
                 });
 
                 return weightData.length > 0 ? (
-                  <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30 relative group">
+                  <Card className="bg-gradient-to-br from-green-500/5 to-green-600/5 border-green-500/10 relative group">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm text-slate-300 flex items-center justify-between">
                         Peso Inicial
@@ -668,7 +647,7 @@ export default function PatientEvolution() {
 
               {/* Peso Atual */}
               {checkins[0]?.peso && (
-                <Card className="bg-gradient-to-br from-indigo-500/20 to-indigo-600/20 border-indigo-500/30">
+                <Card className="bg-gradient-to-br from-indigo-500/5 to-indigo-600/5 border-indigo-500/10">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-slate-300">Peso Atual</CardTitle>
                   </CardHeader>
@@ -704,7 +683,7 @@ export default function PatientEvolution() {
                 const isNeutral = Math.abs(parseFloat(weightChange)) < 0.1;
 
                 return (
-                  <Card className={`bg-gradient-to-br ${isNeutral ? 'from-slate-500/20 to-slate-600/20 border-slate-500/30' : isNegative ? 'from-emerald-500/20 to-emerald-600/20 border-emerald-500/30' : 'from-orange-500/20 to-orange-600/20 border-orange-500/30'}`}>
+                  <Card className={`bg-gradient-to-br ${isNeutral ? 'from-slate-500/5 to-slate-600/5 border-slate-500/10' : isNegative ? 'from-emerald-500/5 to-emerald-600/5 border-emerald-500/10' : 'from-orange-500/5 to-orange-600/5 border-orange-500/10'}`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
                         <TrendingUp className="w-4 h-4" />
