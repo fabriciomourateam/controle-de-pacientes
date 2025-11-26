@@ -14,14 +14,17 @@ import {
   ArrowLeft,
   User
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetPasswordMode, setResetPasswordMode] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +55,7 @@ export default function Login() {
       });
 
       // Redirecionar para o dashboard
-      window.location.href = "/";
+      navigate("/", { replace: true });
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -97,6 +100,43 @@ export default function Login() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Erro",
+        description: "Por favor, digite seu e-mail",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "E-mail enviado!",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+      });
+      
+      setResetPasswordMode(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao enviar e-mail de recuperação",
+        variant: "destructive",
+      });
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -171,31 +211,77 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : null}
-                  Entrar
-                </Button>
+              {!resetPasswordMode ? (
+                <>
+                  <div className="space-y-3">
+                    <Button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : null}
+                      Entrar
+                    </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleSignUp}
-                  disabled={loading}
-                  className="w-full border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : null}
-                  Criar Conta
-                </Button>
-              </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSignUp}
+                      disabled={loading}
+                      className="w-full border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : null}
+                      Criar Conta
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setResetPasswordMode(true)}
+                      className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      onClick={handleResetPassword}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={resetLoading}
+                    >
+                      {resetLoading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : null}
+                      Enviar E-mail de Recuperação
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setResetPasswordMode(false)}
+                      disabled={resetLoading}
+                      className="w-full border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                    >
+                      Voltar ao Login
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                    <p className="text-sm text-blue-300">
+                      Um e-mail será enviado para <strong>{email || "seu e-mail"}</strong> com instruções para redefinir sua senha.
+                    </p>
+                  </div>
+                </>
+              )}
             </form>
 
             <div className="mt-6 text-center">

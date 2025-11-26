@@ -4,16 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentUser } from '@/lib/auth-helpers';
+import { WebhookEmailDialogSimple } from '@/components/webhook/WebhookEmailDialogSimple';
+import { getUserWebhookUrl } from '@/lib/webhook-config-service';
 import { Loader2, Database, TrendingUp, CheckCircle, AlertTriangle, Zap } from 'lucide-react';
 
 // Função para ativar webhook do N8N
-async function triggerN8NWebhook() {
-  const response = await fetch('https://n8n.shapepro.shop/webhook/controle', {
+async function triggerN8NWebhook(userId: string, userEmail: string | undefined, webhookUrl: string) {
+  const response = await fetch(webhookUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      user_id: userId, // ⚠️ IMPORTANTE: Isolar por usuário
+      user_email: userEmail, // Email para facilitar identificação no n8n
       trigger: 'metrics_sync',
       timestamp: new Date().toISOString(),
       source: 'dashboard_metrics'
@@ -33,31 +38,57 @@ interface DashboardSyncModalProps {
 
 export function DashboardSyncModal({ onSyncComplete }: DashboardSyncModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const { toast } = useToast();
 
-  const handleSync = async () => {
+  // Abrir dialog de confirmação de email
+  const handleSyncClick = () => {
+    console.log('🟢 DashboardSyncModal: handleSyncClick chamado, abrindo dialog de email');
+    // Fechar o dialog principal e abrir o de email imediatamente
+    setIsOpen(false);
+    setShowEmailDialog(true);
+    console.log('🟢 DashboardSyncModal: showEmailDialog definido como true');
+  };
+
+  // Executar sincronização via webhook N8N (após confirmação de email)
+  const handleSync = async (confirmedEmail: string, confirmedUserId: string) => {
     console.log('🔄 Iniciando sincronização via webhook N8N...');
     
     setLoading(true);
     setResult(null);
+    setShowEmailDialog(false);
 
     try {
+      // Buscar URL de webhook personalizada do usuário
+      const webhookUrl = await getUserWebhookUrl('metrics_sync');
+      
+      if (!webhookUrl) {
+        toast({
+          title: "Webhook não configurado",
+          description: "Você precisa configurar sua URL de webhook primeiro. Entre em contato com o suporte.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      console.log('🔗 Usando webhook URL:', webhookUrl);
       console.log('📡 Chamando webhook N8N...');
-      const webhookResult = await triggerN8NWebhook();
+      const webhookResult = await triggerN8NWebhook(confirmedUserId, confirmedEmail, webhookUrl);
       console.log('📊 Resultado do webhook:', webhookResult);
       
       // Simular sucesso já que o webhook apenas triggera o processo
       setResult({
         success: true,
-        message: "Webhook ativado com sucesso! O fluxo N8N está processando os dados do Notion.",
+        message: `Webhook ativado com sucesso para ${confirmedEmail}! O fluxo N8N está processando os dados do Notion.`,
         timestamp: new Date().toISOString()
       });
       
       toast({
         title: "Webhook Ativado!",
-        description: "O fluxo N8N foi iniciado e está processando os dados do Notion"
+        description: `O fluxo N8N foi iniciado para ${confirmedEmail}`
       });
       
       // Notificar componente pai
@@ -195,7 +226,7 @@ export function DashboardSyncModal({ onSyncComplete }: DashboardSyncModalProps) 
           {/* Botões */}
           <div className="flex gap-2 justify-end">
             <Button
-              onClick={handleSync}
+              onClick={handleSyncClick}
               disabled={loading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
@@ -222,6 +253,19 @@ export function DashboardSyncModal({ onSyncComplete }: DashboardSyncModalProps) 
           </div>
         </div>
       </DialogContent>
+
+      {/* Dialog de confirmação de email - FORA do Dialog principal */}
+      <WebhookEmailDialogSimple
+        open={showEmailDialog}
+        onClose={() => {
+          console.log('🔴 DashboardSyncModal: Fechando dialog de email');
+          setShowEmailDialog(false);
+        }}
+        onConfirm={handleSync}
+        webhookType="metrics"
+        title="Confirmar Email para Sincronizar Métricas"
+        description="Digite seu email para confirmar e acionar o webhook de sincronização de métricas"
+      />
     </Dialog>
   );
 }

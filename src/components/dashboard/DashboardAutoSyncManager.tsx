@@ -1,38 +1,79 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentUser } from '@/lib/auth-helpers';
+import { WebhookEmailDialogSimple } from '@/components/webhook/WebhookEmailDialogSimple';
+import { getUserWebhookUrl } from '@/lib/webhook-config-service';
 import { 
   RefreshCw,
   CheckCircle,
   Loader2
 } from 'lucide-react';
 
-// URL do webhook N8N
-const N8N_WEBHOOK_URL = 'https://n8n.shapepro.shop/webhook/atualizardash';
-
 export function DashboardAutoSyncManager() {
   const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(() => {
-    const saved = localStorage.getItem('lastDashboardSync');
-    return saved ? new Date(saved) : null;
-  });
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
   const { toast } = useToast();
 
-  // Executar sincronização via webhook N8N
-  const syncDashboard = async () => {
+  // Carregar user_id e última sincronização ao montar
+  useEffect(() => {
+    async function loadUserData() {
+      const user = await getCurrentUser();
+      if (user) {
+        setUserId(user.id);
+        // Carregar última sincronização específica do usuário
+        const saved = localStorage.getItem(`lastDashboardSync_${user.id}`);
+        if (saved) {
+          setLastSync(new Date(saved));
+        }
+      }
+    }
+    loadUserData();
+  }, []);
+
+  // Abrir dialog de confirmação de email
+  const handleSyncClick = () => {
+    console.log('🟢 DashboardAutoSyncManager: handleSyncClick chamado, abrindo dialog de email');
+    setShowEmailDialog(true);
+    console.log('🟢 DashboardAutoSyncManager: showEmailDialog definido como true');
+  };
+
+  // Executar sincronização via webhook N8N (após confirmação de email)
+  const syncDashboard = async (confirmedEmail: string, confirmedUserId: string) => {
     setSyncing(true);
+    setShowEmailDialog(false);
     
     try {
-      const response = await fetch(N8N_WEBHOOK_URL, {
+      // Buscar URL de webhook personalizada do usuário
+      const webhookUrl = await getUserWebhookUrl('autosync');
+      
+      if (!webhookUrl) {
+        toast({
+          title: "Webhook não configurado",
+          description: "Você precisa configurar sua URL de webhook primeiro. Entre em contato com o suporte.",
+          variant: "destructive"
+        });
+        setSyncing(false);
+        return;
+      }
+      
+      console.log('🔗 Usando webhook URL:', webhookUrl);
+
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          user_id: confirmedUserId, // ⚠️ IMPORTANTE: Isolar por usuário
+          user_email: confirmedEmail, // Email confirmado pelo usuário
           timestamp: new Date().toISOString(),
-          source: 'dashboard'
+          source: 'dashboard',
+          webhook_type: 'autosync'
         })
       });
 
@@ -42,11 +83,14 @@ export function DashboardAutoSyncManager() {
 
       const now = new Date();
       setLastSync(now);
-      localStorage.setItem('lastDashboardSync', now.toISOString());
+      // Salvar última sincronização isolada por usuário
+      if (confirmedUserId) {
+        localStorage.setItem(`lastDashboardSync_${confirmedUserId}`, now.toISOString());
+      }
       
       toast({
         title: "Sincronização iniciada! ✅",
-        description: "O dashboard está sendo atualizado via N8N",
+        description: `Webhook acionado para ${confirmedEmail}`,
       });
     } catch (error: any) {
       console.error('Erro ao sincronizar:', error);
@@ -101,16 +145,13 @@ export function DashboardAutoSyncManager() {
         {/* Informações */}
         <div className="bg-slate-700/30 rounded-lg p-4">
           <p className="text-sm text-slate-300">
-            Clique no botão abaixo para iniciar a sincronização das métricas do dashboard através do webhook N8N.
-          </p>
-          <p className="text-xs text-slate-400 mt-2">
-            Webhook: {N8N_WEBHOOK_URL}
+            Clique no botão abaixo para iniciar a sincronização das métricas do dashboard através do seu webhook N8N configurado.
           </p>
         </div>
 
         {/* Botão de Sincronização */}
         <Button
-          onClick={syncDashboard}
+          onClick={handleSyncClick}
           disabled={syncing}
           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
           size="lg"
@@ -128,6 +169,19 @@ export function DashboardAutoSyncManager() {
           )}
         </Button>
       </CardContent>
+
+      {/* Dialog de confirmação de email */}
+      <WebhookEmailDialogSimple
+        open={showEmailDialog}
+        onClose={() => {
+          console.log('🔴 DashboardAutoSyncManager: Fechando dialog de email');
+          setShowEmailDialog(false);
+        }}
+        onConfirm={syncDashboard}
+        webhookType="autosync"
+        title="Confirmar Email para Sincronização"
+        description="Digite seu email para confirmar e acionar o webhook de sincronização"
+      />
     </Card>
   );
 }

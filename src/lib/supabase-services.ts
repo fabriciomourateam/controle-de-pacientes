@@ -162,9 +162,16 @@ export const patientService = {
 
   // Criar novo paciente
   async create(patient: PatientInsert) {
+    // Obter user_id do usuário autenticado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Usuário não autenticado. Faça login para criar pacientes.');
+    }
+
     // Calcular dias_para_vencer se vencimento for fornecido
     const patientData = {
       ...patient,
+      user_id: user.id, // Garantir que user_id seja definido (trigger também faz isso, mas é bom garantir)
       dias_para_vencer: patient.vencimento ? this.calculateDaysToExpiration(patient.vencimento) : null
     };
 

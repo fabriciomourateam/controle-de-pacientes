@@ -72,8 +72,15 @@ export const checkinService = {
 
   // Criar novo checkin
   async create(checkin: CheckinInsert): Promise<Checkin> {
+    // Obter user_id do usuário autenticado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Usuário não autenticado. Faça login para criar checkins.');
+    }
+
     const checkinData = {
       ...checkin,
+      user_id: user.id, // Garantir que user_id seja definido (trigger também faz isso, mas é bom garantir)
       data_preenchimento: checkin.data_preenchimento || new Date().toISOString()
     };
     

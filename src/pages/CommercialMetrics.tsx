@@ -14,41 +14,70 @@ import { SalesMetricsSection } from "@/components/commercial-metrics/SalesMetric
 import { metricsCalculations } from "@/lib/commercial-metrics-service";
 import { useToast } from "@/hooks/use-toast";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { WebhookEmailDialogSimple } from "@/components/webhook/WebhookEmailDialogSimple";
+import { getUserWebhookUrl } from "@/lib/webhook-config-service";
 
 export default function CommercialMetrics() {
   const [selectedMonthForComparison, setSelectedMonthForComparison] = useState<string>('');
   const [isFunnelConversionExpanded, setIsFunnelConversionExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
   const { isLoading, isError, kpis, dailyData, funnelData, availableMonths, currentMonth, allMonthsData, refetch } = useCommercialMetrics(selectedMonthForComparison);
 
-  // Função para acionar o webhook do n8n e atualizar os dados
-  const handleRefresh = async () => {
+  // Abrir dialog de confirmação de email
+  const handleRefreshClick = () => {
+    console.log('🟢 CommercialMetrics: handleRefreshClick chamado, abrindo dialog de email');
+    setShowEmailDialog(true);
+    console.log('🟢 CommercialMetrics: showEmailDialog definido como true');
+  };
+
+  // Função para acionar o webhook do n8n e atualizar os dados (após confirmação de email)
+  const handleRefresh = async (confirmedEmail: string, confirmedUserId: string) => {
     setIsRefreshing(true);
+    setShowEmailDialog(false);
     
     try {
+      // Buscar URL de webhook personalizada do usuário
+      const webhookUrl = await getUserWebhookUrl('commercial_metrics');
+      
+      if (!webhookUrl) {
+        toast({
+          title: "Webhook não configurado",
+          description: "Você precisa configurar sua URL de webhook primeiro. Entre em contato com o suporte.",
+          variant: "destructive"
+        });
+        setIsRefreshing(false);
+        return;
+      }
+      
+      console.log('🔗 Usando webhook URL:', webhookUrl);
+      
       // Acionar webhook do n8n
       toast({
         title: "Atualizando dados",
         description: "Acionando fluxo do N8N...",
       });
 
-      const response = await fetch('https://n8n.shapepro.shop/webhook/leads', {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          user_id: confirmedUserId, // ⚠️ IMPORTANTE: Isolar por usuário
+          user_email: confirmedEmail, // Email confirmado pelo usuário
           trigger: 'manual',
           source: 'dashboard',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          webhook_type: 'commercial_metrics'
         })
       });
 
       if (response.ok) {
         toast({
           title: "Fluxo acionado",
-          description: "Aguarde alguns segundos para os dados serem atualizados...",
+          description: `Webhook acionado para ${confirmedEmail}. Aguarde alguns segundos...`,
         });
         
         // Aguardar 3 segundos para o n8n processar
@@ -120,7 +149,7 @@ export default function CommercialMetrics() {
             
               <Button
                 variant="outline"
-                onClick={handleRefresh}
+                onClick={handleRefreshClick}
                 disabled={isRefreshing}
                 className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
               >
@@ -175,7 +204,7 @@ export default function CommercialMetrics() {
             </Badge>
             <div className="flex gap-2">
               <Button 
-                onClick={handleRefresh}
+                onClick={handleRefreshClick}
                 disabled={isRefreshing}
                 variant="outline"
                 className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
@@ -426,6 +455,19 @@ export default function CommercialMetrics() {
         </Tabs>
         </div>
       </DashboardLayout>
+
+      {/* Dialog de confirmação de email */}
+      <WebhookEmailDialogSimple
+        open={showEmailDialog}
+        onClose={() => {
+          console.log('🔴 CommercialMetrics: Fechando dialog de email');
+          setShowEmailDialog(false);
+        }}
+        onConfirm={handleRefresh}
+        webhookType="commercial_metrics"
+        title="Confirmar Email para Atualizar Métricas"
+        description="Digite seu email para confirmar e acionar o webhook de métricas comerciais"
+      />
     </AuthGuard>
   );
 }

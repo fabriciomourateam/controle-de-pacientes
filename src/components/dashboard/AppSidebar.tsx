@@ -16,8 +16,10 @@ import {
   Target,
   AlertTriangle
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Sidebar,
@@ -55,9 +57,47 @@ const secondaryNavItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const isCollapsed = state === "collapsed";
   const { profile } = useProfile();
+  const { toast } = useToast();
+
+  // Função para fazer logout
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Erro ao fazer logout:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível fazer logout. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Limpar dados locais se necessário
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Redirecionar para login
+      navigate('/login', { replace: true });
+      
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso",
+      });
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao fazer logout",
+        variant: "destructive"
+      });
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === "/") return currentPath === "/";
@@ -155,7 +195,11 @@ export function AppSidebar() {
                 {profile?.email || 'email@exemplo.com'}
               </p>
             </div>
-            <button className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors">
+            <button 
+              onClick={handleLogout}
+              className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors"
+              title="Sair"
+            >
               <LogOut className="w-3 h-3 text-slate-400" />
             </button>
           </div>

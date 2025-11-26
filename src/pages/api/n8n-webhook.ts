@@ -1,5 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseService } from '@/integrations/supabase/service-client';
+
+// ⚠️ IMPORTANTE: Este webhook usa Service Role Key para bypassar RLS
+// Os dados serão vinculados ao primeiro usuário do sistema (ou você pode configurar um user_id específico)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -57,17 +60,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return cleanPhone;
     };
 
+    // Função para obter user_id padrão (seu usuário)
+    // Busca o user_id de um paciente existente (que já foi migrado)
+    const getDefaultUserId = async (): Promise<string> => {
+      // Buscar user_id de um paciente existente (que já foi migrado para você)
+      const { data: patients, error: patientError } = await supabaseService
+        .from('patients')
+        .select('user_id')
+        .not('user_id', 'is', null)
+        .limit(1);
+      
+      if (!patientError && patients && patients.length > 0 && (patients[0] as any).user_id) {
+        const userId = (patients[0] as any).user_id;
+        console.log('✅ Usando user_id de paciente existente:', userId);
+        return userId;
+      }
+      
+      throw new Error('Não foi possível determinar user_id. Certifique-se de que há pacientes migrados no sistema.');
+    };
+
     // Função para buscar paciente por telefone flexível (últimos 8 dígitos)
     const findPatientByPhone = async (phone: string) => {
       const normalizedPhone = normalizePhone(phone);
       console.log(`Buscando paciente com telefone normalizado: ${normalizedPhone}`);
       
-      // Buscar por telefone exato primeiro
-      let { data: existingPatient, error: checkError } = await supabase
+      // Buscar por telefone exato primeiro (usando service client para bypassar RLS)
+      let { data: existingPatient, error: checkError } = await supabaseService
         .from('patients')
-        .select('id, telefone')
+        .select('id, telefone, user_id')
         .eq('telefone', normalizedPhone)
-        .single();
+        .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
         console.error('Erro ao verificar paciente:', checkError);
@@ -79,9 +101,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const last8Digits = normalizedPhone.slice(-8);
         console.log(`Buscando pelos últimos 8 dígitos: ${last8Digits}`);
         
-        const { data: patients, error: searchError } = await supabase
+        const { data: patients, error: searchError } = await supabaseService
           .from('patients')
-          .select('id, telefone')
+          .select('id, telefone, user_id')
           .like('telefone', `%${last8Digits}`);
 
         if (searchError) {
@@ -90,16 +112,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         if (patients && patients.length > 0) {
-          existingPatient = patients[0];
-          console.log(`Paciente encontrado pelos últimos 8 dígitos: ${existingPatient.telefone}`);
+          existingPatient = patients[0] as any;
+          const patient = existingPatient as any;
+          console.log(`Paciente encontrado pelos últimos 8 dígitos: ${patient.telefone}`);
         }
       }
 
       return existingPatient;
     };
 
-    // Função para verificar se paciente existe e criar se necessário
+    // Função para verificar se paciente existe e criar/atualizar se necessário
     const ensurePatientExists = async (telefone: string, inputData: any) => {
+      // Obter user_id padrão
+      const defaultUserId = await getDefaultUserId();
+      
       // Buscar paciente com busca flexível
       const existingPatient = await findPatientByPhone(telefone);
 
@@ -110,6 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         const newPatient = {
           telefone: normalizedPhone, // Salvar telefone normalizado
+          user_id: defaultUserId, // ⚠️ IMPORTANTE: Vincular ao usuário padrão
           nome: inputData.nome || `Paciente ${normalizedPhone}`,
           apelido: inputData.apelido || null,
           email: inputData.email || null,
@@ -120,7 +147,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           observacao: `Paciente criado automaticamente via checkin (telefone original: ${telefone})`
         };
 
-        const { data: createdPatient, error: createError } = await supabase
+        // Usar service client para bypassar RLS
+        const { data: createdPatient, error: createError } = await supabaseService
           .from('patients')
           .insert(newPatient)
           .select('id')
@@ -135,8 +163,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return createdPatient.id;
       }
 
-      console.log(`Paciente encontrado: ${existingPatient.telefone} (ID: ${existingPatient.id})`);
-      return existingPatient.id;
+      // Se paciente existe, atualizar dados se necessário
+      // (mas não vamos atualizar tudo, apenas se houver dados novos importantes)
+      const existingPatientData = existingPatient as any;
+      if (inputData.nome && inputData.nome !== existingPatientData.nome) {
+        const { error: updateError } = await supabaseService
+          .from('patients')
+          .update({ 
+            nome: inputData.nome,
+            // Manter o user_id existente
+            user_id: existingPatientData.user_id || defaultUserId
+          })
+          .eq('id', existingPatientData.id);
+        
+        if (updateError) {
+          console.error('Erro ao atualizar paciente:', updateError);
+          // Não lançar erro, apenas logar
+        }
+      }
+
+      const patient = existingPatient as any;
+      console.log(`Paciente encontrado: ${patient.telefone} (ID: ${patient.id})`);
+      return patient.id;
     };
 
     // Função para mapear dados do Typebot/Sheets para Supabase checkin
@@ -190,9 +238,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         processedData.push(mappedData);
       }
       
-      const { data: result, error } = await supabase
+      // Obter user_id padrão para os checkins
+      const defaultUserId = await getDefaultUserId();
+      
+      // Adicionar user_id a todos os checkins
+      const processedDataWithUserId = processedData.map((item: any) => ({
+        ...item,
+        user_id: defaultUserId
+      }));
+
+      const { data: result, error } = await supabaseService
         .from('checkin')
-        .insert(processedData)
+        .insert(processedDataWithUserId)
         .select('id');
       
       if (error) {
@@ -218,9 +275,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       const mappedData = mapToCheckin(data);
       
-      const { data: result, error } = await supabase
+      // Obter user_id padrão para o checkin
+      const defaultUserId = await getDefaultUserId();
+      
+      // Adicionar user_id ao checkin
+      const mappedDataWithUserId = {
+        ...mappedData,
+        user_id: defaultUserId
+      };
+      
+      const { data: result, error } = await supabaseService
         .from('checkin')
-        .insert(mappedData)
+        .insert(mappedDataWithUserId)
         .select('id');
       
       if (error) {

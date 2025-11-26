@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import "./test-theme.css";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -36,24 +37,87 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/patients" element={<Patients />} />
-          <Route path="/patients/:id" element={<PatientDetails />} />
-          <Route path="/checkins" element={<Checkins />} />
-          <Route path="/checkins/evolution/:telefone" element={<PatientEvolution />} />
+          {/* Rotas públicas - não requerem autenticação */}
+          <Route path="/login" element={<Login />} />
           <Route path="/portal" element={<PortalLogin />} />
           <Route path="/portal/:token" element={<PatientPortal />} />
-          <Route path="/plans" element={<Plans />} />
-          <Route path="/metrics" element={<MetricsDashboard />} />
-          <Route path="/commercial-metrics" element={<CommercialMetrics />} />
-          <Route path="/retention" element={<RetentionDashboard />} />
-          <Route path="/debug-vendas" element={<DebugVendas />} />
-          <Route path="/workspace" element={<Workspace />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/help" element={<Help />} />
+          
+          {/* Rotas protegidas - requerem autenticação */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/patients" element={
+            <ProtectedRoute>
+              <Patients />
+            </ProtectedRoute>
+          } />
+          <Route path="/patients/:id" element={
+            <ProtectedRoute>
+              <PatientDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/checkins" element={
+            <ProtectedRoute>
+              <Checkins />
+            </ProtectedRoute>
+          } />
+          <Route path="/checkins/evolution/:telefone" element={
+            <ProtectedRoute>
+              <PatientEvolution />
+            </ProtectedRoute>
+          } />
+          <Route path="/plans" element={
+            <ProtectedRoute>
+              <Plans />
+            </ProtectedRoute>
+          } />
+          <Route path="/metrics" element={
+            <ProtectedRoute>
+              <MetricsDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/commercial-metrics" element={
+            <ProtectedRoute>
+              <CommercialMetrics />
+            </ProtectedRoute>
+          } />
+          <Route path="/retention" element={
+            <ProtectedRoute>
+              <RetentionDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/debug-vendas" element={
+            <ProtectedRoute>
+              <DebugVendas />
+            </ProtectedRoute>
+          } />
+          <Route path="/workspace" element={
+            <ProtectedRoute>
+              <Workspace />
+            </ProtectedRoute>
+          } />
+          <Route path="/reports" element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
+          <Route path="/help" element={
+            <ProtectedRoute>
+              <Help />
+            </ProtectedRoute>
+          } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
