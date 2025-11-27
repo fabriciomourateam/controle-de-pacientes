@@ -158,6 +158,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
   
   /* Custom scrollbar */
@@ -216,11 +217,11 @@
   
   /* Custom animations */
   .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.5s ease-out;
   }
   
   .animate-slideUp {
-    animation: slideUp 0.4s ease-out;
+    animation: slideUp 0.5s ease-out;
   }
   
   .animate-glow {
@@ -229,6 +230,23 @@
   
   .hover-lift {
     @apply transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25;
+  }
+  
+  /* Stagger animation para cards */
+  @keyframes staggerFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-stagger {
+    animation: staggerFadeIn 0.6s ease-out forwards;
+    opacity: 0;
   }
   
   /* Premium hover effects */
@@ -277,16 +295,18 @@
     box-shadow: 0 0 20px hsla(45 93% 47% / 0.2);
   }
   
-  /* Premium cards */
+  /* Premium cards - Modernizado */
   .card-premium {
     background: var(--gradient-card);
     border: 1px solid hsla(45 93% 47% / 0.2);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
   }
   
   .card-premium:hover {
-    box-shadow: 0 8px 30px hsla(45 93% 47% / 0.1);
+    box-shadow: 0 12px 40px hsla(45 93% 47% / 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1);
     border-color: hsla(45 93% 47% / 0.4);
+    transform: translateY(-2px);
   }
   
   /* Premium animations */

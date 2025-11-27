@@ -71,41 +71,40 @@ export function DashboardOverview() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400">
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header com destaque visual melhorado */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-slate-400 text-sm">
             Visão geral dos seus pacientes e atividades
           </p>
         </div>
-        <div className="flex gap-2">
-          <div className="flex gap-2">
-            <PatientForm
-              trigger={
-                <Button className="btn-premium">
-                  <Users className="w-4 h-4 mr-2" />
-                  Novo Paciente
-                </Button>
-              }
-              onSave={handleCreatePatient}
-            />
-            <AutoSyncManager />
-          </div>
+        <div className="flex gap-2 flex-wrap">
+          <PatientForm
+            trigger={
+              <Button className="btn-premium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300">
+                <Users className="w-4 h-4 mr-2" />
+                Novo Paciente
+              </Button>
+            }
+            onSave={handleCreatePatient}
+          />
+          <AutoSyncManager />
         </div>
       </div>
 
-
-      {/* Métricas Principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300">
+      {/* Métricas Principais com animação escalonada */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-0.5 group">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Total de Pacientes</CardTitle>
-            <Users className="h-4 w-4 text-blue-400" />
+            <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Total de Pacientes</CardTitle>
+            <Users className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
               {metricsLoading ? '...' : metrics.totalPatients}
             </div>
             <p className="text-xs text-emerald-400 flex items-center mt-1">
@@ -115,13 +114,13 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.1s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.1s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Pacientes Ativos</CardTitle>
-            <Activity className="h-4 w-4 text-green-400" />
+            <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Pacientes Ativos</CardTitle>
+            <Activity className="h-4 w-4 text-green-400 group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-white group-hover:text-green-400 transition-colors">
               {metricsLoading ? '...' : metrics.activePatients}
             </div>
             <p className="text-xs text-green-400 flex items-center mt-1">
@@ -131,13 +130,13 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.2s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.2s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Expirando (30 dias)</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-400 animate-pulse" />
+            <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Expirando (30 dias)</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-amber-400 animate-pulse group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-400">
+            <div className="text-2xl font-bold text-amber-400 group-hover:scale-105 transition-transform inline-block">
               {metricsLoading ? '...' : metrics.expiringPatients}
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -146,13 +145,13 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.3s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-red-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.3s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Checkins Pendentes</CardTitle>
-            <MessageSquare className="h-4 w-4 text-red-400 animate-pulse" />
+            <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Checkins Pendentes</CardTitle>
+            <MessageSquare className="h-4 w-4 text-red-400 animate-pulse group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-400">
+            <div className="text-2xl font-bold text-red-400 group-hover:scale-105 transition-transform inline-block">
               {metricsLoading ? '...' : metrics.pendingFeedbacks}
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -161,13 +160,13 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300" style={{animationDelay: '0.4s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.4s'}}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Score Médio</CardTitle>
-            <Star className="h-4 w-4 text-purple-400" />
+            <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Score Médio</CardTitle>
+            <Star className="h-4 w-4 text-purple-400 group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">
               {metricsLoading ? '...' : metrics.avgOverallScore}
             </div>
             <p className="text-xs text-emerald-400 flex items-center mt-1">
@@ -179,9 +178,9 @@ export function DashboardOverview() {
       </div>
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico Interativo de Evolução */}
-        <div className="col-span-1 lg:col-span-2">
+        <div className="col-span-1 lg:col-span-2 transform transition-all duration-300 hover:scale-[1.01]">
           <InteractiveChart
             data={monthlyData}
             title="Evolução Mensal"
@@ -192,7 +191,7 @@ export function DashboardOverview() {
         </div>
 
         {/* Distribuição de Planos */}
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="text-white">Distribuição de Planos</CardTitle>
             <CardDescription className="text-slate-400">
@@ -285,9 +284,9 @@ export function DashboardOverview() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Ações Necessárias */}
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:border-amber-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
@@ -313,7 +312,7 @@ export function DashboardOverview() {
                 <div 
                   key={patient.id} 
                   onClick={() => handlePatientClick(patient.id)}
-                  className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/20 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-amber-500/10"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
@@ -352,7 +351,7 @@ export function DashboardOverview() {
         </Card>
 
         {/* Últimos Checkins */}
-        <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:border-blue-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Activity className="w-4 h-4 text-blue-400" />
@@ -374,8 +373,12 @@ export function DashboardOverview() {
                 Nenhum checkin encontrado
               </div>
             ) : (
-              recentCheckins.slice(0, 5).map((checkin) => (
-                <div key={checkin.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg hover:from-slate-600/40 hover:to-slate-700/40 transition-all duration-300 border border-slate-600/30">
+              recentCheckins.slice(0, 5).map((checkin, index) => (
+                <div 
+                  key={checkin.id} 
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-xl hover:from-slate-600/40 hover:to-slate-700/40 transition-all duration-300 border border-slate-600/30 hover:border-blue-500/40 hover:scale-[1.02] hover:shadow-md hover:shadow-blue-500/10 cursor-pointer"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
                   <div className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
                       <AvatarFallback className="bg-blue-500/20 text-blue-400">

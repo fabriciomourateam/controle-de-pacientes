@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -14,7 +14,8 @@ import {
   Monitor,
   Activity,
   Target,
-  AlertTriangle
+  AlertTriangle,
+  LineChart
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -54,6 +55,9 @@ const secondaryNavItems = [
   { title: "Ajuda", url: "/help", icon: HelpCircle },
 ];
 
+// Email do administrador que tem acesso ao Workspace
+const ADMIN_EMAIL = 'fabriciomouratreinador@gmail.com';
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
@@ -62,6 +66,20 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
   const { profile } = useProfile();
   const { toast } = useToast();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Buscar email do usuário atual
+  useEffect(() => {
+    async function fetchUserEmail() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUserEmail(user?.email || null);
+      } catch (error) {
+        console.error('Erro ao buscar email do usuário:', error);
+      }
+    }
+    fetchUserEmail();
+  }, []);
 
   // Função para fazer logout
   const handleLogout = async () => {
@@ -109,6 +127,14 @@ export function AppSidebar() {
       ? "bg-gradient-to-r from-blue-600/20 to-blue-500/20 text-blue-400 font-medium border-blue-500/30" 
       : "hover:bg-slate-700/50 text-slate-400 hover:text-white hover:border-slate-600/50";
 
+  // Filtrar itens do menu - Workspace só aparece para o admin
+  const filteredMainNavItems = mainNavItems.filter(item => {
+    if (item.title === "Workspace") {
+      return userEmail === ADMIN_EMAIL;
+    }
+    return true;
+  });
+
   return (
     <Sidebar
       className={`bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-r border-slate-700/50 transition-all duration-300 ${
@@ -116,15 +142,20 @@ export function AppSidebar() {
       }`}
       collapsible="icon"
     >
-      <SidebarHeader className="p-3 border-b border-slate-700/50">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-blue-500/30">
-            <LayoutDashboard className="w-4 h-4 text-blue-400" />
+      <SidebarHeader className="p-4 border-b border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-600/30 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-lg shadow-blue-500/20">
+              <LineChart className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full border-2 border-slate-900 animate-pulse" />
           </div>
           {!isCollapsed && (
-            <div>
-              <h1 className="font-bold text-base text-white">FMTeam</h1>
-              <p className="text-xs text-slate-400">Personal Dashboard</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
+                Grow Nutri
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5">Gestão de Pacientes</p>
             </div>
           )}
         </div>
@@ -137,7 +168,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
+              {filteredMainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
