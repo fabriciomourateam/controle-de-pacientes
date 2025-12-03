@@ -444,6 +444,7 @@ export type Database = {
           active: boolean | null
           created_at: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           id?: string
@@ -455,6 +456,7 @@ export type Database = {
           active?: boolean | null
           created_at?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           id?: string
@@ -466,6 +468,7 @@ export type Database = {
           active?: boolean | null
           created_at?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -818,6 +821,429 @@ export type Database = {
           created_by?: string | null
         }
         Relationships: []
+      }
+      diet_plans: {
+        Row: {
+          id: string
+          patient_id: string
+          user_id: string | null
+          name: string
+          status: string
+          start_date: string | null
+          end_date: string | null
+          total_calories: number | null
+          total_protein: number | null
+          total_carbs: number | null
+          total_fats: number | null
+          notes: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+          released_at: string | null
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          user_id?: string | null
+          name: string
+          status?: string
+          start_date?: string | null
+          end_date?: string | null
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          released_at?: string | null
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          user_id?: string | null
+          name?: string
+          status?: string
+          start_date?: string | null
+          end_date?: string | null
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          released_at?: string | null
+        }
+        Relationships: []
+      }
+      diet_meals: {
+        Row: {
+          id: string
+          diet_plan_id: string
+          meal_type: string
+          meal_name: string
+          meal_order: number
+          day_of_week: number | null
+          calories: number | null
+          protein: number | null
+          carbs: number | null
+          fats: number | null
+          instructions: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          diet_plan_id: string
+          meal_type: string
+          meal_name: string
+          meal_order?: number
+          day_of_week?: number | null
+          calories?: number | null
+          protein?: number | null
+          carbs?: number | null
+          fats?: number | null
+          instructions?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          diet_plan_id?: string
+          meal_type?: string
+          meal_name?: string
+          meal_order?: number
+          day_of_week?: number | null
+          calories?: number | null
+          protein?: number | null
+          carbs?: number | null
+          fats?: number | null
+          instructions?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      diet_foods: {
+        Row: {
+          id: string
+          meal_id: string
+          food_name: string
+          quantity: number
+          unit: string
+          calories: number | null
+          protein: number | null
+          carbs: number | null
+          fats: number | null
+          notes: string | null
+          food_order: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          meal_id: string
+          food_name: string
+          quantity: number
+          unit?: string
+          calories?: number | null
+          protein?: number | null
+          carbs?: number | null
+          fats?: number | null
+          notes?: string | null
+          food_order?: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          meal_id?: string
+          food_name?: string
+          quantity?: number
+          unit?: string
+          calories?: number | null
+          protein?: number | null
+          carbs?: number | null
+          fats?: number | null
+          notes?: string | null
+          food_order?: number
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      diet_guidelines: {
+        Row: {
+          id: string
+          diet_plan_id: string
+          guideline_type: string
+          title: string
+          content: string
+          priority: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          diet_plan_id: string
+          guideline_type: string
+          title: string
+          content: string
+          priority?: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          diet_plan_id?: string
+          guideline_type?: string
+          title?: string
+          content?: string
+          priority?: number
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      diet_questions: {
+        Row: {
+          id: string
+          diet_plan_id: string
+          patient_id: string
+          question: string
+          answer: string | null
+          answered_by: string | null
+          answered_at: string | null
+          status: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          diet_plan_id: string
+          patient_id: string
+          question: string
+          answer?: string | null
+          answered_by?: string | null
+          answered_at?: string | null
+          status?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          diet_plan_id?: string
+          patient_id?: string
+          question?: string
+          answer?: string | null
+          answered_by?: string | null
+          answered_at?: string | null
+          status?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      food_database: {
+        Row: {
+          id: string
+          name: string
+          category: string
+          calories_per_100g: number
+          protein_per_100g: number
+          carbs_per_100g: number
+          fats_per_100g: number
+          common_units: Json | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          category: string
+          calories_per_100g: number
+          protein_per_100g?: number
+          carbs_per_100g?: number
+          fats_per_100g?: number
+          common_units?: Json | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          category?: string
+          calories_per_100g?: number
+          protein_per_100g?: number
+          carbs_per_100g?: number
+          fats_per_100g?: number
+          common_units?: Json | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_food_database: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          category: string
+          calories_per_100g: number
+          protein_per_100g: number
+          carbs_per_100g: number
+          fats_per_100g: number
+          common_units: Json | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          category: string
+          calories_per_100g: number
+          protein_per_100g?: number
+          carbs_per_100g?: number
+          fats_per_100g?: number
+          common_units?: Json | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          category?: string
+          calories_per_100g?: number
+          protein_per_100g?: number
+          carbs_per_100g?: number
+          fats_per_100g?: number
+          common_units?: Json | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      diet_templates: {
+        Row: {
+          id: string
+          user_id: string | null
+          name: string
+          description: string | null
+          total_calories: number | null
+          total_protein: number | null
+          total_carbs: number | null
+          total_fats: number | null
+          template_data: Json
+          is_active: boolean | null
+          is_public: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          name: string
+          description?: string | null
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          template_data: Json
+          is_active?: boolean | null
+          is_public?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          name?: string
+          description?: string | null
+          total_calories?: number | null
+          total_protein?: number | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          template_data?: Json
+          is_active?: boolean | null
+          is_public?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      diet_ai_generations: {
+        Row: {
+          id: string
+          patient_id: string
+          user_id: string | null
+          anamnesis_data: Json
+          ai_response: Json
+          diet_plan_id: string | null
+          status: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          user_id?: string | null
+          anamnesis_data: Json
+          ai_response: Json
+          diet_plan_id?: string | null
+          status?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          user_id?: string | null
+          anamnesis_data?: Json
+          ai_response?: Json
+          diet_plan_id?: string | null
+          status?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      retention_exclusions: {
+        Row: {
+          id: string
+          user_id: string
+          patient_id: string
+          excluded_at: string
+          reason: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          patient_id: string
+          excluded_at?: string
+          reason?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          patient_id?: string
+          excluded_at?: string
+          reason?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_exclusions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retention_exclusions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

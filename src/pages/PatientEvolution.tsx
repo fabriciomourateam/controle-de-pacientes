@@ -44,6 +44,7 @@ import {
   User,
   FileText,
   Calendar,
+  Utensils,
   Activity,
   AlertCircle,
   Camera,
@@ -467,6 +468,17 @@ export default function PatientEvolution() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              {patient?.id && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
+                  className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 hover:text-cyan-200"
+                >
+                  <Utensils className="w-4 h-4 mr-2" />
+                  Plano Alimentar
+                </Button>
+              )}
+              
               <PortalLinkButton 
                 telefone={telefone!} 
                 patientName={patient?.nome || 'Paciente'} 

@@ -14,7 +14,9 @@ import {
   Activity,
   Target,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  X,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +25,8 @@ import { RecentCancellationsAndFreezes } from "@/components/retention/RecentCanc
 import { DailyTasksWidget } from "@/components/retention/DailyTasksWidget";
 import { CancellationReasonsAnalysis } from "@/components/retention/CancellationReasonsAnalysis";
 import { ContactHistoryService } from "@/lib/contact-history-service";
+import { retentionService } from "@/lib/retention-service";
+import { contactWebhookService } from "@/lib/contact-webhook-service";
 
 interface PatientWithRisk {
   id: string;
@@ -40,10 +44,32 @@ function RetentionDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState<PatientWithRisk[]>([]);
+  const [removedPatients, setRemovedPatients] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadPatients();
+    loadExcludedPatients();
   }, []);
+
+  // Carregar pacientes excluídos do banco de dados
+  const loadExcludedPatients = async () => {
+    try {
+      const excludedIds = await retentionService.getExcludedPatientIds();
+      setRemovedPatients(excludedIds);
+    } catch (error) {
+      console.error('Erro ao carregar pacientes excluídos:', error);
+      // Fallback para localStorage se houver erro
+      try {
+        const stored = localStorage.getItem('retention_removed_patients');
+        if (stored) {
+          const ids = JSON.parse(stored) as string[];
+          setRemovedPatients(new Set(ids));
+        }
+      } catch (e) {
+        console.error('Erro ao carregar do localStorage:', e);
+      }
+    }
+  };
 
   const loadPatients = async () => {
     try {
@@ -141,22 +167,80 @@ function RetentionDashboard() {
 
   // Calcular métricas
   const metrics = useMemo(() => {
-    const attention = patients.filter(p => p.riskLevel === 'attention').length;
-    const critical = patients.filter(p => p.riskLevel === 'critical').length;
+    // Filtrar pacientes removidos para as métricas
+    const activePatients = patients.filter(p => !removedPatients.has(p.id));
+    const attention = activePatients.filter(p => p.riskLevel === 'attention').length;
+    const critical = activePatients.filter(p => p.riskLevel === 'critical').length;
     const total = attention + critical;
-    const avgEngagement = patients.length > 0 
-      ? Math.round(patients.reduce((sum, p) => sum + p.engagementScore, 0) / patients.length)
+    const avgEngagement = activePatients.length > 0 
+      ? Math.round(activePatients.reduce((sum, p) => sum + p.engagementScore, 0) / activePatients.length)
       : 0;
 
     return { attention, critical, total, avgEngagement };
-  }, [patients]);
+  }, [patients, removedPatients]);
 
-  const attentionPatients = patients.filter(p => p.riskLevel === 'attention');
-  const criticalPatients = patients.filter(p => p.riskLevel === 'critical');
+  // Filtrar pacientes removidos
+  const activePatients = patients.filter(p => !removedPatients.has(p.id));
+  const attentionPatients = activePatients.filter(p => p.riskLevel === 'attention');
+  const criticalPatients = activePatients.filter(p => p.riskLevel === 'critical');
+  
+  const handleRemovePatient = async (patientId: string, patientName: string) => {
+    try {
+      const success = await retentionService.excludePatient(patientId, 'Removido da lista de retenção');
+      
+      if (success) {
+        const newRemoved = new Set([...removedPatients, patientId]);
+        setRemovedPatients(newRemoved);
+        
+        // Também salvar no localStorage como backup
+        try {
+          localStorage.setItem('retention_removed_patients', JSON.stringify(Array.from(newRemoved)));
+        } catch (e) {
+          // Ignorar erro do localStorage
+        }
+        
+        toast({
+          title: "Paciente removido",
+          description: `${patientName} foi removido da lista de retenção e não aparecerá mais aqui.`,
+        });
+      } else {
+        throw new Error('Falha ao remover paciente');
+      }
+    } catch (error) {
+      console.error('Erro ao remover paciente:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o paciente. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleWhatsApp = (telefone: string, nome: string) => {
     const message = encodeURIComponent(`Oi ${nome}! Tudo bem? 😊`);
     window.open(`https://wa.me/55${telefone.replace(/\D/g, '')}?text=${message}`, '_blank');
+  };
+
+  const handleContact = async (telefone: string, nome: string) => {
+    try {
+      const success = await contactWebhookService.sendContactMessage(telefone, nome);
+      
+      if (success) {
+        toast({
+          title: "✅ Mensagem enviada!",
+          description: `Áudio enviado para ${nome} via webhook.`,
+        });
+      } else {
+        throw new Error('Falha ao enviar mensagem');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a mensagem. Verifique se o webhook está configurado.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleMarkAsContacted = async (telefone: string, patientName: string) => {
@@ -191,8 +275,11 @@ function RetentionDashboard() {
   };
 
   // Preparar tarefas do dia (top 5: críticos + congelados mais urgentes)
+  // Filtrar pacientes removidos e excluídos
   const dailyTasks = useMemo(() => {
-    const criticalTasks = patients
+    const activePatients = patients.filter(p => !removedPatients.has(p.id));
+    
+    const criticalTasks = activePatients
       .filter(p => p.riskLevel === 'critical' && !p.plano?.toUpperCase().includes('CONGELADO'))
       .map(p => ({
         telefone: p.telefone,
@@ -200,10 +287,11 @@ function RetentionDashboard() {
         diasSemContato: p.diasSemContato,
         prioridade: p.diasSemContato >= 45 ? 'urgente' as const : 
                     p.diasSemContato >= 35 ? 'alta' as const : 'media' as const,
-        isCongelado: false
+        isCongelado: false,
+        patientId: p.id // Adicionar ID do paciente para poder remover
       }));
 
-    const frozenTasks = patients
+    const frozenTasks = activePatients
       .filter(p => p.plano?.toUpperCase().includes('CONGELADO') && p.diasSemContato >= 30)
       .map(p => ({
         telefone: p.telefone,
@@ -211,7 +299,8 @@ function RetentionDashboard() {
         diasSemContato: p.diasSemContato,
         prioridade: p.diasSemContato >= 60 ? 'urgente' as const : 
                     p.diasSemContato >= 45 ? 'alta' as const : 'media' as const,
-        isCongelado: true
+        isCongelado: true,
+        patientId: p.id // Adicionar ID do paciente para poder remover
       }));
 
     // Combinar e ordenar por prioridade e dias
@@ -226,7 +315,19 @@ function RetentionDashboard() {
         return b.diasSemContato - a.diasSemContato;
       })
       .slice(0, 5); // Top 5 tarefas
-  }, [patients]);
+  }, [patients, removedPatients]);
+  
+  // Handler para quando uma tarefa é completada (marcada como contatada)
+  const handleTaskComplete = async (telefone: string) => {
+    // Encontrar o paciente pelo telefone
+    const patient = patients.find(p => p.telefone === telefone);
+    if (patient) {
+      // Remover da lista de retenção também
+      await handleRemovePatient(patient.id, patient.nome);
+    }
+    // Recarregar pacientes para atualizar a lista
+    loadPatients();
+  };
 
   if (loading) {
     return (
@@ -240,69 +341,73 @@ function RetentionDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard de Retenção</h1>
-          <p className="text-slate-400 mt-1">
-            Monitore alunos em risco e tome ações preventivas
-          </p>
-          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-            <Activity className="w-3 h-3" />
-            <span>Exibindo alunos PREMIUM, BASIC e CONGELADOS com histórico de contato</span>
+      <div className="space-y-8 animate-fadeIn">
+        {/* Header com destaque visual melhorado */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+              Dashboard de Retenção
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Monitore alunos em risco e tome ações preventivas
+            </p>
+            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+              <Activity className="w-3 h-3" />
+              <span>Exibindo alunos PREMIUM, BASIC e CONGELADOS com histórico de contato</span>
+            </div>
           </div>
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/30">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0s'}}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-blue-400 flex items-center gap-2">
-                <Users className="w-4 h-4" />
+              <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
                 Total em Risco
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{metrics.total}</div>
+              <div className="text-3xl font-bold text-white group-hover:text-blue-400 transition-colors">{metrics.total}</div>
               <p className="text-xs text-slate-400 mt-1">alunos precisam de atenção</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border-yellow-500/30">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-yellow-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.1s'}}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-yellow-400 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
+              <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
                 Atenção
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{metrics.attention}</div>
+              <div className="text-3xl font-bold text-white group-hover:text-yellow-400 transition-colors">{metrics.attention}</div>
               <p className="text-xs text-slate-400 mt-1">20-29 dias sem contato</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-500/10 to-red-600/10 border-red-500/30">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-red-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.2s'}}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-red-400 flex items-center gap-2">
-                <TrendingDown className="w-4 h-4" />
+              <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors flex items-center gap-2">
+                <TrendingDown className="w-4 h-4 text-red-400 group-hover:scale-110 transition-transform" />
                 Crítico
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{metrics.critical}</div>
+              <div className="text-3xl font-bold text-white group-hover:text-red-400 transition-colors">{metrics.critical}</div>
               <p className="text-xs text-slate-400 mt-1">30+ dias sem contato</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/30">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.3s'}}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-green-400 flex items-center gap-2">
-                <Activity className="w-4 h-4" />
+              <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors flex items-center gap-2">
+                <Activity className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
                 Engajamento Médio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{metrics.avgEngagement}%</div>
+              <div className="text-3xl font-bold text-white group-hover:text-green-400 transition-colors">{metrics.avgEngagement}%</div>
               <p className="text-xs text-slate-400 mt-1">score de engajamento</p>
             </CardContent>
           </Card>
@@ -311,7 +416,7 @@ function RetentionDashboard() {
         {/* Widget de Tarefas do Dia */}
         <DailyTasksWidget 
           tasks={dailyTasks} 
-          onTaskComplete={() => loadPatients()} 
+          onTaskComplete={handleTaskComplete} 
         />
 
         {/* Alunos Críticos */}
@@ -376,6 +481,14 @@ function RetentionDashboard() {
                         <div className="flex flex-col gap-2">
                           <Button
                             size="sm"
+                            onClick={() => handleContact(patient.telefone, patient.nome)}
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white flex-shrink-0"
+                          >
+                            <Phone className="w-4 h-4 mr-2" />
+                            Contatar
+                          </Button>
+                          <Button
+                            size="sm"
                             onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
                             className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
                           >
@@ -390,6 +503,15 @@ function RetentionDashboard() {
                           >
                             <CheckCircle2 className="w-4 h-4 mr-2" />
                             Contatado
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemovePatient(patient.id, patient.nome)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
                           </Button>
                         </div>
                       </div>
@@ -463,6 +585,14 @@ function RetentionDashboard() {
                         <div className="flex flex-col gap-2">
                           <Button
                             size="sm"
+                            onClick={() => handleContact(patient.telefone, patient.nome)}
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white flex-shrink-0"
+                          >
+                            <Phone className="w-4 h-4 mr-2" />
+                            Contatar
+                          </Button>
+                          <Button
+                            size="sm"
                             onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
                             className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0"
                           >
@@ -477,6 +607,15 @@ function RetentionDashboard() {
                           >
                             <CheckCircle2 className="w-4 h-4 mr-2" />
                             Contatado
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemovePatient(patient.id, patient.nome)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
                           </Button>
                         </div>
                       </div>

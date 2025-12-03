@@ -13,7 +13,6 @@ import { ChannelComparisonWithFilter } from "@/components/commercial-metrics/Cha
 import { SalesMetricsSection } from "@/components/commercial-metrics/SalesMetricsSection";
 import { metricsCalculations } from "@/lib/commercial-metrics-service";
 import { useToast } from "@/hooks/use-toast";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { WebhookEmailDialogSimple } from "@/components/webhook/WebhookEmailDialogSimple";
 import { getUserWebhookUrl } from "@/lib/webhook-config-service";
 
@@ -184,17 +183,16 @@ export default function CommercialMetrics() {
   ];
 
   return (
-    <AuthGuard sectionName="Métricas Comerciais" sectionIcon="📊">
-      <DashboardLayout>
-        <div className="space-y-6 animate-fadeIn">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+    <DashboardLayout>
+        <div className="space-y-8 animate-fadeIn">
+        {/* Header com destaque visual melhorado */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent flex items-center gap-3">
               <Target className="w-8 h-8 text-blue-400" />
               Métricas Comerciais
             </h1>
-            <p className="text-slate-400 mt-1">
+            <p className="text-slate-400 text-sm">
               Dados atualizados automaticamente pelo N8N
             </p>
           </div>
@@ -223,53 +221,53 @@ export default function CommercialMetrics() {
             <h2 className="text-xl font-semibold text-white">KPIs Principais</h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-slate-800/50 border-slate-700/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0s'}}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Total de Leads</CardTitle>
-                <Users className="h-4 w-4 text-blue-400" />
+                <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Total de Leads</CardTitle>
+                <Users className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{kpis.totalLeads.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">{kpis.totalLeads.toLocaleString()}</div>
                 <p className="text-xs text-slate-400">
                   {currentMonth ? `Mês: ${currentMonth}` : 'Total acumulado'}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.1s'}}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Calls Agendadas</CardTitle>
-                <Phone className="h-4 w-4 text-green-400" />
+                <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Calls Agendadas</CardTitle>
+                <Phone className="h-4 w-4 text-green-400 group-hover:scale-110 transition-transform" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{kpis.totalCalls.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-white group-hover:text-green-400 transition-colors">{kpis.totalCalls.toLocaleString()}</div>
                 <p className="text-xs text-slate-400">
                   {currentMonth ? `Mês: ${currentMonth}` : 'Total acumulado'}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.2s'}}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Taxa de Conversão</CardTitle>
-                <Target className="h-4 w-4 text-purple-400" />
+                <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Taxa de Conversão</CardTitle>
+                <Target className="h-4 w-4 text-purple-400 group-hover:scale-110 transition-transform" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">{kpis.conversionRate.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">{kpis.conversionRate.toFixed(1)}%</div>
                 <p className="text-xs text-slate-400">
                   Leads que vão para call
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.3s'}}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-300">Canal Líder</CardTitle>
-                <TrendingUp className="h-4 w-4 text-orange-400" />
+                <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Canal Líder</CardTitle>
+                <TrendingUp className="h-4 w-4 text-orange-400 group-hover:scale-110 transition-transform" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-2xl font-bold text-white group-hover:text-orange-400 transition-colors">
                   {channelsData.reduce((prev, current) => (prev.value > current.value) ? prev : current).name}
                 </div>
                 <p className="text-xs text-slate-400">
@@ -454,20 +452,19 @@ export default function CommercialMetrics() {
           </TabsContent>
         </Tabs>
         </div>
-      </DashboardLayout>
 
-      {/* Dialog de confirmação de email */}
-      <WebhookEmailDialogSimple
-        open={showEmailDialog}
-        onClose={() => {
-          console.log('🔴 CommercialMetrics: Fechando dialog de email');
-          setShowEmailDialog(false);
-        }}
-        onConfirm={handleRefresh}
-        webhookType="commercial_metrics"
-        title="Confirmar Email para Atualizar Métricas"
-        description="Digite seu email para confirmar e acionar o webhook de métricas comerciais"
-      />
-    </AuthGuard>
+        {/* Dialog de confirmação de email */}
+        <WebhookEmailDialogSimple
+          open={showEmailDialog}
+          onClose={() => {
+            console.log('🔴 CommercialMetrics: Fechando dialog de email');
+            setShowEmailDialog(false);
+          }}
+          onConfirm={handleRefresh}
+          webhookType="commercial_metrics"
+          title="Confirmar Email para Atualizar Métricas"
+          description="Digite seu email para confirmar e acionar o webhook de métricas comerciais"
+        />
+      </DashboardLayout>
   );
 }

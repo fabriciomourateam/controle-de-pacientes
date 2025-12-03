@@ -183,12 +183,14 @@ export function CheckinsList() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Checkins dos Pacientes</h1>
-          <p className="text-muted-foreground mt-1">
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header com destaque visual melhorado */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+            Checkins dos Pacientes
+          </h1>
+          <p className="text-slate-400 text-sm">
             Acompanhe o progresso mensal dos seus pacientes
           </p>
         </div>

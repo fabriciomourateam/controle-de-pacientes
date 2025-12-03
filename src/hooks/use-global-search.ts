@@ -33,12 +33,14 @@ export function useGlobalSearch() {
       const plano = patient.plano?.toLowerCase() || '';
       
       if (nome.includes(term) || apelido.includes(term) || telefone.includes(term) || plano.includes(term)) {
+        // Usar telefone para navegar para a página de evolução
+        const patientTelefone = patient.telefone || '';
         results.push({
           id: patient.id,
           type: 'patient',
           title: patient.nome || patient.apelido || 'Sem nome',
           subtitle: patient.telefone || patient.plano || '',
-          url: `/patients?highlight=${patient.id}`,
+          url: patientTelefone ? `/checkins/evolution/${patientTelefone}` : `/patients/${patient.id}`,
           data: patient
         });
       }

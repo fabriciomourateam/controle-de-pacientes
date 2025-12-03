@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Users,
   Settings,
-  TrendingUp
+  TrendingUp,
+  Utensils
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -363,12 +364,14 @@ export function PatientsListNew() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Pacientes</h1>
-          <p className="text-slate-400">
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header com destaque visual melhorado */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+            Pacientes
+          </h1>
+          <p className="text-slate-400 text-sm">
             {patients.length} paciente{patients.length !== 1 ? 's' : ''} encontrado{patients.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -441,13 +444,14 @@ export function PatientsListNew() {
                     {column.label}
                   </TableHead>
                 ))}
+                <TableHead className="w-24 text-slate-300 text-center">Plano Alimentar</TableHead>
                 <TableHead className="w-12 text-slate-300">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={filteredColumnOptions.length + 1} className="text-center py-8">
+                  <TableCell colSpan={filteredColumnOptions.length + 2} className="text-center py-8">
                     <div className="flex items-center justify-center gap-2 text-slate-400">
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       <span>Carregando pacientes...</span>
@@ -456,7 +460,7 @@ export function PatientsListNew() {
                 </TableRow>
               ) : patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={filteredColumnOptions.length + 1} className="text-center py-8">
+                  <TableCell colSpan={filteredColumnOptions.length + 2} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="w-8 h-8 text-slate-400" />
                       <p className="text-slate-400">Nenhum paciente encontrado</p>
@@ -610,6 +614,25 @@ export function PatientsListNew() {
                         );
                       })}
                       
+                      <TableCell className="text-center">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
+                                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+                              >
+                                <Utensils className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Abrir Planos Alimentares</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -625,6 +648,10 @@ export function PatientsListNew() {
                             <DropdownMenuItem onClick={() => navigate(`/checkins/evolution/${patient.telefone}`)}>
                               <TrendingUp className="w-4 h-4 mr-2" />
                               Ver Evolução
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}>
+                              <Utensils className="w-4 h-4 mr-2" />
+                              Planos Alimentares
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
                               <Edit className="w-4 h-4 mr-2" />

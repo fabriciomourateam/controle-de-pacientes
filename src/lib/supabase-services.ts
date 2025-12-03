@@ -350,8 +350,11 @@ export const patientService = {
     `);
 
     // Aplicar filtros
-    if (filters.search) {
-      query = query.or(`nome.ilike.%${filters.search}%,apelido.ilike.%${filters.search}%,telefone.ilike.%${filters.search}%`);
+    // Busca por nome, apelido ou telefone (case-insensitive, busca desde o início)
+    if (filters.search && filters.search.trim().length > 0) {
+      const searchTerm = filters.search.trim();
+      // Busca que funciona desde as primeiras letras (ilike com % no início e fim)
+      query = query.or(`nome.ilike.%${searchTerm}%,apelido.ilike.%${searchTerm}%,telefone.ilike.%${searchTerm}%`);
     }
 
     // Priorizar múltiplos planos sobre plano único
@@ -414,14 +417,18 @@ export const patientService = {
 
 // ===== PLANOS =====
 export const planService = {
-  // Buscar todos os planos
-  async getAll() {
-    const { data, error } = await supabase
+  // Buscar todos os planos (RLS já filtra por user_id automaticamente)
+  async getAll(includeInactive: boolean = false) {
+    let query = supabase
       .from('plans')
       .select('*')
-      .eq('active', true)
       .order('name', { ascending: true });
+    
+    if (!includeInactive) {
+      query = query.eq('active', true);
+    }
 
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -438,6 +445,17 @@ export const planService = {
     return data;
   },
 
+  // Buscar pacientes que usam um plano específico
+  async getPatientsByPlan(planName: string) {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('id, nome, telefone, plano')
+      .eq('plano', planName);
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // Criar novo plano
   async create(plan: PlanInsert) {
     const { data, error } = await supabase
@@ -450,8 +468,13 @@ export const planService = {
     return data;
   },
 
-  // Atualizar plano
+  // Atualizar plano e sincronizar com pacientes
   async update(id: string, updates: PlanUpdate) {
+    // Buscar o plano antigo para comparar o nome
+    const oldPlan = await this.getById(id);
+    const oldName = oldPlan.name;
+    
+    // Atualizar o plano
     const { data, error } = await supabase
       .from('plans')
       .update(updates)
@@ -460,11 +483,39 @@ export const planService = {
       .single();
 
     if (error) throw error;
+
+    // Se o nome do plano mudou, atualizar todos os pacientes que usam esse plano
+    if (updates.name && updates.name !== oldName) {
+      try {
+        const { error: updateError } = await supabase
+          .from('patients')
+          .update({ plano: updates.name })
+          .eq('plano', oldName);
+
+        if (updateError) {
+          console.error('Erro ao atualizar pacientes ao renomear plano:', updateError);
+          // Não lançar erro, apenas logar, pois o plano foi atualizado com sucesso
+        } else {
+          console.log(`✅ Plano renomeado: "${oldName}" → "${updates.name}". Pacientes atualizados.`);
+        }
+      } catch (syncError) {
+        console.error('Erro ao sincronizar pacientes com novo nome do plano:', syncError);
+      }
+    }
+
     return data;
   },
 
-  // Deletar plano
+  // Deletar plano (com verificação de pacientes usando)
   async delete(id: string) {
+    // Verificar se há pacientes usando esse plano
+    const plan = await this.getById(id);
+    const patients = await this.getPatientsByPlan(plan.name);
+    
+    if (patients.length > 0) {
+      throw new Error(`Não é possível deletar o plano "${plan.name}" pois ${patients.length} paciente(s) estão usando ele. Remova o plano dos pacientes primeiro.`);
+    }
+
     const { error } = await supabase
       .from('plans')
       .delete()

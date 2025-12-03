@@ -6,6 +6,7 @@ import { CheckCircle2, Phone, MessageSquare, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ContactHistoryService } from "@/lib/contact-history-service";
+import { contactWebhookService } from "@/lib/contact-webhook-service";
 
 interface DailyTask {
   telefone: string; // Chave de ligação
@@ -13,6 +14,7 @@ interface DailyTask {
   diasSemContato: number;
   prioridade: 'urgente' | 'alta' | 'media';
   isCongelado?: boolean; // Indica se é aluno congelado
+  patientId?: string; // ID do paciente para remoção
 }
 
 interface DailyTasksWidgetProps {
@@ -56,6 +58,28 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
   const handleWhatsApp = (telefone: string, nome: string) => {
     const message = encodeURIComponent(`Oi ${nome}! Tudo bem? 😊`);
     window.open(`https://wa.me/55${telefone.replace(/\D/g, '')}?text=${message}`, '_blank');
+  };
+
+  const handleContact = async (telefone: string, nome: string) => {
+    try {
+      const success = await contactWebhookService.sendContactMessage(telefone, nome);
+      
+      if (success) {
+        toast({
+          title: "✅ Mensagem enviada!",
+          description: `Áudio enviado para ${nome} via webhook.`,
+        });
+      } else {
+        throw new Error('Falha ao enviar mensagem');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a mensagem. Verifique se o webhook está configurado.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getPriorityColor = (prioridade: string) => {
@@ -143,6 +167,14 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
                   </div>
 
                   <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleContact(task.telefone, task.nome)}
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                    >
+                      <Phone className="w-4 h-4 mr-1" />
+                      Contatar
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

@@ -17,7 +17,7 @@ export interface WebhookConfig {
  * @param webhookType Tipo do webhook ('autosync', 'metrics', 'metrics_sync', 'commercial_metrics')
  * @returns URL do webhook ou null se não encontrado
  */
-export async function getUserWebhookUrl(webhookType: 'autosync' | 'metrics' | 'metrics_sync' | 'commercial_metrics'): Promise<string | null> {
+export async function getUserWebhookUrl(webhookType: 'autosync' | 'metrics' | 'metrics_sync' | 'commercial_metrics' | 'contact'): Promise<string | null> {
   try {
     const userId = await getCurrentUserId();
     
@@ -85,7 +85,7 @@ export async function getUserWebhookConfigs(): Promise<WebhookConfig[]> {
  * Salva ou atualiza uma configuração de webhook para o usuário atual
  */
 export async function saveUserWebhookConfig(
-  webhookType: 'autosync' | 'metrics' | 'metrics_sync' | 'commercial_metrics',
+  webhookType: 'autosync' | 'metrics' | 'metrics_sync' | 'commercial_metrics' | 'contact',
   webhookUrl: string,
   enabled: boolean = true,
   config: any = {}

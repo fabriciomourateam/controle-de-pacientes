@@ -152,7 +152,7 @@ export function AppSidebar() {
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-lg text-cyan-400 tracking-tight drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]">
+              <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
                 Grow Nutri
               </h1>
               <p className="text-xs text-slate-400 mt-0.5">Gestão de Pacientes</p>

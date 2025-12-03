@@ -82,8 +82,22 @@ export function PlanForm({ plan, trigger, onSave, onCancel }: PlanFormProps) {
         description: plan.description || "",
         active: plan.active ?? true,
       });
+      // Se plan for fornecido, abrir modal automaticamente
+      if (!open) {
+        setOpen(true);
+      }
+    } else if (!plan && open) {
+      // Se não há plan mas modal está aberto (criação), resetar formulário
+      form.reset({
+        name: "",
+        type: "BASIC",
+        period: "Mensal",
+        category: "",
+        description: "",
+        active: true,
+      });
     }
-  }, [plan, form]);
+  }, [plan]);
 
   const onSubmit = async (data: PlanFormData) => {
     try {
@@ -91,7 +105,7 @@ export function PlanForm({ plan, trigger, onSave, onCancel }: PlanFormProps) {
         await updatePlan(plan.id, data);
         toast({
           title: "Sucesso",
-          description: "Plano atualizado com sucesso!",
+          description: "Plano atualizado com sucesso! Todos os pacientes usando este plano foram atualizados automaticamente.",
         });
       } else {
         await createPlan(data);
@@ -104,6 +118,7 @@ export function PlanForm({ plan, trigger, onSave, onCancel }: PlanFormProps) {
       setOpen(false);
       form.reset();
       onSave?.(data);
+      onCancel?.(); // Chamar onCancel para limpar estado no componente pai
     } catch (error) {
       toast({
         title: "Erro",
@@ -119,9 +134,19 @@ export function PlanForm({ plan, trigger, onSave, onCancel }: PlanFormProps) {
     onCancel?.();
   };
 
+  // Se plan for fornecido, sempre mostrar o modal aberto
+  const isOpen = plan ? open : open;
+  
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {trigger && (
+    <Dialog open={isOpen} onOpenChange={(newOpen) => {
+      if (!plan) {
+        setOpen(newOpen);
+      } else if (!newOpen) {
+        // Se fechar e for edição, chamar onCancel
+        onCancel?.();
+      }
+    }}>
+      {trigger && !plan && (
         <div onClick={() => setOpen(true)}>
           {trigger}
         </div>

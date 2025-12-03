@@ -9,7 +9,6 @@ import { DashboardSyncModal } from "@/components/dashboard/DashboardSyncModal";
 import { MetricsMonthSelector } from "@/components/dashboard/MetricsMonthSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useDashboardMetrics } from "@/hooks/use-metrics-dashboard";
 import { useFilteredMetrics } from "@/hooks/use-filtered-metrics";
 import { 
@@ -132,20 +131,19 @@ export default function MetricsDashboard() {
   }
 
   return (
-    <AuthGuard sectionName="Métricas Operacionais" sectionIcon="📊">
-      <DashboardLayout>
-      <div className="space-y-6 animate-fadeIn">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                <BarChart3 className="w-8 h-8 text-blue-400" />
-                Métricas Operacionais
-              </h1>
-              <p className="text-slate-400 mt-1">
-                Análise completa de renovação, churn e crescimento dos pacientes
-              </p>
-            </div>
+    <DashboardLayout>
+      <div className="space-y-8 animate-fadeIn">
+        {/* Header com destaque visual melhorado */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent flex items-center gap-3">
+              <BarChart3 className="w-8 h-8 text-blue-400" />
+              Métricas Operacionais
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Análise completa de renovação, churn e crescimento dos pacientes
+            </p>
+          </div>
           
           <div className="flex flex-col sm:flex-row gap-3">
             <DashboardSyncModal onSyncComplete={refreshData} />
@@ -236,6 +234,5 @@ export default function MetricsDashboard() {
         />
       </div>
       </DashboardLayout>
-    </AuthGuard>
   );
 }

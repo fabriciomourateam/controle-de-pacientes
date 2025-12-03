@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   Edit, 
   Users, 
@@ -7,7 +7,9 @@ import {
   Eye,
   Search,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,8 +25,20 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { usePatients } from "@/hooks/use-supabase-data";
+import { usePatients, usePlans } from "@/hooks/use-supabase-data";
 import { PlanDetailsModal } from "@/components/modals/PlanDetailsModal";
+import { PlanForm } from "@/components/forms/PlanForm";
+import { planService } from "@/lib/supabase-services";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   BarChart, 
   Bar, 
@@ -45,7 +59,14 @@ export function PlansList() {
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isLegendMinimized, setIsLegendMinimized] = useState(true);
+  const [planToEdit, setPlanToEdit] = useState<any>(null);
+  const [planToDelete, setPlanToDelete] = useState<any>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { toast } = useToast();
+
+  // Hooks para dados do Supabase
+  const { patients, loading: patientsLoading } = usePatients();
+  const { plans, loading: plansLoading, refetch: refetchPlans, deletePlan } = usePlans();
 
   // Função para formatar valores monetários com 2 casas decimais
   const formatCurrency = (value: number) => {
@@ -55,85 +76,87 @@ export function PlansList() {
     });
   };
 
-  // Hooks para dados do Supabase
-  const { patients, loading: patientsLoading } = usePatients();
-
-
-  // Funções para visualizar planos (baseados em dados reais dos pacientes)
-  const handleViewDetails = (plan: any) => {
-    setSelectedPlan(plan);
-    setShowDetails(true);
-  };
-
-  const handleEditPlan = (plan: any) => {
-    // Para planos baseados em dados reais, apenas mostrar detalhes
-    toast({
-      title: "Informação",
-      description: "Os planos são baseados nos dados reais dos pacientes. Para alterar, edite os dados dos pacientes.",
-      variant: "default",
-    });
-  };
-
-
-  // Calcular estatísticas dos planos baseadas nos dados reais dos pacientes
-  const getPlansStats = () => {
-    // Obter planos únicos dos pacientes
-    const uniquePlans = [...new Set(patients.map(p => p.plano).filter(Boolean))];
-    
-    const planUsage = uniquePlans.map(planName => {
-      const patientsWithPlan = patients.filter(p => p.plano === planName);
+  // Enriquecer planos com estatísticas dos pacientes
+  const plansWithStats = useMemo(() => {
+    return plans.map(plan => {
+      const patientsWithPlan = patients.filter(p => p.plano === plan.name);
       const patientsCount = patientsWithPlan.length;
       
       // Calcular valores reais dos pacientes
       const totalValue = patientsWithPlan.reduce((sum, p) => sum + (p.valor || 0), 0);
       const avgValue = patientsCount > 0 ? totalValue / patientsCount : 0;
       
-      // Calcular ticket médio (apenas pacientes que têm ticket_medio preenchido)
+      // Calcular ticket médio
       const patientsWithTicketMedio = patientsWithPlan.filter(p => p.ticket_medio && p.ticket_medio > 0);
       const ticketMedio = patientsWithTicketMedio.length > 0 
         ? patientsWithTicketMedio.reduce((sum, p) => sum + p.ticket_medio, 0) / patientsWithTicketMedio.length 
         : 0;
       
       return {
-        name: planName,
+        ...plan,
         patientsCount,
         totalValue,
         avgValue,
         ticketMedio,
-        ticketMedioCount: patientsWithTicketMedio.length, // Quantos pacientes têm ticket médio
+        ticketMedioCount: patientsWithTicketMedio.length,
         revenue: totalValue,
-        active: true, // Considerar todos os planos dos pacientes como ativos
-        category: 'personalizado',
-        period: 'mensal',
-        description: `Plano ${planName} - ${patientsCount} pacientes`
       };
     });
+  }, [plans, patients]);
 
-    const activePlans = planUsage.length;
+  // Calcular estatísticas gerais
+  const stats = useMemo(() => {
+    const activePlans = plans.filter(p => p.active).length;
     const totalPatients = patients.length;
-    const totalRevenue = planUsage.reduce((sum, p) => sum + p.revenue, 0);
+    const totalRevenue = plansWithStats.reduce((sum, p) => sum + p.revenue, 0);
+    
+    return { activePlans, totalPatients, planUsage: plansWithStats, totalRevenue };
+  }, [plans, plansWithStats, patients.length]);
 
-    // Debug: mostrar informações sobre ticket médio
-    console.log('Debug Planos - Ticket Médio:', planUsage.map(p => ({
-      plano: p.name,
-      pacientes: p.patientsCount,
-      ticketMedio: p.ticketMedio,
-      ticketMedioCount: p.ticketMedioCount
-    })));
-
-    return { activePlans, totalPatients, planUsage, totalRevenue };
+  // Funções para gerenciar planos
+  const handleViewDetails = (plan: any) => {
+    setSelectedPlan(plan);
+    setShowDetails(true);
   };
 
-  const stats = getPlansStats();
+  const handleEditPlan = (plan: any) => {
+    setPlanToEdit(plan);
+  };
+
+  const handleDeletePlan = async () => {
+    if (!planToDelete) return;
+    
+    try {
+      await deletePlan(planToDelete.id);
+      toast({
+        title: "Sucesso",
+        description: "Plano deletado com sucesso!",
+      });
+      setShowDeleteDialog(false);
+      setPlanToDelete(null);
+      refetchPlans();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível deletar o plano.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSavePlan = () => {
+    setPlanToEdit(null);
+    refetchPlans();
+  };
 
   // Dados para gráficos
   const planDistribution = stats.planUsage.map(plan => ({
     name: plan.name,
     value: plan.patientsCount,
-    color: plan.name.includes('VIP') ? '#F59E0B' : 
-           plan.name.includes('Premium') ? '#10B981' : 
-           plan.name.includes('Família') ? '#EF4444' : 
-           plan.name.includes('Básico') ? '#3B82F6' : '#8B5CF6'
+    color: plan.name.toUpperCase().includes('VIP') ? '#F59E0B' : 
+           plan.name.toUpperCase().includes('PREMIUM') ? '#10B981' : 
+           plan.name.toUpperCase().includes('FAMÍLIA') || plan.name.toUpperCase().includes('FAMILIA') ? '#EF4444' : 
+           plan.name.toUpperCase().includes('BÁSICO') || plan.name.toUpperCase().includes('BASIC') ? '#3B82F6' : '#8B5CF6'
   }));
 
   const revenueData = stats.planUsage.map(plan => ({
@@ -157,7 +180,7 @@ export function PlansList() {
   });
 
   // Loading state
-  const loading = patientsLoading;
+  const loading = patientsLoading || plansLoading;
 
   const getCategoryBadge = (category: string) => {
     const colors = {
@@ -193,21 +216,31 @@ export function PlansList() {
   return (
     <TooltipProvider>
     <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Planos</h1>
-          <p className="text-slate-400">
-            Análise dos planos baseados nos dados reais dos pacientes
+      {/* Header com destaque visual melhorado */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+            Planos
+          </h1>
+          <p className="text-slate-400 text-sm">
+            Gerencie seus planos de acompanhamento e veja estatísticas
           </p>
-        </div>
-        <div className="text-sm text-slate-400">
-          <p>Dados extraídos dos pacientes cadastrados</p>
-          <p className="text-xs mt-1">
+          <div className="text-xs text-slate-500 mt-1">
             Total de pacientes: {patients.length} | 
-            Planos únicos: {stats.planUsage.length} | 
-            Pacientes com ticket médio: {stats.planUsage.reduce((sum, p) => sum + p.ticketMedioCount, 0)}
-          </p>
+            Planos cadastrados: {plans.length} | 
+            Planos ativos: {stats.activePlans}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <PlanForm
+            trigger={
+              <Button className="btn-premium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Plano
+              </Button>
+            }
+            onSave={handleSavePlan}
+          />
         </div>
       </div>
 
@@ -559,7 +592,19 @@ export function PlansList() {
                   onClick={() => handleEditPlan(plan)}
                 >
                   <Edit className="w-3 h-3 mr-1" />
-                  Info
+                  Editar
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="border-red-600/50 text-red-300 hover:bg-red-700/50 hover:text-white"
+                  onClick={() => {
+                    setPlanToDelete(plan);
+                    setShowDeleteDialog(true);
+                  }}
+                  disabled={plan.patientsCount > 0}
+                >
+                  <Trash2 className="w-3 h-3" />
                 </Button>
               </div>
             </CardContent>
@@ -582,6 +627,19 @@ export function PlansList() {
         </Card>
       )}
 
+      {/* Modal de Edição de Plano */}
+      {planToEdit && (
+        <PlanForm
+          plan={planToEdit}
+          trigger={<div style={{ display: 'none' }} />}
+          onSave={(data) => {
+            handleSavePlan();
+            setPlanToEdit(null);
+          }}
+          onCancel={() => setPlanToEdit(null)}
+        />
+      )}
+
       {/* Modal de Detalhes */}
       <PlanDetailsModal
         plan={selectedPlan}
@@ -592,6 +650,45 @@ export function PlansList() {
         }}
         onEdit={handleEditPlan}
       />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-slate-900/95 border-slate-700/50">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {planToDelete && planToDelete.patientsCount > 0 ? (
+                <>
+                  Não é possível deletar o plano <strong>{planToDelete.name}</strong> pois {planToDelete.patientsCount} paciente(s) estão usando ele.
+                  <br />
+                  <br />
+                  Remova o plano dos pacientes primeiro ou renomeie o plano.
+                </>
+              ) : (
+                <>
+                  Tem certeza que deseja deletar o plano <strong>{planToDelete?.name}</strong>?
+                  <br />
+                  <br />
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-600 text-slate-300 hover:bg-slate-700">
+              Cancelar
+            </AlertDialogCancel>
+            {planToDelete && planToDelete.patientsCount === 0 && (
+              <AlertDialogAction
+                onClick={handleDeletePlan}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Deletar
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </TooltipProvider>
   );

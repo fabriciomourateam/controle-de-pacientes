@@ -34,12 +34,15 @@ interface PatientFiltersProps {
 export function PatientFilters({ filters, onFiltersChange, onReset, plans }: PatientFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localFilters, setLocalFilters] = useState<PatientFilters>(filters);
+  const [searchValue, setSearchValue] = useState<string>(filters.search || '');
   const isInternalUpdate = useRef(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Atualizar localFilters apenas quando filters mudar externamente
   useEffect(() => {
     if (!isInternalUpdate.current) {
       setLocalFilters(filters);
+      setSearchValue(filters.search || '');
     }
     isInternalUpdate.current = false;
   }, [filters]);
@@ -50,6 +53,42 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
     isInternalUpdate.current = true;
     onFiltersChange(newFilters);
   };
+
+  // Handler específico para busca com debounce
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    
+    // Limpar timeout anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Aplicar busca imediatamente se o campo estiver vazio ou com pelo menos 2 caracteres
+    if (value.length === 0 || value.length >= 2) {
+      // Aplicar imediatamente
+      const newFilters = { ...localFilters, search: value || undefined };
+      setLocalFilters(newFilters);
+      isInternalUpdate.current = true;
+      onFiltersChange(newFilters);
+    } else {
+      // Para 1 caractere, aguardar um pouco antes de aplicar (debounce)
+      searchTimeoutRef.current = setTimeout(() => {
+        const newFilters = { ...localFilters, search: value || undefined };
+        setLocalFilters(newFilters);
+        isInternalUpdate.current = true;
+        onFiltersChange(newFilters);
+      }, 300); // 300ms de debounce para 1 caractere
+    }
+  };
+
+  // Limpar timeout ao desmontar
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handlePlanToggle = (plan: string) => {
     const currentPlans = localFilters.plans || [];
@@ -72,9 +111,11 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
   const handleReset = () => {
     const resetFilters: PatientFilters = {
       plan: undefined,
-      plans: undefined
+      plans: undefined,
+      search: undefined
     };
     setLocalFilters(resetFilters);
+    setSearchValue('');
     isInternalUpdate.current = true;
     onReset();
   };
@@ -137,11 +178,15 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
               <Label htmlFor="search" className="text-slate-300">Buscar</Label>
               <Input
                 id="search"
-                placeholder="Nome, apelido ou telefone..."
-                value={localFilters.search || ''}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                placeholder="Digite nome, apelido ou telefone..."
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                autoComplete="off"
               />
+              {searchValue.length > 0 && searchValue.length < 2 && (
+                <p className="text-xs text-slate-400 mt-1">Digite pelo menos 2 caracteres</p>
+              )}
             </div>
             <div>
               <Label htmlFor="gender" className="text-slate-300">Gênero</Label>

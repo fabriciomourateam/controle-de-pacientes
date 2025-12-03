@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -368,14 +367,15 @@ export default function ReportsPage() {
   };
 
   return (
-    <AuthGuard sectionName="Relatórios" sectionIcon="📈">
-      <DashboardLayout>
-        <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Relatórios</h1>
-            <p className="text-slate-400 mt-1">
+    <DashboardLayout>
+      <div className="space-y-8 animate-fadeIn">
+        {/* Header com destaque visual melhorado */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-700/30">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+              Relatórios
+            </h1>
+            <p className="text-slate-400 text-sm">
               Análise detalhada e relatórios do seu negócio
             </p>
           </div>
@@ -392,7 +392,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Filters */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Filter className="w-5 h-5 text-blue-400" />
@@ -468,59 +468,59 @@ export default function ReportsPage() {
         </Card>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0s'}}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Total de Pacientes</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Total de Pacientes</p>
+                  <p className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
                     {patientsLoading ? '...' : displayData.patients.length}
                   </p>
                 </div>
-                <Users className="w-8 h-8 text-blue-400" />
+                <Users className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.1s'}}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Pacientes Ativos</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Pacientes Ativos</p>
+                  <p className="text-2xl font-bold text-white group-hover:text-green-400 transition-colors">
                     {metricsLoading ? '...' : metrics.activePatients}
                   </p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-400" />
+                <CheckCircle className="w-8 h-8 text-green-400 group-hover:scale-110 transition-transform" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.2s'}}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Planos Únicos</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Planos Únicos</p>
+                  <p className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">
                     {displayData.planDistribution.length}
                   </p>
                 </div>
-                <BarChart3 className="w-8 h-8 text-purple-400" />
+                <BarChart3 className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-yellow-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.3s'}}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Score Médio</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Score Médio</p>
+                  <p className="text-2xl font-bold text-white group-hover:text-yellow-400 transition-colors">
                     {metricsLoading ? '...' : metrics.avgOverallScore}
                   </p>
                 </div>
-                <Star className="w-8 h-8 text-yellow-400" />
+                <Star className="w-8 h-8 text-yellow-400 group-hover:scale-110 transition-transform" />
               </div>
             </CardContent>
           </Card>
@@ -529,7 +529,7 @@ export default function ReportsPage() {
         {/* Reports Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reportTypes.map((report) => (
-            <Card key={report.id} className="bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 transition-colors">
+            <Card key={report.id} className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 group">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-white text-lg">{report.title}</CardTitle>
@@ -604,7 +604,7 @@ export default function ReportsPage() {
         {/* Sample Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Growth Chart */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-white">Crescimento de Pacientes</CardTitle>
               <CardDescription className="text-slate-400">
@@ -642,7 +642,7 @@ export default function ReportsPage() {
           </Card>
 
           {/* Retention Chart */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-white">Análise de Retenção</CardTitle>
               <CardDescription className="text-slate-400">
@@ -672,7 +672,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Plan Distribution */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="text-white">Distribuição de Planos</CardTitle>
             <CardDescription className="text-slate-400">
@@ -733,6 +733,5 @@ export default function ReportsPage() {
         }}
       />
       </DashboardLayout>
-    </AuthGuard>
   );
 }
