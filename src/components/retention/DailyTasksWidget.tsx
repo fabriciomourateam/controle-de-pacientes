@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ContactHistoryService } from "@/lib/contact-history-service";
 import { contactWebhookService } from "@/lib/contact-webhook-service";
+import { retentionService } from "@/lib/retention-service";
 
 interface DailyTask {
   telefone: string; // Chave de ligação
@@ -24,10 +26,22 @@ interface DailyTasksWidgetProps {
 
 export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProps) {
   const { toast } = useToast();
+  const [contactedTasks, setContactedTasks] = useState<Set<string>>(new Set());
 
   const handleMarkAsContacted = async (task: DailyTask) => {
+    if (!task.patientId) {
+      toast({
+        title: "Erro",
+        description: "ID do paciente não encontrado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      // Registrar contato no histórico (salva permanentemente)
+      const hoje = new Date().toISOString();
+
+      // 1. Registrar contato no histórico (salva permanentemente)
       const result = await ContactHistoryService.registerContact(
         task.telefone,
         task.nome,
@@ -39,9 +53,30 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
         throw result.error;
       }
 
+      // 2. Atualizar ambas as colunas na tabela patients
+      const { error: updateError } = await supabase
+        .from('patients')
+        .update({
+          ultimo_contato: hoje,
+          ultimo_contato_nutricionista: hoje
+        } as any)
+        .eq('id', task.patientId);
+
+      if (updateError) {
+        console.error('Erro ao atualizar último contato:', updateError);
+        throw updateError;
+      }
+
+      // 3. Remover da lista de retenção
+      const success = await retentionService.excludePatient(task.patientId, 'Contatado via Tarefas do Dia');
+      
+      if (!success) {
+        throw new Error('Falha ao remover paciente da lista de retenção');
+      }
+
       toast({
         title: "✅ Contato registrado!",
-        description: `${task.nome} foi marcado como contatado hoje.`,
+        description: `${task.nome} foi marcado como contatado e removido da lista de retenção.`,
       });
 
       onTaskComplete(task.telefone);
@@ -60,11 +95,14 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
     window.open(`https://wa.me/55${telefone.replace(/\D/g, '')}?text=${message}`, '_blank');
   };
 
-  const handleContact = async (telefone: string, nome: string) => {
+  const handleContact = async (telefone: string, nome: string, taskKey: string) => {
     try {
       const success = await contactWebhookService.sendContactMessage(telefone, nome);
       
       if (success) {
+        // Marcar como contatado visualmente
+        setContactedTasks(prev => new Set([...prev, taskKey]));
+        
         toast({
           title: "✅ Mensagem enviada!",
           description: `Áudio enviado para ${nome} via webhook.`,
@@ -134,8 +172,10 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {tasks.map((task, index) => (
-            <Card key={task.telefone} className="bg-slate-800/60 border-slate-700/50">
+          {tasks.map((task, index) => {
+            const isContacted = contactedTasks.has(task.telefone);
+            return (
+            <Card key={task.telefone} className={`${isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-slate-800/60 border-slate-700/50'}`}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 font-bold text-sm">
@@ -143,7 +183,7 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
                   </div>
                   
                   <Avatar className="w-10 h-10">
-                    <AvatarFallback className="bg-purple-500/20 text-purple-400">
+                    <AvatarFallback className={`${isContacted ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
                       {task.nome?.charAt(0) || 'A'}
                     </AvatarFallback>
                   </Avatar>
@@ -169,11 +209,11 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleContact(task.telefone, task.nome)}
-                      className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                      onClick={() => handleContact(task.telefone, task.nome, task.telefone)}
+                      className={`${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} text-white`}
                     >
                       <Phone className="w-4 h-4 mr-1" />
-                      Contatar
+                      {isContacted ? 'Contatado' : 'Contatar'}
                     </Button>
                     <Button
                       size="sm"
@@ -196,7 +236,8 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </CardContent>
     </Card>

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { XCircle, Snowflake, Calendar, MessageSquare } from "lucide-react";
+import { XCircle, Snowflake, Calendar, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -21,6 +22,8 @@ export function RecentCancellationsAndFreezes() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<CancellationOrFreeze[]>([]);
+  const [isFreezesExpanded, setIsFreezesExpanded] = useState(false);
+  const [isCancellationsExpanded, setIsCancellationsExpanded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -142,20 +145,44 @@ export function RecentCancellationsAndFreezes() {
       {/* Cancelamentos Recentes */}
       <Card className="bg-slate-800/40 border-red-500/30">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <XCircle className="w-5 h-5 text-red-400" />
-            Cancelamentos Recentes
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            {cancelamentos.length} cancelamento(s) nos últimos 90 dias
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-white flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-red-400" />
+                Cancelamentos Recentes
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {cancelamentos.length} cancelamento(s) nos últimos 90 dias
+              </CardDescription>
+            </div>
+            {cancelamentos.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCancellationsExpanded(!isCancellationsExpanded)}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                {isCancellationsExpanded ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-1" />
+                    Minimizar
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-1" />
+                    Expandir
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {cancelamentos.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum cancelamento recente
             </div>
-          ) : (
+          ) : isCancellationsExpanded ? (
             <div className="space-y-3">
               {cancelamentos.map(item => (
                 <Card key={item.id} className="bg-red-500/5 border-red-500/20">
@@ -194,6 +221,42 @@ export function RecentCancellationsAndFreezes() {
                 </Card>
               ))}
             </div>
+          ) : (
+            <div className="space-y-2">
+              {cancelamentos.slice(0, 3).map(item => (
+                <div key={item.id} className="flex items-center gap-3 p-3 bg-red-500/5 border border-red-500/20 rounded-lg hover:bg-red-500/10 transition-colors">
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarFallback className="bg-red-500/20 text-red-400 text-xs">
+                      {item.nome?.charAt(0) || 'A'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-white text-sm truncate">{item.nome}</h4>
+                      <Badge variant="outline" className="text-slate-300 text-xs flex-shrink-0">
+                        {item.plano}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                      <Calendar className="w-3 h-3" />
+                      {format(new Date(item.data), "dd/MM/yyyy", { locale: ptBR })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {cancelamentos.length > 3 && (
+                <div className="text-center pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsCancellationsExpanded(true)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  >
+                    Ver mais {cancelamentos.length - 3} cancelamento(s)
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -201,20 +264,44 @@ export function RecentCancellationsAndFreezes() {
       {/* Congelamentos Recentes */}
       <Card className="bg-slate-800/40 border-cyan-500/30">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Snowflake className="w-5 h-5 text-cyan-400" />
-            Congelamentos Recentes
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            {congelamentos.length} congelamento(s) nos últimos 90 dias
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Snowflake className="w-5 h-5 text-cyan-400" />
+                Congelamentos Recentes
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {congelamentos.length} congelamento(s) nos últimos 90 dias
+              </CardDescription>
+            </div>
+            {congelamentos.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFreezesExpanded(!isFreezesExpanded)}
+                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+              >
+                {isFreezesExpanded ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-1" />
+                    Minimizar
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-1" />
+                    Expandir
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {congelamentos.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum congelamento recente
             </div>
-          ) : (
+          ) : isFreezesExpanded ? (
             <div className="space-y-3">
               {congelamentos.map(item => (
                 <Card key={item.id} className="bg-cyan-500/5 border-cyan-500/20">
@@ -252,6 +339,42 @@ export function RecentCancellationsAndFreezes() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {congelamentos.slice(0, 3).map(item => (
+                <div key={item.id} className="flex items-center gap-3 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg hover:bg-cyan-500/10 transition-colors">
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarFallback className="bg-cyan-500/20 text-cyan-400 text-xs">
+                      {item.nome?.charAt(0) || 'A'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-white text-sm truncate">{item.nome}</h4>
+                      <Badge variant="outline" className="text-slate-300 text-xs flex-shrink-0">
+                        {item.plano}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                      <Calendar className="w-3 h-3" />
+                      {format(new Date(item.data), "dd/MM/yyyy", { locale: ptBR })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {congelamentos.length > 3 && (
+                <div className="text-center pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFreezesExpanded(true)}
+                    className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+                  >
+                    Ver mais {congelamentos.length - 3} congelamento(s)
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
