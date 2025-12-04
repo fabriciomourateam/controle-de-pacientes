@@ -30,9 +30,12 @@ interface GrowthChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    // Extrair mês e ano do label (formato: "Mês/Ano")
+    const displayLabel = label || (payload[0]?.payload?.mes_ano || payload[0]?.payload?.mes || '');
+    
     return (
       <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-700/50 rounded-lg p-3 shadow-xl">
-        <p className="text-sm font-medium text-white mb-2">{label}</p>
+        <p className="text-sm font-medium text-white mb-2">{displayLabel}</p>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <div 
@@ -94,6 +97,13 @@ export function GrowthChart({ data, loading = false }: GrowthChartProps) {
     );
   }
 
+  // Processar dados para incluir mês/ano combinado e garantir ordem correta
+  const chartData = data.map(item => ({
+    ...item,
+    mes_ano: `${item.mes}/${item.ano}`,
+    mes_ano_short: `${item.mes.substring(0, 3)}/${item.ano.toString().slice(-2)}` // Ex: "Ago/24"
+  }));
+
   // Calcular crescimento total
   const crescimentoTotal = data.length > 1 
     ? ((data[data.length - 1].pacientes_ativos - data[0].pacientes_ativos) / data[0].pacientes_ativos) * 100 
@@ -131,7 +141,7 @@ export function GrowthChart({ data, loading = false }: GrowthChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>
               <linearGradient id="colorAtivos" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -140,11 +150,25 @@ export function GrowthChart({ data, loading = false }: GrowthChartProps) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis 
-              dataKey="mes" 
+              dataKey="mes_ano" 
               stroke="hsl(var(--muted-foreground))"
               fontSize={12}
               tickLine={false}
               axisLine={false}
+              tickFormatter={(value) => {
+                // Formatar para mostrar de forma compacta: "Ago/24" ou "Ago/2024" dependendo do espaço
+                const parts = value.split('/');
+                if (parts.length === 2) {
+                  const mes = parts[0];
+                  const ano = parts[1];
+                  // Se o mês for longo, usar abreviação
+                  const mesAbrev = mes.length > 4 ? mes.substring(0, 3) : mes;
+                  // Usar últimos 2 dígitos do ano para economizar espaço
+                  const anoShort = ano.length === 4 ? ano.slice(-2) : ano;
+                  return `${mesAbrev}/${anoShort}`;
+                }
+                return value;
+              }}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"

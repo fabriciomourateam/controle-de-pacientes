@@ -7,6 +7,7 @@ import { BusinessInsights } from "@/components/dashboard/BusinessInsights";
 import { MetricsTable } from "@/components/dashboard/MetricsTable";
 import { DashboardSyncModal } from "@/components/dashboard/DashboardSyncModal";
 import { MetricsMonthSelector } from "@/components/dashboard/MetricsMonthSelector";
+import { MetricsManager } from "@/components/dashboard/MetricsManager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDashboardMetrics } from "@/hooks/use-metrics-dashboard";
@@ -232,6 +233,9 @@ export default function MetricsDashboard() {
           isMinimized={isMetricsTableMinimized}
           onToggleMinimize={() => setIsMetricsTableMinimized(!isMetricsTableMinimized)}
         />
+
+        {/* Gerenciador de Métricas Operacionais */}
+        <MetricsManager onRefresh={refreshData} />
       </div>
       </DashboardLayout>
   );

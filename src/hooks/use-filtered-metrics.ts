@@ -13,11 +13,15 @@ interface MetricsData {
 }
 
 export function useFilteredMetrics(data: MetricsData[], selectedMonths: number[]) {
-  // Filtrar dados baseado nos meses selecionados
+  // Filtrar dados baseado nos meses selecionados e ordenar por mes_numero (ordem crescente)
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
-    if (selectedMonths.length === 0) return data;
-    return data.filter(item => selectedMonths.includes(item.mes_numero));
+    let result = data;
+    if (selectedMonths.length > 0) {
+      result = data.filter(item => selectedMonths.includes(item.mes_numero));
+    }
+    // Ordenar por mes_numero em ordem crescente (do mais antigo para o mais recente)
+    return [...result].sort((a, b) => a.mes_numero - b.mes_numero);
   }, [data, selectedMonths]);
 
   // Calcular KPIs filtrados CORRETAMENTE

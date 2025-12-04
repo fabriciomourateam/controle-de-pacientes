@@ -11,6 +11,7 @@ import { useCommercialMetrics } from "@/hooks/use-commercial-metrics";
 import { LeadsDailyChart, ChannelDistributionChart, MetricsTable } from "@/components/commercial-metrics/MetricsCharts";
 import { ChannelComparisonWithFilter } from "@/components/commercial-metrics/ChannelComparisonWithFilter";
 import { SalesMetricsSection } from "@/components/commercial-metrics/SalesMetricsSection";
+import { CommercialMetricsManager } from "@/components/commercial-metrics/CommercialMetricsManager";
 import { metricsCalculations } from "@/lib/commercial-metrics-service";
 import { useToast } from "@/hooks/use-toast";
 import { WebhookEmailDialogSimple } from "@/components/webhook/WebhookEmailDialogSimple";
@@ -451,6 +452,9 @@ export default function CommercialMetrics() {
             <SalesMetricsSection initialMonth={currentMonth} />
           </TabsContent>
         </Tabs>
+
+        {/* Gerenciador de Métricas Comerciais */}
+        <CommercialMetricsManager />
         </div>
 
         {/* Dialog de confirmação de email */}

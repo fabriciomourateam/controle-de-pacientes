@@ -25,6 +25,12 @@ export class ContactHistoryService {
   ): Promise<{ success: boolean; error?: any }> {
     try {
       const hoje = new Date().toISOString();
+      
+      // Obter user_id do usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
 
       // 1. Inserir no histórico de contatos (tabela separada)
       // @ts-ignore - Tabela contact_history será criada via SQL
@@ -36,6 +42,7 @@ export class ContactHistoryService {
           contact_date: hoje,
           contact_type: contactType,
           notes: notes || null,
+          user_id: user.id, // Incluir user_id para multi-tenancy
         });
 
       if (historyError) {
@@ -43,11 +50,13 @@ export class ContactHistoryService {
         throw historyError;
       }
 
-      // 2. Atualizar campo ultimo_contato_nutricionista (campo separado)
-      // NÃO atualiza 'ultimo_contato' pois esse é o contato do aluno
+      // 2. Atualizar AMBOS os campos na tabela patients para reiniciar contagem
+      // Atualiza 'ultimo_contato' para reiniciar a contagem de dias sem contato
+      // Atualiza 'ultimo_contato_nutricionista' para registrar seu contato
       const { error: updateError } = await supabase
         .from('patients')
         .update({
+          ultimo_contato: hoje,  // Atualizar para reiniciar contagem
           ultimo_contato_nutricionista: hoje
         } as any)
         .eq('telefone', telefone);

@@ -95,18 +95,27 @@ function RetentionDashboard() {
   // Carregar pacientes que foram contatados (para mostrar como "Contatado")
   const loadContactedPatients = async () => {
     try {
+      // Obter user_id do usuário atual para filtrar apenas seus contatos
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('Usuário não autenticado, não é possível carregar contatos');
+        return;
+      }
+      
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       
+      // Buscar contatos de hoje do usuário atual (RLS já filtra por user_id)
       const { data, error } = await supabase
         .from('contact_history')
         .select('telefone')
-        .gte('contact_date', hoje.toISOString());
+        .gte('contact_date', hoje.toISOString())
+        .eq('user_id', user.id); // Garantir que só busca contatos do usuário atual
 
       if (error) throw error;
       
       if (data) {
-        // Buscar IDs dos pacientes pelos telefones
+        // Buscar IDs dos pacientes pelos telefones (já filtrados por user_id via RLS)
         const telefones = data.map(c => c.telefone);
         if (telefones.length > 0) {
           const { data: patientsData } = await supabase
@@ -117,7 +126,12 @@ function RetentionDashboard() {
           if (patientsData) {
             setContactedPatients(new Set(patientsData.map(p => p.id)));
           }
+        } else {
+          // Se não há contatos, limpar o Set
+          setContactedPatients(new Set());
         }
+      } else {
+        setContactedPatients(new Set());
       }
     } catch (error) {
       console.error('Erro ao carregar pacientes contatados:', error);
@@ -383,22 +397,43 @@ function RetentionDashboard() {
       
       if (success) {
         // Registrar contato no histórico para persistir após refresh
-        await ContactHistoryService.registerContact(
+        const result = await ContactHistoryService.registerContact(
           telefone,
           nome,
           'webhook',
           'Contato via webhook - Dashboard de Retenção'
         );
         
-        // Marcar como contatado visualmente
-        setContactedPatients(prev => new Set([...prev, patientId]));
+        if (!result.success) {
+          console.error('Erro ao registrar contato:', result.error);
+        }
+        
+        // Atualizar AMBOS os campos para reiniciar a contagem
+        const hoje = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from('patients')
+          .update({
+            ultimo_contato: hoje,  // Atualizar para reiniciar contagem
+            ultimo_contato_nutricionista: hoje
+          } as any)
+          .eq('id', patientId);
+        
+        if (updateError) {
+          console.error('Erro ao atualizar último contato:', updateError);
+        }
+        
+        // Recarregar pacientes contatados do banco (para persistir após refresh)
+        await loadContactedPatients();
+        
+        // Recarregar lista de pacientes (para remover contatados da lista)
+        await loadPatients();
         
         // Atualizar estatísticas
         loadContactStats();
         
         toast({
           title: "✅ Mensagem enviada!",
-          description: `Áudio enviado para ${nome} via webhook.`,
+          description: `Áudio enviado para ${nome} via webhook. A contagem foi reiniciada.`,
         });
       } else {
         throw new Error('Falha ao enviar mensagem');
@@ -454,6 +489,10 @@ function RetentionDashboard() {
 
       // 3. Remover da lista de retenção
       await handleRemovePatient(patientId, patientName);
+      
+      // 4. Recarregar pacientes contatados do banco (para persistir após refresh)
+      await loadContactedPatients();
+      
       loadContactStats();
 
       toast({
