@@ -71,9 +71,62 @@ export function useDashboardMetrics() {
       console.log('✅ Dashboard dados carregados:', dashboardDados?.length || 0);
       console.log('📊 Dados da tabela dashboard_dados:', dashboardDados?.slice(0, 3));
 
-      // Verificar se há dados
+      // Se não houver dados, retornar arrays vazios em vez de lançar erro
+      // Isso permite que novos usuários possam inserir dados manualmente
       if (!dashboardDados || dashboardDados.length === 0) {
-        throw new Error('Tabela dashboard_dados está vazia. Execute a sincronização primeiro.');
+        console.log('ℹ️ Nenhum dado encontrado. O usuário pode inserir dados manualmente.');
+        setData([]);
+        setHealthMetrics({
+          crescimento: 0,
+          retencao: 0,
+          churnRate: 0,
+          satisfacao: 0,
+          performance: 0,
+          healthScore: 0,
+          healthStatus: 'unknown',
+          recommendations: ['Comece inserindo suas métricas operacionais manualmente'],
+          riskFactors: []
+        });
+        setKpis([
+          {
+            titulo: 'Pacientes Ativos',
+            valor: 0,
+            variacao: 0,
+            variacao_tipo: 'neutra',
+            icone: 'Users',
+            cor: 'blue',
+            descricao: 'Insira métricas para ver dados'
+          },
+          {
+            titulo: 'Taxa de Renovação',
+            valor: '0%',
+            variacao: 0,
+            variacao_tipo: 'neutra',
+            icone: 'RefreshCw',
+            cor: 'gray',
+            descricao: 'Insira métricas para ver dados'
+          },
+          {
+            titulo: 'Taxa de Churn',
+            valor: '0%',
+            variacao: 0,
+            variacao_tipo: 'neutra',
+            icone: 'TrendingDown',
+            cor: 'gray',
+            descricao: 'Insira métricas para ver dados'
+          },
+          {
+            titulo: 'Saúde do Negócio',
+            valor: '0%',
+            variacao: 0,
+            variacao_tipo: 'neutra',
+            icone: 'Activity',
+            cor: 'gray',
+            descricao: 'Insira métricas para ver dados'
+          }
+        ]);
+        setLoading(false);
+        return;
       }
 
       // Buscar checkins para score médio
