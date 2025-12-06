@@ -940,7 +940,7 @@ function RetentionDashboard() {
                   <Card 
                     key={patient.id} 
                     className={cn(
-                      "relative overflow-hidden transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 group fadeInUp",
+                      "relative overflow-hidden transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 group",
                       isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-red-500/5 border-red-500/30',
                       "hover:shadow-red-500/20"
                     )}
@@ -1269,7 +1269,7 @@ function RetentionDashboard() {
                   <Card 
                     key={patient.id} 
                     className={cn(
-                      "relative overflow-hidden transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 group fadeInUp",
+                      "relative overflow-hidden transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 group",
                       isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-yellow-500/5 border-yellow-500/30',
                       "hover:shadow-yellow-500/20"
                     )}
