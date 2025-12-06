@@ -79,7 +79,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -88,9 +88,15 @@ export default function Login() {
         throw error;
       }
 
+      // Atribuir trial de 30 dias automaticamente
+      if (data.user) {
+        const { autoTrialService } = await import('@/lib/auto-trial-service');
+        await autoTrialService.assignTrialToNewUser(data.user.id, email);
+      }
+
       toast({
         title: "Sucesso",
-        description: "Conta criada! Verifique seu e-mail para confirmar.",
+        description: "Conta criada! Você tem 30 dias grátis para testar. Verifique seu e-mail para confirmar.",
       });
     } catch (error: any) {
       toast({

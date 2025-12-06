@@ -15,7 +15,8 @@ import {
   Activity,
   Target,
   AlertTriangle,
-  LineChart
+  LineChart,
+  Shield
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -135,6 +136,11 @@ export function AppSidebar() {
     return true;
   });
 
+  // Adicionar Admin Dashboard para admin
+  const adminNavItems = userEmail === ADMIN_EMAIL 
+    ? [{ title: "Admin", url: "/admin", icon: Shield }]
+    : [];
+
   return (
     <Sidebar
       className={`bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-r border-slate-700/50 transition-all duration-300 ${
@@ -184,6 +190,31 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {adminNavItems.length > 0 && (
+          <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className={`text-slate-400 text-xs font-medium ${isCollapsed ? "sr-only" : ""}`}>
+              Administração
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        className={`${getNavCls(item.url)} transition-colors duration-200`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup className="mt-4">
           <SidebarGroupLabel className={`text-slate-400 text-xs font-medium ${isCollapsed ? "sr-only" : ""}`}>

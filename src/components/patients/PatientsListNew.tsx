@@ -65,7 +65,10 @@ import { AlertTriangle } from "lucide-react";
 import { PatientForm } from "@/components/forms/PatientForm";
 import { PatientDetailsModal } from "@/components/modals/PatientDetailsModal";
 import { RenewPlanModal } from "@/components/modals/RenewPlanModal";
+import { SubscriptionLimitAlert } from "@/components/subscription/SubscriptionLimitAlert";
+import { SubscriptionLimitDialog } from "@/components/subscription/SubscriptionLimitDialog";
 import { patientService } from "@/lib/supabase-services";
+import { subscriptionService } from "@/lib/subscription-service";
 import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,12 +88,27 @@ export function PatientsListNew() {
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
 
   // Obter planos únicos de TODOS os pacientes (não filtrados)
   const uniquePlans = useMemo(() => {
     const plans = [...new Set(allPatients.map(p => p.plano).filter(Boolean))];
     return plans.sort();
   }, [allPatients]);
+
+  // Verificar status de assinatura e limites
+  useEffect(() => {
+    async function checkSubscription() {
+      try {
+        const status = await subscriptionService.checkSubscription();
+        setSubscriptionStatus(status);
+      } catch (error) {
+        console.error('Erro ao verificar assinatura:', error);
+      }
+    }
+    checkSubscription();
+  }, [patients.length]); // Recarregar quando número de pacientes mudar
 
   // Função para estilizar badges dos planos
   const getPlanBadgeStyle = (plano: string) => {
@@ -391,6 +409,15 @@ export function PatientsListNew() {
           </Button>
         </div>
       </div>
+
+      {/* Alerta de Limite de Assinatura */}
+      {subscriptionStatus?.plan && subscriptionStatus.plan.max_patients !== null && (
+        <SubscriptionLimitAlert
+          currentCount={patients.length}
+          maxAllowed={subscriptionStatus.plan.max_patients}
+          planName={subscriptionStatus.plan.display_name}
+        />
+      )}
 
       {/* Filtros */}
       <PatientFilters
@@ -739,12 +766,24 @@ export function PatientsListNew() {
             } else {
               // Criar novo paciente
               console.log('➕ Criando novo paciente no Supabase...', dataToSave);
-              const result = await patientService.create(dataToSave);
-              console.log('✅ Paciente criado com sucesso:', result);
-              toast({
-                title: "Sucesso", 
-                description: "Paciente criado com sucesso"
-              });
+              try {
+                const result = await patientService.create(dataToSave);
+                console.log('✅ Paciente criado com sucesso:', result);
+                toast({
+                  title: "Sucesso", 
+                  description: "Paciente criado com sucesso"
+                });
+              } catch (error: any) {
+                // Se erro for de limite, mostrar dialog
+                if (error.message?.includes('Limite') || error.message?.includes('limite')) {
+                  const limitCheck = await subscriptionService.canAddPatient();
+                  if (limitCheck.maxAllowed !== undefined) {
+                    setLimitDialogOpen(true);
+                    return; // Não mostrar toast genérico
+                  }
+                }
+                throw error; // Re-lançar para tratamento genérico
+              }
             }
             console.log('🔄 Recarregando listas de pacientes...');
             await loadPatients();
@@ -776,6 +815,17 @@ export function PatientsListNew() {
           setIsPatientFormOpen(true);
         }}
       />
+
+      {/* Dialog de Limite de Pacientes */}
+      {subscriptionStatus?.plan && subscriptionStatus.plan.max_patients !== null && (
+        <SubscriptionLimitDialog
+          open={limitDialogOpen}
+          onOpenChange={setLimitDialogOpen}
+          currentCount={patients.length}
+          maxAllowed={subscriptionStatus.plan.max_patients}
+          planName={subscriptionStatus.plan.display_name}
+        />
+      )}
 
       <RenewPlanModal
         patient={selectedPatient}

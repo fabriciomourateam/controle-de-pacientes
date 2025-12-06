@@ -168,6 +168,14 @@ export const patientService = {
       throw new Error('Usuário não autenticado. Faça login para criar pacientes.');
     }
 
+    // Verificar limite de pacientes antes de criar
+    const { subscriptionService } = await import('./subscription-service');
+    const limitCheck = await subscriptionService.canAddPatient();
+    
+    if (!limitCheck.canAdd) {
+      throw new Error(limitCheck.reason || 'Limite de pacientes atingido. Faça upgrade do seu plano.');
+    }
+
     // Calcular dias_para_vencer se vencimento for fornecido
     const patientData = {
       ...patient,

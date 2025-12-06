@@ -25,6 +25,8 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import Reports from "./pages/Reports";
 import RetentionDashboard from "./pages/RetentionDashboard";
+import Pricing from "./pages/Pricing";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -116,6 +118,16 @@ const App = () => (
           <Route path="/help" element={
             <ProtectedRoute>
               <Help />
+            </ProtectedRoute>
+          } />
+          <Route path="/pricing" element={
+            <ProtectedRoute>
+              <Pricing />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
