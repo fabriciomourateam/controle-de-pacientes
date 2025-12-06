@@ -40,8 +40,9 @@ export default async function handler(req, res) {
     // Configurar Supabase client (server-side)
     const { createClient } = await import('@supabase/supabase-js');
     
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // No Vercel, as variáveis de ambiente estão em process.env
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('❌ Variáveis do Supabase não configuradas');
