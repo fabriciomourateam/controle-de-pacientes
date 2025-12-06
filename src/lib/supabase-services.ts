@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from '@/lib/auth-helpers';
 import type { Database } from '@/integrations/supabase/types';
 
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -765,12 +766,20 @@ export const dashboardService = {
   // Buscar dados para gráficos
   async getChartData(filterThisMonth: boolean = false) {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       console.log('🔍 Buscando dados para gráfico usando mesma lógica da página de métricas...');
 
       // Usar a mesma lógica da página de métricas - buscar dados da tabela dashboard_dados
+      // FILTRAR POR USER_ID para garantir isolamento de dados
       const { data: dashboardDados, error: dadosError } = await supabase
         .from('dashboard_dados')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
       if (dadosError) {
@@ -855,9 +864,11 @@ export const dashboardService = {
       });
 
       // Distribuição de planos (apenas ativos)
+      // FILTRAR POR USER_ID para garantir isolamento de dados
       const { data: plansData } = await supabase
         .from('patients')
-        .select('plano');
+        .select('plano')
+        .eq('user_id', userId); // FILTRAR POR USER_ID
 
       // Planos inativos a serem excluídos
       const inactivePlans = ['⛔ Negativado', 'NOVO', 'RESCISÃO', 'INATIVO'];

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from '@/lib/auth-helpers';
 import type { 
   DashboardMetricas, 
   KPIMetric,
@@ -12,10 +13,17 @@ export const dashboardMetricsService = {
   // Calcular métricas de crescimento baseadas em dados reais
   async calculateGrowthMetrics(filters: DashboardFilters = {}): Promise<GrowthMetrics> {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       // Aplicar filtros na query
       let query = supabase
         .from('dashboard_metricas')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
       // Aplicar filtro de ano se especificado
@@ -105,10 +113,17 @@ export const dashboardMetricsService = {
   // Calcular métricas de retenção
   async calculateRetentionMetrics(filters: DashboardFilters = {}): Promise<RetentionMetrics> {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       // Aplicar filtros na query
       let query = supabase
         .from('dashboard_metricas')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
       // Aplicar filtro de ano se especificado
@@ -189,10 +204,17 @@ export const dashboardMetricsService = {
   // Calcular métricas de saúde do negócio
   async calculateHealthMetrics(filters: DashboardFilters = {}): Promise<HealthMetrics> {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       // Aplicar filtros na query
       let query = supabase
         .from('dashboard_metricas')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
       // Aplicar filtro de ano se especificado
@@ -341,10 +363,17 @@ export const dashboardMetricsService = {
   // Preparar dados para gráficos organizados
   async prepareOrganizedChartData(filters: DashboardFilters = {}): Promise<ChartData[]> {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       // Aplicar filtros na query
       let query = supabase
         .from('dashboard_metricas')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
       // Aplicar filtro de ano se especificado

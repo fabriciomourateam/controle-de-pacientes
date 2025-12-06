@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from '@/lib/auth-helpers';
 import type { KPIMetric, HealthMetrics as HealthMetricsType } from '@/types/dashboard';
 
 interface MetricsData {
@@ -46,12 +47,20 @@ export function useDashboardMetrics() {
       setLoading(true);
       setError(null);
 
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       console.log('🔍 Buscando dados REAIS das tabelas de dashboard...');
 
       // Buscar dados da tabela dashboard_dados (dados crescentes 1, 2, 3, 4, 5, 6... até 20+)
+      // FILTRAR POR USER_ID para garantir isolamento de dados
       const { data: dashboardDados, error: dadosError } = await supabase
         .from('dashboard_dados')
         .select('*')
+        .eq('user_id', userId)
         .order('mes_numero', { ascending: true });
 
       if (dadosError) {
@@ -68,11 +77,13 @@ export function useDashboardMetrics() {
       }
 
       // Buscar checkins para score médio
+      // FILTRAR POR USER_ID para garantir isolamento de dados
       let checkins = [];
       try {
         const { data: checkinsData, error: checkinsError } = await supabase
           .from('checkin')
-          .select('telefone, data_checkin, total_pontuacao');
+          .select('telefone, data_checkin, total_pontuacao')
+          .eq('user_id', userId);
 
         if (checkinsError) {
           console.log('⚠️ Erro ao buscar checkins:', checkinsError.message);

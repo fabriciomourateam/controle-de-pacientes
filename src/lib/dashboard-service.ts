@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from '@/lib/auth-helpers';
 import type { 
   DashboardDados, 
   DashboardMetricas, 
@@ -26,7 +27,16 @@ export const dashboardService = {
   // Buscar dados completos do dashboard
   async getDashboardData(filters: DashboardFilters = {}) {
     try {
-      let query = supabase.from('dashboard_dados').select('*');
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
+      let query = supabase
+        .from('dashboard_dados')
+        .select('*')
+        .eq('user_id', userId); // FILTRAR POR USER_ID
       
       if (filters.ano) {
         query = query.eq('ano', filters.ano);
@@ -70,9 +80,16 @@ export const dashboardService = {
   // Buscar últimos 6 meses
   async getUltimosMeses() {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       const { data, error } = await supabase
         .from('ultimos_6_meses')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('data_referencia', { ascending: false });
       
       if (error) throw error;
@@ -86,9 +103,16 @@ export const dashboardService = {
   // Buscar alertas
   async getAlertas() {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       const { data, error } = await supabase
         .from('alertas_dashboard')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .eq('ativo', true)
         .order('prioridade', { ascending: false });
       
@@ -104,10 +128,17 @@ export const dashboardService = {
   // Buscar métricas calculadas
   async getMetricas(filters: DashboardFilters = {}) {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        throw new Error('Usuário não autenticado. Faça login para visualizar as métricas.');
+      }
+
       // Query simplificada para debug
       const { data, error } = await supabase
         .from('dashboard_metricas')
         .select('*')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true })
         .limit(50);
       
