@@ -173,11 +173,19 @@ export default function Landing() {
       }`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-600/30 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-lg shadow-blue-500/20">
+                  <LineChart className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full border-2 border-slate-900 animate-pulse" />
               </div>
-              <span className="text-xl font-bold text-white">NutriControl</span>
+              <div>
+                <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
+                  Grow Nutri
+                </h1>
+                <p className="text-xs text-slate-400">Gestão de Pacientes</p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
@@ -340,7 +348,7 @@ export default function Landing() {
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   escolhem
                 </span>{' '}
-                a NutriControl?
+                a Grow Nutri?
               </h2>
               <p className="text-xl text-slate-300 mb-8">
                 Não é apenas um software. É uma transformação completa na forma como você gerencia seu consultório.
@@ -491,14 +499,22 @@ export default function Landing() {
       <footer className="py-12 px-4 border-t border-slate-800">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-600/30 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-lg shadow-blue-500/20">
+                  <LineChart className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full border-2 border-slate-900 animate-pulse" />
               </div>
-              <span className="text-lg font-bold text-white">NutriControl</span>
+              <div>
+                <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
+                  Grow Nutri
+                </h1>
+                <p className="text-xs text-slate-400">Gestão de Pacientes</p>
+              </div>
             </div>
             <p className="text-slate-400 text-sm">
-              © 2025 NutriControl. Transformando consultórios de nutrição.
+              © 2025 Grow Nutri. Transformando consultórios de nutrição.
             </p>
           </div>
         </div>
