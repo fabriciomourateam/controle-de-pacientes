@@ -4,17 +4,10 @@
   "framework": "vite",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1.js"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/api/(.*)",
+      "destination": "/api/$1.js"
     }
   ],
   "headers": [
