@@ -236,7 +236,7 @@ export default function Landing() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
               <Sparkles className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-300">Transforme seu consultório em minutos</span>
+              <span className="text-sm font-medium text-blue-300">Transforme os resultados da sua Empresa com eficiência e Tecnologia!</span>
             </div>
 
             {/* Headline */}
