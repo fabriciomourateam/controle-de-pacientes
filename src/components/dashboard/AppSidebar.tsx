@@ -85,10 +85,17 @@ export function AppSidebar() {
   // Função para fazer logout
   const handleLogout = async () => {
     try {
+      console.log('🔄 Iniciando logout...');
+      
+      // Limpar dados locais primeiro
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Fazer logout no Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Erro ao fazer logout:', error);
+        console.error('❌ Erro ao fazer logout:', error);
         toast({
           title: "Erro",
           description: "Não foi possível fazer logout. Tente novamente.",
@@ -97,19 +104,13 @@ export function AppSidebar() {
         return;
       }
 
-      // Limpar dados locais se necessário
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // Redirecionar para login
-      navigate('/login', { replace: true });
+      console.log('✅ Logout realizado com sucesso');
       
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso",
-      });
+      // Redirecionar para login
+      window.location.href = '/login';
+      
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error('❌ Erro ao fazer logout:', error);
       toast({
         title: "Erro",
         description: "Erro ao fazer logout",
@@ -258,9 +259,14 @@ export function AppSidebar() {
               </p>
             </div>
             <button 
-              onClick={handleLogout}
-              className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLogout();
+              }}
+              className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors cursor-pointer"
               title="Sair"
+              type="button"
             >
               <LogOut className="w-3 h-3 text-slate-400" />
             </button>
