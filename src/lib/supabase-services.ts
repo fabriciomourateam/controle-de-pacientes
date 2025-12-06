@@ -789,27 +789,10 @@ export const dashboardService = {
 
       // Verificar se há dados
       if (!dashboardDados || dashboardDados.length === 0) {
-        console.log('⚠️ Tabela dashboard_dados está vazia, usando dados simulados');
-        // Retornar dados simulados se não houver dados reais
-        const monthlyData = [];
-        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        
-        for (let i = 5; i >= 0; i--) {
-          const date = new Date();
-          date.setMonth(date.getMonth() - i);
-          const monthName = months[date.getMonth()];
-          
-          monthlyData.push({
-            month: monthName,
-            novos: Math.floor(Math.random() * 20) + 5,
-            feedbacks: Math.floor(Math.random() * 15) + 3,
-            renovacao: 65 + Math.random() * 20,
-            churn: 8 + Math.random() * 10
-          });
-        }
-        
+        console.log('⚠️ Tabela dashboard_dados está vazia para este usuário. Retornando dados vazios.');
+        // Retornar dados vazios em vez de simulados para novos usuários
         return {
-          monthlyData,
+          monthlyData: [],
           planDistribution: []
         };
       }

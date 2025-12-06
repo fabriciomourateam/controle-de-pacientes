@@ -274,7 +274,13 @@ export function useChartData(filterThisMonth: boolean = false) {
   // Recarregar dados quando filterThisMonth ou userId mudar
   useEffect(() => {
     if (userId) {
+      // Limpar dados anteriores antes de buscar novos
+      setChartData({ monthlyData: [], planDistribution: [] });
       fetchChartData();
+    } else {
+      // Se não houver userId, limpar dados
+      setChartData({ monthlyData: [], planDistribution: [] });
+      setLoading(false);
     }
   }, [filterThisMonth, userId]);
 
