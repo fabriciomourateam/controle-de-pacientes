@@ -938,14 +938,7 @@ function RetentionDashboard() {
                   return (
                   <Card 
                     key={patient.id} 
-                    className={`
-                      relative overflow-hidden
-                      ${isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-red-500/5 border-red-500/30'}
-                      transition-all duration-300 ease-out
-                      hover:shadow-xl hover:shadow-red-500/20
-                      hover:scale-[1.01] hover:-translate-y-0.5
-                      group fadeInUp
-                    `}
+                    className={`relative overflow-hidden ${isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-red-500/5 border-red-500/30'} transition-all duration-300 ease-out hover:shadow-xl hover:shadow-red-500/20 hover:scale-[1.01] hover:-translate-y-0.5 group fadeInUp`}
                     style={{ 
                       animationDelay: `${index * 50}ms`
                     }}
@@ -1270,14 +1263,7 @@ function RetentionDashboard() {
                   return (
                   <Card 
                     key={patient.id} 
-                    className={`
-                      relative overflow-hidden
-                      ${isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-yellow-500/5 border-yellow-500/30'}
-                      transition-all duration-300 ease-out
-                      hover:shadow-xl hover:shadow-yellow-500/20
-                      hover:scale-[1.01] hover:-translate-y-0.5
-                      group fadeInUp
-                    `}
+                    className={`relative overflow-hidden ${isContacted ? 'bg-blue-500/10 border-blue-500/40' : 'bg-yellow-500/5 border-yellow-500/30'} transition-all duration-300 ease-out hover:shadow-xl hover:shadow-yellow-500/20 hover:scale-[1.01] hover:-translate-y-0.5 group fadeInUp`}
                     style={{ 
                       animationDelay: `${index * 50}ms`
                     }}
