@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { patientService, planService, feedbackService, dashboardService } from '@/lib/supabase-services';
 import type { Patient, Plan, Feedback } from '@/lib/supabase-services';
+import { getCurrentUserId } from '@/lib/auth-helpers';
+import { supabase } from '@/integrations/supabase/client';
 
 // Hook para pacientes
 export function usePatients() {
@@ -245,6 +247,7 @@ export function useChartData(filterThisMonth: boolean = false) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const fetchChartData = async () => {
     try {
@@ -259,9 +262,44 @@ export function useChartData(filterThisMonth: boolean = false) {
     }
   };
 
+  // Buscar user_id atual
   useEffect(() => {
-    fetchChartData();
-  }, [filterThisMonth]);
+    async function getUserId() {
+      const id = await getCurrentUserId();
+      setUserId(id);
+    }
+    getUserId();
+  }, []);
+
+  // Recarregar dados quando filterThisMonth ou userId mudar
+  useEffect(() => {
+    if (userId) {
+      fetchChartData();
+    }
+  }, [filterThisMonth, userId]);
+
+  // Escutar mudanças de autenticação para recarregar dados
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const id = await getCurrentUserId();
+          setUserId(id);
+          // Recarregar dados quando usuário mudar
+          if (id) {
+            fetchChartData();
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUserId(null);
+          setChartData({ monthlyData: [], planDistribution: [] });
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return {
     chartData,
