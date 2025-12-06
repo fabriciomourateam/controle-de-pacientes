@@ -27,6 +27,7 @@ import Reports from "./pages/Reports";
 import RetentionDashboard from "./pages/RetentionDashboard";
 import Pricing from "./pages/Pricing";
 import AdminDashboard from "./pages/AdminDashboard";
+import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
         <BrowserRouter>
         <Routes>
           {/* Rotas públicas - não requerem autenticação */}
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/portal" element={<PortalLogin />} />
           <Route path="/portal/:token" element={<PatientPortal />} />
