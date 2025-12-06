@@ -41,6 +41,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 import { CancellationPatternsAnalysis } from "@/components/retention/CancellationPatternsAnalysis";
 import { RecentCancellationsAndFreezes } from "@/components/retention/RecentCancellationsAndFreezes";
 import { DailyTasksWidget } from "@/components/retention/DailyTasksWidget";
@@ -142,28 +143,43 @@ function RetentionDashboard() {
   // Carregar estatísticas de contatos
   const loadContactStats = async () => {
     try {
+      // Obter user_id do usuário autenticado
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        // Se não estiver autenticado, retornar zeros
+        setContactStats({
+          today: 0,
+          thisWeek: 0,
+          chartData: []
+        });
+        return;
+      }
+
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       
       const umaSemanaAtras = new Date(hoje);
       umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
 
-      // Contatos hoje
+      // Contatos hoje - FILTRAR POR USER_ID
       const { count: todayCount } = await supabase
         .from('contact_history')
         .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .gte('contact_date', hoje.toISOString());
 
-      // Contatos esta semana
+      // Contatos esta semana - FILTRAR POR USER_ID
       const { count: weekCount } = await supabase
         .from('contact_history')
         .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .gte('contact_date', umaSemanaAtras.toISOString());
 
-      // Dados para gráfico (últimos 7 dias)
+      // Dados para gráfico (últimos 7 dias) - FILTRAR POR USER_ID
       const { data: chartData } = await supabase
         .from('contact_history')
         .select('contact_date')
+        .eq('user_id', userId) // FILTRAR POR USER_ID
         .gte('contact_date', umaSemanaAtras.toISOString())
         .order('contact_date', { ascending: true });
 
