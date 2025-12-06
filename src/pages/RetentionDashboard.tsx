@@ -944,12 +944,11 @@ function RetentionDashboard() {
                       transition-all duration-300 ease-out
                       hover:shadow-xl hover:shadow-red-500/20
                       hover:scale-[1.01] hover:-translate-y-0.5
-                      group
+                      group fadeInUp
                     `}
                     style={{ 
                       animationDelay: `${index * 50}ms`
                     }}
-                    className="fadeInUp"
                   >
                     {/* Barra lateral colorida indicando urgência */}
                     <div className={`
@@ -1277,12 +1276,11 @@ function RetentionDashboard() {
                       transition-all duration-300 ease-out
                       hover:shadow-xl hover:shadow-yellow-500/20
                       hover:scale-[1.01] hover:-translate-y-0.5
-                      group
+                      group fadeInUp
                     `}
                     style={{ 
                       animationDelay: `${index * 50}ms`
                     }}
-                    className="fadeInUp"
                   >
                     {/* Barra lateral colorida */}
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500 group-hover:w-1.5 transition-all duration-300" />
