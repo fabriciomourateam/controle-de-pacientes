@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -20,6 +21,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
   const [editingCheckin, setEditingCheckin] = useState<Checkin | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [isMinimized, setIsMinimized] = useState(true);
   
   // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
   const checkinsOrdenados = [...checkins].reverse();
@@ -87,15 +89,39 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
   return (
     <Card className="bg-slate-800/40 border-slate-700/50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <Calendar className="w-5 h-5 text-blue-400" />
-          Timeline de Evolução
-        </CardTitle>
-        <CardDescription className="text-slate-400">
-          Histórico detalhado dos {checkins.length} check-ins realizados
-        </CardDescription>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Calendar className="w-5 h-5 text-blue-400" />
+              Timeline de Evolução
+            </CardTitle>
+            <CardDescription className="text-slate-400">
+              Histórico detalhado dos {checkins.length} check-ins realizados
+            </CardDescription>
+          </div>
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+          >
+            {isMinimized ? (
+              <ChevronDown className="w-5 h-5 text-slate-300" />
+            ) : (
+              <ChevronUp className="w-5 h-5 text-slate-300" />
+            )}
+          </button>
+        </div>
       </CardHeader>
-      <CardContent>
+      <AnimatePresence>
+        {!isMinimized && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <CardContent>
         <div className="space-y-6">
           {checkinsOrdenados.map((checkin, index) => {
             const previousCheckin = index > 0 ? checkinsOrdenados[index - 1] : null;
@@ -389,7 +415,10 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
             );
           })}
         </div>
-      </CardContent>
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal de Edição */}
       <EditCheckinModal

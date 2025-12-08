@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Info, Lightbulb, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, Info, Lightbulb, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import type { Trend } from '@/lib/trends-analysis';
 
 interface TrendsAnalysisProps {
@@ -9,6 +10,8 @@ interface TrendsAnalysisProps {
 }
 
 export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
+  const [isMinimized, setIsMinimized] = useState(true);
+
   if (trends.length === 0) {
     return null;
   }
@@ -76,28 +79,50 @@ export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
         <div className="absolute top-6 right-12 w-1.5 h-1.5 bg-purple-400/40 rounded-full blur-sm animate-pulse delay-75"></div>
         <div className="absolute top-4 right-20 w-1 h-1 bg-cyan-400/40 rounded-full blur-sm animate-pulse delay-150"></div>
         
-        <div className="flex items-center gap-4 relative z-10">
-          <motion.div 
-            className="p-3.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-fuchsia-500/20 rounded-2xl border border-blue-400/40 shadow-xl shadow-blue-500/25 backdrop-blur-sm relative overflow-hidden group"
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-          >
-            {/* Brilho interno no hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <TrendingUp className="w-7 h-7 text-blue-100 relative z-10" />
-          </motion.div>
-          <div>
-            <CardTitle className="text-2xl text-white font-semibold tracking-tight flex items-center gap-2">
-              Análise de Tendências
-              <Sparkles className="w-5 h-5 text-yellow-300/70 animate-pulse" />
-            </CardTitle>
-            <CardDescription className="text-slate-300 text-sm mt-1 font-light tracking-wide">
-              Insights personalizados baseados nos seus dados
-            </CardDescription>
+        <div className="flex items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-4">
+            <motion.div 
+              className="p-3.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-fuchsia-500/20 rounded-2xl border border-blue-400/40 shadow-xl shadow-blue-500/25 backdrop-blur-sm relative overflow-hidden group"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              {/* Brilho interno no hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <TrendingUp className="w-7 h-7 text-blue-100 relative z-10" />
+            </motion.div>
+            <div>
+              <CardTitle className="text-2xl text-white font-semibold tracking-tight flex items-center gap-2">
+                Análise de Tendências
+                <Sparkles className="w-5 h-5 text-yellow-300/70 animate-pulse" />
+              </CardTitle>
+              <CardDescription className="text-slate-300 text-sm mt-1 font-light tracking-wide">
+                Insights personalizados baseados nos seus dados
+              </CardDescription>
+            </div>
           </div>
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+          >
+            {isMinimized ? (
+              <ChevronDown className="w-5 h-5 text-slate-300" />
+            ) : (
+              <ChevronUp className="w-5 h-5 text-slate-300" />
+            )}
+          </button>
         </div>
       </CardHeader>
-      <CardContent className="p-8 space-y-5">
+      <AnimatePresence>
+        {!isMinimized && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <CardContent className="p-8 space-y-5">
         {trends.map((trend, index) => (
             <motion.div
               key={trend.id}
@@ -294,7 +319,10 @@ export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
             transition={{ duration: 2, repeat: Infinity, delay: 1 }}
           />
         </motion.div>
-      </CardContent>
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 }

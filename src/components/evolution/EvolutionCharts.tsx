@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -16,7 +17,9 @@ import {
   BarChart,
   Bar
 } from "recharts";
-import { TrendingUp, Activity, Target } from "lucide-react";
+import { TrendingUp, Activity, Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -28,9 +31,54 @@ interface EvolutionChartsProps {
 }
 
 export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
+  const [selectedCheckinIndex, setSelectedCheckinIndex] = useState(0);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+  
   // IMPORTANTE: checkins vem ordenado DESC (mais recente primeiro)
   // Precisamos reverter para ordem cronológica (mais antigo primeiro)
   const checkinsOrdenados = [...checkins].reverse();
+  
+  // Para o radar, queremos mostrar do mais recente (índice 0 do array original)
+  const checkinsForRadar = checkins; // Array original já está do mais recente ao mais antigo
+
+  // Função para alternar visibilidade de uma série
+  const toggleSeries = (seriesName: string) => {
+    setHiddenSeries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(seriesName)) {
+        newSet.delete(seriesName);
+      } else {
+        newSet.add(seriesName);
+      }
+      return newSet;
+    });
+  };
+
+  // Componente de legenda customizado
+  const CustomLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
+        {payload?.map((entry: any, index: number) => {
+          const isHidden = hiddenSeries.has(entry.dataKey);
+          return (
+            <div
+              key={`legend-${entry.dataKey}-${index}`}
+              onClick={() => toggleSeries(entry.dataKey)}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              style={{ opacity: isHidden ? 0.5 : 1 }}
+            >
+              <div
+                className="h-3 w-3 rounded-sm"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-sm text-slate-300">{entry.value}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   // Preparar dados para gráfico de peso - incluindo peso inicial se existir
   const weightData = [];
@@ -73,19 +121,120 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
     cardio: parseFloat(c.pontos_cardios || '0') || 0,
     sono: parseFloat(c.pontos_sono || '0') || 0,
     agua: parseFloat(c.pontos_agua || '0') || 0,
-    stress: parseFloat(c.pontos_stress || '0') || 0
+    stress: parseFloat(c.pontos_stress || '0') || 0,
+    refeicoesLivres: parseFloat(c.pontos_refeicao_livre || '0') || 0,
+    beliscadas: parseFloat(c.pontos_beliscos || '0') || 0
   }));
 
-  // Preparar dados para radar (último check-in = primeiro do array original)
-  const latestCheckin = checkins[0]; // Mais recente
-  const radarData = latestCheckin ? [
-    { categoria: 'Treino', pontos: parseFloat(latestCheckin.pontos_treinos || '0') || 0, fullMark: 10 },
-    { categoria: 'Cardio', pontos: parseFloat(latestCheckin.pontos_cardios || '0') || 0, fullMark: 10 },
-    { categoria: 'Água', pontos: parseFloat(latestCheckin.pontos_agua || '0') || 0, fullMark: 10 },
-    { categoria: 'Sono', pontos: parseFloat(latestCheckin.pontos_sono || '0') || 0, fullMark: 10 },
-    { categoria: 'Stress', pontos: parseFloat(latestCheckin.pontos_stress || '0') || 0, fullMark: 10 },
-    { categoria: 'Libido', pontos: parseFloat(latestCheckin.pontos_libido || '0') || 0, fullMark: 10 }
+  // Preparar dados para gráfico de quantidades
+  const quantitiesData = checkinsOrdenados.map(c => {
+    // Função para verificar se o texto indica ausência/negativo
+    const isNegative = (text: string): boolean => {
+      const textLower = text.toLowerCase().trim();
+      const negativeWords = ['nenhum', 'nenhuma', 'não', 'nao', 'zero', '0', 'sem', 'nada'];
+      return negativeWords.some(word => textLower.includes(word));
+    };
+
+    // Função para extrair número de um texto, tratando "ou mais" e decimais
+    const extractQuantity = (text: string | null): number => {
+      if (!text || text.trim() === '') return 0;
+      
+      const textLower = text.toLowerCase().trim();
+      
+      // Verifica se indica ausência/negativo
+      if (isNegative(textLower)) {
+        return 0;
+      }
+      
+      // Verifica se tem "ou mais" e extrai o número antes (incluindo decimais)
+      const ouMaisMatch = textLower.match(/(\d+[.,]?\d*)\s*ou\s*mais/);
+      if (ouMaisMatch) {
+        return parseFloat(ouMaisMatch[1].replace(',', '.'));
+      }
+      
+      // Tenta extrair número decimal (aceita vírgula ou ponto como separador)
+      const decimalMatch = text.match(/(\d+[.,]\d+)/);
+      if (decimalMatch) {
+        return parseFloat(decimalMatch[1].replace(',', '.'));
+      }
+      
+      // Tenta extrair qualquer número inteiro do texto
+      const numMatch = text.match(/(\d+)/);
+      if (numMatch) {
+        return parseFloat(numMatch[1]);
+      }
+      
+      // Se não tem número mas tem conteúdo e não é negativo, retorna 1
+      return 1;
+    };
+
+    // Função para extrair número de texto (para sono, treino, cardio, etc)
+    const extractNumberFromText = (text: string | null): number => {
+      if (!text || text.trim() === '') return 0;
+      
+      const textLower = text.toLowerCase().trim();
+      
+      // Verifica se indica ausência/negativo
+      if (isNegative(textLower)) {
+        return 0;
+      }
+      
+      // Verifica se tem "ou mais" e extrai o número antes (incluindo decimais)
+      const ouMaisMatch = textLower.match(/(\d+[.,]?\d*)\s*ou\s*mais/);
+      if (ouMaisMatch) {
+        return parseFloat(ouMaisMatch[1].replace(',', '.'));
+      }
+      
+      // Tenta extrair número decimal (aceita vírgula ou ponto como separador)
+      const decimalMatch = text.match(/(\d+[.,]\d+)/);
+      if (decimalMatch) {
+        return parseFloat(decimalMatch[1].replace(',', '.'));
+      }
+      
+      // Tenta extrair qualquer número inteiro do texto
+      const numMatch = text.match(/(\d+)/);
+      if (numMatch) {
+        return parseFloat(numMatch[1]);
+      }
+      
+      // Se não tem número mas tem conteúdo e não é negativo, retorna 1
+      return 1;
+    };
+
+    return {
+      data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      treino: extractNumberFromText(c.treino),
+      cardio: extractNumberFromText(c.cardio),
+      sono: extractNumberFromText(c.sono),
+      agua: extractQuantity(c.agua),
+      stress: extractNumberFromText(c.stress),
+      refeicoesLivres: extractQuantity(c.ref_livre),
+      beliscadas: extractQuantity(c.beliscos)
+    };
+  });
+
+  // Preparar dados para radar - permite navegar entre check-ins
+  const selectedCheckin = checkinsForRadar[selectedCheckinIndex];
+  const radarData = selectedCheckin ? [
+    { categoria: 'Treino', pontos: parseFloat(selectedCheckin.pontos_treinos || '0') || 0, fullMark: 10 },
+    { categoria: 'Cardio', pontos: parseFloat(selectedCheckin.pontos_cardios || '0') || 0, fullMark: 10 },
+    { categoria: 'Água', pontos: parseFloat(selectedCheckin.pontos_agua || '0') || 0, fullMark: 10 },
+    { categoria: 'Sono', pontos: parseFloat(selectedCheckin.pontos_sono || '0') || 0, fullMark: 10 },
+    { categoria: 'Stress', pontos: parseFloat(selectedCheckin.pontos_stress || '0') || 0, fullMark: 10 },
+    { categoria: 'Libido', pontos: parseFloat(selectedCheckin.pontos_libido || '0') || 0, fullMark: 10 }
   ] : [];
+
+  const handlePreviousCheckin = () => {
+    if (selectedCheckinIndex < checkinsForRadar.length - 1) {
+      setSelectedCheckinIndex(selectedCheckinIndex + 1);
+    }
+  };
+
+  const handleNextCheckin = () => {
+    if (selectedCheckinIndex > 0) {
+      setSelectedCheckinIndex(selectedCheckinIndex - 1);
+    }
+  };
 
   // weightData já está ordenado cronologicamente (mais antigo primeiro)
 
@@ -189,7 +338,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
         </Card>
       )}
 
-      {/* Gráfico de Pontuações */}
+      {/* Gráfico de Pontuações e Quantidades */}
       {scoresData.length > 0 && (
         <Card className="bg-slate-800/40 border-slate-700/50">
           <CardHeader>
@@ -202,35 +351,224 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={scoresData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis 
-                  dataKey="data" 
-                  stroke="#94a3b8"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  stroke="#94a3b8"
-                  style={{ fontSize: '12px' }}
-                  domain={[0, 10]}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1e293b', 
-                    border: '1px solid #334155',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="treino" stroke="#f59e0b" strokeWidth={2} name="Treino" />
-                <Line type="monotone" dataKey="cardio" stroke="#ef4444" strokeWidth={2} name="Cardio" />
-                <Line type="monotone" dataKey="sono" stroke="#8b5cf6" strokeWidth={2} name="Sono" />
-                <Line type="monotone" dataKey="agua" stroke="#3b82f6" strokeWidth={2} name="Água" />
-                <Line type="monotone" dataKey="stress" stroke="#10b981" strokeWidth={2} name="Stress" />
-              </LineChart>
-            </ResponsiveContainer>
+            <Tabs defaultValue="pontuacoes" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4 bg-slate-700/50">
+                <TabsTrigger value="pontuacoes" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  Pontuações
+                </TabsTrigger>
+                <TabsTrigger value="quantidades" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  Quantidades
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="pontuacoes" className="mt-0">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={scoresData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis 
+                      dataKey="data" 
+                      stroke="#94a3b8"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis 
+                      stroke="#94a3b8"
+                      style={{ fontSize: '12px' }}
+                      domain={[0, 10]}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1e293b', 
+                        border: '1px solid #334155',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Legend content={<CustomLegend />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="treino" 
+                      stroke="#f59e0b" 
+                      strokeWidth={1} 
+                      name="Treino" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('treino')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="cardio" 
+                      stroke="#ef4444" 
+                      strokeWidth={1} 
+                      name="Cardio" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('cardio')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="sono" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={1} 
+                      name="Sono" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('sono')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="agua" 
+                      stroke="#3b82f6" 
+                      strokeWidth={1} 
+                      name="Água" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('agua')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="stress" 
+                      stroke="#10b981" 
+                      strokeWidth={1} 
+                      name="Stress" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('stress')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="refeicoesLivres" 
+                      stroke="#ec4899" 
+                      strokeWidth={1} 
+                      name="Refeições Livres" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('refeicoesLivres')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="beliscadas" 
+                      stroke="#f97316" 
+                      strokeWidth={1} 
+                      name="Beliscadas" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('beliscadas')}
+                      legendType="line"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </TabsContent>
+
+              <TabsContent value="quantidades" className="mt-0">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={quantitiesData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis 
+                      dataKey="data" 
+                      stroke="#94a3b8"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis 
+                      stroke="#94a3b8"
+                      style={{ fontSize: '12px' }}
+                      domain={[0, 'dataMax + 1']}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1e293b', 
+                        border: '1px solid #334155',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Legend content={<CustomLegend />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="treino" 
+                      stroke="#f59e0b" 
+                      strokeWidth={1} 
+                      name="Treino" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('treino')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="cardio" 
+                      stroke="#ef4444" 
+                      strokeWidth={1} 
+                      name="Cardio" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('cardio')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="sono" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={1} 
+                      name="Sono" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('sono')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="agua" 
+                      stroke="#3b82f6" 
+                      strokeWidth={1} 
+                      name="Água" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('agua')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="stress" 
+                      stroke="#10b981" 
+                      strokeWidth={1} 
+                      name="Stress" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('stress')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="refeicoesLivres" 
+                      stroke="#ec4899" 
+                      strokeWidth={1} 
+                      name="Refeições Livres" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('refeicoesLivres')}
+                      legendType="line"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="beliscadas" 
+                      stroke="#f97316" 
+                      strokeWidth={1} 
+                      name="Beliscadas" 
+                      dot={{ r: 3 }} 
+                      activeDot={{ r: 4 }}
+                      hide={hiddenSeries.has('beliscadas')}
+                      legendType="line"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
@@ -239,10 +577,52 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
       {radarData.length > 0 && (
         <Card className="bg-slate-800/40 border-slate-700/50">
           <CardHeader>
-            <CardTitle className="text-white">Performance Atual</CardTitle>
-            <CardDescription className="text-slate-400">
-              Análise multidimensional do último check-in
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white">Performance Atual</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Análise multidimensional do check-in
+                  {selectedCheckin && (
+                    <span className="ml-2">
+                      - {new Date(selectedCheckin.data_checkin).toLocaleDateString('pt-BR', { 
+                        day: '2-digit', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </span>
+                  )}
+                </CardDescription>
+              </div>
+              {checkinsForRadar.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousCheckin}
+                    disabled={selectedCheckinIndex >= checkinsForRadar.length - 1}
+                    className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white"
+                    title="Check-in anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-slate-400 px-2">
+                    {selectedCheckinIndex + 1} / {checkinsForRadar.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextCheckin}
+                    disabled={selectedCheckinIndex === 0}
+                    className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white"
+                    title="Próximo check-in"
+                  >
+                    Próximo
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="flex justify-center">
             <ResponsiveContainer width="100%" height={400}>

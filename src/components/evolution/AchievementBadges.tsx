@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Flame, Star, Zap, Target } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Trophy, Flame, Star, Zap, Target, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import type { Achievement } from '@/lib/achievement-system';
 
 interface AchievementBadgesProps {
@@ -9,6 +10,8 @@ interface AchievementBadgesProps {
 }
 
 export function AchievementBadges({ achievements }: AchievementBadgesProps) {
+  const [isMinimized, setIsMinimized] = useState(true);
+
   if (achievements.length === 0) {
     return null;
   }
@@ -52,27 +55,49 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
         <div className="absolute top-6 right-12 w-1.5 h-1.5 bg-orange-400/40 rounded-full blur-sm animate-pulse delay-75"></div>
         <div className="absolute top-4 right-20 w-1 h-1 bg-pink-400/40 rounded-full blur-sm animate-pulse delay-150"></div>
         
-        <div className="flex items-center gap-4 relative z-10">
-          <motion.div 
-            className="p-3.5 bg-gradient-to-br from-yellow-500/30 via-orange-500/30 to-pink-500/20 rounded-2xl border border-yellow-400/40 shadow-xl shadow-yellow-500/25 backdrop-blur-sm relative overflow-hidden group"
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <Trophy className="w-7 h-7 text-yellow-100 relative z-10" />
-          </motion.div>
-          <div>
-            <CardTitle className="text-2xl text-white font-semibold tracking-tight flex items-center gap-2">
-              Conquistas Desbloqueadas
-              <Star className="w-5 h-5 text-yellow-300/70 animate-pulse" />
-            </CardTitle>
-            <CardDescription className="text-slate-300 text-sm mt-1 font-light tracking-wide">
-              {achievements.length} {achievements.length === 1 ? 'conquista alcançada' : 'conquistas alcançadas'}
-            </CardDescription>
+        <div className="flex items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-4">
+            <motion.div 
+              className="p-3.5 bg-gradient-to-br from-yellow-500/30 via-orange-500/30 to-pink-500/20 rounded-2xl border border-yellow-400/40 shadow-xl shadow-yellow-500/25 backdrop-blur-sm relative overflow-hidden group"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <Trophy className="w-7 h-7 text-yellow-100 relative z-10" />
+            </motion.div>
+            <div>
+              <CardTitle className="text-2xl text-white font-semibold tracking-tight flex items-center gap-2">
+                Conquistas Desbloqueadas
+                <Star className="w-5 h-5 text-yellow-300/70 animate-pulse" />
+              </CardTitle>
+              <CardDescription className="text-slate-300 text-sm mt-1 font-light tracking-wide">
+                {achievements.length} {achievements.length === 1 ? 'conquista alcançada' : 'conquistas alcançadas'}
+              </CardDescription>
+            </div>
           </div>
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+          >
+            {isMinimized ? (
+              <ChevronDown className="w-5 h-5 text-slate-300" />
+            ) : (
+              <ChevronUp className="w-5 h-5 text-slate-300" />
+            )}
+          </button>
         </div>
       </CardHeader>
-      <CardContent className="p-8 space-y-8">
+      <AnimatePresence>
+        {!isMinimized && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <CardContent className="p-8 space-y-8">
         {Object.entries(groupedAchievements).map(([type, typeAchievements], groupIndex) => {
           const typeInfo = typeLabels[type as keyof typeof typeLabels];
           const IconComponent = typeInfo.icon;
@@ -238,7 +263,10 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
             <div className="text-2xl">✨</div>
           </div>
         </motion.div>
-      </CardContent>
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 }
