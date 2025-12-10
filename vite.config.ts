@@ -11,6 +11,10 @@ export default defineConfig({
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
     mainFields: ['module', 'main'],
+    preserveSymlinks: false,
+  },
+  optimizeDeps: {
+    include: ['@/components/pwa/InstallPWAButton'],
   },
   server: {
     port: 5173,
