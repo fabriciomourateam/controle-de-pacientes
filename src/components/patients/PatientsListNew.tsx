@@ -72,6 +72,7 @@ import { subscriptionService } from "@/lib/subscription-service";
 import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
+import { CSVImportModal } from "@/components/import/CSVImportModal";
 
 export function PatientsListNew() {
   const navigate = useNavigate();
@@ -403,6 +404,7 @@ export function PatientsListNew() {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
+          <CSVImportModal onImportComplete={loadPatients} />
           <Button onClick={() => setIsPatientFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Paciente

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Link2, Copy, Check, ExternalLink, Loader2, Send } from 'lucide-react';
+import { Link2, ExternalLink, Loader2, Send, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -25,7 +25,6 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
   const [showDialog, setShowDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string>('');
-  const [copied, setCopied] = useState(false);
   const [isNewToken, setIsNewToken] = useState(false);
 
   useEffect(() => {
@@ -71,21 +70,12 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
     }
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(portalUrl);
-      setCopied(true);
+  const handleOpenLink = () => {
+    if (portalUrl) {
+      window.open(portalUrl, '_blank');
       toast({
-        title: 'Link copiado!',
-        description: 'O link do portal foi copiado para a área de transferência',
-      });
-      
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível copiar o link',
-        variant: 'destructive'
+        title: 'Link aberto!',
+        description: 'O portal foi aberto em uma nova aba',
       });
     }
   };
@@ -99,7 +89,9 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
       `📊 Ver todos os seus gráficos de evolução\n` +
       `🏆 Acompanhar suas conquistas\n` +
       `📈 Analisar seu progresso\n` +
-      `💪 Ver suas fotos de transformação\n\n` +
+      `💪 Ver suas fotos de transformação\n` +
+      `📱 Baixar o app no seu celular (botão "Instalar App" no portal)\n\n` +
+      `💡 Dica: Depois de acessar, você pode instalar o app no seu celular para ter acesso rápido!\n\n` +
       `Este link é pessoal e exclusivo seu. Você pode acessar quando quiser!\n\n` +
       `Continue firme! 💪✨`
     );
@@ -150,11 +142,17 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
                   <div className="text-3xl">🌐</div>
                   <div className="flex-1">
                     <h3 className="font-bold text-white mb-1">O que é o Portal do Aluno?</h3>
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-slate-300 mb-2">
                       Um link personalizado onde o aluno pode visualizar sua evolução completa: gráficos, 
                       conquistas, fotos de transformação e análises. É como a página de evolução, mas 
                       totalmente acessível pelo aluno, sem precisar de login!
                     </p>
+                    <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                      <p className="text-sm text-emerald-300 flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        <span className="font-semibold">💡 Dica:</span> O aluno pode instalar o app no celular através do botão "Instalar App" no portal!
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,21 +177,12 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
                     className="bg-slate-800/50 border-slate-700 text-slate-200 font-mono text-sm"
                   />
                   <Button
-                    onClick={handleCopy}
+                    onClick={handleOpenLink}
                     variant="outline"
                     className="border-slate-600 hover:bg-slate-800"
                   >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2 text-green-400" />
-                        Copiado
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copiar
-                      </>
-                    )}
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Abrir
                   </Button>
                 </div>
               </div>

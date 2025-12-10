@@ -86,16 +86,6 @@ export const patientService = {
     const updatedData = data?.map(patient => {
       const diasParaVencer = this.calculateDaysToExpiration(patient.vencimento);
       
-      // Debug para Jones Fernandes na lista de pacientes
-      if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
-        console.log('🔍 Debug Jones Fernandes (Lista):', {
-          nome: patient.nome,
-          vencimento: patient.vencimento,
-          dias_para_vencer: diasParaVencer,
-          plano: patient.plano
-        });
-      }
-      
       return {
         ...patient,
         dias_para_vencer: diasParaVencer
@@ -261,17 +251,6 @@ export const patientService = {
     const updatedData = data?.map(patient => {
       const diasParaVencer = this.calculateDaysToExpiration(patient.vencimento);
       
-      // Debug para Jones Fernandes
-      if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
-        console.log('🔍 Debug Jones Fernandes (Dashboard):', {
-          nome: patient.nome,
-          vencimento: patient.vencimento,
-          dias_para_vencer: diasParaVencer,
-          plano: patient.plano,
-          filtro_dias: days
-        });
-      }
-      
       return {
         ...patient,
         dias_para_vencer: diasParaVencer
@@ -279,18 +258,6 @@ export const patientService = {
     }).filter(patient => {
       // Apenas pacientes ativos (não inativos/negativados)
       const diasParaVencer = patient.dias_para_vencer;
-      
-      // Debug para Jones Fernandes - verificar filtros
-      if (patient.nome && patient.nome.toLowerCase().includes('jones')) {
-        console.log('🔍 Debug Jones Fernandes (Filtro):', {
-          nome: patient.nome,
-          dias_para_vencer: diasParaVencer,
-          plano: patient.plano,
-          filtro_dias: days,
-          passa_filtro_dias: diasParaVencer <= days,
-          plano_excluido: ['INATIVO', 'CONGELADO', 'RESCISÃO', '⚠️ Pendência Financeira', '⛔ Negativado'].includes(patient.plano)
-        });
-      }
       
       // Excluir pacientes inativos/negativados
       if (diasParaVencer === null) return false;
@@ -780,6 +747,7 @@ export const dashboardService = {
         .from('dashboard_dados')
         .select('*')
         .eq('user_id', userId) // FILTRAR POR USER_ID
+        .order('ano', { ascending: true })
         .order('mes_numero', { ascending: true });
 
       if (dadosError) {
@@ -819,26 +787,69 @@ export const dashboardService = {
           const ativosInicioMes = parseNumber(item.ativos_total_inicio_mes);
           const entraram = parseNumber(item.entraram);
           const sairam = parseNumber(item.sairam);
-          const percentualChurn = parseNumber(item.percentual_churn);
-          const percentualRenovacao = parseNumber(item.percentual_renovacao);
+          let percentualChurn = parseNumber(item.percentual_churn);
+          let percentualRenovacao = parseNumber(item.percentual_renovacao);
 
-          // Calcular o mês baseado no índice
-          const date = new Date();
-          date.setMonth(date.getMonth() - (5 - index));
-          const monthName = months[date.getMonth()];
+          // Converter valores: se for decimal (0-1), multiplicar por 100; se já for percentual (0-100), usar direto
+          if (percentualRenovacao > 0 && percentualRenovacao < 1) {
+            percentualRenovacao = percentualRenovacao * 100;
+          }
+          if (percentualChurn > 0 && percentualChurn < 1) {
+            percentualChurn = percentualChurn * 100;
+          }
+
+          // Usar o mês real dos dados em vez de calcular pelo índice
+          let monthName = '';
+          
+          // Mapear nomes completos para abreviados
+          const monthMap: { [key: string]: string } = {
+            'Janeiro': 'Jan', 'Fevereiro': 'Fev', 'Março': 'Mar', 'Abril': 'Abr',
+            'Maio': 'Mai', 'Junho': 'Jun', 'Julho': 'Jul', 'Agosto': 'Ago',
+            'Setembro': 'Set', 'Outubro': 'Out', 'Novembro': 'Nov', 'Dezembro': 'Dez'
+          };
+          
+          if (item.mes) {
+            // Se o mês já está no formato abreviado, usar direto
+            if (months.includes(item.mes)) {
+              monthName = item.mes;
+            } else if (monthMap[item.mes]) {
+              // Se está no formato completo, converter para abreviado
+              monthName = monthMap[item.mes];
+            } else {
+              // Tentar encontrar correspondência parcial
+              const found = Object.keys(monthMap).find(key => 
+                key.toLowerCase().includes(item.mes.toLowerCase()) || 
+                item.mes.toLowerCase().includes(key.toLowerCase())
+              );
+              monthName = found ? monthMap[found] : item.mes.substring(0, 3);
+            }
+          }
+          
+          // Se não tiver o nome do mês, usar o número do mês
+          if (!monthName && mesNumero) {
+            const monthIndex = Math.max(0, Math.min(11, mesNumero - 1));
+            monthName = months[monthIndex];
+          }
+          
+          // Se ainda não tiver, usar o índice como fallback
+          if (!monthName) {
+            const date = new Date();
+            date.setMonth(date.getMonth() - (5 - index));
+            monthName = months[date.getMonth()];
+          }
 
           monthlyData.push({
             month: monthName,
             novos: entraram, // Pacientes que entraram
             feedbacks: entraram, // Usar mesmo valor para feedbacks
-            renovacao: percentualRenovacao * 100, // Converter para porcentagem
-            churn: percentualChurn * 100 // Converter para porcentagem
+            renovacao: percentualRenovacao, // Já está em formato percentual (0-100)
+            churn: percentualChurn // Já está em formato percentual (0-100)
           });
 
           console.log(`📊 Gráfico - ${monthName}:`, {
             novos: entraram,
-            renovacao: (percentualRenovacao * 100).toFixed(1) + '%',
-            churn: (percentualChurn * 100).toFixed(1) + '%'
+            renovacao: percentualRenovacao.toFixed(1) + '%',
+            churn: percentualChurn.toFixed(1) + '%'
           });
 
         } catch (e) {

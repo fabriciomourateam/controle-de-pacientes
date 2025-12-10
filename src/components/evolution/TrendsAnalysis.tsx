@@ -82,20 +82,18 @@ export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
         <div className="flex items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-4">
             <motion.div 
-              className="p-3.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-fuchsia-500/20 rounded-2xl border border-blue-400/40 shadow-xl shadow-blue-500/25 backdrop-blur-sm relative overflow-hidden group"
-              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="p-2 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-fuchsia-500/15 rounded-lg border border-blue-400/30 shadow-md backdrop-blur-sm relative overflow-hidden group"
+              whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
-              {/* Brilho interno no hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <TrendingUp className="w-7 h-7 text-blue-100 relative z-10" />
+              <TrendingUp className="w-5 h-5 text-blue-200 relative z-10" />
             </motion.div>
             <div>
-              <CardTitle className="text-2xl text-white font-semibold tracking-tight flex items-center gap-2">
+              <CardTitle className="text-lg text-white font-semibold tracking-tight flex items-center gap-2">
                 Análise de Tendências
-                <Sparkles className="w-5 h-5 text-yellow-300/70 animate-pulse" />
+                <Sparkles className="w-4 h-4 text-yellow-300/70" />
               </CardTitle>
-              <CardDescription className="text-slate-300 text-sm mt-1 font-light tracking-wide">
+              <CardDescription className="text-slate-300 text-xs mt-0.5 font-light">
                 Insights personalizados baseados nos seus dados
               </CardDescription>
             </div>
@@ -122,7 +120,7 @@ export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             style={{ overflow: 'hidden' }}
           >
-            <CardContent className="p-8 space-y-5">
+            <CardContent className="p-4 space-y-3">
         {trends.map((trend, index) => (
             <motion.div
               key={trend.id}
@@ -138,99 +136,80 @@ export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
             >
               <div 
                 className={`
-                  relative p-6 rounded-2xl border border-white/10
-                  bg-gradient-to-br from-white/[0.07] via-white/[0.04] to-white/[0.02]
-                  hover:from-white/[0.10] hover:via-white/[0.06] hover:to-white/[0.03]
-                  hover:border-white/20 hover:shadow-2xl hover:shadow-black/30
-                  transition-all duration-500 ease-out
+                  relative p-3 rounded-lg border border-white/10
+                  bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.01]
+                  hover:from-white/[0.08] hover:via-white/[0.05] hover:to-white/[0.02]
+                  hover:border-white/15 hover:shadow-lg
+                  transition-all duration-300 ease-out
                   backdrop-blur-md
                   group
                   overflow-hidden
                 `}
               >
-                {/* Efeito de brilho no hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 -translate-x-full group-hover:translate-x-full"></div>
-                
-                {/* Barra lateral elegante com gradiente e glow */}
+                {/* Barra lateral */}
                 <div className={`
-                  absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl
+                  absolute left-0 top-0 bottom-0 w-1 rounded-l-lg
                   bg-gradient-to-b ${trend.color} 
-                  shadow-lg group-hover:w-2 transition-all duration-300
+                  group-hover:w-1.5 transition-all duration-300
                 `} />
-                
-                {/* Sombra interna sutil */}
-                <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/10 pointer-events-none"></div>
 
-                <div className="pl-4 relative z-10">
+                <div className="pl-2.5 relative z-10">
                   {/* Header */}
-                  <div className="flex items-start justify-between gap-3 mb-5">
-                    <div className="flex items-center gap-4">
-                      {/* Ícone com background gradiente */}
-                      <div className="relative">
-                        <div className={`
-                          absolute inset-0 bg-gradient-to-br ${trend.color} 
-                          rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity
-                        `}></div>
-                        <div className="relative text-4xl filter drop-shadow-2xl">
-                          {trend.icon}
-                        </div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2.5">
+                      {/* Ícone */}
+                      <div className="relative text-2xl filter drop-shadow-lg">
+                        {trend.icon}
                       </div>
                       
-                      <h4 className="font-semibold text-white text-xl tracking-tight leading-tight">
+                      <h4 className="font-semibold text-white text-sm tracking-tight leading-tight">
                         {trend.title}
                       </h4>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: index * 0.08 + 0.2, type: "spring" }}
+                        transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
                       >
                         <Badge 
                           variant="outline" 
-                          className={`${getTypeBadgeColor(trend.type)} text-xs font-medium backdrop-blur-sm px-3 py-1`}
+                          className={`${getTypeBadgeColor(trend.type)} text-[10px] font-medium backdrop-blur-sm px-2 py-0.5`}
                         >
-                          <span className="mr-1.5">{getTypeIcon(trend.type)}</span>
+                          <span className="mr-1">{getTypeIcon(trend.type)}</span>
                           {getTypeLabel(trend.type)}
                         </Badge>
                       </motion.div>
                     </div>
                   </div>
 
-                  {/* Separador elegante */}
-                  <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
+                  {/* Separador */}
+                  <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-2"></div>
 
                   {/* Descrição */}
-                  <p className="text-base text-slate-100 mb-5 leading-relaxed tracking-wide font-light">
+                  <p className="text-xs text-slate-200 mb-2 leading-relaxed font-light">
                     {trend.description}
                   </p>
 
                   {/* Recomendação */}
                   {trend.recommendation && (
                     <motion.div 
-                      className="mt-5 p-5 bg-gradient-to-br from-blue-500/[0.12] via-purple-500/[0.08] to-fuchsia-500/[0.06] rounded-xl border border-blue-400/25 backdrop-blur-md shadow-lg shadow-blue-500/5 relative overflow-hidden group/rec"
+                      className="mt-2 p-2.5 bg-gradient-to-br from-blue-500/[0.08] via-purple-500/[0.06] to-fuchsia-500/[0.04] rounded-lg border border-blue-400/20 backdrop-blur-md relative overflow-hidden"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
-                      transition={{ delay: index * 0.08 + 0.4 }}
+                      transition={{ delay: index * 0.05 + 0.2 }}
                     >
-                      {/* Brilho sutil de fundo */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover/rec:opacity-100 transition-opacity duration-500"></div>
-                      
-                      <div className="flex items-start gap-4 relative z-10">
-                        <motion.div 
-                          className="p-2.5 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg shadow-lg shadow-blue-500/20 border border-blue-400/30"
-                          whileHover={{ rotate: 15, scale: 1.1 }}
-                          transition={{ type: "spring", stiffness: 400 }}
-                        >
-                          <Lightbulb className="w-5 h-5 text-blue-200 flex-shrink-0" />
-                        </motion.div>
+                      <div className="flex items-start gap-2 relative z-10">
+                        <div className="p-1.5 bg-gradient-to-br from-blue-500/25 to-purple-500/25 rounded-md border border-blue-400/25">
+                          <Lightbulb className="w-3.5 h-3.5 text-blue-200 flex-shrink-0" />
+                        </div>
                         <div className="flex-1">
-                          <p className="text-xs font-bold text-blue-200 mb-2.5 uppercase tracking-widest flex items-center gap-2">
+                          <p className="text-[10px] font-semibold text-blue-200 mb-1 uppercase tracking-wide flex items-center gap-1">
                             <span>💡</span>
                             <span>Recomendação Personalizada</span>
                           </p>
-                          <p className="text-sm text-slate-50 leading-relaxed tracking-wide font-light">
+                          <p className="text-xs text-slate-100 leading-relaxed font-light">
                             {trend.recommendation}
                           </p>
                         </div>
@@ -242,82 +221,60 @@ export function TrendsAnalysis({ trends }: TrendsAnalysisProps) {
             </motion.div>
           ))}
 
-        {/* Separador decorativo */}
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-          </div>
-          <div className="relative flex justify-center">
-            <div className="px-4 bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-slate-900/80 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-slate-400 animate-pulse" />
-            </div>
-          </div>
-        </div>
-
         {/* Footer com estatísticas - Design Minimalista */}
-        <div className="mt-8 pt-6 border-t border-white/10">
-          <div className="grid grid-cols-3 gap-8 text-center">
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-4 text-center">
             {/* Positivos */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-400/20">
-                <TrendingUp className="w-6 h-6 text-emerald-300" />
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-400/20">
+                <TrendingUp className="w-4 h-4 text-emerald-300" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-white">
+                <div className="text-xl font-bold text-white">
                   {trends.filter(t => t.type === 'positive').length}
                 </div>
-                <div className="text-sm text-slate-400 mt-1">Positivos</div>
+                <div className="text-xs text-slate-400 mt-0.5">Positivos</div>
               </div>
             </div>
 
             {/* Insights */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-400/20">
-                <Lightbulb className="w-6 h-6 text-amber-300" />
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-2 bg-amber-500/10 rounded-lg border border-amber-400/20">
+                <Lightbulb className="w-4 h-4 text-amber-300" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-white">
+                <div className="text-xl font-bold text-white">
                   {trends.filter(t => t.type === 'insight').length}
                 </div>
-                <div className="text-sm text-slate-400 mt-1">Insights</div>
+                <div className="text-xs text-slate-400 mt-0.5">Insights</div>
               </div>
             </div>
 
             {/* Atenção */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-400/20">
-                <Info className="w-6 h-6 text-rose-300" />
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-2 bg-rose-500/10 rounded-lg border border-rose-400/20">
+                <Info className="w-4 h-4 text-rose-300" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-white">
+                <div className="text-xl font-bold text-white">
                   {trends.filter(t => t.type === 'negative').length}
                 </div>
-                <div className="text-sm text-slate-400 mt-1">Atenção</div>
+                <div className="text-xs text-slate-400 mt-0.5">Atenção</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mensagem final premium */}
+        {/* Mensagem final */}
         <motion.div 
-          className="text-center mt-8 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-white/[0.03] via-white/[0.05] to-white/[0.03] rounded-full border border-white/10 backdrop-blur-sm"
+          className="text-center mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-white/[0.02] via-white/[0.04] to-white/[0.02] rounded-full border border-white/10 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: trends.length * 0.08 + 0.7 }}
+          transition={{ delay: trends.length * 0.05 + 0.3 }}
         >
-          <motion.div 
-            className="w-2 h-2 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full shadow-lg shadow-blue-400/50"
-            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <span className="text-sm text-slate-300 font-light tracking-wide">
-            Análise baseada em <span className="font-semibold text-white">algoritmos inteligentes</span> nos seus dados
+          <span className="text-xs text-slate-300 font-light">
+            Análise baseada em <span className="font-medium text-white">algoritmos inteligentes</span> nos seus dados
           </span>
-          <motion.div 
-            className="w-2 h-2 bg-gradient-to-r from-purple-400 to-fuchsia-400 rounded-full shadow-lg shadow-purple-400/50"
-            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-            transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-          />
         </motion.div>
             </CardContent>
           </motion.div>

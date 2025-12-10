@@ -82,8 +82,16 @@ export function MetricsForm({ data, onSuccess, trigger }: MetricsFormProps) {
         nao_renovou: data.nao_renovou || '',
         desistencia: data.desistencia || '',
         congelamento: data.congelamento || '',
-        percentual_renovacao: data.percentual_renovacao || '',
-        percentual_churn: data.percentual_churn || '',
+        percentual_renovacao: (() => {
+          const value = parseFloat(String(data.percentual_renovacao || 0));
+          // Se o valor for menor que 1, assume-se que está em formato decimal (0.8 = 80%)
+          return value > 0 && value < 1 ? (value * 100).toFixed(2) : (value || '').toString();
+        })(),
+        percentual_churn: (() => {
+          const value = parseFloat(String(data.percentual_churn || 0));
+          // Se o valor for menor que 1, assume-se que está em formato decimal (0.8 = 80%)
+          return value > 0 && value < 1 ? (value * 100).toFixed(2) : (value || '').toString();
+        })(),
       });
     } else {
       // Reset form

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { PatientInsert } from '@/integrations/supabase/types';
+import * as XLSX from 'xlsx';
 
 export interface ImportResult {
   success: boolean;
@@ -266,8 +267,119 @@ export class CSVImportService {
     return cleanPhone.length >= 10 && cleanPhone.length <= 11;
   }
 
-  // Importar CSV para Supabase
+  // Ler arquivo Excel e converter para array de objetos
+  static async parseExcel(file: File): Promise<CSVRow[]> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          // Pegar primeira planilha
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Converter para JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1,
+            defval: ''
+          }) as any[][];
+          
+          if (jsonData.length < 2) {
+            resolve([]);
+            return;
+          }
+          
+          // Primeira linha são os headers
+          const headers = jsonData[0].map((h: any) => String(h || '').trim());
+          const rows: CSVRow[] = [];
+          
+          // Processar linhas de dados
+          for (let i = 1; i < jsonData.length; i++) {
+            const values = jsonData[i];
+            const row: CSVRow = {};
+            
+            headers.forEach((header, index) => {
+              if (header) {
+                row[header] = String(values[index] || '').trim();
+              }
+            });
+            
+            // Só adicionar se tiver pelo menos um campo preenchido
+            if (Object.values(row).some(v => v !== '')) {
+              rows.push(row);
+            }
+          }
+          
+          resolve(rows);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Gerar template Excel para download
+  static generatePatientTemplate(): void {
+    const headers = [
+      'Nome',
+      'Telefone',
+      'Email',
+      'Gênero',
+      'Data de Nascimento',
+      'CPF',
+      'Apelido',
+      'Plano',
+      'Início Acompanhamento',
+      'Valor',
+      'Observação'
+    ];
+    
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    
+    // Ajustar largura das colunas
+    const colWidths = headers.map(() => ({ wch: 20 }));
+    ws['!cols'] = colWidths;
+    
+    // Adicionar planilha ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Pacientes');
+    
+    // Baixar arquivo
+    XLSX.writeFile(wb, 'modelo-importacao-pacientes.xlsx');
+  }
+
+  // Importar arquivo (CSV ou Excel) para Supabase
+  static async importFile(file: File): Promise<ImportResult> {
+    let rows: CSVRow[] = [];
+    
+    // Detectar tipo de arquivo
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      rows = await this.parseExcel(file);
+    } else if (file.name.endsWith('.csv')) {
+      const text = await file.text();
+      rows = this.parseCSV(text);
+    } else {
+      throw new Error('Formato de arquivo não suportado. Use CSV ou Excel (.xlsx)');
+    }
+    
+    return this.importRows(rows);
+  }
+
+  // Importar CSV para Supabase (mantido para compatibilidade)
   static async importCSV(csvText: string): Promise<ImportResult> {
+    const rows = this.parseCSV(csvText);
+    return this.importRows(rows);
+  }
+
+  // Importar array de linhas (lógica comum)
+  private static async importRows(rows: CSVRow[]): Promise<ImportResult> {
     const result: ImportResult = {
       success: false,
       totalRows: 0,
@@ -277,12 +389,17 @@ export class CSVImportService {
     };
 
     try {
-      // Parse do CSV
-      const rows = this.parseCSV(csvText);
       result.totalRows = rows.length;
 
       if (rows.length === 0) {
-        result.errors.push('Nenhuma linha de dados encontrada no CSV');
+        result.errors.push('Nenhuma linha de dados encontrada no arquivo');
+        return result;
+      }
+
+      // Obter user_id do usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        result.errors.push('Usuário não autenticado. Faça login novamente.');
         return result;
       }
 
@@ -294,6 +411,10 @@ export class CSVImportService {
       for (let i = 0; i < rows.length; i++) {
         try {
           const patient = this.convertRowToPatient(rows[i]);
+          
+          // Garantir user_id em todos os pacientes
+          (patient as any).user_id = user.id;
+          
           const validation = this.validatePatient(patient);
 
           if (validation.isValid) {

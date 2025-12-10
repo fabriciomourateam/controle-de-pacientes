@@ -335,7 +335,7 @@ export function InteractiveChart({ data, title, description, icon: Icon, iconCol
           ) : (
             <>
               <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={400}>
                   {renderChart()}
                 </ResponsiveContainer>
               </div>

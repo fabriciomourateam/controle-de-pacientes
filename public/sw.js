@@ -1,5 +1,5 @@
 // Service Worker para PWA
-const CACHE_NAME = 'controle-pacientes-v1';
+const CACHE_NAME = 'controle-pacientes-v2';
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
@@ -45,7 +45,10 @@ self.addEventListener('activate', (event) => {
             return caches.delete(cacheName);
           }
         })
-      );
+      ).then(() => {
+        // Forçar atualização imediata
+        return self.clients.claim();
+      });
     })
   );
 });

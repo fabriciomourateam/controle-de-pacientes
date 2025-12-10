@@ -58,19 +58,18 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
         <div className="flex items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-4">
             <motion.div 
-              className="p-3.5 bg-gradient-to-br from-yellow-500/30 via-orange-500/30 to-pink-500/20 rounded-2xl border border-yellow-400/40 shadow-xl shadow-yellow-500/25 backdrop-blur-sm relative overflow-hidden group"
-              whileHover={{ scale: 1.05 }}
+              className="p-2 bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-pink-500/15 rounded-lg border border-yellow-400/30 shadow-md backdrop-blur-sm relative overflow-hidden group"
+              whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <Trophy className="w-7 h-7 text-yellow-100 relative z-10" />
+              <Trophy className="w-5 h-5 text-yellow-200 relative z-10" />
             </motion.div>
             <div>
-              <CardTitle className="text-2xl text-white font-semibold tracking-tight flex items-center gap-2">
+              <CardTitle className="text-lg text-white font-semibold tracking-tight flex items-center gap-2">
                 Conquistas Desbloqueadas
-                <Star className="w-5 h-5 text-yellow-300/70 animate-pulse" />
+                <Star className="w-4 h-4 text-yellow-300/70" />
               </CardTitle>
-              <CardDescription className="text-slate-300 text-sm mt-1 font-light tracking-wide">
+              <CardDescription className="text-slate-300 text-xs mt-0.5 font-light">
                 {achievements.length} {achievements.length === 1 ? 'conquista alcançada' : 'conquistas alcançadas'}
               </CardDescription>
             </div>
@@ -97,7 +96,7 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             style={{ overflow: 'hidden' }}
           >
-            <CardContent className="p-8 space-y-8">
+            <CardContent className="p-4 space-y-4">
         {Object.entries(groupedAchievements).map(([type, typeAchievements], groupIndex) => {
           const typeInfo = typeLabels[type as keyof typeof typeLabels];
           const IconComponent = typeInfo.icon;
@@ -110,17 +109,17 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: groupIndex * 0.1 }}
             >
-              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                <div className="p-2 bg-gradient-to-br from-white/10 to-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
-                  <IconComponent className={`w-5 h-5 ${typeInfo.color}`} />
+              <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+                <div className="p-1.5 bg-gradient-to-br from-white/10 to-white/5 rounded-md border border-white/10 backdrop-blur-sm">
+                  <IconComponent className={`w-4 h-4 ${typeInfo.color}`} />
                 </div>
-                <h3 className="font-semibold text-white text-lg tracking-tight">{typeInfo.label}</h3>
-                <Badge variant="secondary" className="bg-white/10 text-slate-200 border-white/20 backdrop-blur-sm">
+                <h3 className="font-semibold text-white text-sm tracking-tight">{typeInfo.label}</h3>
+                <Badge variant="secondary" className="bg-white/10 text-slate-200 border-white/20 backdrop-blur-sm text-xs px-2 py-0.5">
                   {typeAchievements.length}
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {typeAchievements.map((achievement, index) => (
                   <motion.div
                     key={achievement.id}
@@ -136,69 +135,57 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
                   >
                     <div 
                       className={`
-                        relative p-5 rounded-xl border
+                        relative p-3 rounded-lg border
                         bg-gradient-to-br backdrop-blur-md
-                        hover:shadow-2xl
-                        transition-all duration-500 ease-out
+                        hover:shadow-lg
+                        transition-all duration-300 ease-out
                         cursor-pointer group
                         overflow-hidden
                       `}
                       style={{
-                        borderColor: 'rgba(255, 255, 255, 0.15)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
                         background: `linear-gradient(135deg, 
-                          rgba(255, 255, 255, 0.08) 0%, 
-                          rgba(255, 255, 255, 0.04) 50%, 
-                          rgba(255, 255, 255, 0.02) 100%
+                          rgba(255, 255, 255, 0.06) 0%, 
+                          rgba(255, 255, 255, 0.03) 50%, 
+                          rgba(255, 255, 255, 0.01) 100%
                         )`
                       }}
                     >
                       {/* Overlay colorido sutil */}
                       <div 
-                        className={`absolute inset-0 bg-gradient-to-br ${achievement.color} opacity-[0.40] group-hover:opacity-[0.50] transition-opacity duration-500`}
+                        className={`absolute inset-0 bg-gradient-to-br ${achievement.color} opacity-[0.25] group-hover:opacity-[0.35] transition-opacity duration-300`}
                       />
-                      
-                      {/* Efeito de brilho no hover */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 -translate-x-full group-hover:translate-x-full"></div>
                       
                       {/* Barra lateral com cor da conquista */}
                       <div className={`
-                        absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl
+                        absolute left-0 top-0 bottom-0 w-1 rounded-l-lg
                         bg-gradient-to-b ${achievement.color}
-                        shadow-lg group-hover:w-2 transition-all duration-300
+                        group-hover:w-1.5 transition-all duration-300
                       `} />
-                      
-                      {/* Sombra interna */}
-                      <div className="absolute inset-0 rounded-xl shadow-inner shadow-black/10 pointer-events-none"></div>
 
                       {/* Conteúdo */}
-                      <div className="relative pl-3">
-                        <div className="flex items-start gap-4">
-                          {/* Ícone com background gradiente */}
-                          <div className="relative">
-                            <div className={`
-                              absolute inset-0 bg-gradient-to-br ${achievement.color}
-                              rounded-xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity
-                            `}></div>
-                            <div className="relative text-4xl filter drop-shadow-2xl">
-                              {achievement.icon}
-                            </div>
+                      <div className="relative pl-2.5">
+                        <div className="flex items-start gap-3">
+                          {/* Ícone */}
+                          <div className="relative text-2xl filter drop-shadow-lg">
+                            {achievement.icon}
                           </div>
 
                           {/* Texto */}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-white text-base mb-2 leading-tight tracking-tight">
+                            <h4 className="font-semibold text-white text-sm mb-1 leading-tight">
                               {achievement.title}
                             </h4>
-                            <p className="text-sm text-slate-200 leading-relaxed font-light">
+                            <p className="text-xs text-slate-300 leading-relaxed">
                               {achievement.description}
                             </p>
                             
                             {achievement.dateAchieved && (
-                              <div className="mt-3 pt-3 border-t border-white/10">
-                                <p className="text-xs text-slate-400 font-light">
-                                  🎉 {new Date(achievement.dateAchieved).toLocaleDateString('pt-BR', {
+                              <div className="mt-2 pt-2 border-t border-white/10">
+                                <p className="text-xs text-slate-400">
+                                  {new Date(achievement.dateAchieved).toLocaleDateString('pt-BR', {
                                     day: '2-digit',
-                                    month: 'long',
+                                    month: 'short',
                                     year: 'numeric'
                                   })}
                                 </p>
@@ -211,12 +198,12 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
                         {achievement.dateAchieved && 
                          (new Date().getTime() - achievement.dateAchieved.getTime()) < 7 * 24 * 60 * 60 * 1000 && (
                           <motion.div 
-                            className="absolute -top-2 -right-2"
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
+                            className="absolute -top-1 -right-1"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
                             transition={{ delay: (groupIndex * 0.1) + (index * 0.05) + 0.3, type: "spring" }}
                           >
-                            <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] px-2.5 py-1 shadow-lg shadow-pink-500/50 border border-pink-400/30">
+                            <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[9px] px-1.5 py-0.5 shadow-md border border-pink-400/30">
                               ✨ NOVO
                             </Badge>
                           </motion.div>
@@ -230,37 +217,22 @@ export function AchievementBadges({ achievements }: AchievementBadgesProps) {
           );
         })}
 
-        {/* Separador decorativo */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-          </div>
-          <div className="relative flex justify-center">
-            <div className="px-4 bg-gradient-to-r from-slate-900/80 via-slate-800/80 to-slate-900/80 backdrop-blur-sm">
-              <Trophy className="w-4 h-4 text-slate-400 animate-pulse" />
-            </div>
-          </div>
-        </div>
-
-        {/* Mensagem motivacional premium */}
+        {/* Mensagem motivacional */}
         <motion.div 
-          className="p-6 bg-gradient-to-br from-purple-500/[0.12] via-pink-500/[0.08] to-fuchsia-500/[0.06] rounded-xl border border-purple-400/25 backdrop-blur-md shadow-lg shadow-purple-500/5 relative overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
+          className="p-3 bg-gradient-to-br from-purple-500/[0.08] via-pink-500/[0.06] to-fuchsia-500/[0.04] rounded-lg border border-purple-400/20 backdrop-blur-md relative overflow-hidden"
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.3 }}
         >
-          {/* Brilho de fundo */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-          
-          <div className="relative flex items-center justify-center gap-3">
-            <div className="text-2xl">🏆</div>
-            <p className="text-center text-sm text-slate-100 leading-relaxed tracking-wide font-light">
-              <span className="font-semibold text-purple-200">
+          <div className="relative flex items-center justify-center gap-2">
+            <div className="text-lg">🏆</div>
+            <p className="text-center text-xs text-slate-200 leading-relaxed font-light">
+              <span className="font-medium text-purple-200">
                 Continue assim! 
               </span>
               {' '}Cada conquista é uma prova do seu esforço e dedicação.
             </p>
-            <div className="text-2xl">✨</div>
+            <div className="text-lg">✨</div>
           </div>
         </motion.div>
             </CardContent>

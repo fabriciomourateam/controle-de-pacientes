@@ -42,7 +42,11 @@ export function DashboardOverview() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLegendMinimized, setIsLegendMinimized] = useState(true);
 
-  const { monthlyData, planDistribution } = chartData;
+  const { monthlyData, planDistribution } = chartData || { monthlyData: [], planDistribution: [] };
+
+  // Garantir que os dados sejam arrays válidos
+  const safeMonthlyData = Array.isArray(monthlyData) ? monthlyData : [];
+  const safePlanDistribution = Array.isArray(planDistribution) ? planDistribution : [];
 
   const handleViewCheckin = (checkin: CheckinWithPatient) => {
     setSelectedCheckin(checkin);
@@ -182,7 +186,7 @@ export function DashboardOverview() {
         {/* Gráfico Interativo de Evolução */}
         <div className="col-span-1 lg:col-span-2 transform transition-all duration-300 hover:scale-[1.01]">
           <InteractiveChart
-            data={monthlyData}
+            data={safeMonthlyData}
             title="Evolução Mensal"
             description="Novos pacientes, % de renovação e % de churn por mês"
             icon={BarChart3}
@@ -200,26 +204,31 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center">
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart>
-                  <Pie
-                    data={planDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={120}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {planDistribution.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.color}
-                        stroke="rgba(255, 255, 255, 0.1)"
-                        strokeWidth={1}
-                      />
-                    ))}
-                  </Pie>
+              {!safePlanDistribution || safePlanDistribution.length === 0 ? (
+                <div className="h-[350px] flex items-center justify-center text-slate-400">
+                  <p>Nenhum dado disponível</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie
+                      data={safePlanDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={120}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {safePlanDistribution.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color}
+                          stroke="rgba(255, 255, 255, 0.1)"
+                          strokeWidth={1}
+                        />
+                      ))}
+                    </Pie>
                   <Tooltip 
                     contentStyle={{
                       backgroundColor: 'rgba(0, 0, 0, 0.95)',
@@ -245,6 +254,7 @@ export function DashboardOverview() {
                   />
                 </PieChart>
               </ResponsiveContainer>
+              )}
             </div>
             
             {/* Legenda personalizada */}
@@ -265,7 +275,7 @@ export function DashboardOverview() {
                 </Button>
               </div>
               
-              {!isLegendMinimized && (
+              {!isLegendMinimized && planDistribution && planDistribution.length > 0 && (
                 <div className="grid grid-cols-2 gap-2">
                   {planDistribution.map((entry, index) => (
                     <div key={`legend-${entry.name}-${index}`} className="flex items-center gap-2 text-sm">

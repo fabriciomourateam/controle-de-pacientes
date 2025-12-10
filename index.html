@@ -45,14 +45,49 @@
     <!-- PWA Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registrado com sucesso:', registration);
-            })
-            .catch((registrationError) => {
-              console.log('Falha no registro do SW:', registrationError);
+        window.addEventListener('load', async () => {
+          try {
+            // Desregistrar todos os service workers antigos primeiro
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+              console.log('Service Worker antigo desregistrado');
+            }
+            
+            // Limpar todos os caches
+            if ('caches' in window) {
+              const cacheNames = await caches.keys();
+              await Promise.all(
+                cacheNames.map(cacheName => caches.delete(cacheName))
+              );
+              console.log('Caches limpos');
+            }
+            
+            // Aguardar um pouco antes de registrar o novo
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Registrar o novo service worker
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+              updateViaCache: 'none' // Sempre buscar atualizações
             });
+            console.log('SW registrado com sucesso:', registration);
+            
+            // Verificar atualizações periodicamente
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Novo service worker disponível, recarregar página
+                    console.log('Novo Service Worker disponível, recarregando...');
+                    window.location.reload();
+                  }
+                });
+              }
+            });
+          } catch (error) {
+            console.log('Erro ao gerenciar Service Worker:', error);
+          }
         });
       }
     </script>

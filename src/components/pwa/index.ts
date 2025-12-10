@@ -1,2 +1,0 @@
-export { InstallPWAButton } from './InstallPWAButton';
-

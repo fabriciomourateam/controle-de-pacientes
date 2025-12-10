@@ -202,8 +202,17 @@ export function MetricsManager({ onRefresh }: MetricsManagerProps) {
                   </TableHeader>
                   <TableBody>
                     {data.map((item) => {
-                      const renovacao = parseFloat(String(item.percentual_renovacao || 0));
-                      const churn = parseFloat(String(item.percentual_churn || 0));
+                      // Converter valores: se for decimal (0-1), multiplicar por 100; se já for percentual (0-100), usar direto
+                      let renovacao = parseFloat(String(item.percentual_renovacao || 0));
+                      let churn = parseFloat(String(item.percentual_churn || 0));
+                      
+                      // Se o valor for menor que 1, assume-se que está em formato decimal (0.8 = 80%)
+                      if (renovacao > 0 && renovacao < 1) {
+                        renovacao = renovacao * 100;
+                      }
+                      if (churn > 0 && churn < 1) {
+                        churn = churn * 100;
+                      }
 
                       return (
                         <TableRow
@@ -226,9 +235,9 @@ export function MetricsManager({ onRefresh }: MetricsManagerProps) {
                             <Badge
                               variant="outline"
                               className={
-                                renovacao >= 70
+                                !isNaN(renovacao) && renovacao >= 70
                                   ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                  : renovacao >= 50
+                                  : !isNaN(renovacao) && renovacao >= 50
                                   ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                                   : 'bg-red-500/20 text-red-400 border-red-500/30'
                               }
@@ -240,9 +249,9 @@ export function MetricsManager({ onRefresh }: MetricsManagerProps) {
                             <Badge
                               variant="outline"
                               className={
-                                churn < 10
+                                !isNaN(churn) && churn <= 4
                                   ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                  : churn < 20
+                                  : !isNaN(churn) && churn === 5
                                   ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                                   : 'bg-red-500/20 text-red-400 border-red-500/30'
                               }

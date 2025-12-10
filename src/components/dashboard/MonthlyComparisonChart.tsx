@@ -189,7 +189,7 @@ export function MonthlyComparisonChart({ data, loading = false }: MonthlyCompari
 
         {/* Gráfico de Variações */}
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={256}>
             <LineChart data={comparisonData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis 

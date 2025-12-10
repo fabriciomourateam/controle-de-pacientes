@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
@@ -15,34 +15,50 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvContent, setCsvContent] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === 'text/csv') {
-      setCsvFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        setCsvContent(content);
-      };
-      reader.readAsText(file);
+    if (!file) return;
+
+    const isCSV = file.name.endsWith('.csv');
+    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+    if (isCSV || isExcel) {
+      setSelectedFile(file);
+      
+      // Se for CSV, ler como texto para preview
+      if (isCSV) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
+          // Não precisamos mais do csvContent separado
+        };
+        reader.readAsText(file);
+      }
     } else {
       toast({
         title: "Erro",
-        description: "Por favor, selecione um arquivo CSV válido.",
+        description: "Por favor, selecione um arquivo CSV ou Excel (.xlsx) válido.",
         variant: "destructive",
       });
     }
   };
 
+  const handleDownloadTemplate = () => {
+    CSVImportService.generatePatientTemplate();
+    toast({
+      title: "Template Baixado",
+      description: "O modelo de importação foi baixado com sucesso!",
+    });
+  };
+
   const handleImport = async () => {
-    if (!csvContent) {
+    if (!selectedFile) {
       toast({
         title: "Erro",
-        description: "Nenhum arquivo CSV selecionado.",
+        description: "Nenhum arquivo selecionado.",
         variant: "destructive",
       });
       return;
@@ -52,7 +68,7 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
     setImportResult(null);
 
     try {
-      const result = await CSVImportService.importCSV(csvContent);
+      const result = await CSVImportService.importFile(selectedFile);
       setImportResult(result);
 
       if (result.success) {
@@ -61,6 +77,7 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
           description: `${result.importedRows} de ${result.totalRows} registros importados com sucesso.`,
         });
         onImportComplete?.();
+        setIsOpen(false);
       } else {
         toast({
           title: "Erro na Importação",
@@ -68,10 +85,10 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro inesperado durante a importação.",
+        description: error.message || "Erro inesperado durante a importação.",
         variant: "destructive",
       });
     } finally {
@@ -107,8 +124,7 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
   };
 
   const resetForm = () => {
-    setCsvFile(null);
-    setCsvContent('');
+    setSelectedFile(null);
     setImportResult(null);
     setShowClearConfirm(false);
   };
@@ -121,49 +137,69 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
       <DialogTrigger asChild>
         <Button className="btn-premium">
           <Upload className="w-4 h-4 mr-2" />
-          Importar CSV
+          Importar Pacientes
         </Button>
       </DialogTrigger>
       
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-gold text-glow">
-            Importar Dados do Notion
+            Importar Pacientes
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Download Template */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-blue-300 mb-1">📥 Baixar Modelo</h4>
+                <p className="text-sm text-blue-200/70">
+                  Baixe o modelo Excel com as colunas corretas para preencher seus dados
+                </p>
+              </div>
+              <Button
+                onClick={handleDownloadTemplate}
+                variant="outline"
+                className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Baixar Modelo
+              </Button>
+            </div>
+          </div>
+
           {/* Upload de Arquivo */}
           <div className="space-y-4">
             <div className="border-2 border-dashed border-gold/30 rounded-lg p-6 text-center">
               <FileText className="w-12 h-12 mx-auto text-gold mb-4" />
               <h3 className="text-lg font-semibold text-gold mb-2">
-                Selecione o arquivo CSV do Notion
+                Selecione o arquivo para importar
               </h3>
               <p className="text-muted-foreground mb-4">
-                Exporte sua tabela do Notion como CSV e selecione aqui
+                Suporte para arquivos CSV ou Excel (.xlsx)
               </p>
               
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleFileSelect}
                 className="hidden"
-                id="csv-upload"
+                id="file-upload"
               />
               <label
-                htmlFor="csv-upload"
+                htmlFor="file-upload"
                 className="btn-premium cursor-pointer inline-flex items-center"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Selecionar Arquivo CSV
+                Selecionar Arquivo
               </label>
               
-              {csvFile && (
+              {selectedFile && (
                 <div className="mt-4 p-3 bg-gold/10 rounded-lg">
                   <p className="text-sm text-gold">
                     <FileText className="w-4 h-4 inline mr-2" />
-                    {csvFile.name} ({(csvFile.size / 1024).toFixed(1)} KB)
+                    {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                   </p>
                 </div>
               )}
@@ -174,7 +210,7 @@ export function CSVImportModal({ onImportComplete }: CSVImportModalProps) {
           <div className="flex gap-4">
             <Button
               onClick={handleImport}
-              disabled={!csvContent || isImporting}
+              disabled={!selectedFile || isImporting}
               className="btn-premium flex-1"
             >
               {isImporting ? (
