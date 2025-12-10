@@ -26,13 +26,16 @@ Execute o arquivo `sql/fix-missing-user-profiles.sql` no SQL Editor do Supabase:
 
 Execute o arquivo `sql/add-admin-policy-user-profiles.sql`:
 
-- Este script adiciona uma política que permite ao admin ver todos os perfis
+- Este script cria uma função auxiliar `is_admin_user()` que verifica se o usuário é admin
+- Adiciona uma política RLS que permite ao admin ver todos os perfis
 - Necessário para a página de admin funcionar corretamente
 
 **Como executar:**
 1. No SQL Editor do Supabase
 2. Copie e cole o conteúdo de `sql/add-admin-policy-user-profiles.sql`
 3. Clique em **Run**
+
+**⚠️ IMPORTANTE**: Se você já executou este script antes, execute novamente para atualizar a política com a versão corrigida que usa `SECURITY DEFINER`.
 
 ### 3. **Verificar se funcionou**
 
