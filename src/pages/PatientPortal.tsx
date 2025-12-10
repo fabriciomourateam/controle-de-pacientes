@@ -19,7 +19,7 @@ import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
-import { InstallPWAButton } from '@/components/pwa/InstallPWAButton';
+import { InstallPWAButton } from '@/components/pwa';
 import { PatientDietPortal } from '@/components/patient-portal/PatientDietPortal';
 import { dietService } from '@/lib/diet-service';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
