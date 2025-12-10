@@ -866,6 +866,7 @@ export default function PatientEvolution() {
                             <img 
                               src={convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente} 
                               alt="Foto Frontal Inicial"
+                              loading="lazy"
                               className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                               onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente!, 'Foto Frontal')}
                               onError={(e) => {
@@ -938,6 +939,7 @@ export default function PatientEvolution() {
                             <img 
                               src={convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2} 
                               alt="Foto Lateral Direita"
+                              loading="lazy"
                               className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                               onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
                               onError={(e) => {
@@ -974,6 +976,7 @@ export default function PatientEvolution() {
                             <img 
                               src={convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas} 
                               alt="Foto Costas Inicial"
+                              loading="lazy"
                               className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                               onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas!, 'Foto de Costas')}
                               onError={(e) => {

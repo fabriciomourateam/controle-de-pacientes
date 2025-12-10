@@ -345,7 +345,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                                   className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
                                 />
                               ) : (
-                                <img src={mediaUrl || checkin.foto_1} alt="Foto 1" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                                <img src={mediaUrl || checkin.foto_1} alt="Foto 1" loading="lazy" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                               )}
                             </div>
                           );
@@ -364,7 +364,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                                   className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
                                 />
                               ) : (
-                                <img src={mediaUrl || checkin.foto_2} alt="Foto 2" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                                <img src={mediaUrl || checkin.foto_2} alt="Foto 2" loading="lazy" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                               )}
                             </div>
                           );
@@ -383,7 +383,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                                   className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
                                 />
                               ) : (
-                                <img src={mediaUrl || checkin.foto_3} alt="Foto 3" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                                <img src={mediaUrl || checkin.foto_3} alt="Foto 3" loading="lazy" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                               )}
                             </div>
                           );
@@ -402,7 +402,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                                   className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors"
                                 />
                               ) : (
-                                <img src={mediaUrl || checkin.foto_4} alt="Foto 4" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
+                                <img src={mediaUrl || checkin.foto_4} alt="Foto 4" loading="lazy" className="w-full h-80 object-contain bg-slate-900/50 rounded border border-slate-600 hover:border-blue-500 transition-colors cursor-pointer" />
                               )}
                             </div>
                           );

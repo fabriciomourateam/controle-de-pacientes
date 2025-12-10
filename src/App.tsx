@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,32 +6,58 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { Skeleton } from "@/components/ui/skeleton";
 import "./test-theme.css";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Patients from "./pages/Patients";
-import PatientDetails from "./pages/PatientDetails";
-import Checkins from "./pages/Checkins";
-import PatientEvolution from "./pages/PatientEvolution";
-import PatientPortal from "./pages/PatientPortal";
-import PortalLogin from "./pages/PortalLogin";
-import Plans from "./pages/Plans";
-import MetricsDashboard from "./pages/MetricsDashboard";
-import CommercialMetrics from "./pages/CommercialMetrics";
-import DebugVendas from "./pages/DebugVendas";
-import Workspace from "./pages/Workspace";
-import Profile from "./pages/Profile";
-import Login from "./pages/Login";
-import Settings from "./pages/Settings";
-import Help from "./pages/Help";
-import Reports from "./pages/Reports";
-import RetentionDashboard from "./pages/RetentionDashboard";
-import Pricing from "./pages/Pricing";
-import AdminDashboard from "./pages/AdminDashboard";
-import Landing from "./pages/Landing";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Componentes leves - import direto
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import PortalLogin from "./pages/PortalLogin";
+import NotFound from "./pages/NotFound";
+import Landing from "./pages/Landing";
+
+// Componentes pesados - lazy loading
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Patients = lazy(() => import("./pages/Patients"));
+const PatientDetails = lazy(() => import("./pages/PatientDetails"));
+const Checkins = lazy(() => import("./pages/Checkins"));
+const PatientEvolution = lazy(() => import("./pages/PatientEvolution"));
+const PatientPortal = lazy(() => import("./pages/PatientPortal"));
+const Plans = lazy(() => import("./pages/Plans"));
+const MetricsDashboard = lazy(() => import("./pages/MetricsDashboard"));
+const CommercialMetrics = lazy(() => import("./pages/CommercialMetrics"));
+const DebugVendas = lazy(() => import("./pages/DebugVendas"));
+const Workspace = lazy(() => import("./pages/Workspace"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Help = lazy(() => import("./pages/Help"));
+const Reports = lazy(() => import("./pages/Reports"));
+const RetentionDashboard = lazy(() => import("./pages/RetentionDashboard"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+
+// Componente de loading
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="space-y-4 w-full max-w-md p-6">
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  </div>
+);
+
+// Configurar React Query com cache otimizado
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados "frescos"
+      cacheTime: 10 * 60 * 1000, // 10 minutos - cache mantido
+      refetchOnWindowFocus: false, // Não refetch ao focar na janela
+      retry: 1, // Tentar apenas 1 vez em caso de erro
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -44,92 +71,130 @@ const App = () => (
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/portal" element={<PortalLogin />} />
-          <Route path="/portal/:token" element={<PatientPortal />} />
+          <Route path="/portal/:token" element={
+            <Suspense fallback={<PageLoader />}>
+              <PatientPortal />
+            </Suspense>
+          } />
           
           {/* Rotas protegidas - requerem autenticação */}
           <Route path="/" element={
             <ProtectedRoute>
-              <Dashboard />
+              <Suspense fallback={<PageLoader />}>
+                <Dashboard />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/patients" element={
             <ProtectedRoute>
-              <Patients />
+              <Suspense fallback={<PageLoader />}>
+                <Patients />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/patients/:id" element={
             <ProtectedRoute>
-              <PatientDetails />
+              <Suspense fallback={<PageLoader />}>
+                <PatientDetails />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/checkins" element={
             <ProtectedRoute>
-              <Checkins />
+              <Suspense fallback={<PageLoader />}>
+                <Checkins />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/checkins/evolution/:telefone" element={
             <ProtectedRoute>
-              <PatientEvolution />
+              <Suspense fallback={<PageLoader />}>
+                <PatientEvolution />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/plans" element={
             <ProtectedRoute>
-              <Plans />
+              <Suspense fallback={<PageLoader />}>
+                <Plans />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/metrics" element={
             <ProtectedRoute>
-              <MetricsDashboard />
+              <Suspense fallback={<PageLoader />}>
+                <MetricsDashboard />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/commercial-metrics" element={
             <ProtectedRoute>
-              <CommercialMetrics />
+              <Suspense fallback={<PageLoader />}>
+                <CommercialMetrics />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/retention" element={
             <ProtectedRoute>
-              <RetentionDashboard />
+              <Suspense fallback={<PageLoader />}>
+                <RetentionDashboard />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/debug-vendas" element={
             <ProtectedRoute>
-              <DebugVendas />
+              <Suspense fallback={<PageLoader />}>
+                <DebugVendas />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/workspace" element={
             <ProtectedRoute>
-              <Workspace />
+              <Suspense fallback={<PageLoader />}>
+                <Workspace />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/reports" element={
             <ProtectedRoute>
-              <Reports />
+              <Suspense fallback={<PageLoader />}>
+                <Reports />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/profile" element={
             <ProtectedRoute>
-              <Profile />
+              <Suspense fallback={<PageLoader />}>
+                <Profile />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/settings" element={
             <ProtectedRoute>
-              <Settings />
+              <Suspense fallback={<PageLoader />}>
+                <Settings />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/help" element={
             <ProtectedRoute>
-              <Help />
+              <Suspense fallback={<PageLoader />}>
+                <Help />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/pricing" element={
             <ProtectedRoute>
-              <Pricing />
+              <Suspense fallback={<PageLoader />}>
+                <Pricing />
+              </Suspense>
             </ProtectedRoute>
           } />
           <Route path="/admin" element={
             <ProtectedRoute>
-              <AdminDashboard />
+              <Suspense fallback={<PageLoader />}>
+                <AdminDashboard />
+              </Suspense>
             </ProtectedRoute>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

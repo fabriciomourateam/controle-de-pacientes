@@ -24,6 +24,7 @@ interface PhotoData {
   photoNumber: number;
   isInitial?: boolean;
   isVideo?: boolean;
+  angle?: 'frente' | 'lado' | 'lado_2' | 'costas'; // Ângulo da foto
 }
 
 export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
@@ -41,7 +42,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-frente',
         photoNumber: 0,
-        isInitial: true
+        isInitial: true,
+        angle: 'frente'
       });
     }
     if (patientWithInitialData.foto_inicial_lado) {
@@ -51,7 +53,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-lado',
         photoNumber: 0,
-        isInitial: true
+        isInitial: true,
+        angle: 'lado'
       });
     }
     if (patientWithInitialData.foto_inicial_lado_2) {
@@ -61,7 +64,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-lado-2',
         photoNumber: 0,
-        isInitial: true
+        isInitial: true,
+        angle: 'lado_2'
       });
     }
     if (patientWithInitialData.foto_inicial_costas) {
@@ -71,12 +75,14 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-costas',
         photoNumber: 0,
-        isInitial: true
+        isInitial: true,
+        angle: 'costas'
       });
     }
   }
 
   // Extrair todas as fotos/vídeos dos check-ins (inverter ordem para ter do mais antigo ao mais recente)
+  // Assumindo que: foto_1 = frente, foto_2 = lado, foto_3 = lado_2, foto_4 = costas
   const checkinPhotos: PhotoData[] = [...checkins].reverse().flatMap(checkin => {
     const photos: PhotoData[] = [];
     if (checkin.foto_1) {
@@ -90,7 +96,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: checkin.peso || 'N/A',
         checkinId: checkin.id,
         photoNumber: 1,
-        isVideo
+        isVideo,
+        angle: 'frente' // Assumindo que foto_1 é sempre frente
       });
     }
     if (checkin.foto_2) {
@@ -104,7 +111,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: checkin.peso || 'N/A',
         checkinId: checkin.id,
         photoNumber: 2,
-        isVideo
+        isVideo,
+        angle: 'lado' // Assumindo que foto_2 é sempre lado
       });
     }
     if (checkin.foto_3) {
@@ -118,7 +126,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: checkin.peso || 'N/A',
         checkinId: checkin.id,
         photoNumber: 3,
-        isVideo
+        isVideo,
+        angle: 'lado_2' // Assumindo que foto_3 é sempre lado_2
       });
     }
     if (checkin.foto_4) {
@@ -132,7 +141,8 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         weight: checkin.peso || 'N/A',
         checkinId: checkin.id,
         photoNumber: 4,
-        isVideo
+        isVideo,
+        angle: 'costas' // Assumindo que foto_4 é sempre costas
       });
     }
     return photos;
@@ -171,11 +181,66 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
     );
   }
 
-  // Fotos de comparação: primeira (mais antiga) e última (mais recente)
-  // Fotos iniciais sempre vêm primeiro, depois os checkins em ordem decrescente
-  // Então: primeira = inicial ou primeiro checkin, última = último checkin
-  const firstPhoto = allPhotos[0]; // Foto mais antiga (inicial ou primeiro checkin)
-  const lastPhoto = allPhotos[allPhotos.length - 1]; // Foto mais recente (último checkin)
+  // Encontrar fotos de comparação do mesmo ângulo
+  // Prioridade: frente > lado > lado_2 > costas
+  let firstPhoto: PhotoData | null = null;
+  let lastPhoto: PhotoData | null = null;
+
+  const latestCheckin = checkins.length > 0 ? checkins[0] : null;
+
+  // Priorizar foto inicial de frente
+  const initialFrente = initialPhotos.find(p => p.angle === 'frente');
+  if (initialFrente && latestCheckin?.foto_1) {
+    const latestFrente = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 1);
+    if (latestFrente) {
+      firstPhoto = initialFrente;
+      lastPhoto = latestFrente;
+    }
+  }
+
+  // Se não encontrou frente, tentar lado
+  if (!firstPhoto || !lastPhoto) {
+    const initialLado = initialPhotos.find(p => p.angle === 'lado');
+    if (initialLado && latestCheckin?.foto_2) {
+      const latestLado = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 2);
+      if (latestLado) {
+        firstPhoto = initialLado;
+        lastPhoto = latestLado;
+      }
+    }
+  }
+
+  // Se ainda não encontrou, usar lado_2
+  if (!firstPhoto || !lastPhoto) {
+    const initialLado2 = initialPhotos.find(p => p.angle === 'lado_2');
+    if (initialLado2 && latestCheckin?.foto_3) {
+      const latestLado2 = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 3);
+      if (latestLado2) {
+        firstPhoto = initialLado2;
+        lastPhoto = latestLado2;
+      }
+    }
+  }
+
+  // Se ainda não encontrou, usar costas
+  if (!firstPhoto || !lastPhoto) {
+    const initialCostas = initialPhotos.find(p => p.angle === 'costas');
+    if (initialCostas && latestCheckin?.foto_4) {
+      const latestCostas = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 4);
+      if (latestCostas) {
+        firstPhoto = initialCostas;
+        lastPhoto = latestCostas;
+      }
+    }
+  }
+
+  // Fallback: se não encontrou fotos iniciais ou não há check-ins, usar primeira e última foto disponível
+  if (!firstPhoto) {
+    firstPhoto = allPhotos[0];
+  }
+  if (!lastPhoto) {
+    lastPhoto = allPhotos[allPhotos.length - 1];
+  }
 
   return (
     <>
@@ -191,7 +256,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Comparação Antes/Depois */}
-          {allPhotos.length >= 2 && (
+          {allPhotos.length >= 2 && firstPhoto && lastPhoto && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <ChevronRight className="w-5 h-5 text-emerald-400" />
@@ -211,6 +276,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                       <img 
                         src={firstPhoto.url} 
                         alt="Foto Inicial"
+                        loading="lazy"
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
                         onClick={() => handleZoomPhoto(firstPhoto)}
                       />
@@ -255,6 +321,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                       <img 
                         src={lastPhoto.url} 
                         alt="Foto Atual"
+                        loading="lazy"
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
                         onClick={() => handleZoomPhoto(lastPhoto)}
                       />
@@ -309,6 +376,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                       <img 
                         src={photo.url} 
                         alt={`Foto ${index + 1}`}
+                        loading="lazy"
                         className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
                         onClick={() => handleZoomPhoto(photo)}
                       />
