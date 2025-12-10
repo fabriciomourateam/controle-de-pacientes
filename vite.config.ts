@@ -14,7 +14,7 @@ export default defineConfig({
     preserveSymlinks: false,
   },
   optimizeDeps: {
-    include: ['@/components/pwa/InstallPWAButton'],
+    include: ['@/components/InstallPWAButton'],
   },
   server: {
     port: 5173,
