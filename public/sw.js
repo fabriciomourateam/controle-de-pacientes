@@ -1,26 +1,39 @@
 // Service Worker para PWA
-const CACHE_NAME = 'controle-pacientes-v2';
+const CACHE_NAME = 'controle-pacientes-v3'; // Incrementar versão para forçar atualização
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/favicon.jpeg',
+  '/index.html',
   '/manifest.json'
 ];
 
 // Instalar Service Worker
 self.addEventListener('install', (event) => {
+  // Forçar atualização imediata, não esperar pelo cache
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
+        // Não fazer cache de arquivos estáticos com hash - deixar o Vite gerenciar
+        return cache.addAll(urlsToCache.filter(url => {
+          // Não fazer cache de arquivos com hash (assets)
+          return !url.includes('/assets/');
+        }));
+      })
+      .catch((error) => {
+        console.log('Erro ao abrir cache:', error);
       })
   );
 });
 
 // Interceptar requisições
 self.addEventListener('fetch', (event) => {
+  // Não fazer cache de arquivos com hash - sempre buscar do servidor
+  if (event.request.url.includes('/assets/')) {
+    return; // Deixar o navegador buscar normalmente
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -29,8 +42,11 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         return fetch(event.request);
-      }
-    )
+      })
+      .catch(() => {
+        // Em caso de erro, buscar do servidor
+        return fetch(event.request);
+      })
   );
 });
 
@@ -46,7 +62,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       ).then(() => {
-        // Forçar atualização imediata
+        // Forçar controle imediato de todas as páginas
         return self.clients.claim();
       });
     })

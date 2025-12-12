@@ -154,3 +154,5 @@ Execute o arquivo `sql/create-diet-consumption-tracking.sql` no Supabase SQL Edi
 
 
 
+
+

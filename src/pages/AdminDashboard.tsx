@@ -20,7 +20,13 @@ import {
   CheckCircle2,
   XCircle,
   BarChart3,
-  Activity
+  Activity,
+  MoreVertical,
+  Copy,
+  Mail,
+  User,
+  FileText,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { adminService, AdminUser, AdminMetrics, RevenueData } from '@/lib/admin-service';
@@ -40,6 +46,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   LineChart,
   Line,
@@ -66,6 +86,8 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -130,6 +152,24 @@ export default function AdminDashboard() {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email);
+    toast({
+      title: 'Email copiado!',
+      description: `Email ${email} copiado para a área de transferência.`
+    });
+  };
+
+  const handleViewUserDetails = (user: AdminUser) => {
+    setSelectedUser(user);
+    setUserDetailsOpen(true);
+  };
+
+  const handleViewUserPatients = (userId: string) => {
+    // Navegar para a página de pacientes com filtro por user_id
+    navigate(`/patients?userId=${userId}`);
   };
 
   const formatCurrency = (value: number) => {
@@ -236,7 +276,31 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="text-3xl font-bold text-white">{metrics.totalUsers}</div>
                 <p className="text-xs text-slate-400 mt-1">
-                  {metrics.activeSubscriptions} assinantes ativos
+                  {metrics.activeSubscriptions + metrics.trialSubscriptions} com assinatura
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-400">Plano Ativo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{metrics.activeSubscriptions}</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {((metrics.activeSubscriptions / metrics.totalUsers) * 100 || 0).toFixed(1)}% do total
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border-blue-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-400">Em Trial</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{metrics.trialSubscriptions}</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {((metrics.trialSubscriptions / metrics.totalUsers) * 100 || 0).toFixed(1)}% do total
                 </p>
               </CardContent>
             </Card>
@@ -252,7 +316,12 @@ export default function AdminDashboard() {
                 </p>
               </CardContent>
             </Card>
+          </div>
+        )}
 
+        {/* KPIs Secundários */}
+        {metrics && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/30">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-slate-400">Total de Pacientes</CardTitle>
@@ -273,6 +342,18 @@ export default function AdminDashboard() {
                 <div className="text-3xl font-bold text-white">{metrics.churnRate.toFixed(1)}%</div>
                 <p className="text-xs text-slate-400 mt-1">
                   Crescimento: {metrics.growthRate > 0 ? '+' : ''}{metrics.growthRate.toFixed(1)}%
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-400">Cancelados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{metrics.canceledSubscriptions}</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {((metrics.canceledSubscriptions / metrics.totalUsers) * 100 || 0).toFixed(1)}% do total
                 </p>
               </CardContent>
             </Card>
@@ -388,7 +469,7 @@ export default function AdminDashboard() {
                               <div className="text-white">{user.subscription.plan_display_name}</div>
                               {user.subscription.current_period_end && (
                                 <div className="text-xs text-slate-400">
-                                  Vence: {formatDate(user.subscription.current_period_end)}
+                                  {user.subscription.status === 'trial' ? 'Trial vence' : 'Vence'}: {formatDate(user.subscription.current_period_end)}
                                 </div>
                               )}
                             </div>
@@ -407,33 +488,73 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            {user.subscription && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleToggleUserStatus(
-                                  user.id,
-                                  user.subscription!.status
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                                <DropdownMenuItem
+                                  onClick={() => handleViewUserDetails(user)}
+                                  className="text-white hover:bg-slate-700"
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Ver Detalhes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleViewUserPatients(user.id)}
+                                  className="text-white hover:bg-slate-700"
+                                >
+                                  <Users className="w-4 h-4 mr-2" />
+                                  Ver Pacientes ({user.stats.total_patients})
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleCopyEmail(user.email)}
+                                  className="text-white hover:bg-slate-700"
+                                >
+                                  <Copy className="w-4 h-4 mr-2" />
+                                  Copiar Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => window.location.href = `mailto:${user.email}`}
+                                  className="text-white hover:bg-slate-700"
+                                >
+                                  <Mail className="w-4 h-4 mr-2" />
+                                  Enviar Email
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-slate-700" />
+                                {user.subscription && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleToggleUserStatus(
+                                      user.id,
+                                      user.subscription!.status
+                                    )}
+                                    className={
+                                      user.subscription.status === 'active'
+                                        ? 'text-red-400 hover:bg-red-500/10'
+                                        : 'text-green-400 hover:bg-green-500/10'
+                                    }
+                                  >
+                                    {user.subscription.status === 'active' ? (
+                                      <>
+                                        <Ban className="w-4 h-4 mr-2" />
+                                        Desativar Assinatura
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Ativar Assinatura
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
                                 )}
-                                className={
-                                  user.subscription.status === 'active'
-                                    ? 'border-red-500/50 text-red-400 hover:bg-red-500/10'
-                                    : 'border-green-500/50 text-green-400 hover:bg-green-500/10'
-                                }
-                              >
-                                {user.subscription.status === 'active' ? (
-                                  <>
-                                    <Ban className="w-4 h-4 mr-1" />
-                                    Desativar
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="w-4 h-4 mr-1" />
-                                    Ativar
-                                  </>
-                                )}
-                              </Button>
-                            )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -447,27 +568,7 @@ export default function AdminDashboard() {
 
         {/* Estatísticas Adicionais */}
         {metrics && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white text-sm">Assinaturas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Ativas:</span>
-                  <span className="text-white font-semibold">{metrics.activeSubscriptions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Trial:</span>
-                  <span className="text-white font-semibold">{metrics.trialSubscriptions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Canceladas:</span>
-                  <span className="text-white font-semibold">{metrics.canceledSubscriptions}</span>
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white text-sm">Receita Total</CardTitle>
@@ -502,6 +603,75 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Dialog de Detalhes do Usuário */}
+      <Dialog open={userDetailsOpen} onOpenChange={setUserDetailsOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Detalhes do Usuário</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Informações completas sobre o usuário selecionado
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-400">Email</label>
+                  <p className="text-white">{selectedUser.email}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-400">Data de Cadastro</label>
+                  <p className="text-white">{formatDate(selectedUser.created_at)}</p>
+                </div>
+                {selectedUser.subscription && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-slate-400">Plano</label>
+                      <p className="text-white">{selectedUser.subscription.plan_display_name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-400">Status</label>
+                      <div className="mt-1">
+                        {getStatusBadge(selectedUser.subscription.status)}
+                      </div>
+                    </div>
+                    {selectedUser.subscription.current_period_end && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-400">
+                          {selectedUser.subscription.status === 'trial' ? 'Trial vence em' : 'Vencimento'}
+                        </label>
+                        <p className="text-white">{formatDate(selectedUser.subscription.current_period_end)}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="border-t border-slate-700 pt-4">
+                <h3 className="text-lg font-semibold text-white mb-3">Estatísticas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <label className="text-sm font-medium text-slate-400">Total de Pacientes</label>
+                    <p className="text-2xl font-bold text-white">{selectedUser.stats.total_patients}</p>
+                  </div>
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <label className="text-sm font-medium text-slate-400">Total de Check-ins</label>
+                    <p className="text-2xl font-bold text-white">{selectedUser.stats.total_checkins}</p>
+                  </div>
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <label className="text-sm font-medium text-slate-400">Total de Pagamentos</label>
+                    <p className="text-2xl font-bold text-white">{selectedUser.stats.total_payments}</p>
+                  </div>
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <label className="text-sm font-medium text-slate-400">Receita Total</label>
+                    <p className="text-2xl font-bold text-emerald-400">{formatCurrency(selectedUser.stats.total_revenue)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

@@ -71,7 +71,7 @@ export const subscriptionService = {
     const user = await getCurrentUser();
     if (!user) return null;
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_subscriptions')
       .select(`
         *,
@@ -289,7 +289,7 @@ export const subscriptionService = {
     const trialEnd = new Date(now);
     trialEnd.setDate(trialEnd.getDate() + 30); // 30 dias
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_subscriptions')
       .insert({
         user_id: user.id,
@@ -325,7 +325,7 @@ export const subscriptionService = {
     // Se já existe trial, atualizar para ativa
     const existing = await this.getCurrentSubscription();
     if (existing && existing.status === 'trial') {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_subscriptions')
         .update({
           subscription_plan_id: planId,
@@ -349,7 +349,7 @@ export const subscriptionService = {
     }
 
     // Criar nova assinatura
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_subscriptions')
       .insert({
         user_id: user.id,
@@ -378,7 +378,7 @@ export const subscriptionService = {
     status: UserSubscription['status'],
     data?: Partial<UserSubscription>
   ): Promise<void> {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('user_subscriptions')
       .update({
         status,

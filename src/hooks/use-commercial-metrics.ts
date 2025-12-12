@@ -345,7 +345,7 @@ export function useSalesMetrics(selectedMonth?: string) {
     
     return true;
   });
-  
+
   // Obter meses únicos das vendas válidas e ordenar
   const monthOrder = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -537,11 +537,12 @@ export function useSalesMetrics(selectedMonth?: string) {
   });
 
   const funnelMetrics = Array.from(funnelMetricsMap.values()).map(funnel => {
-    const callsRealizadas = funnel.comprou + funnel.naoComprou;
+    // Taxa de conversão = (Vendas / Total de Calls) × 100
+    // Total de Calls inclui todas as calls (comprou + não comprou + no show)
     return {
       ...funnel,
-      conversionRate: callsRealizadas > 0 
-        ? (funnel.comprou / callsRealizadas) * 100 
+      conversionRate: funnel.totalCalls > 0 
+        ? (funnel.comprou / funnel.totalCalls) * 100 
         : 0
     };
   });

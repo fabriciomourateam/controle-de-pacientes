@@ -50,3 +50,5 @@ COMMENT ON COLUMN food_database.fats_per_100g IS 'Gorduras por 100g';
 
 
 
+
+
