@@ -13,6 +13,7 @@ import { Timeline } from '@/components/evolution/Timeline';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { AIInsights } from '@/components/evolution/AIInsights';
+import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
 import { detectAchievements } from '@/lib/achievement-system';
 import { 
   Activity, 
@@ -34,6 +35,7 @@ interface PatientEvolutionTabProps {
   patient?: Patient | null;
   bodyCompositions?: any[];
   achievements?: any[];
+  refreshTrigger?: number; // Trigger para forçar atualização dos gráficos
 }
 
 export function PatientEvolutionTab({ 
@@ -41,13 +43,15 @@ export function PatientEvolutionTab({
   checkins: propsCheckins,
   patient: propsPatient,
   bodyCompositions: propsBodyCompositions,
-  achievements: propsAchievements
+  achievements: propsAchievements,
+  refreshTrigger
 }: PatientEvolutionTabProps) {
   const { toast } = useToast();
   const [checkins, setCheckins] = useState<Checkin[]>(propsCheckins || []);
   const [patient, setPatient] = useState<Patient | null>(propsPatient || null);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>(propsBodyCompositions || []);
   const [loading, setLoading] = useState(!propsCheckins);
+  const [localRefreshTrigger, setLocalRefreshTrigger] = useState(0);
 
   // Calcular dados
   const achievements = propsAchievements || (checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : []);
@@ -355,14 +359,37 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* Gráficos de Evolução */}
-      {checkins.length > 0 && (
+      {/* Gráficos de Evolução - Mostrar se houver check-ins OU se houver paciente (para mostrar pesos diários) */}
+      {(checkins.length > 0 || patient) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <EvolutionCharts checkins={checkins} />
+          <EvolutionCharts 
+            checkins={checkins} 
+            patient={patient}
+            refreshTrigger={refreshTrigger || localRefreshTrigger}
+          />
+        </motion.div>
+      )}
+
+      {/* Lista de Pesos Diários Registrados - Permite deletar */}
+      {patient?.telefone && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+        >
+          <DailyWeightsList
+            telefone={patient.telefone}
+            onUpdate={() => {
+              // Recarregar dados quando um peso for deletado
+              loadPortalData();
+              // Forçar atualização local dos gráficos
+              setLocalRefreshTrigger(prev => prev + 1);
+            }}
+          />
         </motion.div>
       )}
 
@@ -371,7 +398,7 @@ export function PatientEvolutionTab({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.45 }}
+          transition={{ duration: 0.5, delay: 0.55 }}
         >
           <PhotoComparison checkins={checkins} />
         </motion.div>
@@ -382,14 +409,14 @@ export function PatientEvolutionTab({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <Timeline checkins={checkins} showEditButton={false} />
         </motion.div>
       )}
 
-      {/* Mensagem quando não há dados */}
-      {checkins.length === 0 && (
+      {/* Mensagem quando não há dados - só mostrar se não houver check-ins E não houver paciente */}
+      {checkins.length === 0 && !patient && (
         <Card className="bg-white border border-gray-100">
           <CardContent className="p-8 text-center">
             <Activity className="w-12 h-12 text-[#00C98A] mx-auto mb-4 opacity-50" />

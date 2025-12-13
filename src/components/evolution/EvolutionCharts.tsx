@@ -15,12 +15,14 @@ import {
   PolarRadiusAxis,
   Radar,
   BarChart,
-  Bar
+  Bar,
+  Scatter
 } from "recharts";
 import { TrendingUp, Activity, Target, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
+import { weightTrackingService } from "@/lib/weight-tracking-service";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -28,15 +30,32 @@ type Patient = Database['public']['Tables']['patients']['Row'];
 interface EvolutionChartsProps {
   checkins: Checkin[];
   patient?: Patient | null;
+  refreshTrigger?: number; // Trigger para forçar atualização
 }
 
-export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
+export function EvolutionCharts({ checkins, patient, refreshTrigger }: EvolutionChartsProps) {
   const [selectedCheckinIndex, setSelectedCheckinIndex] = useState(0);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+  const [dailyWeights, setDailyWeights] = useState<any[]>([]);
   
   // IMPORTANTE: checkins vem ordenado DESC (mais recente primeiro)
   // Precisamos reverter para ordem cronológica (mais antigo primeiro)
   const checkinsOrdenados = [...checkins].reverse();
+
+  // Buscar pesos diários - atualiza quando telefone muda ou quando refreshTrigger muda
+  useEffect(() => {
+    const loadDailyWeights = async () => {
+      if (patient?.telefone) {
+        try {
+          const weights = await weightTrackingService.getByTelefone(patient.telefone);
+          setDailyWeights(weights || []);
+        } catch (error) {
+          console.error('Erro ao carregar pesos diários:', error);
+        }
+      }
+    };
+    loadDailyWeights();
+  }, [patient?.telefone, refreshTrigger]); // Adicionar refreshTrigger como dependência
   
   // Para o radar, queremos mostrar do mais recente (índice 0 do array original)
   const checkinsForRadar = checkins; // Array original já está do mais recente ao mais antigo
@@ -80,7 +99,7 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
     );
   };
 
-  // Preparar dados para gráfico de peso - incluindo peso inicial se existir
+  // Preparar dados para gráfico de peso - incluindo peso inicial, diários e check-ins
   const weightData = [];
   
   // Adicionar peso inicial se existir (pacientes cadastrados manualmente)
@@ -93,26 +112,52 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
       dataCompleta: new Date(dataInicial).toISOString(),
       peso: parseFloat(patientWithInitialData.peso_inicial.toString()),
       tipo: 'Inicial',
+      tipoVisual: 'inicial', // Para estilização no gráfico
       aproveitamento: null
     };
     weightData.push(dataInicialPoint);
   }
   
-  // Adicionar dados dos check-ins
+  // Adicionar pesos diários (weight_tracking)
+  dailyWeights.forEach((weight) => {
+    const pesoValue = weight.peso_jejum || weight.peso_dia;
+    if (pesoValue) {
+      const dataPoint = {
+        id: `daily-${weight.id}`,
+        data: new Date(weight.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        dataCompleta: weight.data_pesagem,
+        peso: parseFloat(pesoValue.toString()),
+        tipo: `Peso ${weight.tipo === 'jejum' ? 'Jejum' : 'Dia'}`,
+        tipoVisual: 'diario', // Para estilização no gráfico (pontos pequenos, cinza)
+        aproveitamento: null
+      };
+      weightData.push(dataPoint);
+    }
+  });
+  
+  // Adicionar dados dos check-ins mensais
   checkinsOrdenados.forEach((c, index) => {
-    if (c.peso) {
-      const pesoValue = parseFloat(c.peso.replace(',', '.'));
+    // Priorizar peso_jejum se existir, senão usar peso
+    const pesoCheckin = (c as any).peso_jejum || c.peso;
+    if (pesoCheckin) {
+      const pesoValue = typeof pesoCheckin === 'string' 
+        ? parseFloat(pesoCheckin.replace(',', '.'))
+        : parseFloat(pesoCheckin.toString());
       const dataPoint = {
         id: c.id,
         data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
         dataCompleta: c.data_checkin,
         peso: pesoValue,
         tipo: index === 0 ? '1º Check-in' : 'Check-in',
+        tipoVisual: 'checkin', // Para estilização no gráfico (pontos grandes, azul)
         aproveitamento: parseFloat(c.percentual_aproveitamento || '0') || null
       };
       weightData.push(dataPoint);
     }
   });
+
+  // Ordenar todos os dados por data
+  weightData.sort((a, b) => new Date(a.dataCompleta).getTime() - new Date(b.dataCompleta).getTime());
 
   // Preparar dados para gráfico de pontuações
   const scoresData = checkinsOrdenados.map(c => ({
@@ -239,10 +284,15 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
   // weightData já está ordenado cronologicamente (mais antigo primeiro)
 
 
+  // Combinar todos os dados de peso em ordem cronológica
+  const allWeightData = [...weightData].sort((a, b) => 
+    new Date(a.dataCompleta).getTime() - new Date(b.dataCompleta).getTime()
+  );
+
   return (
     <div className="space-y-6">
-      {/* Gráfico de Peso */}
-      {weightData.length > 0 && (
+      {/* Gráfico de Peso - Mostrar se houver qualquer dado de peso */}
+      {allWeightData.length > 0 && (
         <Card className="bg-slate-800/40 border-slate-700/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -254,22 +304,22 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
             </CardDescription>
             <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-purple-500 border border-white"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
                 <span>Peso Inicial</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-green-500 border border-white"></div>
-                <span>1º Check-in</span>
+                <div className="w-2 h-2 rounded-full bg-slate-500"></div>
+                <span>Pesos Diários</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span>Check-ins</span>
+                <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white"></div>
+                <span>Check-ins Mensais</span>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weightData}>
+              <LineChart data={allWeightData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis 
                   dataKey="dataCompleta"
@@ -295,14 +345,12 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
-                      let tipoLabel = 'Peso Check-in';
-                      
-                      if (data.tipo === 'Inicial') {
-                        tipoLabel = 'Peso Inicial';
-                      } else if (data.tipo === '1º Check-in') {
-                        tipoLabel = '1º Check-in';
-                      }
-                      
+                      let tipoLabel = 'Peso';
+                      if (data.tipoVisual === 'inicial') tipoLabel = 'Peso Inicial';
+                      else if (data.tipoVisual === 'checkin') tipoLabel = 'Peso Check-in';
+                      else if (data.tipoVisual === 'diario') tipoLabel = `Peso Diário (${data.tipo.includes('Jejum') ? 'Jejum' : 'Dia'})`;
+                      else tipoLabel = data.tipo || 'Peso';
+
                       return (
                         <div className="bg-slate-800 p-3 rounded-lg border border-slate-600">
                           <p className="text-slate-300 text-sm mb-1">Data: {data.data}</p>
@@ -317,20 +365,90 @@ export function EvolutionCharts({ checkins, patient }: EvolutionChartsProps) {
                 <Line 
                   type="monotone" 
                   dataKey="peso" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3}
+                  stroke="#94a3b8" 
+                  strokeWidth={2}
                   name="Peso (kg)"
                   dot={(props) => {
                     const { cx, cy, payload, index } = props;
-                    if (payload?.tipo === 'Inicial') {
-                      return <circle key={`dot-inicial-${index}`} cx={cx} cy={cy} r={6} fill="#8b5cf6" stroke="#fff" strokeWidth={2} />;
+                    if (!cx || !cy) return null;
+                    
+                    const tipoVisual = payload?.tipoVisual || 'checkin';
+                    const key = `dot-${payload?.id || index || cx}-${cy}-${tipoVisual}`;
+                    
+                    // Peso Inicial: ponto grande verde
+                    if (tipoVisual === 'inicial') {
+                      return (
+                        <circle
+                          key={key}
+                          cx={cx}
+                          cy={cy}
+                          r={6}
+                          fill="#22c55e"
+                          stroke="#fff"
+                          strokeWidth={2}
+                        />
+                      );
                     }
-                    if (payload?.tipo === '1º Check-in') {
-                      return <circle key={`dot-primeiro-${index}`} cx={cx} cy={cy} r={6} fill="#10b981" stroke="#fff" strokeWidth={2} />;
+                    
+                    // Check-in Mensal: ponto grande azul
+                    if (tipoVisual === 'checkin') {
+                      return (
+                        <circle
+                          key={key}
+                          cx={cx}
+                          cy={cy}
+                          r={5}
+                          fill="#3b82f6"
+                          stroke="#fff"
+                          strokeWidth={2}
+                        />
+                      );
                     }
-                    return <circle key={`dot-${index}`} cx={cx} cy={cy} r={5} fill="#3b82f6" />;
+                    
+                    // Peso Diário: ponto pequeno cinza
+                    if (tipoVisual === 'diario') {
+                      return (
+                        <circle
+                          key={key}
+                          cx={cx}
+                          cy={cy}
+                          r={3}
+                          fill="#64748b"
+                        />
+                      );
+                    }
+                    
+                    // Fallback
+                    return (
+                      <circle
+                        key={key}
+                        cx={cx}
+                        cy={cy}
+                        r={4}
+                        fill="#94a3b8"
+                      />
+                    );
                   }}
-                  activeDot={{ r: 7 }}
+                  activeDot={(props) => {
+                    const { cx, cy, payload, index } = props;
+                    if (!cx || !cy) return null;
+                    
+                    const tipoVisual = payload?.tipoVisual || 'checkin';
+                    const radius = tipoVisual === 'inicial' ? 8 : tipoVisual === 'checkin' ? 7 : 5;
+                    const key = `active-${payload?.id || index || cx}-${cy}-${tipoVisual}`;
+                    
+                    return (
+                      <circle
+                        key={key}
+                        cx={cx}
+                        cy={cy}
+                        r={radius}
+                        fill={tipoVisual === 'inicial' ? '#22c55e' : tipoVisual === 'checkin' ? '#3b82f6' : '#64748b'}
+                        stroke="#fff"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>

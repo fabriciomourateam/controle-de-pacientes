@@ -167,6 +167,21 @@ export const dietConsumptionService = {
   },
 
   /**
+   * Buscar consumo mensal (últimos 30 dias)
+   */
+  async getMonthlyConsumption(patientId: string): Promise<DailyConsumption[]> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 29); // Últimos 30 dias
+    
+    return this.getConsumptionHistory(
+      patientId,
+      startDate.toISOString().split('T')[0],
+      endDate.toISOString().split('T')[0]
+    );
+  },
+
+  /**
    * Adicionar pontos ao paciente
    */
   async addPoints(
@@ -409,14 +424,23 @@ export const dietConsumptionService = {
    * Buscar pontos do paciente
    */
   async getPatientPoints(patientId: string): Promise<PatientPoints | null> {
-    const { data, error } = await supabase
-      .from('patient_points')
-      .select('*')
-      .eq('patient_id', patientId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data || null;
+    try {
+      const { data, error } = await supabase
+        .from('patient_points')
+        .select('*')
+        .eq('patient_id', patientId)
+        .single();
+      
+      // PGRST116 = nenhum resultado encontrado (não é erro)
+      if (error && error.code !== 'PGRST116') {
+        console.warn('Erro ao buscar pontos do paciente (não crítico):', error);
+        return null;
+      }
+      return data || null;
+    } catch (error) {
+      console.warn('Erro ao buscar pontos do paciente (não crítico):', error);
+      return null;
+    }
   },
 
   /**

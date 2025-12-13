@@ -23,6 +23,7 @@ import { InstallPWAButton } from '@/components/InstallPWAButton';
 import { PatientDietPortal } from '@/components/patient-portal/PatientDietPortal';
 import { dietService } from '@/lib/diet-service';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
+import { DietPDFGenerator } from '@/lib/diet-pdf-generator';
 import { 
   Activity, 
   Calendar,
@@ -34,8 +35,17 @@ import {
   Weight,
   Flame,
   Smartphone,
-  FileText
+  FileText,
+  Scale,
+  MoreVertical
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { WeightInput } from '@/components/evolution/WeightInput';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -96,6 +106,8 @@ export default function PatientPortal() {
   const [exporting, setExporting] = useState(false);
   const [patientId, setPatientId] = useState<string | null>(null);
   const portalRef = useRef<HTMLDivElement>(null);
+  const [weightInputOpen, setWeightInputOpen] = useState(false);
+  const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
 
   // Calcular dados
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -337,179 +349,32 @@ export default function PatientPortal() {
 
       const planDetails = await dietService.getById(activePlan.id);
 
-      // Criar HTML do plano alimentar
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Arial', sans-serif;
-              color: #222222;
-              background: #fff;
-              padding: 20px;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-              padding-bottom: 20px;
-              border-bottom: 3px solid #00C98A;
-            }
-            .header h1 {
-              color: #00C98A;
-              font-size: 32px;
-              margin-bottom: 10px;
-            }
-            .meal-card {
-              background: #F5F7FB;
-              border: 1px solid #E5E7EB;
-              border-radius: 12px;
-              padding: 20px;
-              margin-bottom: 20px;
-            }
-            .meal-title {
-              color: #222222;
-              font-size: 20px;
-              font-weight: bold;
-              margin-bottom: 15px;
-            }
-            .food-item {
-              background: #FFFFFF;
-              border: 1px solid #E5E7EB;
-              border-radius: 8px;
-              padding: 12px;
-              margin-bottom: 10px;
-            }
-            .macros {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 15px;
-              margin-top: 20px;
-              padding-top: 20px;
-              border-top: 2px solid #E5E7EB;
-            }
-            .macro-item {
-              text-align: center;
-            }
-            .macro-value {
-              font-size: 24px;
-              font-weight: bold;
-              color: #00C98A;
-            }
-            .macro-label {
-              font-size: 12px;
-              color: #777777;
-              margin-top: 5px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>🥗 Plano Alimentar</h1>
-            <p>${patient.nome}</p>
-            <p style="color: #777777; font-size: 14px; margin-top: 5px;">${planDetails.name || 'Plano Alimentar'}</p>
-          </div>
-          
-          ${planDetails.diet_meals && planDetails.diet_meals.length > 0 ? planDetails.diet_meals
-            .sort((a: any, b: any) => (a.meal_order || 0) - (b.meal_order || 0))
-            .map((meal: any) => {
-              const mealTotals = calcularTotaisPlano({ diet_meals: [meal] });
-              return `
-                <div class="meal-card">
-                  <div class="meal-title">${meal.meal_name}${meal.suggested_time ? ` - ${meal.suggested_time}` : ''}</div>
-                  ${meal.diet_foods && meal.diet_foods.length > 0 ? meal.diet_foods.map((food: any) => `
-                    <div class="food-item">
-                      <strong>${food.food_name}</strong> - ${food.quantity} ${food.unit}
-                      ${food.calories ? `<span style="float: right; color: #777777;">${food.calories} kcal</span>` : ''}
-                    </div>
-                  `).join('') : '<p style="color: #777777;">Nenhum alimento adicionado</p>'}
-                  ${meal.instructions ? `
-                    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; margin-top: 15px; border-radius: 4px;">
-                      <strong style="color: #92400E;">⚠️ Instruções:</strong>
-                      <p style="color: #78350F; margin-top: 5px;">${meal.instructions}</p>
-                    </div>
-                  ` : ''}
-                  <div style="text-align: right; margin-top: 10px; color: #777777; font-size: 12px;">
-                    Total: ${mealTotals.calorias} kcal
-                  </div>
-                </div>
-              `;
-            }).join('') : '<p>Nenhuma refeição cadastrada</p>'}
-          
-          ${planDetails.diet_guidelines && planDetails.diet_guidelines.length > 0 ? `
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E5E7EB;">
-              <h2 style="color: #00C98A; font-size: 24px; margin-bottom: 15px;">📚 Orientações</h2>
-              ${planDetails.diet_guidelines.map((guideline: any) => `
-                <div style="background: #F5F7FB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                  <h3 style="color: #222222; font-size: 18px; margin-bottom: 8px;">${guideline.title}</h3>
-                  <p style="color: #777777; line-height: 1.6;">${guideline.content}</p>
-                  <span style="display: inline-block; background: #00C98A; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin-top: 8px;">${guideline.guideline_type}</span>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </body>
-        </html>
-      `;
+      // Usar o gerador melhorado de PDF
+      await DietPDFGenerator.generatePDF(
+        planDetails as any,
+        patient,
+        {
+          theme: 'light', // Pode adicionar opção de escolha mais tarde
+          showMacrosPerMeal: true
+        }
+      );
 
-      // Criar elemento temporário
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.width = '800px';
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      document.body.appendChild(tempDiv);
-
-      // Importar jsPDF
-      const { jsPDF } = await import('jspdf');
-
-      // Capturar como imagem
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2.5,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 800,
-        windowHeight: tempDiv.scrollHeight,
-      });
-
-      // Remover elemento temporário
-      document.body.removeChild(tempDiv);
-
-      // Converter para PDF
-      const imgData = canvas.toDataURL('image/png', 0.98);
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const pdfWidth = 210;
-      const imgHeightMM = (imgHeight * pdfWidth) / imgWidth;
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: [pdfWidth, imgHeightMM]
-      });
-
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM, undefined, 'FAST');
-      pdf.save(`plano-alimentar-${patient.nome.replace(/\s+/g, '-')}.pdf`);
-
+      setExporting(false);
       toast({
-        title: 'PDF gerado! 🎉',
+        title: 'PDF gerado! ✅',
         description: 'Seu plano alimentar foi baixado com sucesso'
       });
-
-    } catch (error) {
-      console.error('Erro ao gerar PDF do plano:', error);
+    } catch (error: any) {
+      console.error('Erro ao gerar PDF:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível gerar o PDF do plano alimentar',
+        description: error.message || 'Não foi possível gerar o PDF',
         variant: 'destructive'
       });
-    } finally {
       setExporting(false);
     }
   }
+
 
   if (loading) {
     return (
@@ -588,32 +453,53 @@ export default function PatientPortal() {
               Acompanhe seu progresso e conquistas
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex gap-3 flex-wrap items-center">
             <InstallPWAButton />
             <Button
-              onClick={handleExportEvolutionPDF}
-              disabled={exporting}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all whitespace-nowrap"
+              onClick={() => setWeightInputOpen(true)}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all whitespace-nowrap"
             >
-              <FileText className="w-4 h-4 mr-2" />
-              {exporting ? 'Gerando...' : 'Baixar Evolução PDF'}
+              <Scale className="w-4 h-4 mr-2" />
+              Registrar Peso
             </Button>
-            <Button
-              onClick={handleExportDietPDF}
-              disabled={exporting}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all whitespace-nowrap"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              {exporting ? 'Gerando...' : 'Baixar Dieta'}
-            </Button>
-            <Button
-              onClick={loadPortalData}
-              variant="outline"
-              className="border-slate-600 hover:bg-slate-800 whitespace-nowrap"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
-            </Button>
+            
+            {/* Menu de ações: Baixar e Atualizar */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-600 hover:bg-slate-800 text-white"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
+                <DropdownMenuItem
+                  onClick={handleExportEvolutionPDF}
+                  disabled={exporting}
+                  className="text-white hover:bg-slate-700 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  {exporting ? 'Gerando...' : 'Baixar Evolução PDF'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportDietPDF}
+                  disabled={exporting}
+                  className="text-white hover:bg-slate-700 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  {exporting ? 'Gerando...' : 'Baixar Dieta'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={loadPortalData}
+                  className="text-white hover:bg-slate-700 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Atualizar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </motion.div>
 
@@ -671,6 +557,7 @@ export default function PatientPortal() {
               patient={patient}
               bodyCompositions={bodyCompositions}
               achievements={achievements}
+              refreshTrigger={chartsRefreshTrigger}
             />
           </motion.div>
         )}
@@ -681,6 +568,20 @@ export default function PatientPortal() {
         </div>
         </div>
       </div>
+
+      {/* Modal de Registro de Peso */}
+      {patient?.telefone && (
+        <WeightInput
+          telefone={patient.telefone}
+          open={weightInputOpen}
+          onOpenChange={setWeightInputOpen}
+          onSuccess={() => {
+            loadPortalData(); // Recarregar dados para atualizar gráficos
+            // Forçar atualização dos gráficos
+            setChartsRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

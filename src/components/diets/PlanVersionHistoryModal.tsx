@@ -116,13 +116,13 @@ export function PlanVersionHistoryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-cyan-500/30 bg-slate-900/95 backdrop-blur-xl text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-green-500/30 bg-white text-[#222222]">
         <DialogHeader>
-          <DialogTitle className="text-cyan-300 flex items-center gap-2">
-            <History className="h-5 w-5" />
+          <DialogTitle className="text-[#222222] flex items-center gap-2">
+            <History className="h-5 w-5 text-[#00C98A]" />
             Histórico de Versões
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-[#777777]">
             Gerencie versões anteriores do plano e restaure quando necessário
           </DialogDescription>
         </DialogHeader>
@@ -132,7 +132,7 @@ export function PlanVersionHistoryModal({
           <Button
             onClick={handleCreateVersion}
             disabled={loading}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+            className="w-full bg-[#00C98A] hover:bg-[#00A875] text-white"
           >
             <History className="w-4 h-4 mr-2" />
             Criar Versão Atual
@@ -141,11 +141,11 @@ export function PlanVersionHistoryModal({
           {/* Lista de Versões */}
           {loading && versions.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#00C98A]" />
             </div>
           ) : versions.length === 0 ? (
             <Alert className="border-yellow-500 bg-yellow-500/10">
-              <AlertDescription className="text-yellow-300">
+              <AlertDescription className="text-yellow-700">
                 Nenhuma versão salva ainda. Crie uma versão para começar a rastrear mudanças.
               </AlertDescription>
             </Alert>
@@ -154,18 +154,18 @@ export function PlanVersionHistoryModal({
               {versions.map((version) => (
                 <Card
                   key={version.id}
-                  className="bg-slate-800/50 border-slate-700"
+                  className="bg-green-500/10 border-green-500/30"
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-white flex items-center gap-2">
+                        <CardTitle className="text-[#222222] flex items-center gap-2">
                           {version.name}
-                          <Badge variant="outline" className="border-cyan-500/50 text-cyan-300">
+                          <Badge variant="outline" className="border-green-500/50 text-[#00A875] bg-green-500/10">
                             v{version.version_number}
                           </Badge>
                         </CardTitle>
-                        <div className="text-xs text-slate-400 mt-1">
+                        <div className="text-xs text-[#777777] mt-1">
                           {new Date(version.created_at).toLocaleString('pt-BR')}
                         </div>
                       </div>
@@ -175,7 +175,7 @@ export function PlanVersionHistoryModal({
                           variant="outline"
                           onClick={() => handleRestore(version.id)}
                           disabled={restoring === version.id}
-                          className="border-green-500/50 text-green-300 hover:bg-green-500/20"
+                          className="border-green-500/50 text-[#00A875] hover:bg-green-500/20"
                         >
                           {restoring === version.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -187,7 +187,7 @@ export function PlanVersionHistoryModal({
                           size="sm"
                           variant="outline"
                           onClick={() => handleDelete(version.id)}
-                          className="border-red-500/50 text-red-300 hover:bg-red-500/20"
+                          className="border-red-500/50 text-red-600 hover:bg-red-500/20"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -197,31 +197,31 @@ export function PlanVersionHistoryModal({
                   <CardContent>
                     <div className="grid grid-cols-4 gap-4 text-sm">
                       <div>
-                        <div className="text-slate-400">Calorias</div>
-                        <div className="text-cyan-400 font-semibold">
+                        <div className="text-[#777777]">Calorias</div>
+                        <div className="text-[#00A875] font-semibold">
                           {version.total_calories ? Math.round(version.total_calories) : 'N/A'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-slate-400">Proteínas</div>
-                        <div className="text-cyan-400 font-semibold">
+                        <div className="text-[#777777]">Proteínas</div>
+                        <div className="text-[#00A875] font-semibold">
                           {version.total_protein ? `${Math.round(version.total_protein * 10) / 10}g` : 'N/A'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-slate-400">Carboidratos</div>
-                        <div className="text-cyan-400 font-semibold">
+                        <div className="text-[#777777]">Carboidratos</div>
+                        <div className="text-[#00A875] font-semibold">
                           {version.total_carbs ? `${Math.round(version.total_carbs * 10) / 10}g` : 'N/A'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-slate-400">Gorduras</div>
-                        <div className="text-cyan-400 font-semibold">
+                        <div className="text-[#777777]">Gorduras</div>
+                        <div className="text-[#00A875] font-semibold">
                           {version.total_fats ? `${Math.round(version.total_fats * 10) / 10}g` : 'N/A'}
                         </div>
                       </div>
                     </div>
-                    <div className="mt-3 text-sm text-slate-400">
+                    <div className="mt-3 text-sm text-[#777777]">
                       {version.meals.length} refeição(ões)
                     </div>
                   </CardContent>

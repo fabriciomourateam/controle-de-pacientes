@@ -35,3 +35,8 @@ WHERE us.status = 'trial'
 ORDER BY up.created_at DESC;
 
 
+
+
+
+
+

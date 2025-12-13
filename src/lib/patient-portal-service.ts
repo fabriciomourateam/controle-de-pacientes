@@ -137,14 +137,25 @@ export async function validateToken(token: string): Promise<string | null> {
       }
     }
 
-    // Atualizar estatísticas de acesso
-    await supabase
-      .from('patient_portal_tokens')
-      .update({
-        last_accessed_at: new Date().toISOString(),
-        access_count: supabase.rpc('increment', { x: 1, field_name: 'access_count' })
-      })
-      .eq('token', token);
+    // Atualizar estatísticas de acesso (buscar o count atual primeiro)
+    try {
+      const { data: currentToken } = await supabase
+        .from('patient_portal_tokens')
+        .select('access_count')
+        .eq('token', token)
+        .single();
+      
+      await supabase
+        .from('patient_portal_tokens')
+        .update({
+          last_accessed_at: new Date().toISOString(),
+          access_count: (currentToken?.access_count || 0) + 1
+        })
+        .eq('token', token);
+    } catch (updateError) {
+      // Ignorar erro de update (não crítico)
+      console.warn('Não foi possível atualizar estatísticas de acesso:', updateError);
+    }
 
     return data.telefone;
   } catch (error) {

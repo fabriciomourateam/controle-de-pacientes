@@ -298,7 +298,7 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
             <Edit className="w-3 h-3" />
           </Button>
         ) : (
-          <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
+          <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
             <Camera className="w-4 h-4" />
             Adicionar Dados Iniciais
           </Button>

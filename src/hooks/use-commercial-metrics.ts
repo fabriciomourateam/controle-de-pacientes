@@ -537,12 +537,13 @@ export function useSalesMetrics(selectedMonth?: string) {
   });
 
   const funnelMetrics = Array.from(funnelMetricsMap.values()).map(funnel => {
-    // Taxa de conversão = (Vendas / Total de Calls) × 100
-    // Total de Calls inclui todas as calls (comprou + não comprou + no show)
+    // Taxa de conversão = (Vendas / Calls Realizadas) × 100
+    // Calls Realizadas = comprou + não comprou (exclui no show)
+    const funnelCallsRealizadas = funnel.comprou + funnel.naoComprou;
     return {
       ...funnel,
-      conversionRate: funnel.totalCalls > 0 
-        ? (funnel.comprou / funnel.totalCalls) * 100 
+      conversionRate: funnelCallsRealizadas > 0 
+        ? (funnel.comprou / funnelCallsRealizadas) * 100 
         : 0
     };
   });

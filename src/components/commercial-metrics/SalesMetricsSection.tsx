@@ -101,10 +101,11 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
     noShow: acc.noShow + month.noShow,
   }), { totalCalls: 0, comprou: 0, naoComprou: 0, noShow: 0 });
 
-  // Taxa de conversão geral = (Comprou / Total de Calls) × 100
-  // Total de Calls inclui todas as calls (comprou + não comprou + no show)
-  const overallConversion = totals.totalCalls > 0
-    ? (totals.comprou / totals.totalCalls) * 100
+  // Taxa de conversão geral = (Comprou / Calls Realizadas) × 100
+  // Calls Realizadas = comprou + não comprou (exclui no show)
+  const callsRealizadas = totals.comprou + totals.naoComprou;
+  const overallConversion = callsRealizadas > 0
+    ? (totals.comprou / callsRealizadas) * 100
     : 0;
   
   // Verificação: soma deve bater com total (vendas sem status contam como "não comprou")

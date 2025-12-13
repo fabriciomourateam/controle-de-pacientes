@@ -123,3 +123,8 @@ COMMENT ON POLICY "Admin can create any subscription" ON user_subscriptions IS
   'Permite que admin crie assinaturas para qualquer usuário (para atribuir trials)';
 
 
+
+
+
+
+

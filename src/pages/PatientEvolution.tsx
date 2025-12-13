@@ -31,7 +31,11 @@ import { ShareButton } from '@/components/evolution/ShareButton';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
 import { PortalPNGButton } from '@/components/evolution/PortalPNGButton';
+import { WeightInput } from '@/components/evolution/WeightInput';
+import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
 import { PortalPDFButton } from '@/components/evolution/PortalPDFButton';
+import { ExamRequestModal } from '@/components/exams/ExamRequestModal';
+import { ExamsHistory } from '@/components/exams/ExamsHistory';
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
 import { migrateCheckinPhotos, isTypebotUrl } from '@/lib/photo-migration-service';
@@ -52,7 +56,9 @@ import {
   Trash2,
   FileDown,
   Image,
-  ChevronDown
+  ChevronDown,
+  Scale,
+  FlaskConical
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -72,6 +78,9 @@ export default function PatientEvolution() {
   const [zoomedPhoto, setZoomedPhoto] = useState<{ url: string; label: string } | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [weightInputOpen, setWeightInputOpen] = useState(false);
+  const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
+  const [examRequestModalOpen, setExamRequestModalOpen] = useState(false);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -470,14 +479,29 @@ export default function PatientEvolution() {
             <div className="flex flex-wrap gap-2">
               {patient?.id && (
                 <Button
-                  variant="outline"
                   onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
-                  className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 hover:text-cyan-200"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
                 >
                   <Utensils className="w-4 h-4 mr-2" />
                   Plano Alimentar
                 </Button>
               )}
+              
+              <Button
+                onClick={() => setExamRequestModalOpen(true)}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
+              >
+                <FlaskConical className="w-4 h-4 mr-2" />
+                Solicitar Exame
+              </Button>
+              
+              <Button
+                onClick={() => setWeightInputOpen(true)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all"
+              >
+                <Scale className="w-4 h-4 mr-2" />
+                Registrar Peso
+              </Button>
               
               <PortalLinkButton 
                 telefone={telefone!} 
@@ -1086,8 +1110,47 @@ export default function PatientEvolution() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.25 }}
           >
-            <EvolutionCharts checkins={checkins} patient={patient} />
+            <EvolutionCharts 
+              checkins={checkins} 
+              patient={patient} 
+              refreshTrigger={chartsRefreshTrigger}
+            />
           </motion.div>
+
+          {/* Lista de Pesos Diários */}
+          {telefone && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <DailyWeightsList
+                telefone={telefone}
+                onUpdate={() => {
+                  loadEvolution(); // Recarregar dados para atualizar gráficos
+                  // Forçar atualização dos gráficos
+                  setChartsRefreshTrigger(prev => prev + 1);
+                }}
+              />
+            </motion.div>
+          )}
+
+          {/* Histórico de Exames Laboratoriais */}
+          {telefone && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+            >
+              <ExamsHistory
+                patientId={patient?.id}
+                telefone={telefone}
+                onUpdate={loadEvolution}
+                refreshTrigger={chartsRefreshTrigger}
+                allowDelete={false} // Nutricionista não deleta aqui (exames estão no portal)
+              />
+            </motion.div>
+          )}
 
           {/* Comparação de Fotos */}
           <motion.div
@@ -1162,7 +1225,41 @@ export default function PatientEvolution() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Registro de Peso */}
+        {telefone && (
+          <WeightInput
+            telefone={telefone}
+            open={weightInputOpen}
+            onOpenChange={setWeightInputOpen}
+            onSuccess={() => {
+              // Recarregar dados para atualizar gráficos
+              loadEvolution();
+              // Forçar atualização dos gráficos
+              setChartsRefreshTrigger(prev => prev + 1);
+            }}
+          />
+        )}
+
+        {/* Modal de Solicitação de Exame */}
+        {telefone && (
+          <ExamRequestModal
+            open={examRequestModalOpen}
+            onOpenChange={setExamRequestModalOpen}
+            patientId={patient?.id}
+            telefone={telefone}
+            onSuccess={() => {
+              // Forçar atualização do histórico de exames
+              console.log('🔄 PatientEvolution: onSuccess chamado, incrementando refreshTrigger');
+              setChartsRefreshTrigger(prev => {
+                const newValue = prev + 1;
+                console.log('🔄 PatientEvolution: refreshTrigger atualizado de', prev, 'para', newValue);
+                return newValue;
+              });
+            }}
+          />
+        )}
       </DashboardLayout>
-  );
-}
+    );
+  }
 

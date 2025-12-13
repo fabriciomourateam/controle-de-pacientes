@@ -108,13 +108,13 @@ export function PlanComparatorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto border-cyan-500/30 bg-slate-900/95 backdrop-blur-xl text-white">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto border-green-500/30 bg-white text-[#222222]">
         <DialogHeader>
-          <DialogTitle className="text-cyan-300 flex items-center gap-2">
-            <GitCompare className="h-5 w-5" />
+          <DialogTitle className="text-[#222222] flex items-center gap-2">
+            <GitCompare className="h-5 w-5 text-[#00C98A]" />
             Comparar Planos
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-[#777777]">
             Compare o plano atual com outro plano do mesmo paciente
           </DialogDescription>
         </DialogHeader>
@@ -122,19 +122,19 @@ export function PlanComparatorModal({
         <div className="space-y-6">
           {/* Seleção de Plano */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-cyan-200/70">
+            <label className="text-sm font-medium text-[#222222]">
               Selecionar Plano para Comparar
             </label>
             <Select value={selectedPlanId} onValueChange={(value) => {
               setSelectedPlanId(value);
               handleSelectPlan(value);
             }}>
-              <SelectTrigger className="bg-slate-950/50 border-slate-700 text-white">
+              <SelectTrigger className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15">
                 <SelectValue placeholder="Escolha um plano" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {plans.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id}>
+                  <SelectItem key={plan.id} value={plan.id} className="text-[#222222]">
                     {plan.name}
                   </SelectItem>
                 ))}
@@ -145,52 +145,52 @@ export function PlanComparatorModal({
           {/* Comparação */}
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#00C98A]" />
             </div>
           ) : currentTotals && selectedTotals ? (
             <div className="grid grid-cols-2 gap-4">
               {/* Plano Atual */}
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-green-500/10 border-green-500/30">
                 <CardContent className="p-4">
-                  <div className="font-semibold text-cyan-300 mb-4">
+                  <div className="font-semibold text-[#222222] mb-4">
                     {currentPlan?.name || 'Plano Atual'}
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <div className="text-xs text-slate-400">Calorias</div>
-                      <div className="text-xl font-bold text-cyan-400">{currentTotals.calorias}</div>
+                      <div className="text-xs text-[#777777]">Calorias</div>
+                      <div className="text-xl font-bold text-[#00A875]">{currentTotals.calorias}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400">Proteínas</div>
-                      <div className="text-xl font-bold text-cyan-400">{currentTotals.proteinas}g</div>
+                      <div className="text-xs text-[#777777]">Proteínas</div>
+                      <div className="text-xl font-bold text-[#00A875]">{currentTotals.proteinas}g</div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400">Carboidratos</div>
-                      <div className="text-xl font-bold text-cyan-400">{currentTotals.carboidratos}g</div>
+                      <div className="text-xs text-[#777777]">Carboidratos</div>
+                      <div className="text-xl font-bold text-[#00A875]">{currentTotals.carboidratos}g</div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400">Gorduras</div>
-                      <div className="text-xl font-bold text-cyan-400">{currentTotals.gorduras}g</div>
+                      <div className="text-xs text-[#777777]">Gorduras</div>
+                      <div className="text-xl font-bold text-[#00A875]">{currentTotals.gorduras}g</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Plano Selecionado */}
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-green-500/10 border-green-500/30">
                 <CardContent className="p-4">
-                  <div className="font-semibold text-cyan-300 mb-4">
+                  <div className="font-semibold text-[#222222] mb-4">
                     {selectedPlan?.name || 'Plano Selecionado'}
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <div className="text-xs text-slate-400">Calorias</div>
+                      <div className="text-xs text-[#777777]">Calorias</div>
                       <div className="flex items-center gap-2">
-                        <div className="text-xl font-bold text-cyan-400">{selectedTotals.calorias}</div>
+                        <div className="text-xl font-bold text-[#00A875]">{selectedTotals.calorias}</div>
                         {(() => {
                           const diff = calculateDifference(currentTotals.calorias, selectedTotals.calorias);
                           return diff && (
-                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}>
+                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-700' : 'bg-red-500/20 border-red-500/50 text-red-700'}>
                               {diff.diff > 0 ? '+' : ''}{Math.round(diff.diff)} ({diff.percentage > 0 ? '+' : ''}{Math.round(diff.percentage)}%)
                             </Badge>
                           );
@@ -198,13 +198,13 @@ export function PlanComparatorModal({
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400">Proteínas</div>
+                      <div className="text-xs text-[#777777]">Proteínas</div>
                       <div className="flex items-center gap-2">
-                        <div className="text-xl font-bold text-cyan-400">{selectedTotals.proteinas}g</div>
+                        <div className="text-xl font-bold text-[#00A875]">{selectedTotals.proteinas}g</div>
                         {(() => {
                           const diff = calculateDifference(currentTotals.proteinas, selectedTotals.proteinas);
                           return diff && (
-                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}>
+                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-700' : 'bg-red-500/20 border-red-500/50 text-red-700'}>
                               {diff.diff > 0 ? '+' : ''}{Math.round(diff.diff * 10) / 10}g
                             </Badge>
                           );
@@ -212,13 +212,13 @@ export function PlanComparatorModal({
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400">Carboidratos</div>
+                      <div className="text-xs text-[#777777]">Carboidratos</div>
                       <div className="flex items-center gap-2">
-                        <div className="text-xl font-bold text-cyan-400">{selectedTotals.carboidratos}g</div>
+                        <div className="text-xl font-bold text-[#00A875]">{selectedTotals.carboidratos}g</div>
                         {(() => {
                           const diff = calculateDifference(currentTotals.carboidratos, selectedTotals.carboidratos);
                           return diff && (
-                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}>
+                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-700' : 'bg-red-500/20 border-red-500/50 text-red-700'}>
                               {diff.diff > 0 ? '+' : ''}{Math.round(diff.diff * 10) / 10}g
                             </Badge>
                           );
@@ -226,13 +226,13 @@ export function PlanComparatorModal({
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400">Gorduras</div>
+                      <div className="text-xs text-[#777777]">Gorduras</div>
                       <div className="flex items-center gap-2">
-                        <div className="text-xl font-bold text-cyan-400">{selectedTotals.gorduras}g</div>
+                        <div className="text-xl font-bold text-[#00A875]">{selectedTotals.gorduras}g</div>
                         {(() => {
                           const diff = calculateDifference(currentTotals.gorduras, selectedTotals.gorduras);
                           return diff && (
-                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}>
+                            <Badge variant={diff.diff > 0 ? 'default' : 'secondary'} className={diff.diff > 0 ? 'bg-green-500/20 border-green-500/50 text-green-700' : 'bg-red-500/20 border-red-500/50 text-red-700'}>
                               {diff.diff > 0 ? '+' : ''}{Math.round(diff.diff * 10) / 10}g
                             </Badge>
                           );
@@ -244,7 +244,7 @@ export function PlanComparatorModal({
               </Card>
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-[#777777]">
               Selecione um plano para comparar
             </div>
           )}

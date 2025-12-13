@@ -112,7 +112,7 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
     <Dialog open={showDialog} onOpenChange={setShowDialog}>
       <DialogTrigger asChild>
         <Button
-          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+          className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition-all"
         >
           <Link2 className="w-4 h-4 mr-2" />
           Portal do Aluno

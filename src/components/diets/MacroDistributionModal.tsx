@@ -132,13 +132,13 @@ export function MacroDistributionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-cyan-500/30 bg-slate-900/95 backdrop-blur-xl text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-green-500/30 bg-white text-[#222222]">
         <DialogHeader>
-          <DialogTitle className="text-cyan-300 flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+          <DialogTitle className="text-[#222222] flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-[#00C98A]" />
             Distribuição Automática de Macros
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-[#777777]">
             Distribua automaticamente os macros entre as refeições usando diferentes estratégias
           </DialogDescription>
         </DialogHeader>
@@ -146,38 +146,38 @@ export function MacroDistributionModal({
         <div className="space-y-6">
           {/* Estratégia */}
           <div className="space-y-2">
-            <Label className="text-cyan-200/70">Estratégia de Distribuição</Label>
+            <Label className="text-[#222222]">Estratégia de Distribuição</Label>
             <Select value={strategy} onValueChange={handleStrategyChange}>
-              <SelectTrigger className="border-cyan-500/30 bg-slate-950/50 text-white">
+              <SelectTrigger className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="balanced">Equilibrada (mesma proporção)</SelectItem>
-                <SelectItem value="protein_focused">Foco em Proteína (mais no almoço/jantar)</SelectItem>
-                <SelectItem value="carb_strategic">Carboidrato Estratégico (mais no pré/pós-treino)</SelectItem>
+              <SelectContent className="bg-white">
+                <SelectItem value="balanced" className="text-[#222222]">Equilibrada (mesma proporção)</SelectItem>
+                <SelectItem value="protein_focused" className="text-[#222222]">Foco em Proteína (mais no almoço/jantar)</SelectItem>
+                <SelectItem value="carb_strategic" className="text-[#222222]">Carboidrato Estratégico (mais no pré/pós-treino)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Totais */}
-          <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
-            <h4 className="font-semibold text-cyan-300 mb-3">Totais do Plano</h4>
+          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+            <h4 className="font-semibold text-[#222222] mb-3">Totais do Plano</h4>
             <div className="grid grid-cols-4 gap-4">
               <div>
-                <div className="text-sm text-slate-400">Calorias</div>
-                <div className="text-xl font-bold text-cyan-400">{totalMacros.calories}</div>
+                <div className="text-sm text-[#777777]">Calorias</div>
+                <div className="text-xl font-bold text-[#00A875]">{totalMacros.calories}</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Proteínas</div>
-                <div className="text-xl font-bold text-cyan-400">{totalMacros.protein}g</div>
+                <div className="text-sm text-[#777777]">Proteínas</div>
+                <div className="text-xl font-bold text-[#00A875]">{totalMacros.protein}g</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Carboidratos</div>
-                <div className="text-xl font-bold text-cyan-400">{totalMacros.carbs}g</div>
+                <div className="text-sm text-[#777777]">Carboidratos</div>
+                <div className="text-xl font-bold text-[#00A875]">{totalMacros.carbs}g</div>
               </div>
               <div>
-                <div className="text-sm text-slate-400">Gorduras</div>
-                <div className="text-xl font-bold text-cyan-400">{totalMacros.fats}g</div>
+                <div className="text-sm text-[#777777]">Gorduras</div>
+                <div className="text-xl font-bold text-[#00A875]">{totalMacros.fats}g</div>
               </div>
             </div>
           </div>
@@ -185,13 +185,13 @@ export function MacroDistributionModal({
           {/* Distribuição por Refeição */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-cyan-300">Distribuição por Refeição</h4>
+              <h4 className="font-semibold text-[#222222]">Distribuição por Refeição</h4>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleNormalize}
-                className="border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/20"
+                className="border-green-500/50 text-[#00A875] hover:bg-green-500/20"
               >
                 Normalizar
               </Button>
@@ -201,56 +201,56 @@ export function MacroDistributionModal({
               {distribution.map((meal, index) => (
                 <div
                   key={index}
-                  className="bg-slate-800/50 border border-slate-700 rounded-lg p-4"
+                  className="bg-green-500/10 border border-green-500/30 rounded-lg p-4"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <div className="font-semibold text-white">{meal.mealName}</div>
-                      <div className="text-sm text-slate-400">{meal.mealType}</div>
+                      <div className="font-semibold text-[#222222]">{meal.mealName}</div>
+                      <div className="text-sm text-[#777777]">{meal.mealType}</div>
                     </div>
-                    <Badge variant="outline" className="border-cyan-500/50 text-cyan-300">
+                    <Badge variant="outline" className="border-green-500/50 text-[#00A875] bg-green-500/10">
                       {Math.round((meal.target.calories / totalMacros.calories) * 100)}%
                     </Badge>
                   </div>
 
                   <div className="grid grid-cols-4 gap-3">
                     <div>
-                      <Label className="text-xs text-slate-400">Calorias</Label>
+                      <Label className="text-xs text-[#777777]">Calorias</Label>
                       <Input
                         type="number"
                         value={meal.target.calories}
                         onChange={(e) => handleManualAdjust(index, 'calories', parseInt(e.target.value) || 0)}
-                        className="bg-slate-950/50 border-slate-700 text-white"
+                        className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">Proteínas (g)</Label>
+                      <Label className="text-xs text-[#777777]">Proteínas (g)</Label>
                       <Input
                         type="number"
                         step="0.1"
                         value={meal.target.protein}
                         onChange={(e) => handleManualAdjust(index, 'protein', parseFloat(e.target.value) || 0)}
-                        className="bg-slate-950/50 border-slate-700 text-white"
+                        className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">Carboidratos (g)</Label>
+                      <Label className="text-xs text-[#777777]">Carboidratos (g)</Label>
                       <Input
                         type="number"
                         step="0.1"
                         value={meal.target.carbs}
                         onChange={(e) => handleManualAdjust(index, 'carbs', parseFloat(e.target.value) || 0)}
-                        className="bg-slate-950/50 border-slate-700 text-white"
+                        className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">Gorduras (g)</Label>
+                      <Label className="text-xs text-[#777777]">Gorduras (g)</Label>
                       <Input
                         type="number"
                         step="0.1"
                         value={meal.target.fats}
                         onChange={(e) => handleManualAdjust(index, 'fats', parseFloat(e.target.value) || 0)}
-                        className="bg-slate-950/50 border-slate-700 text-white"
+                        className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                       />
                     </div>
                   </div>
@@ -294,9 +294,9 @@ export function MacroDistributionModal({
           )}
 
           {isValid && (
-            <Alert className="border-green-500 bg-green-500/10">
-              <CheckCircle className="h-4 w-4 text-green-400" />
-              <AlertDescription className="text-green-400">
+            <Alert className="border-green-600 bg-green-500/20">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-700">
                 Distribuição válida! Os valores somam corretamente.
               </AlertDescription>
             </Alert>
@@ -307,14 +307,14 @@ export function MacroDistributionModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-slate-700 text-slate-300"
+            className="border-gray-300 text-white hover:bg-gray-100 hover:text-[#222222]"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleApply}
             disabled={!isValid}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white"
+            className="bg-[#00C98A] hover:bg-[#00A875] text-white"
           >
             Aplicar Distribuição
           </Button>
@@ -323,6 +323,8 @@ export function MacroDistributionModal({
     </Dialog>
   );
 }
+
+
 
 
 

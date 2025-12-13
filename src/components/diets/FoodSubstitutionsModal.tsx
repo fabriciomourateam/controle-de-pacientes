@@ -57,7 +57,7 @@ export function FoodSubstitutionsModal({
       ...substitutions,
       {
         food_name: '',
-        quantity: 0,
+        quantity: 0.5,
         unit: 'g',
       },
     ]);
@@ -114,7 +114,7 @@ export function FoodSubstitutionsModal({
 
         <div className="space-y-4">
           {substitutions.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-[#777777]">
               <p>Nenhuma substituição adicionada ainda.</p>
               <p className="text-sm mt-2">Clique em "Adicionar Substituição" para começar.</p>
             </div>
@@ -123,10 +123,10 @@ export function FoodSubstitutionsModal({
               {substitutions.map((sub, index) => (
                 <div
                   key={index}
-                  className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border border-slate-700/50 rounded-lg p-4 space-y-3"
+                  className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <Label className="text-white font-medium">Substituição {index + 1}</Label>
+                    <Label className="text-[#222222] font-medium">Substituição {index + 1}</Label>
                     <Button
                       type="button"
                       variant="ghost"
@@ -140,27 +140,27 @@ export function FoodSubstitutionsModal({
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2">
-                      <Label className="text-slate-400 text-sm mb-1 block">Nome do Alimento *</Label>
+                      <Label className="text-[#777777] text-sm mb-1 block">Nome do Alimento *</Label>
                       <Input
                         placeholder="Ex: Macarrão, Batata, etc."
                         value={sub.food_name}
                         onChange={(e) => updateSubstitution(index, 'food_name', e.target.value)}
-                        className="border-slate-600/50 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-300"
+                        className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0"
                       />
                     </div>
 
                     <div>
-                      <Label className="text-slate-400 text-sm mb-1 block">Unidade *</Label>
+                      <Label className="text-[#777777] text-sm mb-1 block">Unidade *</Label>
                       <Select
                         value={sub.unit}
                         onValueChange={(value) => updateSubstitution(index, 'unit', value)}
                       >
-                        <SelectTrigger className="border-slate-600/50 bg-slate-800/50 text-white focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-300">
+                        <SelectTrigger className="border-green-500/30 bg-white text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white">
                           {units.map((unit) => (
-                            <SelectItem key={unit} value={unit}>
+                            <SelectItem key={unit} value={unit} className="text-[#222222]">
                               {unit}
                             </SelectItem>
                           ))}
@@ -170,17 +170,17 @@ export function FoodSubstitutionsModal({
                   </div>
 
                   <div>
-                    <Label className="text-slate-400 text-sm mb-1 block">Quantidade *</Label>
+                    <Label className="text-[#777777] text-sm mb-1 block">Quantidade *</Label>
                     <Input
                       type="number"
                       step="0.1"
-                      min="0.1"
+                      min="0"
                       placeholder="0"
                       value={sub.quantity || ''}
                       onChange={(e) => updateSubstitution(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="border-slate-600/50 bg-slate-800/50 text-white placeholder:text-slate-500 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-300"
+                      className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0"
                     />
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-[#777777] mt-1">
                       Quantidade proporcional ao alimento original
                     </p>
                   </div>
@@ -193,7 +193,7 @@ export function FoodSubstitutionsModal({
             type="button"
             variant="outline"
             onClick={addSubstitution}
-            className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/50 text-purple-300 hover:from-purple-500/20 hover:to-pink-500/20 hover:border-purple-400/70 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+            className="w-full bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
           >
             <Plus className="w-4 h-4 mr-2" />
             Adicionar Substituição
@@ -204,13 +204,13 @@ export function FoodSubstitutionsModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-slate-700 text-slate-300 hover:bg-slate-800/50"
+            className="border-green-500/30 text-white hover:bg-gray-100 hover:text-[#222222]"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 text-white"
+            className="bg-[#00C98A] hover:bg-[#00A875] text-white"
           >
             Salvar Substituições
           </Button>
@@ -219,6 +219,8 @@ export function FoodSubstitutionsModal({
     </Dialog>
   );
 }
+
+
 
 
 

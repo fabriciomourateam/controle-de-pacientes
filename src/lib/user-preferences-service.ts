@@ -138,7 +138,6 @@ class UserPreferencesService {
 
   // Buscar notificações lidas
   async getReadNotifications(): Promise<string[]> {
-    console.log('Iniciando busca de notificações lidas...');
     try {
       const preferences = await this.getUserPreferences();
       
@@ -147,17 +146,13 @@ class UserPreferencesService {
       
       if (preferences?.read_notifications) {
         readNotifications = preferences.read_notifications;
-        console.log('Notificações lidas encontradas (campo dedicado):', readNotifications);
       } else if (preferences?.filters?.read_notifications) {
         readNotifications = preferences.filters.read_notifications;
-        console.log('Notificações lidas encontradas (fallback em filters):', readNotifications);
-      } else {
-        console.log('Nenhuma notificação lida encontrada');
       }
       
       return readNotifications;
     } catch (error) {
-      console.error('Erro ao buscar notificações lidas:', error);
+      // Silenciar erros de notificações para evitar poluição do console
       return [];
     }
   }

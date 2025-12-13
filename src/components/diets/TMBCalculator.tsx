@@ -142,13 +142,13 @@ export function TMBCalculator({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border border-cyan-500/30 bg-slate-900/95 backdrop-blur-xl text-white max-w-2xl">
+      <DialogContent className="border border-green-500/30 bg-white text-[#222222] max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white text-xl flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-cyan-400" />
+          <DialogTitle className="text-[#222222] text-xl flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-[#00C98A]" />
             Calculadora TMB e GET (Harris-Benedict)
           </DialogTitle>
-          <DialogDescription className="text-cyan-200/70">
+          <DialogDescription className="text-[#777777]">
             Calcule o TMB (Taxa Metabólica Basal) e GET (Gasto Energético Total) do paciente usando a fórmula de Harris-Benedict
           </DialogDescription>
         </DialogHeader>
@@ -156,7 +156,7 @@ export function TMBCalculator({
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-cyan-200/70">Peso (kg) *</Label>
+              <Label className="text-[#222222]">Peso (kg) *</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -165,11 +165,11 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, peso: e.target.value })
                 }
                 placeholder="Ex: 75.5"
-                className="border-cyan-500/30 bg-slate-950/50 text-white"
+                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
               />
             </div>
             <div>
-              <Label className="text-cyan-200/70">Altura (cm) *</Label>
+              <Label className="text-[#222222]">Altura (cm) *</Label>
               <Input
                 type="number"
                 value={calculoDados.altura}
@@ -177,14 +177,14 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, altura: e.target.value })
                 }
                 placeholder="Ex: 175"
-                className="border-cyan-500/30 bg-slate-950/50 text-white"
+                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-cyan-200/70">Idade *</Label>
+              <Label className="text-[#222222]">Idade *</Label>
               <Input
                 type="number"
                 value={calculoDados.idade}
@@ -192,23 +192,23 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, idade: e.target.value })
                 }
                 placeholder="Ex: 30"
-                className="border-cyan-500/30 bg-slate-950/50 text-white"
+                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
               />
             </div>
             <div>
-              <Label className="text-cyan-200/70">Sexo *</Label>
+              <Label className="text-[#222222]">Sexo *</Label>
               <Select
                 value={calculoDados.sexo}
                 onValueChange={(value: "M" | "F") =>
                   setCalculoDados({ ...calculoDados, sexo: value })
                 }
               >
-                <SelectTrigger className="border-cyan-500/30 bg-slate-950/50 text-white">
+                <SelectTrigger className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="M">Masculino</SelectItem>
-                  <SelectItem value="F">Feminino</SelectItem>
+                <SelectContent className="bg-white">
+                  <SelectItem value="M" className="text-[#222222]">Masculino</SelectItem>
+                  <SelectItem value="F" className="text-[#222222]">Feminino</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -218,7 +218,7 @@ export function TMBCalculator({
           <div className="flex justify-end">
             <Button
               onClick={calcularTMBEMacros}
-              className="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 shadow-lg"
+              className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg"
             >
               <Calculator className="mr-2 h-4 w-4" />
               Calcular TMB/GET
@@ -227,21 +227,21 @@ export function TMBCalculator({
 
           {/* Resultados do TMB/GET */}
           {(resultadoTMB || resultadoGET) && (
-            <div className="p-4 rounded-lg bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border border-cyan-500/20">
+            <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/30">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-cyan-200/70">TMB (Taxa Metabólica Basal)</p>
-                  <p className="text-2xl font-bold text-cyan-300">
+                  <p className="text-xs text-[#777777]">TMB (Taxa Metabólica Basal)</p>
+                  <p className="text-2xl font-bold text-[#00A875]">
                     {resultadoTMB?.toFixed(2)} kcal
                   </p>
-                  <p className="text-xs text-cyan-200/60 mt-1">Fórmula Harris-Benedict</p>
+                  <p className="text-xs text-[#777777] mt-1">Fórmula Harris-Benedict</p>
                 </div>
                 <div>
-                  <p className="text-xs text-cyan-200/70">GET (Gasto Energético Total)</p>
-                  <p className="text-2xl font-bold text-cyan-300">
+                  <p className="text-xs text-[#777777]">GET (Gasto Energético Total)</p>
+                  <p className="text-2xl font-bold text-[#00A875]">
                     {resultadoGET?.toFixed(2)} kcal
                   </p>
-                  <p className="text-xs text-cyan-200/60 mt-1">TMB × 1.45 (Fator de Atividade)</p>
+                  <p className="text-xs text-[#777777] mt-1">TMB × 1.45 (Fator de Atividade)</p>
                 </div>
               </div>
             </div>
@@ -249,11 +249,11 @@ export function TMBCalculator({
 
           {/* Campos de Metas - Aparecem após calcular */}
           {macrosCalculados && (
-            <div className="space-y-4 pt-4 border-t border-cyan-500/20">
-              <p className="text-sm font-semibold text-cyan-300">Metas da Dieta</p>
+            <div className="space-y-4 pt-4 border-t border-green-500/30">
+              <p className="text-sm font-semibold text-[#222222]">Metas da Dieta</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-cyan-200/70">Calorias Meta</Label>
+                  <Label className="text-[#222222]">Calorias Meta</Label>
                   <Input
                     type="number"
                     value={macrosCalculados.calorias}
@@ -284,11 +284,11 @@ export function TMBCalculator({
                         });
                       }
                     }}
-                    className="border-cyan-500/30 bg-slate-950/50 text-white"
+                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                   />
                 </div>
                 <div>
-                  <Label className="text-cyan-200/70">Proteínas Meta (g)</Label>
+                  <Label className="text-[#222222]">Proteínas Meta (g)</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -299,11 +299,11 @@ export function TMBCalculator({
                         proteinas: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="border-cyan-500/30 bg-slate-950/50 text-white"
+                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                   />
                 </div>
                 <div>
-                  <Label className="text-cyan-200/70">Carboidratos Meta (g)</Label>
+                  <Label className="text-[#222222]">Carboidratos Meta (g)</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -314,11 +314,11 @@ export function TMBCalculator({
                         carboidratos: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="border-cyan-500/30 bg-slate-950/50 text-white"
+                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                   />
                 </div>
                 <div>
-                  <Label className="text-cyan-200/70">Gorduras Meta (g)</Label>
+                  <Label className="text-[#222222]">Gorduras Meta (g)</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -329,7 +329,7 @@ export function TMBCalculator({
                         gorduras: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="border-cyan-500/30 bg-slate-950/50 text-white"
+                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
                   />
                 </div>
               </div>
@@ -337,7 +337,7 @@ export function TMBCalculator({
           )}
         </div>
 
-        <div className="flex gap-2 justify-end pt-4 border-t border-cyan-500/20">
+        <div className="flex gap-2 justify-end pt-4 border-t border-green-500/30">
           <Button
             variant="outline"
             onClick={() => {
@@ -346,14 +346,14 @@ export function TMBCalculator({
               setResultadoGET(null);
               setMacrosCalculados(null);
             }}
-            className="border-cyan-500/30 bg-slate-950/50 text-cyan-300 hover:bg-slate-800"
+            className="border-gray-300 text-white hover:bg-gray-100 hover:text-[#222222]"
           >
             Cancelar
           </Button>
           {macrosCalculados && (
             <Button
               onClick={aplicarMacros}
-              className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-lg"
+              className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg"
             >
               <Save className="mr-2 h-4 w-4" />
               Aplicar Metas

@@ -12,6 +12,8 @@ import { DailyChallengesWidget } from '@/components/diets/DailyChallengesWidget'
 import { WeeklyProgressChart } from '@/components/diets/WeeklyProgressChart';
 import { GamificationWidget } from '@/components/diets/GamificationWidget';
 import { PatientEvolutionTab } from '@/components/diets/PatientEvolutionTab';
+import { AdherenceCharts } from '@/components/diets/AdherenceCharts';
+import { ExamsHistory } from '@/components/exams/ExamsHistory';
 import { 
   Utensils, 
   Calendar, 
@@ -21,7 +23,8 @@ import {
   CheckCircle, 
   Package, 
   AlertTriangle,
-  BookOpen
+  BookOpen,
+  Info
 } from 'lucide-react';
 import { dietConsumptionService } from '@/lib/diet-consumption-service';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +36,7 @@ interface PatientDietPortalProps {
   patient?: any;
   bodyCompositions?: any[];
   achievements?: any[];
+  refreshTrigger?: number; // Trigger para forçar atualização dos gráficos
 }
 
 export function PatientDietPortal({ 
@@ -41,7 +45,8 @@ export function PatientDietPortal({
   checkins,
   patient,
   bodyCompositions,
-  achievements
+  achievements,
+  refreshTrigger
 }: PatientDietPortalProps) {
   const { toast } = useToast();
   const [activePlan, setActivePlan] = useState<any>(null);
@@ -188,23 +193,26 @@ export function PatientDietPortal({
   const percentualConsumido = metaCalorias > 0 ? Math.min(100, (caloriasConsumidas / metaCalorias) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
       {/* Abas: Plano Alimentar, Metas, Progresso, Conquistas e Minha Evolução */}
       <Tabs defaultValue="diet" className="w-full">
-        <TabsList className="sticky top-0 z-50 flex w-full flex-wrap bg-slate-800/95 backdrop-blur-md gap-1 p-1 border-b border-slate-700/50 shadow-lg">
-          <TabsTrigger value="diet" className="data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-400 flex-1 min-w-[120px]">
+        <TabsList className="sticky top-0 z-50 flex w-full flex-wrap bg-gray-100 gap-1 p-1 border-b border-gray-200 shadow-sm rounded-t-lg">
+          <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[120px] text-[#777777]">
             Plano Alimentar
           </TabsTrigger>
-          <TabsTrigger value="challenges" className="data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-400 flex-1 min-w-[80px]">
+          <TabsTrigger value="orientations" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[120px] text-[#777777]">
+            Orientações
+          </TabsTrigger>
+          <TabsTrigger value="challenges" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[80px] text-[#777777]">
             Metas
           </TabsTrigger>
-          <TabsTrigger value="progress" className="data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-400 flex-1 min-w-[100px]">
+          <TabsTrigger value="progress" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[100px] text-[#777777]">
             Progresso
           </TabsTrigger>
-          <TabsTrigger value="gamification" className="data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-400 flex-1 min-w-[100px]">
+          <TabsTrigger value="gamification" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[100px] text-[#777777]">
             Conquistas
           </TabsTrigger>
-          <TabsTrigger value="evolution" className="data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-400 flex-1 min-w-[140px]">
+          <TabsTrigger value="evolution" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[140px] text-[#777777]">
             Minha Evolução
           </TabsTrigger>
         </TabsList>
@@ -517,13 +525,29 @@ export function PatientDietPortal({
         </TabsContent>
         
         {/* Aba: Progresso */}
-        <TabsContent value="progress" className="mt-6">
+        <TabsContent value="progress" className="mt-6 space-y-6">
           <WeeklyProgressChart patientId={patientId} />
+          <AdherenceCharts patientId={patientId} lowAdherenceThreshold={70} />
         </TabsContent>
         
         {/* Aba: Conquistas */}
         <TabsContent value="gamification" className="mt-6">
           <GamificationWidget patientId={patientId} />
+        </TabsContent>
+        
+        {/* Aba: Orientações */}
+        <TabsContent value="orientations" className="mt-6 space-y-6">
+          {patient?.telefone && (
+            <ExamsHistory
+              patientId={patient?.id}
+              telefone={patient.telefone}
+              onUpdate={() => {
+                // Recarregar se necessário
+              }}
+              refreshTrigger={refreshTrigger}
+              allowDelete={true} // Portal do paciente permite deletar
+            />
+          )}
         </TabsContent>
         
         {/* Aba: Minha Evolução */}
@@ -534,6 +558,7 @@ export function PatientDietPortal({
             patient={patient}
             bodyCompositions={bodyCompositions}
             achievements={achievements}
+            refreshTrigger={refreshTrigger}
           />
         </TabsContent>
       </Tabs>

@@ -271,3 +271,8 @@ Execute o SQL em `sql/create-diet-advanced-features.sql` no Supabase para criar 
 
 
 
+
+
+
+
+

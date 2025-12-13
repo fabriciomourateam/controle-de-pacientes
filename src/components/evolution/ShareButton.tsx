@@ -65,7 +65,7 @@ export function ShareButton({ data }: ShareButtonProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg"
+          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
           disabled={generating}
         >
           {generating ? (

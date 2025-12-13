@@ -272,7 +272,7 @@ export function BioimpedanciaInput({
       {/* BOTÃO PARA ABRIR O INSHAPE GPT */}
       <Button
         onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
-        className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
+        className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
       >
         <ExternalLink className="w-4 h-4" />
         Abrir InShape GPT
@@ -281,7 +281,7 @@ export function BioimpedanciaInput({
       {/* DIALOG PARA ADICIONAR BIOIMPEDÂNCIA */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all">
+          <Button className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
             <Plus className="w-4 h-4" />
             Adicionar Bioimpedância
           </Button>
