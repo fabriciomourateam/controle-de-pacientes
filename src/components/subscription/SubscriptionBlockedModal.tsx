@@ -24,8 +24,8 @@ export function SubscriptionBlockedModal({
 }: SubscriptionBlockedModalProps) {
   
   const handleUpgrade = () => {
-    // Redirecionar para página de pagamento Kiwify
-    window.open('https://pay.kiwify.com.br/SEU_LINK_AQUI', '_blank');
+    // Redirecionar para página de planos interna
+    window.location.href = '/pricing';
   };
 
   return (

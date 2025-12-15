@@ -14,7 +14,9 @@ import {
   Users,
   Settings,
   TrendingUp,
-  Utensils
+  Utensils,
+  CheckCircle,
+  LineChart
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -474,13 +476,14 @@ export function PatientsListNew() {
                   </TableHead>
                 ))}
                 <TableHead className="w-24 text-slate-300 text-center">Plano Alimentar</TableHead>
+                <TableHead className="w-24 text-slate-300 text-center">Evolução</TableHead>
                 <TableHead className="w-12 text-slate-300">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={filteredColumnOptions.length + 2} className="text-center py-8">
+                  <TableCell colSpan={filteredColumnOptions.length + 3} className="text-center py-8">
                     <div className="flex items-center justify-center gap-2 text-slate-400">
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       <span>Carregando pacientes...</span>
@@ -489,7 +492,7 @@ export function PatientsListNew() {
                 </TableRow>
               ) : patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={filteredColumnOptions.length + 2} className="text-center py-8">
+                  <TableCell colSpan={filteredColumnOptions.length + 3} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="w-8 h-8 text-slate-400" />
                       <p className="text-slate-400">Nenhum paciente encontrado</p>
@@ -651,13 +654,32 @@ export function PatientsListNew() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
-                                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+                                className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
                               >
-                                <Utensils className="w-4 h-4" />
+                                <CheckCircle className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Abrir Planos Alimentares</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/checkins/evolution/${patient.telefone}`)}
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                              >
+                                <LineChart className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver Evolução</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -673,14 +695,6 @@ export function PatientsListNew() {
                             <DropdownMenuItem onClick={() => handleViewPatient(patient)}>
                               <Eye className="w-4 h-4 mr-2" />
                               Ver detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/checkins/evolution/${patient.telefone}`)}>
-                              <TrendingUp className="w-4 h-4 mr-2" />
-                              Ver Evolução
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}>
-                              <Utensils className="w-4 h-4 mr-2" />
-                              Planos Alimentares
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEditPatient(patient)}>
                               <Edit className="w-4 h-4 mr-2" />

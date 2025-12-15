@@ -178,6 +178,7 @@ export function AppSidebar() {
   // Gestão de Equipe para owner ou admin
   if (userEmail === ADMIN_EMAIL || isOwner) {
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
+    adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
 
   return (

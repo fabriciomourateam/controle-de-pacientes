@@ -116,7 +116,7 @@ export default function PatientDetails() {
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              onClick={() => navigate("/patients")}
+              onClick={() => navigate(`/checkins/evolution/${patient.telefone}`)}
               className="text-slate-400 hover:text-white"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

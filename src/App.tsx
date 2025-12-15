@@ -36,6 +36,7 @@ const RetentionDashboard = lazy(() => import("./pages/RetentionDashboard"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 
 // Componente de loading
 const PageLoader = () => (
@@ -168,6 +169,11 @@ const App = () => (
           <Route path="/team" element={
             <Suspense fallback={<PageLoader />}>
                 <TeamManagement />
+              </Suspense>
+          } />
+          <Route path="/meetings" element={
+            <Suspense fallback={<PageLoader />}>
+                <TeamMeetings />
               </Suspense>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
