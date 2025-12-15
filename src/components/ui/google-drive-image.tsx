@@ -13,7 +13,8 @@ interface GoogleDriveImageProps {
  * Usa iframe como fallback quando a imagem direta falha por CORS
  */
 export function GoogleDriveImage({ src, alt, className, onClick, onError }: GoogleDriveImageProps) {
-  const [useIframe, setUseIframe] = useState(false);
+  // Sempre usar iframe para Google Drive (mais confiável)
+  const [useIframe, setUseIframe] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   // Extrair ID do Google Drive
@@ -35,7 +36,7 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
   const fileId = getFileId(src);
 
   const handleImageError = () => {
-    console.log('🔄 Imagem falhou, tentando iframe...', src);
+    console.log('🔄 Imagem falhou, tentando iframe...', { src, fileId });
     setImageError(true);
     setUseIframe(true);
     if (onError) onError();
@@ -56,14 +57,16 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
 
   // Tentar carregar como imagem primeiro
   if (!useIframe) {
+    const imageUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+    console.log('📸 Tentando carregar imagem:', { fileId, imageUrl });
     return (
       <img 
-        src={`https://drive.google.com/uc?export=view&id=${fileId}`}
+        src={imageUrl}
         alt={alt} 
         className={className}
         onClick={onClick}
         onError={handleImageError}
-        crossOrigin="anonymous"
+        loading="lazy"
       />
     );
   }
