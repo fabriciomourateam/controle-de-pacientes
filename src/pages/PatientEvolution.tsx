@@ -800,23 +800,7 @@ export default function PatientEvolution() {
             </Card>
           )}
 
-          {/* Aviso se houver poucos check-ins */}
-          {checkins.length > 0 && checkins.length < 3 && (
-            <Card className="bg-amber-900/20 border-amber-700/30">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-amber-200 font-semibold">Dados Limitados</p>
-                    <p className="text-amber-300/80 text-sm mt-1">
-                      Este paciente possui apenas {checkins.length} check-in{checkins.length > 1 ? 's' : ''} registrado{checkins.length > 1 ? 's' : ''}. 
-                      Alguns gráficos e análises de evolução podem ter informações limitadas.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Aviso se houver poucos check-ins - Movido para o final */}
 
           {/* Dados Iniciais (quando não há check-ins mas há fotos/medidas cadastradas) */}
           {(() => {
@@ -1073,38 +1057,16 @@ export default function PatientEvolution() {
           {checkins.length > 0 && (
             <>
 
-          {/* Badges de Conquistas */}
-          {achievements.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-            >
-              <AchievementBadges achievements={achievements} />
-            </motion.div>
-          )}
-
-          {/* Análise de Tendências */}
-          {trends.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <TrendsAnalysis trends={trends} />
-            </motion.div>
-          )}
-
-          {/* Análise Inteligente com IA */}
+          {/* 1. Análise Inteligente com IA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
             <AIInsights checkins={checkins} />
           </motion.div>
 
-          {/* Gráficos de Evolução */}
+          {/* 2. Gráficos de Evolução (Peso, Pontuações, Performance) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1117,63 +1079,96 @@ export default function PatientEvolution() {
             />
           </motion.div>
 
-          {/* Lista de Pesos Diários */}
+          {/* 3. Histórico de Exames Laboratoriais */}
           {telefone && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <DailyWeightsList
-                telefone={telefone}
-                onUpdate={() => {
-                  loadEvolution(); // Recarregar dados para atualizar gráficos
-                  // Forçar atualização dos gráficos
-                  setChartsRefreshTrigger(prev => prev + 1);
-                }}
-              />
-            </motion.div>
-          )}
-
-          {/* Histórico de Exames Laboratoriais */}
-          {telefone && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-            >
               <ExamsHistory
                 patientId={patient?.id}
                 telefone={telefone}
                 onUpdate={loadEvolution}
                 refreshTrigger={chartsRefreshTrigger}
-                allowDelete={false} // Nutricionista não deleta aqui (exames estão no portal)
+                allowDelete={false}
+                variant="dark"
               />
             </motion.div>
           )}
 
-          {/* Comparação de Fotos */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <PhotoComparison checkins={checkins} patient={patient} />
-          </motion.div>
-
-          {/* Timeline Detalhada */}
+          {/* 4. Comparação de Fotos */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35 }}
           >
+            <PhotoComparison 
+              checkins={checkins} 
+              patient={patient} 
+              onPhotoDeleted={loadEvolution}
+            />
+          </motion.div>
+
+          {/* 5. Timeline Detalhada */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
             <Timeline checkins={checkins} onCheckinUpdated={loadEvolution} />
           </motion.div>
+
+          {/* 6. Lista de Pesos Diários */}
+          {telefone && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.45 }}
+            >
+              <DailyWeightsList
+                telefone={telefone}
+                onUpdate={() => {
+                  loadEvolution();
+                  setChartsRefreshTrigger(prev => prev + 1);
+                }}
+              />
+            </motion.div>
+          )}
             </>
           )}
 
-          {/* Card de Ações Finais - Aparece sempre */}
-          <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+          {/* 7. Badges de Conquistas */}
+          {achievements.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <AchievementBadges achievements={achievements} />
+            </motion.div>
+          )}
+
+          {/* 8. Aviso se houver poucos check-ins */}
+          {checkins.length > 0 && checkins.length < 3 && (
+            <Card className="bg-amber-50 border-amber-200">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-amber-900 font-semibold">Dados Limitados</p>
+                    <p className="text-amber-800 text-sm mt-1">
+                      Este paciente possui apenas {checkins.length} check-in{checkins.length > 1 ? 's' : ''} registrado{checkins.length > 1 ? 's' : ''}. 
+                      Alguns gráficos e análises de evolução podem ter informações limitadas.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 9. Card de Ações Finais - Aparece sempre */}
+          <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <FileText className="w-5 h-5 text-blue-400" />

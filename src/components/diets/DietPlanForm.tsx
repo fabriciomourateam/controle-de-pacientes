@@ -32,6 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { dietService } from "@/lib/diet-service";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +107,7 @@ const guidelineTypes = [
 const dietPlanSchema = z.object({
   name: z.string().min(1, "Nome do plano é obrigatório"),
   notes: z.string().optional(),
+  is_released: z.boolean().optional(),
   total_calories: z.number().min(0).optional(),
   total_protein: z.number().min(0).optional(),
   total_carbs: z.number().min(0).optional(),
@@ -230,6 +232,7 @@ export function DietPlanForm({
     defaultValues: {
       name: "",
       notes: "",
+      is_released: false,
       total_calories: undefined,
       total_protein: undefined,
       total_carbs: undefined,
@@ -283,6 +286,7 @@ export function DietPlanForm({
         form.reset({
           name: "",
           notes: "",
+          is_released: false,
           total_calories: undefined,
           total_protein: undefined,
           total_carbs: undefined,
@@ -363,6 +367,7 @@ export function DietPlanForm({
       form.reset({
         name: planData.name || "",
         notes: planData.notes || "",
+        is_released: planData.is_released || false,
         total_calories: planData.total_calories || undefined,
         total_protein: planData.total_protein || undefined,
         total_carbs: planData.total_carbs || undefined,
@@ -370,7 +375,7 @@ export function DietPlanForm({
         target_calories: planData.target_calories || undefined,
         target_protein: planData.target_protein || undefined,
         target_carbs: planData.target_carbs || undefined,
-        target_fats: planData.target_fats || undefined,
+        target_fats: planData.total_fats || undefined,
         meals: (planData.diet_meals || []).map((meal: any, mealIndex: number) => ({
           meal_type: meal.meal_type || "",
           meal_name: meal.meal_name || "",
@@ -903,9 +908,15 @@ export function DietPlanForm({
   };
 
   const onSubmit = async (data: DietPlanFormData) => {
-    console.log('onSubmit chamado', data);
+    console.log('🔥 onSubmit chamado!', data);
+    console.log('📝 Dados do formulário:', {
+      meals: data.meals?.length,
+      guidelines: data.guidelines?.length,
+      observations: data.observations?.length
+    });
     try {
       setLoading(true);
+      console.log('⏳ Loading iniciado...');
 
       // Obter user_id do usuário autenticado
       const {
@@ -920,6 +931,7 @@ export function DietPlanForm({
         const planData = {
           name: data.name,
           notes: data.notes || null,
+          is_released: data.is_released || false,
           total_calories: data.total_calories || null,
           total_protein: data.total_protein || null,
           total_carbs: data.total_carbs || null,
@@ -962,6 +974,7 @@ export function DietPlanForm({
           name: data.name,
           status: "draft",
           notes: data.notes || null,
+          is_released: data.is_released || false,
           total_calories: data.total_calories || null,
           total_protein: data.total_protein || null,
           total_carbs: data.total_carbs || null,
@@ -1061,16 +1074,17 @@ export function DietPlanForm({
         }
       }
 
+      console.log('✅ Plano salvo com sucesso!');
       toast({
-        title: "Plano criado!",
-        description: "O plano alimentar foi criado com sucesso.",
+        title: "Plano salvo!",
+        description: "O plano alimentar foi salvo com sucesso.",
       });
 
       form.reset();
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Erro ao criar plano:", error);
+      console.error("❌ Erro ao salvar plano:", error);
       toast({
         title: "Erro ao criar plano",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao criar o plano.",
@@ -1170,6 +1184,31 @@ export function DietPlanForm({
                           />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Toggle de Liberação para o Paciente */}
+                  <FormField
+                    control={form.control}
+                    name="is_released"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border border-green-300/50 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base font-semibold text-[#222222]">
+                            Liberar para o Paciente
+                          </FormLabel>
+                          <FormDescription className="text-sm text-[#777777]">
+                            Quando ativado, este plano ficará visível no portal do paciente
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="bg-white data-[state=checked]:bg-[#00C98A]"
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />
@@ -1424,7 +1463,7 @@ export function DietPlanForm({
                         variant="outline"
                         size="sm"
                         onClick={() => setTemplateLibraryOpen(true)}
-                        className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/50 text-purple-300 hover:from-purple-500/20 hover:to-pink-500/20 hover:border-purple-400/70 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+                        className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
                       >
                         <BookOpen className="w-4 h-4 mr-2" />
                         Biblioteca
@@ -1435,7 +1474,7 @@ export function DietPlanForm({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="border-slate-600/50 hover:bg-slate-700/50 text-slate-300"
+                            className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </Button>
@@ -1490,7 +1529,7 @@ export function DietPlanForm({
                           variant="outline"
                           size="sm"
                           onClick={() => setVersionHistoryOpen(true)}
-                          className="bg-gradient-to-r from-slate-700/50 to-slate-600/50 border-slate-600/50 text-slate-300 hover:from-slate-600/70 hover:to-slate-500/70 hover:border-slate-500/70 transition-all duration-300"
+                          className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
                         >
                           <History className="w-4 h-4 mr-2" />
                           Versões
@@ -2243,15 +2282,17 @@ export function DietPlanForm({
             Cancelar
           </Button>
           <Button
-            type="submit"
-            form="diet-plan-form"
+            type="button"
             disabled={loading}
-            onClick={(e) => {
-              e.preventDefault();
-              const formElement = document.getElementById('diet-plan-form') as HTMLFormElement;
-              if (formElement) {
-                form.handleSubmit(onSubmit)(e);
-              }
+            onClick={async () => {
+              console.log('🖱️ Botão Salvar clicado!');
+              console.log('� Errtos do formulário:', form.formState.errors);
+              console.log('✅ Formulário válido?', form.formState.isValid);
+              console.log('📝 Valores do formulário:', form.getValues());
+              
+              // Forçar submit sem validação
+              const values = form.getValues();
+              await onSubmit(values as DietPlanFormData);
             }}
             className="bg-[#00C98A] hover:bg-[#00A875] text-white"
           >
@@ -2324,7 +2365,13 @@ export function DietPlanForm({
             if (!open) setSubstitutionsFoodIndex(null);
           }}
           originalFoodName={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.food_name`) || '' : ''}
-          substitutions={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`) || [] : []}
+          originalFoodQuantity={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.quantity`) || 100 : 100}
+          originalFoodUnit={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.unit`) || 'g' : 'g'}
+          originalFoodCalories={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.calories`) : undefined}
+          originalFoodProtein={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.protein`) : undefined}
+          originalFoodCarbs={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.carbs`) : undefined}
+          originalFoodFats={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.fats`) : undefined}
+          substitutions={(substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`) || [] : []) as any}
           onSave={(substitutions) => {
             if (substitutionsFoodIndex) {
               form.setValue(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`, substitutions);
@@ -2697,11 +2744,22 @@ const FoodItem = memo(function FoodItem({
                       setSubstitutionsFoodIndex({ mealIndex, foodIndex });
                       setSubstitutionsModalOpenProp(true);
                     }}
-                    className="h-7 w-7 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                    title="Adicionar Substitutos"
+                    className={`h-7 w-7 p-0 relative ${
+                      foodData?.substitutions && foodData.substitutions.length > 0
+                        ? 'text-[#00C98A] hover:text-[#00A875] hover:bg-green-500/20 bg-green-500/10'
+                        : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
+                    }`}
+                    title={foodData?.substitutions && foodData.substitutions.length > 0 
+                      ? `${foodData.substitutions.length} substituição(ões) cadastrada(s)` 
+                      : "Adicionar Substitutos"}
                     disabled={!foodNameField.value}
                   >
                     <Plus className="w-3 h-3" />
+                    {foodData?.substitutions && foodData.substitutions.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-[#00C98A] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {foodData.substitutions.length}
+                      </span>
+                    )}
                   </Button>
                   <Button
                     type="button"

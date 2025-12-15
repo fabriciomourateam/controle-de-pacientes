@@ -1,0 +1,249 @@
+{
+  "permissions_structure": {
+    "dashboard": {
+      "type": "boolean",
+      "label": "Dashboard",
+      "description": "Visualizar métricas e gráficos gerais"
+    },
+    "patients": {
+      "type": "object",
+      "label": "Pacientes",
+      "children": {
+        "view": {
+          "type": "boolean",
+          "label": "Visualizar lista",
+          "description": "Ver lista de pacientes"
+        },
+        "create": {
+          "type": "boolean",
+          "label": "Adicionar novos",
+          "description": "Cadastrar novos pacientes"
+        },
+        "edit": {
+          "type": "boolean",
+          "label": "Editar dados",
+          "description": "Modificar informações dos pacientes"
+        },
+        "delete": {
+          "type": "boolean",
+          "label": "Deletar pacientes",
+          "description": "Remover pacientes do sistema"
+        }
+      }
+    },
+    "checkins": {
+      "type": "object",
+      "label": "Check-ins",
+      "children": {
+        "view": {
+          "type": "boolean",
+          "label": "Visualizar",
+          "description": "Ver check-ins dos pacientes"
+        },
+        "create": {
+          "type": "boolean",
+          "label": "Registrar novos",
+          "description": "Criar novos check-ins"
+        },
+        "edit": {
+          "type": "boolean",
+          "label": "Editar",
+          "description": "Modificar check-ins existentes"
+        },
+        "delete": {
+          "type": "boolean",
+          "label": "Deletar",
+          "description": "Remover check-ins"
+        }
+      }
+    },
+    "diets": {
+      "type": "object",
+      "label": "Planos Alimentares",
+      "children": {
+        "view": {
+          "type": "boolean",
+          "label": "Visualizar",
+          "description": "Ver planos alimentares"
+        },
+        "create": {
+          "type": "boolean",
+          "label": "Criar novos",
+          "description": "Criar novos planos"
+        },
+        "edit": {
+          "type": "boolean",
+          "label": "Editar",
+          "description": "Modificar planos existentes"
+        },
+        "delete": {
+          "type": "boolean",
+          "label": "Deletar",
+          "description": "Remover planos"
+        },
+        "release": {
+          "type": "boolean",
+          "label": "Liberar para pacientes",
+          "description": "Liberar planos no portal do paciente"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "label": "Métricas Comerciais",
+      "children": {
+        "view_sales": {
+          "type": "boolean",
+          "label": "Visualizar vendas",
+          "description": "Ver métricas de vendas"
+        },
+        "view_retention": {
+          "type": "boolean",
+          "label": "Visualizar retenção",
+          "description": "Ver métricas de retenção"
+        },
+        "export": {
+          "type": "boolean",
+          "label": "Exportar relatórios",
+          "description": "Exportar dados de métricas"
+        }
+      }
+    },
+    "reports": {
+      "type": "object",
+      "label": "Relatórios",
+      "children": {
+        "clinical": {
+          "type": "boolean",
+          "label": "Relatórios clínicos",
+          "description": "Gerar relatórios de evolução dos pacientes"
+        },
+        "financial": {
+          "type": "boolean",
+          "label": "Relatórios financeiros",
+          "description": "Gerar relatórios financeiros"
+        },
+        "export": {
+          "type": "boolean",
+          "label": "Exportar",
+          "description": "Exportar relatórios"
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "label": "Gestão de Equipe",
+      "children": {
+        "view": {
+          "type": "boolean",
+          "label": "Visualizar membros",
+          "description": "Ver lista de membros da equipe"
+        },
+        "create": {
+          "type": "boolean",
+          "label": "Adicionar membros",
+          "description": "Convidar novos membros"
+        },
+        "edit": {
+          "type": "boolean",
+          "label": "Editar membros",
+          "description": "Modificar permissões e dados"
+        },
+        "delete": {
+          "type": "boolean",
+          "label": "Remover membros",
+          "description": "Remover membros da equipe"
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "label": "Configurações",
+      "children": {
+        "account": {
+          "type": "boolean",
+          "label": "Dados da conta",
+          "description": "Alterar informações da conta"
+        },
+        "integrations": {
+          "type": "boolean",
+          "label": "Integrações",
+          "description": "Configurar webhooks e integrações"
+        }
+      }
+    },
+    "billing": {
+      "type": "object",
+      "label": "Faturamento",
+      "children": {
+        "view": {
+          "type": "boolean",
+          "label": "Visualizar plano",
+          "description": "Ver plano atual e histórico"
+        },
+        "manage": {
+          "type": "boolean",
+          "label": "Gerenciar plano",
+          "description": "Alterar plano e forma de pagamento"
+        }
+      }
+    }
+  },
+  "default_roles": {
+    "administrador": {
+      "dashboard": true,
+      "patients": {"view": true, "create": true, "edit": true, "delete": true},
+      "checkins": {"view": true, "create": true, "edit": true, "delete": true},
+      "diets": {"view": true, "create": true, "edit": true, "delete": true, "release": true},
+      "metrics": {"view_sales": true, "view_retention": true, "export": true},
+      "reports": {"clinical": true, "financial": true, "export": true},
+      "team": {"view": true, "create": true, "edit": true, "delete": true},
+      "settings": {"account": true, "integrations": true},
+      "billing": {"view": true, "manage": true}
+    },
+    "estagiario": {
+      "dashboard": true,
+      "patients": {"view": true, "create": true, "edit": true, "delete": false},
+      "checkins": {"view": true, "create": true, "edit": true, "delete": false},
+      "diets": {"view": true, "create": true, "edit": true, "delete": false, "release": true},
+      "metrics": {"view_sales": false, "view_retention": false, "export": false},
+      "reports": {"clinical": false, "financial": false, "export": false},
+      "team": {"view": false, "create": false, "edit": false, "delete": false},
+      "settings": {"account": false, "integrations": false},
+      "billing": {"view": false, "manage": false}
+    },
+    "vendedor": {
+      "dashboard": false,
+      "patients": {"view": false, "create": false, "edit": false, "delete": false},
+      "checkins": {"view": false, "create": false, "edit": false, "delete": false},
+      "diets": {"view": false, "create": false, "edit": false, "delete": false, "release": false},
+      "metrics": {"view_sales": true, "view_retention": true, "export": true},
+      "reports": {"clinical": false, "financial": true, "export": true},
+      "team": {"view": false, "create": false, "edit": false, "delete": false},
+      "settings": {"account": false, "integrations": false},
+      "billing": {"view": false, "manage": false}
+    },
+    "assistente": {
+      "dashboard": true,
+      "patients": {"view": true, "create": false, "edit": false, "delete": false},
+      "checkins": {"view": true, "create": true, "edit": false, "delete": false},
+      "diets": {"view": false, "create": false, "edit": false, "delete": false, "release": false},
+      "metrics": {"view_sales": false, "view_retention": false, "export": false},
+      "reports": {"clinical": false, "financial": false, "export": false},
+      "team": {"view": false, "create": false, "edit": false, "delete": false},
+      "settings": {"account": false, "integrations": false},
+      "billing": {"view": false, "manage": false}
+    },
+    "nutricionista": {
+      "dashboard": true,
+      "patients": {"view": true, "create": true, "edit": true, "delete": true},
+      "checkins": {"view": true, "create": true, "edit": true, "delete": true},
+      "diets": {"view": true, "create": true, "edit": true, "delete": true, "release": true},
+      "metrics": {"view_sales": false, "view_retention": false, "export": false},
+      "reports": {"clinical": true, "financial": false, "export": true},
+      "team": {"view": false, "create": false, "edit": false, "delete": false},
+      "settings": {"account": false, "integrations": false},
+      "billing": {"view": false, "manage": false}
+    }
+  }
+}

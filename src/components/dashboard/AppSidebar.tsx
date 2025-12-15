@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,7 +44,7 @@ const mainNavItems = [
   { title: "Pacientes", url: "/patients", icon: Users },
   { title: "Retenção", url: "/retention", icon: AlertTriangle },
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
-  { title: "Planos", url: "/plans", icon: Calendar },
+  { title: "Planos de Acompanhamento", url: "/plans", icon: Calendar, ownerOnly: true }, // Apenas owner
   { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },
   { title: "Métricas Comerciais", url: "/commercial-metrics", icon: Target },
   { title: "Workspace", url: "/workspace", icon: Monitor },
@@ -66,6 +67,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const isCollapsed = state === "collapsed";
   const { profile } = useProfile();
+  const { hasPermission, isOwner } = useAuthContext();
   const { toast } = useToast();
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -129,18 +131,54 @@ export function AppSidebar() {
       ? "bg-gradient-to-r from-blue-600/20 to-blue-500/20 text-blue-400 font-medium border-blue-500/30" 
       : "hover:bg-slate-700/50 text-slate-400 hover:text-white hover:border-slate-600/50";
 
-  // Filtrar itens do menu - Workspace só aparece para o admin
+  // Mapeamento de permissões por rota
+  const routePermissions: Record<string, { resource: string; action?: string }> = {
+    "/patients": { resource: "patients", action: "view" },
+    "/retention": { resource: "patients", action: "view" },
+    "/checkins": { resource: "checkins", action: "view" },
+    "/metrics": { resource: "metrics", action: "view_sales" },
+    "/commercial-metrics": { resource: "metrics", action: "view_sales" },
+    "/reports": { resource: "reports", action: "clinical" },
+  };
+
+  // Filtrar itens do menu baseado em permissões
   const filteredMainNavItems = mainNavItems.filter(item => {
+    // Workspace só aparece para o admin
     if (item.title === "Workspace") {
       return userEmail === ADMIN_EMAIL;
     }
+    
+    // Planos de Acompanhamento só para owner
+    if ((item as any).ownerOnly) {
+      return isOwner;
+    }
+    
+    // Dashboard sempre aparece
+    if (item.url === "/") {
+      return true;
+    }
+    
+    // Verificar permissão para a rota
+    const permission = routePermissions[item.url];
+    if (permission) {
+      return isOwner || hasPermission(permission.resource, permission.action);
+    }
+    
     return true;
   });
 
-  // Adicionar Admin Dashboard para admin
-  const adminNavItems = userEmail === ADMIN_EMAIL 
-    ? [{ title: "Admin", url: "/admin", icon: Shield }]
-    : [];
+  // Adicionar Admin Dashboard e Gestão de Equipe
+  const adminNavItems = [];
+  
+  // Admin só para o email específico
+  if (userEmail === ADMIN_EMAIL) {
+    adminNavItems.push({ title: "Admin", url: "/admin", icon: Shield });
+  }
+  
+  // Gestão de Equipe para owner ou admin
+  if (userEmail === ADMIN_EMAIL || isOwner) {
+    adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
+  }
 
   return (
     <Sidebar

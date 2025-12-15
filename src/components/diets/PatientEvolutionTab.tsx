@@ -309,62 +309,45 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* Aviso se houver poucos check-ins */}
-      {checkins.length < 3 && checkins.length > 0 && (
-        <Card className="bg-amber-900/20 border-amber-700/30">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-amber-200 font-semibold">Continue Firme!</p>
-                <p className="text-amber-300/80 text-sm mt-1">
-                  Você possui {checkins.length} check-in{checkins.length > 1 ? 's' : ''}. Continue registrando para ver análises mais detalhadas!
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Métricas de Composição Corporal */}
-      {bodyCompositions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.25 }}
-        >
-          <BodyCompositionMetrics data={bodyCompositions} />
-        </motion.div>
-      )}
-
-      {/* Análise Inteligente com IA */}
+      {/* 1. Análise Inteligente com IA (minimizado) */}
       {checkins.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
           <AIInsights checkins={checkins} />
         </motion.div>
       )}
 
-      {/* Gráfico de % Gordura */}
+      {/* 2. Métricas de Composição Corporal */}
       {bodyCompositions.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <BodyCompositionMetrics data={bodyCompositions} />
+        </motion.div>
+      )}
+
+      {/* 3. Gráfico de % Gordura */}
+      {bodyCompositions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
           <BodyFatChart data={bodyCompositions} />
         </motion.div>
       )}
 
-      {/* Gráficos de Evolução - Mostrar se houver check-ins OU se houver paciente (para mostrar pesos diários) */}
+      {/* 4. Gráficos de Evolução (Peso, Pontuações, Performance) */}
       {(checkins.length > 0 || patient) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
         >
           <EvolutionCharts 
             checkins={checkins} 
@@ -374,12 +357,23 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* Lista de Pesos Diários Registrados - Permite deletar */}
+      {/* 5. Timeline */}
+      {checkins.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Timeline checkins={checkins} showEditButton={false} />
+        </motion.div>
+      )}
+
+      {/* 6. Lista de Pesos Diários Registrados */}
       {patient?.telefone && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.45 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
         >
           <DailyWeightsList
             telefone={patient.telefone}
@@ -393,25 +387,31 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
+      {/* 7. Aviso se houver poucos check-ins */}
+      {checkins.length < 3 && checkins.length > 0 && (
+        <Card className="bg-amber-50 border-amber-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-900 font-semibold">Continue Firme!</p>
+                <p className="text-amber-800 text-sm mt-1">
+                  Você possui {checkins.length} check-in{checkins.length > 1 ? 's' : ''}. Continue registrando para ver análises mais detalhadas!
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Comparação de Fotos */}
       {checkins.length >= 2 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.55 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
         >
           <PhotoComparison checkins={checkins} />
-        </motion.div>
-      )}
-
-      {/* Timeline */}
-      {checkins.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Timeline checkins={checkins} showEditButton={false} />
         </motion.div>
       )}
 

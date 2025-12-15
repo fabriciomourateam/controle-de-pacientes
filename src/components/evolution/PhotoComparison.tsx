@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, ChevronLeft, ChevronRight, ZoomIn, Calendar } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Camera, ChevronRight, ZoomIn, Calendar, ExternalLink, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -14,6 +18,7 @@ type Patient = Database['public']['Tables']['patients']['Row'];
 interface PhotoComparisonProps {
   checkins: Checkin[];
   patient?: Patient | null;
+  onPhotoDeleted?: () => void; // Callback para recarregar dados após deletar
 }
 
 interface PhotoData {
@@ -24,65 +29,136 @@ interface PhotoData {
   photoNumber: number;
   isInitial?: boolean;
   isVideo?: boolean;
-  angle?: 'frente' | 'lado' | 'lado_2' | 'costas'; // Ângulo da foto
+  angle?: 'frente' | 'lado' | 'lado_2' | 'costas';
 }
 
-export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
+export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComparisonProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoData | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [alternativeUrls, setAlternativeUrls] = useState<Map<string, string>>(new Map());
+  const [selectedBeforeIndex, setSelectedBeforeIndex] = useState<number>(0);
+  const [selectedAfterIndex, setSelectedAfterIndex] = useState<number | null>(null);
+  const [photoToDelete, setPhotoToDelete] = useState<PhotoData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+
+  // Log de debug
+  const patientPhotos = patient ? {
+    frente: (patient as any).foto_inicial_frente,
+    lado: (patient as any).foto_inicial_lado,
+    lado_2: (patient as any).foto_inicial_lado_2,
+    costas: (patient as any).foto_inicial_costas,
+  } : null;
+  
+  console.log('📸 PhotoComparison - Dados recebidos:', {
+    hasPatient: !!patient,
+    patientName: patient?.nome,
+    checkinsCount: checkins.length,
+    patientPhotos
+  });
+  
+  console.log('📸 URLs das fotos (completas):', patientPhotos);
+
+  const handleImageError = (photoId: string, url: string, originalUrl?: string) => {
+    console.log('❌ Erro ao carregar imagem:', photoId);
+    console.log('❌ URL que falhou:', url);
+    
+    // Tentar URL alternativa se ainda não tentou
+    if (!alternativeUrls.has(photoId) && originalUrl) {
+      console.log('🔄 Tentando URL alternativa (thumbnail)...');
+      const fileId = url.match(/[?&]id=([^&]+)/)?.[1];
+      if (fileId) {
+        const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+        setAlternativeUrls(prev => new Map(prev).set(photoId, thumbnailUrl));
+        return;
+      }
+    }
+    
+    setImageErrors(prev => new Set(prev).add(photoId));
+  };
+
+  const getPhotoId = (photo: PhotoData) => {
+    return `${photo.checkinId}-${photo.photoNumber}`;
+  };
+
+  const getPhotoUrl = (photo: PhotoData) => {
+    const photoId = getPhotoId(photo);
+    return alternativeUrls.get(photoId) || photo.url;
+  };
 
   // Adicionar fotos iniciais do paciente (se existirem)
   const initialPhotos: PhotoData[] = [];
   if (patient) {
     const patientWithInitialData = patient as any;
     if (patientWithInitialData.foto_inicial_frente) {
+      const isVideo = getMediaType(patientWithInitialData.foto_inicial_frente) === 'video';
+      // Tentar usar URL original primeiro, só converter se necessário
+      const originalUrl = patientWithInitialData.foto_inicial_frente;
+      const convertedUrl = originalUrl.includes('drive.google.com') 
+        ? convertGoogleDriveUrl(originalUrl, isVideo) 
+        : originalUrl;
+      
+      console.log('📸 Foto Frente - URL Original:', originalUrl);
+      console.log('📸 Foto Frente - URL Convertida:', convertedUrl);
+      console.log('📸 Foto Frente - É vídeo?', isVideo);
+      
       initialPhotos.push({
-        url: patientWithInitialData.foto_inicial_frente,
+        url: originalUrl, // Usar URL original, não convertida
         date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-frente',
         photoNumber: 0,
         isInitial: true,
+        isVideo,
         angle: 'frente'
       });
     }
     if (patientWithInitialData.foto_inicial_lado) {
+      const isVideo = getMediaType(patientWithInitialData.foto_inicial_lado) === 'video';
+      const originalUrl = patientWithInitialData.foto_inicial_lado;
       initialPhotos.push({
-        url: patientWithInitialData.foto_inicial_lado,
+        url: originalUrl,
         date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-lado',
         photoNumber: 0,
         isInitial: true,
+        isVideo,
         angle: 'lado'
       });
     }
     if (patientWithInitialData.foto_inicial_lado_2) {
+      const isVideo = getMediaType(patientWithInitialData.foto_inicial_lado_2) === 'video';
+      const originalUrl = patientWithInitialData.foto_inicial_lado_2;
       initialPhotos.push({
-        url: patientWithInitialData.foto_inicial_lado_2,
+        url: originalUrl,
         date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-lado-2',
         photoNumber: 0,
         isInitial: true,
+        isVideo,
         angle: 'lado_2'
       });
     }
     if (patientWithInitialData.foto_inicial_costas) {
+      const isVideo = getMediaType(patientWithInitialData.foto_inicial_costas) === 'video';
+      const originalUrl = patientWithInitialData.foto_inicial_costas;
       initialPhotos.push({
-        url: patientWithInitialData.foto_inicial_costas,
+        url: originalUrl,
         date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
         weight: patientWithInitialData.peso_inicial?.toString() || 'N/A',
         checkinId: 'initial-costas',
         photoNumber: 0,
         isInitial: true,
+        isVideo,
         angle: 'costas'
       });
     }
   }
 
   // Extrair todas as fotos/vídeos dos check-ins (inverter ordem para ter do mais antigo ao mais recente)
-  // Assumindo que: foto_1 = frente, foto_2 = lado, foto_3 = lado_2, foto_4 = costas
   const checkinPhotos: PhotoData[] = [...checkins].reverse().flatMap(checkin => {
     const photos: PhotoData[] = [];
     if (checkin.foto_1) {
@@ -97,7 +173,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         checkinId: checkin.id,
         photoNumber: 1,
         isVideo,
-        angle: 'frente' // Assumindo que foto_1 é sempre frente
+        angle: 'frente'
       });
     }
     if (checkin.foto_2) {
@@ -112,7 +188,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         checkinId: checkin.id,
         photoNumber: 2,
         isVideo,
-        angle: 'lado' // Assumindo que foto_2 é sempre lado
+        angle: 'lado'
       });
     }
     if (checkin.foto_3) {
@@ -127,7 +203,7 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         checkinId: checkin.id,
         photoNumber: 3,
         isVideo,
-        angle: 'lado_2' // Assumindo que foto_3 é sempre lado_2
+        angle: 'lado_2'
       });
     }
     if (checkin.foto_4) {
@@ -142,23 +218,125 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
         checkinId: checkin.id,
         photoNumber: 4,
         isVideo,
-        angle: 'costas' // Assumindo que foto_4 é sempre costas
+        angle: 'costas'
       });
     }
     return photos;
   });
 
-  // Combinar fotos iniciais com fotos de check-ins e ordenar por data
+  // Combinar fotos iniciais com fotos de check-ins
   const allPhotos = [...initialPhotos, ...checkinPhotos];
+
+  // Inicializar índice "Depois" quando allPhotos mudar
+  if (selectedAfterIndex === null && allPhotos.length > 1) {
+    setSelectedAfterIndex(allPhotos.length - 1);
+  }
 
   const handleZoomPhoto = (photo: PhotoData) => {
     setSelectedPhoto(photo);
     setIsZoomOpen(true);
   };
 
+  // Obter fotos selecionadas pelos índices
+  const firstPhoto = allPhotos[selectedBeforeIndex] || allPhotos[0];
+  const lastPhoto = allPhotos[selectedAfterIndex ?? allPhotos.length - 1] || allPhotos[allPhotos.length - 1];
+
+  // Função para formatar label da foto
+  const getPhotoLabel = (photo: PhotoData, index: number) => {
+    const angleLabel = photo.angle === 'frente' ? '📷 Frente' : 
+                       photo.angle === 'lado' ? '📷 Lado' : 
+                       photo.angle === 'lado_2' ? '📷 Lado 2' : 
+                       photo.angle === 'costas' ? '📷 Costas' : '📷';
+    const prefix = photo.isInitial ? '⭐ BASELINE' : `#${index + 1}`;
+    return `${prefix} - ${angleLabel} - ${photo.date} (${photo.weight}kg)`;
+  };
+
+  // Função para deletar foto
+  const handleDeletePhoto = async (photo: PhotoData) => {
+    setIsDeleting(true);
+    try {
+      if (photo.isInitial) {
+        // Deletar foto inicial do paciente
+        if (!patient?.id) {
+          throw new Error('ID do paciente não encontrado');
+        }
+
+        const fieldMap: Record<string, string> = {
+          'frente': 'foto_inicial_frente',
+          'lado': 'foto_inicial_lado',
+          'lado_2': 'foto_inicial_lado_2',
+          'costas': 'foto_inicial_costas'
+        };
+
+        const fieldToUpdate = fieldMap[photo.angle || ''];
+        if (!fieldToUpdate) {
+          throw new Error('Ângulo da foto não identificado');
+        }
+
+        const { error } = await supabase
+          .from('patients')
+          .update({ [fieldToUpdate]: null })
+          .eq('id', patient.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Foto deletada com sucesso",
+          description: "A foto inicial foi removida.",
+        });
+      } else {
+        // Deletar foto de check-in
+        const fieldMap: Record<number, string> = {
+          1: 'foto_1',
+          2: 'foto_2',
+          3: 'foto_3',
+          4: 'foto_4'
+        };
+
+        const fieldToUpdate = fieldMap[photo.photoNumber];
+        if (!fieldToUpdate) {
+          throw new Error('Número da foto não identificado');
+        }
+
+        const { error } = await supabase
+          .from('checkin')
+          .update({ [fieldToUpdate]: null })
+          .eq('id', photo.checkinId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Foto deletada com sucesso",
+          description: "A foto do check-in foi removida.",
+        });
+      }
+
+      // Chamar callback para recarregar dados
+      if (onPhotoDeleted) {
+        onPhotoDeleted();
+      }
+    } catch (error) {
+      console.error('Erro ao deletar foto:', error);
+      toast({
+        title: "Erro ao deletar foto",
+        description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setPhotoToDelete(null);
+    }
+  };
+
   if (allPhotos.length === 0) {
+    const patientWithData = patient as any;
+    const hasPhotoUrls = patientWithData?.foto_inicial_frente || 
+                         patientWithData?.foto_inicial_lado || 
+                         patientWithData?.foto_inicial_lado_2 || 
+                         patientWithData?.foto_inicial_costas;
+    
     return (
-      <Card className="bg-slate-800/40 border-slate-700/50">
+      <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Camera className="w-5 h-5 text-blue-400" />
@@ -175,76 +353,46 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
             <p className="text-slate-500 text-sm mt-2">
               As fotos dos check-ins aparecerão aqui para comparação
             </p>
+            
+            {hasPhotoUrls && (
+              <div className="mt-6 p-4 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-left max-w-2xl">
+                <p className="text-yellow-400 font-semibold mb-2">⚠️ Debug: URLs encontradas mas fotos não processadas</p>
+                <div className="text-xs text-yellow-300 space-y-1">
+                  {patientWithData.foto_inicial_frente && (
+                    <div>
+                      <strong>Frente:</strong> {patientWithData.foto_inicial_frente.substring(0, 80)}...
+                    </div>
+                  )}
+                  {patientWithData.foto_inicial_lado && (
+                    <div>
+                      <strong>Lado:</strong> {patientWithData.foto_inicial_lado.substring(0, 80)}...
+                    </div>
+                  )}
+                  {patientWithData.foto_inicial_lado_2 && (
+                    <div>
+                      <strong>Lado 2:</strong> {patientWithData.foto_inicial_lado_2.substring(0, 80)}...
+                    </div>
+                  )}
+                  {patientWithData.foto_inicial_costas && (
+                    <div>
+                      <strong>Costas:</strong> {patientWithData.foto_inicial_costas.substring(0, 80)}...
+                    </div>
+                  )}
+                </div>
+                <p className="text-yellow-300 text-xs mt-2">
+                  Verifique o console do navegador (F12) para mais detalhes
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Encontrar fotos de comparação do mesmo ângulo
-  // Prioridade: frente > lado > lado_2 > costas
-  let firstPhoto: PhotoData | null = null;
-  let lastPhoto: PhotoData | null = null;
-
-  const latestCheckin = checkins.length > 0 ? checkins[0] : null;
-
-  // Priorizar foto inicial de frente
-  const initialFrente = initialPhotos.find(p => p.angle === 'frente');
-  if (initialFrente && latestCheckin?.foto_1) {
-    const latestFrente = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 1);
-    if (latestFrente) {
-      firstPhoto = initialFrente;
-      lastPhoto = latestFrente;
-    }
-  }
-
-  // Se não encontrou frente, tentar lado
-  if (!firstPhoto || !lastPhoto) {
-    const initialLado = initialPhotos.find(p => p.angle === 'lado');
-    if (initialLado && latestCheckin?.foto_2) {
-      const latestLado = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 2);
-      if (latestLado) {
-        firstPhoto = initialLado;
-        lastPhoto = latestLado;
-      }
-    }
-  }
-
-  // Se ainda não encontrou, usar lado_2
-  if (!firstPhoto || !lastPhoto) {
-    const initialLado2 = initialPhotos.find(p => p.angle === 'lado_2');
-    if (initialLado2 && latestCheckin?.foto_3) {
-      const latestLado2 = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 3);
-      if (latestLado2) {
-        firstPhoto = initialLado2;
-        lastPhoto = latestLado2;
-      }
-    }
-  }
-
-  // Se ainda não encontrou, usar costas
-  if (!firstPhoto || !lastPhoto) {
-    const initialCostas = initialPhotos.find(p => p.angle === 'costas');
-    if (initialCostas && latestCheckin?.foto_4) {
-      const latestCostas = checkinPhotos.find(p => p.checkinId === latestCheckin.id && p.photoNumber === 4);
-      if (latestCostas) {
-        firstPhoto = initialCostas;
-        lastPhoto = latestCostas;
-      }
-    }
-  }
-
-  // Fallback: se não encontrou fotos iniciais ou não há check-ins, usar primeira e última foto disponível
-  if (!firstPhoto) {
-    firstPhoto = allPhotos[0];
-  }
-  if (!lastPhoto) {
-    lastPhoto = allPhotos[allPhotos.length - 1];
-  }
-
   return (
     <>
-      <Card className="bg-slate-800/40 border-slate-700/50">
+      <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Camera className="w-5 h-5 text-blue-400" />
@@ -258,10 +406,62 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
           {/* Comparação Antes/Depois */}
           {allPhotos.length >= 2 && firstPhoto && lastPhoto && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <ChevronRight className="w-5 h-5 text-emerald-400" />
-                Comparação: Antes e Depois
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <ChevronRight className="w-5 h-5 text-emerald-400" />
+                  Comparação: Antes e Depois
+                </h3>
+              </div>
+
+              {/* Seletores de Fotos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-700/30 p-4 rounded-lg border border-slate-600/30">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">Foto "Antes"</label>
+                  <Select
+                    value={selectedBeforeIndex.toString()}
+                    onValueChange={(value) => setSelectedBeforeIndex(parseInt(value))}
+                  >
+                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-600">
+                      {allPhotos.map((photo, index) => (
+                        <SelectItem 
+                          key={`before-${index}`} 
+                          value={index.toString()}
+                          className="text-white hover:bg-slate-700"
+                        >
+                          {getPhotoLabel(photo, index)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">Foto "Depois"</label>
+                  <Select
+                    value={(selectedAfterIndex ?? allPhotos.length - 1).toString()}
+                    onValueChange={(value) => setSelectedAfterIndex(parseInt(value))}
+                  >
+                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-600">
+                      {allPhotos.map((photo, index) => (
+                        <SelectItem 
+                          key={`after-${index}`} 
+                          value={index.toString()}
+                          className="text-white hover:bg-slate-700"
+                        >
+                          {getPhotoLabel(photo, index)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Foto/Vídeo Inicial */}
                 <div className="space-y-3">
@@ -272,16 +472,46 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                         controls
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all"
                       />
+                    ) : imageErrors.has(getPhotoId(firstPhoto)) ? (
+                      <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
+                        <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
+                        <p className="text-slate-300 mb-4">Imagem bloqueada por CORS</p>
+                        <div className="space-y-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(firstPhoto.url, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Abrir em nova aba
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              console.log('🔍 Debug URL:', firstPhoto.url);
+                              navigator.clipboard.writeText(firstPhoto.url);
+                            }}
+                          >
+                            Copiar URL (ver console)
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
                       <img 
-                        src={firstPhoto.url} 
+                        src={getPhotoUrl(firstPhoto)} 
                         alt="Foto Inicial"
                         loading="lazy"
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
                         onClick={() => handleZoomPhoto(firstPhoto)}
+                        onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
                       />
                     )}
-                    {!firstPhoto.isVideo && (
+                    <Badge className={`absolute top-2 left-2 ${firstPhoto.isInitial ? 'bg-purple-600/90' : 'bg-blue-600/90'} text-white`}>
+                      {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
+                    </Badge>
+                    {!firstPhoto.isVideo && !imageErrors.has(getPhotoId(firstPhoto)) && (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -291,9 +521,6 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                         <ZoomIn className="w-4 h-4" />
                       </Button>
                     )}
-                    <Badge className={`absolute top-2 left-2 ${firstPhoto.isInitial ? 'bg-purple-600/90' : 'bg-blue-600/90'} text-white`}>
-                      {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
-                    </Badge>
                   </div>
                   <div className="bg-slate-700/50 p-3 rounded-lg">
                     <div className="flex items-center justify-between text-sm">
@@ -317,16 +544,33 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                         controls
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all"
                       />
+                    ) : imageErrors.has(getPhotoId(lastPhoto)) ? (
+                      <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
+                        <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
+                        <p className="text-slate-300 mb-4">Imagem bloqueada por CORS</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(lastPhoto.url, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Abrir em nova aba
+                        </Button>
+                      </div>
                     ) : (
-                      <img 
-                        src={lastPhoto.url} 
+                      <img
+                        src={getPhotoUrl(lastPhoto)}
                         alt="Foto Atual"
                         loading="lazy"
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
                         onClick={() => handleZoomPhoto(lastPhoto)}
+                        onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
                       />
                     )}
-                    {!lastPhoto.isVideo && (
+                    <Badge className="absolute top-2 left-2 bg-emerald-600/90 text-white">
+                      ATUAL
+                    </Badge>
+                    {!lastPhoto.isVideo && !imageErrors.has(getPhotoId(lastPhoto)) && (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -336,9 +580,6 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                         <ZoomIn className="w-4 h-4" />
                       </Button>
                     )}
-                    <Badge className="absolute top-2 left-2 bg-emerald-600/90 text-white">
-                      ATUAL
-                    </Badge>
                   </div>
                   <div className="bg-slate-700/50 p-3 rounded-lg">
                     <div className="flex items-center justify-between text-sm">
@@ -372,28 +613,45 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                         controls
                         className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
                       />
+                    ) : imageErrors.has(getPhotoId(photo)) ? (
+                      <div className="w-full h-48 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border border-slate-600">
+                        <ExternalLink className="h-8 w-8 text-slate-400 mb-2" />
+                        <p className="text-xs text-slate-300 mb-2 px-2 text-center">Bloqueada por CORS</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => window.open(photo.url, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Abrir
+                        </Button>
+                      </div>
                     ) : (
-                      <img 
-                        src={photo.url} 
+                      <img
+                        src={getPhotoUrl(photo)}
                         alt={`Foto ${index + 1}`}
                         loading="lazy"
                         className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
                         onClick={() => handleZoomPhoto(photo)}
+                        onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
                       />
-                    )}
-                    {!photo.isVideo && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleZoomPhoto(photo)}
-                      >
-                        <ZoomIn className="w-4 h-4" />
-                      </Button>
                     )}
                     <Badge className={`absolute top-2 left-2 ${photo.isInitial ? 'bg-purple-600/90' : 'bg-slate-800/90'} text-white text-xs`}>
                       {photo.isInitial ? '⭐' : `#${index + 1}`}
                     </Badge>
+                    {/* Botão de deletar */}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPhotoToDelete(photo);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                   <div className="text-xs text-center">
                     <p className="text-slate-400">{photo.date}</p>
@@ -405,6 +663,48 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!photoToDelete} onOpenChange={(open) => !open && setPhotoToDelete(null)}>
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-300">
+              Tem certeza que deseja deletar esta foto?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {photoToDelete && (
+            <div className="px-6 pb-2">
+              <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700 space-y-1">
+                <div className="text-sm text-slate-300">
+                  <strong className="text-white">Data:</strong> {photoToDelete.date}
+                </div>
+                <div className="text-sm text-slate-300">
+                  <strong className="text-white">Peso:</strong> {photoToDelete.weight} kg
+                </div>
+                <div className="text-sm text-slate-300">
+                  <strong className="text-white">Tipo:</strong> {photoToDelete.isInitial ? 'Foto Inicial (Baseline)' : 'Foto de Check-in'}
+                </div>
+              </div>
+              <div className="mt-3 text-red-400 font-semibold text-sm">
+                ⚠️ Esta ação não pode ser desfeita!
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => photoToDelete && handleDeletePhoto(photoToDelete)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deletando...' : 'Deletar Foto'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Modal de Zoom */}
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
@@ -424,12 +724,28 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
                   src={selectedPhoto.url} 
                   controls
                   className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                  onError={(e) => {
+                    console.error('Erro ao carregar vídeo:', selectedPhoto.url);
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
+              ) : imageErrors.has(getPhotoId(selectedPhoto)) ? (
+                <div className="w-full h-[70vh] flex flex-col items-center justify-center bg-slate-800/50 rounded-lg">
+                  <ExternalLink className="h-16 w-16 text-slate-400 mb-4" />
+                  <p className="text-slate-300 text-lg mb-6">Imagem bloqueada por CORS</p>
+                  <Button
+                    onClick={() => window.open(selectedPhoto.url, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Abrir em nova aba
+                  </Button>
+                </div>
               ) : (
-                <img 
-                  src={selectedPhoto.url} 
+                <img
+                  src={getPhotoUrl(selectedPhoto)}
                   alt="Foto ampliada"
                   className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                  onError={() => handleImageError(getPhotoId(selectedPhoto), getPhotoUrl(selectedPhoto), selectedPhoto.url)}
                 />
               )}
             </div>
@@ -439,4 +755,3 @@ export function PhotoComparison({ checkins, patient }: PhotoComparisonProps) {
     </>
   );
 }
-

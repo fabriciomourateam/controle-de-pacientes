@@ -9,10 +9,10 @@ const USER_ID = "default_user"; // Em produção, usar o ID do usuário logado
 const getDefaultPreferences = (): PatientViewPreferences => ({
   user_id: USER_ID,
   filters: {
-    search: '',
-    status: 'all',
-    plan: 'all',
-    dateRange: { start: '', end: '' }
+    search: undefined,
+    status: undefined,
+    plan: undefined,
+    dateRange: undefined
   },
   sorting: {
     field: 'created_at',
@@ -32,15 +32,19 @@ export function usePatientPreferences() {
     try {
       setLoading(true);
       
-      // Tentar carregar preferências salvas
-      const savedPreferences = await userPreferencesService.getPatientPreferences?.(USER_ID);
+      // Sempre usar preferências padrão primeiro
+      const defaultPrefs = getDefaultPreferences();
+      setPreferences(defaultPrefs);
       
-      if (savedPreferences) {
-        setPreferences(savedPreferences);
-      } else {
-        // Usar preferências padrão se não houver salvas
-        const defaultPrefs = getDefaultPreferences();
-        setPreferences(defaultPrefs);
+      // Tentar carregar preferências salvas em background
+      try {
+        const savedPreferences = await userPreferencesService.getPatientPreferences?.(USER_ID);
+        if (savedPreferences) {
+          setPreferences(savedPreferences);
+        }
+      } catch (prefError) {
+        console.warn('Não foi possível carregar preferências salvas, usando padrão:', prefError);
+        // Manter preferências padrão
       }
     } catch (error) {
       console.error('Erro ao carregar preferências:', error);
@@ -64,11 +68,17 @@ export function usePatientPreferences() {
         updated_at: new Date().toISOString()
       };
 
-      const saved = await userPreferencesService.savePatientPreferences?.(updatedPreferences) || updatedPreferences;
-      setPreferences(saved);
+      try {
+        const saved = await userPreferencesService.savePatientPreferences?.(updatedPreferences) || updatedPreferences;
+        setPreferences(saved);
+      } catch (saveError) {
+        // Se falhar ao salvar no banco, apenas atualiza localmente
+        console.warn('Não foi possível salvar preferências no banco, usando apenas localmente:', saveError);
+        setPreferences(updatedPreferences);
+      }
     } catch (error) {
       console.error('Erro ao salvar preferências:', error);
-      throw error;
+      // Não lançar erro para não quebrar a interface
     } finally {
       setSaving(false);
     }

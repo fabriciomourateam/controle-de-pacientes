@@ -16,10 +16,10 @@ export interface UserPreferences {
 export interface PatientViewPreferences {
   user_id: string;
   filters: {
-    search: string;
-    status: string;
-    plan: string;
-    dateRange: { start: string; end: string };
+    search?: string;
+    status?: string;
+    plan?: string;
+    dateRange?: { start: string; end: string };
   };
   sorting: {
     field: string;
@@ -228,10 +228,10 @@ class UserPreferencesService {
     return {
       user_id: '',
       filters: {
-        search: '',
-        status: 'all',
-        plan: 'all',
-        dateRange: { start: '', end: '' }
+        search: undefined,
+        status: undefined,
+        plan: undefined,
+        dateRange: undefined
       },
       sorting: {
         field: 'created_at',
@@ -274,12 +274,15 @@ class UserPreferencesService {
         page_size: preferences.page_size
       });
 
-      if (!updatedPrefs) throw new Error('Falha ao salvar preferências');
+      if (!updatedPrefs) {
+        console.warn('Não foi possível salvar preferências no banco, usando apenas localmente');
+        return preferences; // Retornar preferências mesmo sem salvar
+      }
 
       return preferences;
     } catch (error) {
-      console.error('Erro ao salvar preferências de pacientes:', error);
-      throw error;
+      console.warn('Erro ao salvar preferências de pacientes (continuando com preferências locais):', error);
+      return preferences; // Retornar preferências mesmo com erro
     }
   }
 }

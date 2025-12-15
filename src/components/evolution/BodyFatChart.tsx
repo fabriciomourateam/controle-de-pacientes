@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import { TrendingDown, TrendingUp, Minus, Activity } from 'lucide-react';
 
 interface BodyComposition {
   data_avaliacao: string;
@@ -15,10 +15,11 @@ interface BodyFatChartProps {
 export function BodyFatChart({ data }: BodyFatChartProps) {
   if (data.length === 0) {
     return (
-      <Card className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 border-slate-700/50">
+      <Card className="bg-slate-800/40 border-slate-700/50">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            📊 Evolução do % de Gordura Corporal
+            <Activity className="w-5 h-5 text-blue-400" />
+            Evolução do % de Gordura Corporal
           </CardTitle>
           <CardDescription className="text-slate-400">
             Nenhuma bioimpedância registrada ainda
@@ -43,10 +44,11 @@ export function BodyFatChart({ data }: BodyFatChartProps) {
   const porcentagemMudanca = primeiro !== 0 ? ((diferenca / primeiro) * 100).toFixed(1) : '0.0';
 
   return (
-    <Card className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 border-slate-700/50">
+    <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
-          📊 Evolução do % de Gordura Corporal
+          <Activity className="w-5 h-5 text-blue-400" />
+          Evolução do % de Gordura Corporal
         </CardTitle>
         <CardDescription className="text-slate-400 flex items-center gap-2">
           {diferenca < -0.5 ? (

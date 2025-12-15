@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import "./test-theme.css";
 
@@ -35,6 +35,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const RetentionDashboard = lazy(() => import("./pages/RetentionDashboard"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 
 // Componente de loading
 const PageLoader = () => (
@@ -62,10 +63,11 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
         <Routes>
           {/* Rotas públicas - não requerem autenticação */}
           <Route path="/landing" element={<Landing />} />
@@ -79,131 +81,104 @@ const App = () => (
           
           {/* Rotas protegidas - requerem autenticação */}
           <Route path="/" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Dashboard />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/patients" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Patients />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/patients/:id" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <PatientDetails />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/checkins" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Checkins />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/checkins/evolution/:telefone" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <PatientEvolution />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/plans" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Plans />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/metrics" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <MetricsDashboard />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/commercial-metrics" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <CommercialMetrics />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/retention" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <RetentionDashboard />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/debug-vendas" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <DebugVendas />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/workspace" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Workspace />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/reports" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Reports />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/profile" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Profile />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/settings" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Settings />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/help" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Help />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/pricing" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <Pricing />
               </Suspense>
-            </ProtectedRoute>
           } />
           <Route path="/admin" element={
-            <ProtectedRoute>
-              <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader />}>
                 <AdminDashboard />
               </Suspense>
-            </ProtectedRoute>
+          } />
+          <Route path="/team" element={
+            <Suspense fallback={<PageLoader />}>
+                <TeamManagement />
+              </Suspense>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
 
 export default App;
+

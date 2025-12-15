@@ -281,9 +281,8 @@ export function FoodSelectionModal({
         <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 mt-4">
           <Button
             type="button"
-            variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-green-500/30 text-[#222222] hover:bg-gray-100"
+            className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
           >
             Cancelar
           </Button>

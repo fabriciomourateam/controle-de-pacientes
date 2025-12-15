@@ -15,6 +15,7 @@ interface AIInsightsProps {
 
 export function AIInsights({ checkins }: AIInsightsProps) {
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [isMinimized, setIsMinimized] = useState(true); // Minimizado por padrão
   const [expandedSections, setExpandedSections] = useState({
     strengths: false,
     warnings: false,
@@ -85,21 +86,32 @@ export function AIInsights({ checkins }: AIInsightsProps) {
   return (
     <Card className="bg-gradient-to-br from-purple-900/40 to-indigo-900/40 backdrop-blur-sm border-purple-700/50">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-white">
-          <div className="p-1.5 bg-purple-600/30 rounded-lg">
-            <Sparkles className="w-5 h-5 text-purple-300" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">Análise do Progresso</span>
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <div className="p-1.5 bg-purple-600/30 rounded-lg">
+              <Sparkles className="w-5 h-5 text-purple-300" />
             </div>
-            <p className="text-xs font-normal text-purple-300 mt-0.5">
-              Insights personalizados baseados em {checkins.length} check-ins
-            </p>
-          </div>
-        </CardTitle>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">Análise do Progresso</span>
+              </div>
+              <p className="text-xs font-normal text-purple-300 mt-0.5">
+                Insights personalizados baseados em {checkins.length} check-ins
+              </p>
+            </div>
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="text-slate-400 hover:text-white"
+          >
+            {isMinimized ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3 p-4">
+      {!isMinimized && (
+        <CardContent className="space-y-3 p-4">
         {/* Score Geral e Tendência */}
         <div className={`bg-gradient-to-br ${getTrendColor()} rounded-lg p-3 border`}>
           <div className="flex items-center justify-between">
@@ -337,7 +349,8 @@ export function AIInsights({ checkins }: AIInsightsProps) {
           </div>
         )}
 
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }

@@ -421,7 +421,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
         <Button
           onClick={() => setTemplateLibraryOpen(true)}
           variant="outline"
-          className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/50 text-purple-300 hover:from-purple-500/20 hover:to-pink-500/20 hover:border-purple-400/70 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+          className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400 transition-all duration-300"
         >
           <BookOpen className="w-4 h-4 mr-2" />
           Biblioteca
@@ -429,7 +429,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
         <Button
           onClick={() => setFoodGroupsManagerOpen(true)}
           variant="outline"
-          className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/50 text-emerald-300 hover:from-emerald-500/20 hover:to-teal-500/20 hover:border-emerald-400/70 hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300"
+          className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400 transition-all duration-300"
         >
           <Package className="w-4 h-4 mr-2" />
           Grupos
@@ -465,15 +465,15 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
             className={
               showFavoritesOnly 
-                ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/50 text-yellow-300 hover:from-yellow-500/30 hover:to-amber-500/30 hover:shadow-lg hover:shadow-yellow-500/20 transition-all duration-300" 
-                : "bg-gradient-to-r from-slate-700/50 to-slate-600/50 border-slate-600/50 text-slate-300 hover:from-slate-600/70 hover:to-slate-500/70 hover:border-slate-500/70 transition-all duration-300"
+                ? "bg-gradient-to-r from-amber-100 to-yellow-100 border-amber-300 text-amber-700 hover:from-amber-200 hover:to-yellow-200 hover:border-amber-400 shadow-sm transition-all duration-300" 
+                : "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 hover:border-amber-300 transition-all duration-300"
             }
           >
             <Star className={`w-4 h-4 mr-2 ${showFavoritesOnly ? 'fill-yellow-400' : ''}`} />
             {showFavoritesOnly ? 'Mostrar Todos' : 'Apenas Favoritos'}
           </Button>
           {showFavoritesOnly && (
-            <Badge variant="outline" className="border-yellow-500/50 text-yellow-400">
+            <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50">
               {activePlans.length + inactivePlans.length} favorito(s)
             </Badge>
           )}
@@ -662,29 +662,29 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             };
 
             return (
-        <Card key={plan.id}>
+        <Card key={plan.id} className="bg-white border-gray-200 hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <CardTitle className="flex items-center gap-2 mb-2 text-cyan-300">
+                <CardTitle className="flex items-center gap-2 mb-2 text-[#222222]">
                   {plan.name}
                   <Badge 
                     variant={
                       plan.status === 'active' ? 'default' :
                       plan.status === 'draft' ? 'secondary' : 'outline'
                     }
-                    className="border-cyan-500/30"
+                    className="bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30"
                   >
                     {plan.status === 'active' ? 'Ativo' : plan.status === 'draft' ? 'Rascunho' : plan.status}
                   </Badge>
                   {plan.favorite && (
-                    <Badge variant="outline" className="border-yellow-500/50 text-yellow-400">
-                      <Star className="w-3 h-3 mr-1 fill-yellow-400" />
+                    <Badge variant="outline" className="border-yellow-500/50 text-yellow-600 bg-yellow-50">
+                      <Star className="w-3 h-3 mr-1 fill-yellow-500" />
                       Favorito
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription className="text-cyan-200/70">
+                <CardDescription className="text-[#777777]">
                   {plan.notes || 'Sem observações'}
                 </CardDescription>
               </div>
@@ -696,28 +696,28 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
               {(() => {
                 const totais = calcularTotais(plan);
                 return (
-                  <div className="grid grid-cols-4 gap-4 p-4 bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border border-cyan-500/20 rounded-lg">
+                  <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                     <div>
-                      <p className="text-xs text-cyan-200/60">Calorias</p>
-                      <p className="text-lg font-semibold text-cyan-300">
+                      <p className="text-xs text-[#777777]">Calorias</p>
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.calorias.toLocaleString('pt-BR')} kcal
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-cyan-200/60">Proteína</p>
-                      <p className="text-lg font-semibold text-cyan-300">
+                      <p className="text-xs text-[#777777]">Proteína</p>
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.proteinas.toFixed(1)}g
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-cyan-200/60">Carboidratos</p>
-                      <p className="text-lg font-semibold text-cyan-300">
+                      <p className="text-xs text-[#777777]">Carboidratos</p>
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.carboidratos.toFixed(1)}g
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-cyan-200/60">Gorduras</p>
-                      <p className="text-lg font-semibold text-cyan-300">
+                      <p className="text-xs text-[#777777]">Gorduras</p>
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.gorduras.toFixed(1)}g
                       </p>
                     </div>
@@ -761,20 +761,25 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       });
                     }
                   }}
-                  className="bg-gradient-to-r from-slate-700/50 to-slate-600/50 border-slate-600/50 text-slate-300 hover:from-slate-600/70 hover:to-slate-500/70 hover:border-slate-500/70 transition-all duration-300"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Desativar
+                  className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all duration-300"
+                ><X className="w-4 h-4 mr-2" />Desativar
                 </Button>
               )}
+              <Button 
+                size="sm" 
+                onClick={() => handleEdit(plan)}
+                className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-cyan-500/50 text-cyan-300 hover:from-cyan-500/20 hover:to-blue-500/20 hover:border-cyan-400/70 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300"
-                  >
-                    <MoreVertical className="w-4 h-4 mr-2" />
+                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                  ><MoreVertical className="w-4 h-4 mr-2" />
                     Ações
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
@@ -962,10 +967,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                     <Eye className="w-4 h-4 mr-2" />
                     Ver Detalhes
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleEdit(plan)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => handleDelete(plan.id, plan.name)}
@@ -1144,16 +1145,15 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             return (
         <Card 
           key={plan.id}
-          className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-md border-slate-700/30 hover:from-slate-700/50 hover:to-slate-800/50 transition-all duration-300 hover:scale-[1.01] hover:shadow-lg hover:shadow-slate-500/10 hover:-translate-y-0.5 group overflow-hidden relative opacity-75 hover:opacity-100"
+          className="bg-white border-gray-200 hover:shadow-lg transition-all duration-300 opacity-75 hover:opacity-100"
         >
-          {/* Decorative gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-600/5 via-transparent to-transparent pointer-events-none" />
+
           
-          <CardHeader className="relative z-10">
+          <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <CardTitle className="text-xl font-bold text-slate-300 group-hover:text-slate-200 transition-colors">
+                  <CardTitle className="text-[#222222]">
                     {plan.name}
                   </CardTitle>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1179,7 +1179,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                   </div>
                 </div>
                 {plan.notes && (
-                  <CardDescription className="text-slate-500 text-sm leading-relaxed">
+                  <CardDescription className="text-[#777777]">
                     {plan.notes}
                   </CardDescription>
                 )}
@@ -1193,45 +1193,42 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                 const totais = calcularTotais(plan);
                 return (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/10 rounded-lg p-4 hover:from-orange-500/10 hover:to-red-500/10 transition-all duration-300 group/nutrient">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 rounded-full bg-orange-400/50 group-hover/nutrient:scale-125 transition-transform" />
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Calorias</p>
+                        <p className="text-xs text-[#777777]">Calorias</p>
                       </div>
-                      <p className="text-2xl font-bold text-orange-300/80 group-hover/nutrient:text-orange-300 transition-colors">
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.calorias.toLocaleString('pt-BR')}
                       </p>
-                      <p className="text-xs text-slate-600 mt-1">kcal</p>
+                      <p className="text-xs text-[#777777] mt-1">kcal</p>
                     </div>
-                    <div className="bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-500/10 rounded-lg p-4 hover:from-blue-500/10 hover:to-cyan-500/10 transition-all duration-300 group/nutrient">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-400/50 group-hover/nutrient:scale-125 transition-transform" />
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Proteína</p>
+                        <p className="text-xs text-[#777777]">Proteína</p>
                       </div>
-                      <p className="text-2xl font-bold text-blue-300/80 group-hover/nutrient:text-blue-300 transition-colors">
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.proteinas.toFixed(1)}
                       </p>
-                      <p className="text-xs text-slate-600 mt-1">gramas</p>
+                      <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-lg p-4 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300 group/nutrient">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 rounded-full bg-purple-400/50 group-hover/nutrient:scale-125 transition-transform" />
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Carboidratos</p>
+                        <p className="text-xs text-[#777777]">Carboidratos</p>
                       </div>
-                      <p className="text-2xl font-bold text-purple-300/80 group-hover/nutrient:text-purple-300 transition-colors">
+                      <p className="text-lg font-semibold text-[#222222]">
                         {totais.carboidratos.toFixed(1)}
                       </p>
-                      <p className="text-xs text-slate-600 mt-1">gramas</p>
+                      <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
                     <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-lg p-4 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300 group/nutrient">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-emerald-400/50 group-hover/nutrient:scale-125 transition-transform" />
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Gorduras</p>
+                        <p className="text-xs text-[#777777]">Gorduras</p>
                       </div>
                       <p className="text-2xl font-bold text-emerald-300/80 group-hover/nutrient:text-emerald-300 transition-colors">
                         {totais.gorduras.toFixed(1)}
                       </p>
-                      <p className="text-xs text-slate-600 mt-1">gramas</p>
+                      <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
                   </div>
                 );
@@ -1273,10 +1270,8 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       });
                     }
                   }}
-                  className="bg-gradient-to-r from-slate-700/50 to-slate-600/50 border-slate-600/50 text-slate-300 hover:from-slate-600/70 hover:to-slate-500/70 hover:border-slate-500/70 transition-all duration-300"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Desativar
+                  className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all duration-300"
+                ><X className="w-4 h-4 mr-2" />Desativar
                 </Button>
               )}
               <DropdownMenu>
@@ -1284,9 +1279,8 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-cyan-500/50 text-cyan-300 hover:from-cyan-500/20 hover:to-blue-500/20 hover:border-cyan-400/70 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300"
-                  >
-                    <MoreVertical className="w-4 h-4 mr-2" />
+                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                  ><MoreVertical className="w-4 h-4 mr-2" />
                     Ações
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
@@ -1840,3 +1834,12 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+

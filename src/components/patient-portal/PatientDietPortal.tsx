@@ -5,6 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { dietService } from '@/lib/diet-service';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
@@ -24,7 +38,8 @@ import {
   Package, 
   AlertTriangle,
   BookOpen,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { dietConsumptionService } from '@/lib/diet-consumption-service';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +69,12 @@ export function PatientDietPortal({
   const [loading, setLoading] = useState(true);
   const [consumedMeals, setConsumedMeals] = useState<Set<string>>(new Set());
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
+  const [substitutionsModalOpen, setSubstitutionsModalOpen] = useState(false);
+  const [selectedFoodSubstitutions, setSelectedFoodSubstitutions] = useState<{
+    foodName: string;
+    substitutions: any[];
+  } | null>(null);
+  const [releasedPlans, setReleasedPlans] = useState<any[]>([]);
 
   useEffect(() => {
     loadDietData();
@@ -80,14 +101,21 @@ export function PatientDietPortal({
       // Buscar planos do paciente
       const plans = await dietService.getByPatientId(patientId);
       
-      // Encontrar plano ativo
-      const active = plans.find((p: any) => p.status === 'active' || p.active);
+      // Filtrar apenas planos liberados (is_released = true)
+      const released = plans.filter((p: any) => p.is_released === true);
+      setReleasedPlans(released);
       
-      if (active) {
-        setActivePlan(active);
+      // Encontrar plano ativo entre os liberados
+      const active = released.find((p: any) => p.status === 'active' || p.active);
+      
+      // Se não houver plano ativo, pegar o primeiro liberado
+      const selectedPlan = active || released[0];
+      
+      if (selectedPlan) {
+        setActivePlan(selectedPlan);
         
         // Buscar detalhes completos do plano
-        const details = await dietService.getById(active.id);
+        const details = await dietService.getById(selectedPlan.id);
         setPlanDetails(details);
       }
     } catch (error) {
@@ -95,6 +123,35 @@ export function PatientDietPortal({
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os dados da dieta',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePlan = async (planId: string) => {
+    try {
+      setLoading(true);
+      const plan = releasedPlans.find((p: any) => p.id === planId);
+      if (plan) {
+        setActivePlan(plan);
+        const details = await dietService.getById(plan.id);
+        setPlanDetails(details);
+        
+        // Limpar refeições consumidas ao trocar de plano
+        setConsumedMeals(new Set());
+        
+        toast({
+          title: 'Plano alterado',
+          description: `Agora visualizando: ${plan.name}`,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao trocar de plano:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar o plano selecionado',
         variant: 'destructive'
       });
     } finally {
@@ -152,21 +209,10 @@ export function PatientDietPortal({
     );
   }
 
-  if (!activePlan || !planDetails) {
-    return (
-      <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
-        <CardContent className="p-8 text-center">
-          <Utensils className="w-16 h-16 text-[#777777] mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-[#222222] mb-2">Nenhum Plano Alimentar Ativo</h3>
-          <p className="text-[#777777]">
-            Seu nutricionista ainda não liberou um plano alimentar para você.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Remover o return early - mostrar abas mesmo sem plano ativo
+  const hasActivePlan = activePlan && planDetails;
 
-  const totais = calcularTotais(planDetails);
+  const totais = hasActivePlan ? calcularTotais(planDetails) : { calorias: 0, carboidratos: 0, proteinas: 0, gorduras: 0 };
   const metaCalorias = totais.calorias;
   const metaCarboidratos = totais.carboidratos;
   const metaProteinas = totais.proteinas;
@@ -177,7 +223,7 @@ export function PatientDietPortal({
   let proteinasConsumidas = 0;
   let gordurasConsumidas = 0;
 
-  if (planDetails.diet_meals && consumedMeals.size > 0) {
+  if (hasActivePlan && planDetails?.diet_meals && consumedMeals.size > 0) {
     planDetails.diet_meals.forEach((meal: any) => {
       if (consumedMeals.has(meal.id)) {
         const mealTotals = calcularTotaisPlano({ diet_meals: [meal] });
@@ -194,6 +240,40 @@ export function PatientDietPortal({
 
   return (
     <div className="space-y-6 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+      {/* Seletor de Planos (quando houver múltiplos planos liberados) */}
+      {releasedPlans.length > 1 && (
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-[#222222] mb-1">Plano Alimentar Ativo</p>
+                <p className="text-xs text-[#777777]">Você tem {releasedPlans.length} planos disponíveis</p>
+              </div>
+              <Select value={activePlan?.id} onValueChange={handleChangePlan}>
+                <SelectTrigger className="w-[280px] bg-white border-green-300 text-[#222222]">
+                  <SelectValue placeholder="Selecione um plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {releasedPlans.map((plan: any) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      <div className="flex items-center gap-2">
+                        <Utensils className="w-4 h-4 text-[#00C98A]" />
+                        <span>{plan.name}</span>
+                        {(plan.status === 'active' || plan.active) && (
+                          <Badge className="ml-2 bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30">
+                            Ativo
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Abas: Plano Alimentar, Metas, Progresso, Conquistas e Minha Evolução */}
       <Tabs defaultValue="diet" className="w-full">
         <TabsList className="sticky top-0 z-50 flex w-full flex-wrap bg-gray-100 gap-1 p-1 border-b border-gray-200 shadow-sm rounded-t-lg">
@@ -219,8 +299,20 @@ export function PatientDietPortal({
         
         {/* Aba: Plano Alimentar */}
         <TabsContent value="diet" className="mt-6 space-y-6">
+          {!hasActivePlan ? (
+            <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
+              <CardContent className="p-8 text-center">
+                <Utensils className="w-16 h-16 text-[#777777] mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-[#222222] mb-2">Nenhum Plano Alimentar Ativo</h3>
+                <p className="text-[#777777]">
+                  Seu nutricionista ainda não liberou um plano alimentar para você.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
           {/* Resumo de Calorias e Macros */}
-          <Card className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <Card className="bg-green-50/30 rounded-2xl p-6 shadow-sm border border-green-100/50 hover:shadow-md transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex flex-col items-center justify-center mb-6">
                 {/* Círculo de Progresso de Calorias */}
@@ -274,26 +366,44 @@ export function PatientDietPortal({
                     {carboidratosConsumidos.toFixed(0)} / {metaCarboidratos.toFixed(0)}g
                   </p>
                   <p className="text-xs text-[#777777] mt-1">Carboidratos</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-purple-600 h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${Math.min((carboidratosConsumidos / metaCarboidratos) * 100, 100)}%` }}
+                    />
+                  </div>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-[#222222]">
                     {proteinasConsumidas.toFixed(0)} / {metaProteinas.toFixed(0)}g
                   </p>
                   <p className="text-xs text-[#777777] mt-1">Proteínas</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${Math.min((proteinasConsumidas / metaProteinas) * 100, 100)}%` }}
+                    />
+                  </div>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-[#222222]">
                     {gordurasConsumidas.toFixed(0)} / {metaGorduras.toFixed(0)}g
                   </p>
                   <p className="text-xs text-[#777777] mt-1">Gorduras</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${Math.min((gordurasConsumidas / metaGorduras) * 100, 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Refeições */}
-          {planDetails.diet_meals && planDetails.diet_meals.length > 0 && (
-            <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
+          {hasActivePlan && planDetails?.diet_meals && planDetails.diet_meals.length > 0 && (
+            <Card className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -345,14 +455,14 @@ export function PatientDietPortal({
                           }}
                         >
                           <div 
-                            className={`bg-white rounded-xl border transition-all duration-200 ${
+                            className={`rounded-xl border transition-all duration-300 transform hover:scale-[1.01] ${
                               isConsumed 
-                                ? 'border-[#00C98A]/50 bg-[#00C98A]/5' 
-                                : 'border-gray-200 hover:bg-gray-50'
+                                ? 'bg-green-50/30 border-[#00C98A]/50 shadow-sm' 
+                                : 'bg-green-50/20 border-green-100/50 hover:border-green-200 hover:shadow-md'
                             }`}
                           >
                             <CollapsibleTrigger asChild>
-                              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 rounded-t-xl transition-colors">
+                              <div className="flex items-center justify-between p-4 cursor-pointer rounded-t-xl transition-all duration-200">
                                 <div className="flex items-center gap-3 flex-1">
                                   <div 
                                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
@@ -368,26 +478,28 @@ export function PatientDietPortal({
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className={`text-base font-semibold transition-colors ${
-                                      isConsumed ? 'text-[#00C98A]' : 'text-[#222222]'
-                                    }`}>
-                                      {meal.meal_name}
-                                    </h4>
-                                    {meal.suggested_time && (
-                                      <p className="text-xs text-[#777777] mt-0.5">
-                                        {meal.suggested_time}
-                                      </p>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                      <h4 className={`text-base font-semibold transition-colors ${
+                                        isConsumed ? 'text-[#00C98A]' : 'text-[#222222]'
+                                      }`}>
+                                        {meal.meal_name}
+                                      </h4>
+                                      {meal.suggested_time && (
+                                        <Badge className="bg-purple-50 text-purple-600 border-purple-200 border text-xs">
+                                          {meal.suggested_time}
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="text-right flex items-center gap-3 flex-shrink-0">
-                                  <div>
-                                    <p className={`text-sm font-semibold transition-colors ${
-                                      isConsumed ? 'text-[#00C98A]' : 'text-[#222222]'
-                                    }`}>
-                                      {isConsumed ? mealTotals.calorias : 0} / {mealTotals.calorias}kcal
-                                    </p>
-                                  </div>
+                                  <Badge className={`text-sm font-semibold border ${
+                                    isConsumed 
+                                      ? 'bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30' 
+                                      : 'bg-blue-100 text-blue-700 border-blue-300'
+                                  }`}>
+                                    {isConsumed ? mealTotals.calorias : 0} / {mealTotals.calorias} kcal
+                                  </Badge>
                                   <Button
                                     size="sm"
                                     onClick={(e) => {
@@ -435,34 +547,58 @@ export function PatientDietPortal({
                                       return (
                                         <div 
                                           key={food.id || foodIndex} 
-                                          className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 ${
+                                          className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-300 transform hover:scale-[1.01] bg-white ${
                                             isConsumed
-                                              ? 'bg-[#00C98A]/10 border-[#00C98A]/30'
-                                              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                              ? 'border-[#00C98A]/30 opacity-75'
+                                              : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
                                           }`}
                                         >
-                                          <div className="flex items-center gap-3 flex-1">
+                                          <div className="flex items-center gap-2 flex-1">
                                             {isConsumed && (
                                               <CheckCircle className="w-4 h-4 text-[#00C98A] flex-shrink-0" />
                                             )}
                                             <span className={`font-medium text-sm ${
                                               isConsumed ? 'text-[#00C98A] line-through' : 'text-[#222222]'
                                             }`}>
-                                              {food.food_name} - {food.quantity} {food.unit}
+                                              {food.food_name}
                                             </span>
+                                            <Badge className={`text-xs font-medium ${
+                                              isConsumed 
+                                                ? 'bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30' 
+                                                : 'bg-gray-100 text-gray-600 border-gray-200'
+                                            } border`}>
+                                              {food.quantity} {food.unit === 'unidade' && food.quantity > 1 ? 'unidades' : food.unit}
+                                            </Badge>
+                                          </div>
+                                          <div className="flex items-center gap-2">
                                             {substitutions.length > 0 && !isConsumed && (
-                                              <Badge className="bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30 text-xs">
-                                                {substitutions.length} substitutos
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedFoodSubstitutions({
+                                                    foodName: food.food_name,
+                                                    substitutions: substitutions
+                                                  });
+                                                  setSubstitutionsModalOpen(true);
+                                                }}
+                                                className="h-6 px-2 bg-[#00C98A]/10 hover:bg-[#00C98A]/20 text-[#00C98A] border border-[#00C98A]/30"
+                                              >
+                                                <RefreshCw className="w-3 h-3 mr-1" />
+                                                Substituições
+                                              </Button>
+                                            )}
+                                            {food.calories && (
+                                              <Badge className={`text-xs font-medium text-right min-w-[70px] ${
+                                                isConsumed 
+                                                  ? 'bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30' 
+                                                  : 'bg-blue-50 text-blue-600 border-blue-200'
+                                              } border`}>
+                                                {food.calories} kcal
                                               </Badge>
                                             )}
                                           </div>
-                                          {food.calories && (
-                                            <span className={`text-xs font-medium ${
-                                              isConsumed ? 'text-[#00C98A]' : 'text-[#777777]'
-                                            }`}>
-                                              {food.calories} kcal
-                                            </span>
-                                          )}
                                         </div>
                                       );
                                     })}
@@ -491,7 +627,7 @@ export function PatientDietPortal({
           )}
 
           {/* Orientações */}
-          {planDetails.diet_guidelines && planDetails.diet_guidelines.length > 0 && (
+          {hasActivePlan && planDetails?.diet_guidelines && planDetails.diet_guidelines.length > 0 && (
             <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
               <CardHeader>
                 <CardTitle className="text-[#222222] flex items-center gap-2">
@@ -516,6 +652,8 @@ export function PatientDietPortal({
                 </div>
               </CardContent>
             </Card>
+          )}
+            </>
           )}
         </TabsContent>
         
@@ -562,6 +700,77 @@ export function PatientDietPortal({
           />
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Substituições */}
+      <Dialog open={substitutionsModalOpen} onOpenChange={setSubstitutionsModalOpen}>
+        <DialogContent className="max-w-2xl bg-white">
+          <DialogHeader className="relative">
+            <button
+              onClick={() => setSubstitutionsModalOpen(false)}
+              className="absolute right-0 top-0 rounded-full p-2 hover:bg-gray-100 transition-colors"
+              aria-label="Fechar"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <DialogTitle className="text-[#222222] text-xl font-bold flex items-center gap-2 pr-8">
+              <RefreshCw className="w-5 h-5 text-[#00C98A]" />
+              Opções de Substituição
+            </DialogTitle>
+            <DialogDescription className="text-[#777777]">
+              Você pode substituir <strong>{selectedFoodSubstitutions?.foodName}</strong> por qualquer uma das opções abaixo
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {selectedFoodSubstitutions?.substitutions.map((sub: any, index: number) => (
+              <div 
+                key={index}
+                className="p-4 rounded-lg border border-[#00C98A]/30 bg-[#00C98A]/5 hover:bg-[#00C98A]/10 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-[#222222] text-base">
+                      {sub.food_name}
+                    </h4>
+                    <p className="text-sm text-[#777777] mt-1">
+                      Quantidade: <span className="font-medium text-[#00C98A]">{sub.quantity} {sub.unit}</span>
+                      {sub.custom_unit_name && (
+                        <span className="ml-2 text-xs">
+                          ({sub.custom_unit_name}: {sub.custom_unit_grams}g)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-[#00C98A] flex-shrink-0" />
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-700 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              <span>
+                Essas são opções equivalentes que você pode usar no lugar do alimento original, escolha a que preferir.
+              </span>
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

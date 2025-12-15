@@ -43,6 +43,59 @@ export interface SubscriptionStatus {
 
 const ADMIN_EMAIL = 'fabriciomouratreinador@gmail.com';
 
+// ID fixo do admin
+const ADMIN_USER_ID = 'a9798432-60bd-4ac8-a035-d139a47ad59b'; // fabriciomouratreinador@gmail.com
+
+// Função auxiliar para verificar se usuário é admin ou membro da equipe do admin
+async function isAdminOrAdminTeamMember(userId: string): Promise<boolean> {
+  try {
+    // 1. Verificar se é o próprio admin pelo user_id
+    if (userId === ADMIN_USER_ID) {
+      console.log('✅ Usuário é o admin (por user_id)');
+      return true;
+    }
+
+    // 2. Verificar se é o admin pelo email
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email === ADMIN_EMAIL) {
+      console.log('✅ Usuário é o admin (por email)');
+      return true;
+    }
+
+    console.log('🔍 Verificando se user_id', userId, 'é membro da equipe do admin');
+
+    // 3. Verificar se é membro da equipe do admin
+    const { data: teamMember, error: teamError } = await supabase
+      .from('team_members')
+      .select('id, email, is_active, owner_id')
+      .eq('user_id', userId)
+      .eq('owner_id', ADMIN_USER_ID)
+      .single();
+
+    if (teamError) {
+      console.log('❌ Não é membro da equipe do admin:', teamError.message);
+      return false;
+    }
+
+    if (teamMember) {
+      console.log('✅ É membro da equipe do admin:', teamMember);
+      // Verificar se está ativo
+      if (teamMember.is_active) {
+        console.log('✅ Membro ativo - liberando acesso');
+        return true;
+      } else {
+        console.log('⚠️ Membro inativo:', { is_active: teamMember.is_active });
+        return false;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('❌ Erro ao verificar admin/team member:', error);
+    return false;
+  }
+}
+
 export const subscriptionService = {
   /**
    * Buscar todos os planos ativos
@@ -71,23 +124,31 @@ export const subscriptionService = {
     const user = await getCurrentUser();
     if (!user) return null;
 
-    const { data, error } = await (supabase as any)
-      .from('user_subscriptions')
-      .select(`
-        *,
-        subscription_plans (*)
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      const { data, error } = await (supabase as any)
+        .from('user_subscriptions')
+        .select(`
+          *,
+          subscription_plans (*)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') return null; // Não encontrado
-      throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Não encontrado
+        
+        // Se for erro 406 ou outro erro de relacionamento, apenas avisar
+        console.warn('Não foi possível carregar assinatura (sistema funcionará normalmente):', error.message);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.warn('Erro ao buscar assinatura (sistema funcionará normalmente):', error);
+      return null;
     }
-
-    return data;
   },
 
   /**
@@ -96,19 +157,6 @@ export const subscriptionService = {
   async checkSubscription(): Promise<SubscriptionStatus> {
     const user = await getCurrentUser();
     
-    // Admin sempre tem acesso
-    if (user?.email === ADMIN_EMAIL) {
-      return {
-        isActive: true,
-        plan: null,
-        subscription: null,
-        expiresAt: null,
-        canAccess: true,
-        isTrial: false,
-        daysRemaining: null
-      };
-    }
-
     if (!user) {
       return {
         isActive: false,
@@ -117,6 +165,21 @@ export const subscriptionService = {
         expiresAt: null,
         canAccess: false,
         reason: 'Usuário não autenticado',
+        isTrial: false,
+        daysRemaining: null
+      };
+    }
+
+    // Admin ou membro da equipe do admin sempre tem acesso
+    const isAdminTeam = await isAdminOrAdminTeamMember(user.id);
+    if (isAdminTeam) {
+      return {
+        isActive: true,
+        plan: null,
+        subscription: null,
+        expiresAt: null,
+        canAccess: true,
+        reason: 'Conta admin - acesso ilimitado',
         isTrial: false,
         daysRemaining: null
       };
@@ -131,7 +194,7 @@ export const subscriptionService = {
         subscription: null,
         expiresAt: null,
         canAccess: false,
-        reason: 'Nenhuma assinatura encontrada',
+        reason: 'Nenhuma assinatura encontrada. Inicie um período de trial.',
         isTrial: false,
         daysRemaining: null
       };

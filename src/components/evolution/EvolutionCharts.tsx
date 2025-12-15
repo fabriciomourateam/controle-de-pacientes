@@ -293,7 +293,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
     <div className="space-y-6">
       {/* Gráfico de Peso - Mostrar se houver qualquer dado de peso */}
       {allWeightData.length > 0 && (
-        <Card className="bg-slate-800/40 border-slate-700/50">
+        <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <TrendingUp className="w-5 h-5 text-blue-400" />
@@ -458,10 +458,10 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
 
       {/* Gráfico de Pontuações e Quantidades */}
       {scoresData.length > 0 && (
-        <Card className="bg-slate-800/40 border-slate-700/50">
+        <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
-              <Target className="w-5 h-5 text-emerald-400" />
+              <Target className="w-5 h-5 text-blue-400" />
               Evolução das Pontuações
             </CardTitle>
             <CardDescription className="text-slate-400">
@@ -693,11 +693,14 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
 
       {/* Gráfico Radar de Performance Atual */}
       {radarData.length > 0 && (
-        <Card className="bg-slate-800/40 border-slate-700/50">
+        <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Performance Atual</CardTitle>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-400" />
+                  Performance Atual
+                </CardTitle>
                 <CardDescription className="text-slate-400">
                   Análise multidimensional do check-in
                   {selectedCheckin && (

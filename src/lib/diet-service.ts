@@ -75,6 +75,7 @@ export const dietService = {
       .from('diet_plans')
       .update({ 
         status: 'active',
+        is_released: true,
         released_at: new Date().toISOString()
       })
       .eq('id', planId)

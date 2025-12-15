@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { weightTrackingService, WeightEntry } from '@/lib/weight-tracking-service';
 import { Scale, Trash2, Calendar, Sunrise, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,10 +93,10 @@ export function DailyWeightsList({ telefone, onUpdate }: DailyWeightsListProps) 
 
   if (weights.length === 0) {
     return (
-      <Card className="bg-slate-800/50 border-slate-700/50">
+      <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Scale className="w-5 h-5 text-green-400" />
+            <Scale className="w-5 h-5 text-blue-400" />
             Pesos Diários Registrados
           </CardTitle>
         </CardHeader>
@@ -114,110 +113,97 @@ export function DailyWeightsList({ telefone, onUpdate }: DailyWeightsListProps) 
 
   return (
     <>
-      <Card className="bg-slate-800/50 border-slate-700/50">
+      <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2 text-white">
-              <Scale className="w-5 h-5 text-green-400" />
+              <Scale className="w-5 h-5 text-blue-400" />
               Pesos Diários Registrados
               <Badge variant="outline" className="ml-2 text-xs">
                 {weights.length}
               </Badge>
             </CardTitle>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setIsMinimized(!isMinimized)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
-              aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+              className="text-slate-400 hover:text-white"
             >
-              {isMinimized ? (
-                <ChevronDown className="w-5 h-5 text-slate-300" />
-              ) : (
-                <ChevronUp className="w-5 h-5 text-slate-300" />
-              )}
-            </button>
+              {isMinimized ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </Button>
           </div>
         </CardHeader>
-        <AnimatePresence>
-          {!isMinimized && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              style={{ overflow: 'hidden' }}
-            >
-              <CardContent>
-                <div className="space-y-3">
-            {weights.map((weight) => {
-              const pesoValue = weight.peso_jejum || weight.peso_dia;
-              const isFasting = weight.tipo === 'jejum';
-              
-              return (
-                <div
-                  key={weight.id}
-                  className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 hover:border-slate-500/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`p-2 rounded-lg ${
-                          isFasting 
-                            ? 'bg-yellow-500/20 text-yellow-400' 
-                            : 'bg-blue-500/20 text-blue-400'
-                        }`}>
-                          {isFasting ? (
-                            <Sunrise className="w-4 h-4" />
-                          ) : (
-                            <Calendar className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-semibold text-lg">
-                              {pesoValue?.toFixed(1)} kg
-                            </span>
-                            <Badge className={
-                              isFasting
-                                ? 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30'
-                                : 'bg-blue-600/20 text-blue-400 border-blue-600/30'
-                            }>
-                              {isFasting ? 'Jejum' : 'Dia'}
-                            </Badge>
+        {!isMinimized && (
+          <CardContent>
+            <div className="space-y-3">
+              {weights.map((weight) => {
+                const pesoValue = weight.peso_jejum || weight.peso_dia;
+                const isFasting = weight.tipo === 'jejum';
+                
+                return (
+                  <div
+                    key={weight.id}
+                    className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 hover:border-slate-500/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`p-2 rounded-lg ${
+                            isFasting 
+                              ? 'bg-yellow-500/20 text-yellow-400' 
+                              : 'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {isFasting ? (
+                              <Sunrise className="w-4 h-4" />
+                            ) : (
+                              <Calendar className="w-4 h-4" />
+                            )}
                           </div>
-                          <p className="text-slate-400 text-sm mt-1">
-                            {new Date(weight.data_pesagem).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
-                          </p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-semibold text-lg">
+                                {pesoValue?.toFixed(1)} kg
+                              </span>
+                              <Badge className={
+                                isFasting
+                                  ? 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30'
+                                  : 'bg-blue-600/20 text-blue-400 border-blue-600/30'
+                              }>
+                                {isFasting ? 'Jejum' : 'Dia'}
+                              </Badge>
+                            </div>
+                            <p className="text-slate-400 text-sm mt-1">
+                              {new Date(weight.data_pesagem).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
                         </div>
+                        
+                        {weight.observacoes && (
+                          <p className="text-slate-400 text-sm mt-2 pl-12">
+                            {weight.observacoes}
+                          </p>
+                        )}
                       </div>
                       
-                      {weight.observacoes && (
-                        <p className="text-slate-400 text-sm mt-2 pl-12">
-                          {weight.observacoes}
-                        </p>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteClick(weight)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                    
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteClick(weight)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
-                </div>
-              );
-                })}
-                </div>
-              </CardContent>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                );
+              })}
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Dialog de confirmação de exclusão */}
@@ -256,4 +242,3 @@ export function DailyWeightsList({ telefone, onUpdate }: DailyWeightsListProps) 
     </>
   );
 }
-

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { laboratoryExamsService, LaboratoryExam } from '@/lib/laboratory-exams-service';
-import { FlaskConical, Clock, CheckCircle, XCircle, Calendar, Download, Upload, FileText, Trash2, Loader2 } from 'lucide-react';
+import { FlaskConical, Clock, CheckCircle, XCircle, Calendar, Download, Upload, Trash2, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -32,9 +32,10 @@ interface ExamsHistoryProps {
   onUpdate?: () => void;
   refreshTrigger?: number;
   allowDelete?: boolean; // Permitir deletar exames (apenas para nutricionista)
+  variant?: 'light' | 'dark'; // Controla o estilo: light (portal) ou dark (página evolução)
 }
 
-export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, allowDelete = false }: ExamsHistoryProps) {
+export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, allowDelete = false, variant = 'light' }: ExamsHistoryProps) {
   // Log sempre que o componente renderiza (ANTES de qualquer hook)
   console.log('📋 ExamsHistory RENDERIZADO - patientId:', patientId, 'telefone:', telefone, 'refreshTrigger:', refreshTrigger);
   
@@ -48,6 +49,7 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
   const [resultNotes, setResultNotes] = useState('');
   const [deletingExamId, setDeletingExamId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true); // Minimizado por padrão
   const [examToDelete, setExamToDelete] = useState<LaboratoryExam | null>(null);
 
   const loadExams = useCallback(async () => {
@@ -214,11 +216,13 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
     }
   };
 
+  const isDark = variant === 'dark';
+
   if (loading) {
     return (
-      <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
+      <Card className={isDark ? "bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50" : "bg-white rounded-2xl shadow-lg border border-gray-100"}>
         <CardContent className="p-8 text-center">
-          <p className="text-[#777777]">Carregando exames...</p>
+          <p className={isDark ? "text-slate-400" : "text-[#777777]"}>Carregando exames...</p>
         </CardContent>
       </Card>
     );
@@ -226,33 +230,42 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
 
   return (
     <>
-      <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
+      <Card className={isDark ? "bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50" : "bg-white rounded-2xl shadow-lg border border-gray-100"}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#222222]">
-            <FlaskConical className="w-5 h-5 text-[#00C98A]" />
-            Exames
-          </CardTitle>
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle className={`flex items-center gap-2 ${isDark ? "text-white" : "text-[#222222]"}`}>
+              <FlaskConical className={`w-5 h-5 ${isDark ? "text-blue-400" : "text-[#00C98A]"}`} />
+              Exames ({exams.length})
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(!isMinimized)}
+              className={isDark ? "text-slate-400 hover:text-white" : "text-[#777777] hover:text-[#222222]"}
+            >
+              {isMinimized ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        {!isMinimized && (
+          <CardContent>
           {exams.length === 0 ? (
             <div className="text-center py-8">
-              <FlaskConical className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-[#777777]">Nenhum exame solicitado ainda</p>
-              {telefone && (
-                <p className="text-xs text-[#777777] mt-2">Telefone: {telefone}</p>
-              )}
+              <FlaskConical className={`w-12 h-12 mx-auto mb-3 ${isDark ? "text-slate-600" : "text-gray-300"}`} />
+              <p className={isDark ? "text-slate-400" : "text-[#777777]"}>Nenhum exame solicitado ainda</p>
+              <p className={`text-sm mt-1 ${isDark ? "text-slate-500" : "text-[#777777]"}`}>Os exames solicitados aparecerão aqui</p>
             </div>
           ) : (
             <div className="space-y-3">
               {exams.map((exam) => (
                 <div
                   key={exam.id}
-                  className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-all duration-200"
+                  className={isDark ? "bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 hover:border-slate-500/50 transition-colors" : "bg-gradient-to-br from-[#00C98A]/10 to-[#00A875]/10 rounded-xl p-4 border border-[#00C98A]/20"}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h3 className="text-[#222222] font-semibold text-lg mb-1">{exam.exam_name}</h3>
-                      <p className="text-[#777777] text-sm">
+                      <h3 className={`font-semibold text-lg mb-1 ${isDark ? "text-white" : "text-[#222222]"}`}>{exam.exam_name}</h3>
+                      <p className={`text-sm ${isDark ? "text-slate-400" : "text-[#777777]"}`}>
                         Solicitado em {new Date(exam.requested_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
@@ -260,9 +273,9 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
                   </div>
 
                   {exam.instructions && (
-                    <div className="mb-3 p-3 bg-[#00C98A]/5 border border-[#00C98A]/20 rounded-lg">
-                      <p className="text-sm text-[#777777]">
-                        <strong className="text-[#222222]">Instruções:</strong> {exam.instructions}
+                    <div className={`mb-3 p-3 rounded-lg ${isDark ? "bg-blue-500/10 border border-blue-500/30" : "bg-green-500/10 border border-green-500/30"}`}>
+                      <p className={`text-sm ${isDark ? "text-slate-300" : "text-slate-300"}`}>
+                        <strong className={isDark ? "text-white" : "text-white"}>Instruções:</strong> {exam.instructions}
                       </p>
                     </div>
                   )}
@@ -273,7 +286,7 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
                         href={exam.result_file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-[#00C98A] hover:text-[#00A875] text-sm font-medium"
+                        className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 text-sm font-medium"
                       >
                         <Download className="w-4 h-4" />
                         Ver resultado
@@ -289,7 +302,7 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
                           setSelectedExam(exam);
                           setUploadModalOpen(true);
                         }}
-                        className="bg-gradient-to-br from-[#00C98A] to-[#00A875] text-white hover:from-[#00A875] hover:to-[#008a5c] border-0"
+                        className="bg-green-600 text-white hover:bg-green-700 border-0"
                       >
                         <Upload className="w-4 h-4 mr-2" />
                         Adicionar Resultado
@@ -304,7 +317,7 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
                           setDeleteConfirmOpen(true);
                         }}
                         disabled={deletingExamId === exam.id}
-                        className="bg-red-500 text-white hover:bg-red-600 border-0"
+                        className="bg-red-600 text-white hover:bg-red-700 border-0"
                       >
                         {deletingExamId === exam.id ? (
                           <>
@@ -324,7 +337,8 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
               ))}
             </div>
           )}
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
 
       {/* Modal de Upload */}

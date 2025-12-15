@@ -3,16 +3,28 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "@/components/ui/global-search";
 import { NotificationsPanel } from "@/components/ui/notifications-panel";
+import { useSubscriptionCheck } from "@/hooks/use-subscription-check";
+import { SubscriptionBlockedModal } from "@/components/subscription/SubscriptionBlockedModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { status, showBlockedModal } = useSubscriptionCheck();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
+        
+        {/* Modal de bloqueio de assinatura */}
+        <SubscriptionBlockedModal
+          open={showBlockedModal}
+          reason={status?.reason}
+          isTrial={status?.isTrial}
+          daysRemaining={status?.daysRemaining}
+        />
         
         <div className="flex-1 flex flex-col">
           {/* Header */}

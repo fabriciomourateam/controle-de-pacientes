@@ -66,7 +66,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
 
   if (checkins.length === 0) {
     return (
-      <Card className="bg-slate-800/40 border-slate-700/50">
+      <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="w-5 h-5 text-blue-400" />
@@ -87,7 +87,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
   }
 
   return (
-    <Card className="bg-slate-800/40 border-slate-700/50">
+    <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -141,7 +141,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                 }`} />
 
                 {/* Card do Check-in */}
-                <div className="bg-gradient-to-br from-slate-700/40 to-slate-800/40 rounded-lg p-4 border border-slate-600/50 hover:border-slate-500/50 transition-all">
+                <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-lg p-4 border border-slate-600/50 hover:border-slate-500/50 transition-all">
                   {/* Cabeçalho */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">

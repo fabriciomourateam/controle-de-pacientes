@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug - Fotos do Paciente</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Debug - Fotos do Paciente</h1>
+  <div id="result"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://yfqkqxozbztvjqgqzwzl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmcWtxeG96Ynp0dmpxZ3F6d3psIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI1NTU5NzcsImV4cCI6MjA0ODEzMTk3N30.eMVFykD-2TaT_hLqBXZLqJOIYJqvdJPxVLqxJqvdJPw';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function debugPatient() {
+      const telefone = '5511961752137';
+      
+      console.log('🔍 Buscando dados do paciente:', telefone);
+      
+      const { data: patient, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('telefone', telefone)
+        .single();
+      
+      if (error) {
+        console.error('❌ Erro:', error);
+        document.getElementById('result').innerHTML = `<pre>Erro: ${JSON.stringify(error, null, 2)}</pre>`;
+        return;
+      }
+      
+      console.log('✅ Paciente encontrado:', patient);
+      
+      const html = `
+        <h2>Dados do Paciente: ${patient.nome}</h2>
+        <h3>Fotos Iniciais:</h3>
+        <ul>
+          <li><strong>Frente:</strong> ${patient.foto_inicial_frente || 'Não cadastrada'}</li>
+          <li><strong>Lado:</strong> ${patient.foto_inicial_lado || 'Não cadastrada'}</li>
+          <li><strong>Lado 2:</strong> ${patient.foto_inicial_lado_2 || 'Não cadastrada'}</li>
+          <li><strong>Costas:</strong> ${patient.foto_inicial_costas || 'Não cadastrada'}</li>
+        </ul>
+        <h3>Dados Iniciais:</h3>
+        <ul>
+          <li><strong>Peso Inicial:</strong> ${patient.peso_inicial || 'Não cadastrado'} kg</li>
+          <li><strong>Altura:</strong> ${patient.altura_inicial || 'Não cadastrada'} m</li>
+          <li><strong>Data Fotos:</strong> ${patient.data_fotos_iniciais || 'Não cadastrada'}</li>
+        </ul>
+        
+        <h3>Testar URLs das Fotos:</h3>
+        ${patient.foto_inicial_frente ? `
+          <div style="margin: 20px 0;">
+            <h4>Foto Frente:</h4>
+            <p>URL Original: <code>${patient.foto_inicial_frente}</code></p>
+            <img src="${patient.foto_inicial_frente}" style="max-width: 300px; border: 2px solid #ccc;" 
+                 onerror="this.style.border='2px solid red'; this.alt='ERRO AO CARREGAR';" />
+          </div>
+        ` : ''}
+        
+        ${patient.foto_inicial_lado ? `
+          <div style="margin: 20px 0;">
+            <h4>Foto Lado:</h4>
+            <p>URL Original: <code>${patient.foto_inicial_lado}</code></p>
+            <img src="${patient.foto_inicial_lado}" style="max-width: 300px; border: 2px solid #ccc;" 
+                 onerror="this.style.border='2px solid red'; this.alt='ERRO AO CARREGAR';" />
+          </div>
+        ` : ''}
+        
+        <h3>JSON Completo:</h3>
+        <pre>${JSON.stringify(patient, null, 2)}</pre>
+      `;
+      
+      document.getElementById('result').innerHTML = html;
+    }
+    
+    debugPatient();
+  </script>
+</body>
+</html>

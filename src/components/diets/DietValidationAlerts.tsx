@@ -11,10 +11,10 @@ interface DietValidationAlertsProps {
 export function DietValidationAlerts({ validation, className }: DietValidationAlertsProps) {
   if (validation.valid && validation.warnings.length === 0 && validation.errors.length === 0) {
     return (
-      <Alert className={`border-green-600 bg-green-500/20 ${className}`}>
-        <CheckCircle className="h-4 w-4 text-green-600" />
-        <AlertTitle className="text-green-600">Plano válido</AlertTitle>
-        <AlertDescription className="text-green-700">
+      <Alert className={`border-[#00C98A] bg-[#00C98A]/10 ${className}`}>
+        <CheckCircle className="h-4 w-4 !text-[#00C98A]" />
+        <AlertTitle className="text-[#00C98A] font-semibold">Plano válido</AlertTitle>
+        <AlertDescription className="text-[#00A875]">
           O plano está bem estruturado e pronto para uso.
         </AlertDescription>
       </Alert>

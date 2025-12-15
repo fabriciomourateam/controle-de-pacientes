@@ -285,7 +285,7 @@ export function FoodSubstitutionModal({
               variant={searchMode === 'suggestions' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSearchMode('suggestions')}
-              className={searchMode === 'suggestions' ? 'bg-[#00C98A] hover:bg-[#00A875] text-white' : 'border-green-500/30 text-[#222222] hover:bg-gray-100'}
+              className={searchMode === 'suggestions' ? 'bg-[#00C98A] hover:bg-[#00A875] text-white' : 'bg-[#222222] hover:bg-[#333333] text-white border-0'}
             >
               Sugestões
             </Button>
@@ -297,7 +297,7 @@ export function FoodSubstitutionModal({
                 setSearchMode('search');
                 setTimeout(() => inputRef.current?.focus(), 100);
               }}
-              className={searchMode === 'search' ? 'bg-[#00C98A] hover:bg-[#00A875] text-white' : 'border-green-500/30 text-[#222222] hover:bg-gray-100'}
+              className={searchMode === 'search' ? 'bg-[#00C98A] hover:bg-[#00A875] text-white' : 'bg-[#222222] hover:bg-[#333333] text-white border-0'}
             >
               Buscar Alimento
             </Button>
@@ -508,7 +508,7 @@ export function FoodSubstitutionModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-green-500/30 text-white hover:bg-gray-100 hover:text-[#222222]"
+            className="bg-[#222222] hover:bg-[#333333] text-white border-0"
           >
             Cancelar
           </Button>
