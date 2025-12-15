@@ -202,8 +202,8 @@ export function AppSidebar() {
   }
   
   // Reuniões também para membros da equipe (que não são owners)
-  // Verificar se tem permissão de dashboard (membros ativos têm)
-  if (!isOwner && userEmail !== ADMIN_EMAIL && profile?.permissions?.dashboard) {
+  // Usar isTeamMember que já foi verificado, ou verificar permissão de dashboard
+  if (!isOwner && userEmail !== ADMIN_EMAIL && (isTeamMember || profile?.permissions?.dashboard)) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
   
