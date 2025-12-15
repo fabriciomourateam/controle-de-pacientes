@@ -87,14 +87,6 @@ export function AppSidebar() {
             .eq('user_id', user.id)
             .maybeSingle();
           
-          console.log('🔍 Verificando membro da equipe:', {
-            user_id: user.id,
-            email: user.email,
-            teamMember,
-            error,
-            isTeamMember: !!teamMember
-          });
-          
           setIsTeamMember(!!teamMember);
         }
       } catch (error) {
@@ -207,13 +199,7 @@ export function AppSidebar() {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
   
-  console.log('📋 Menu Admin:', {
-    userEmail,
-    isOwner,
-    isTeamMember,
-    hasDashboardPermission: profile?.permissions?.dashboard,
-    adminNavItems: adminNavItems.map(i => i.title)
-  });
+
 
   return (
     <Sidebar
