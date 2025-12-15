@@ -70,18 +70,30 @@ export function AppSidebar() {
   const { hasPermission, isOwner } = useAuthContext();
   const { toast } = useToast();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isTeamMember, setIsTeamMember] = useState(false);
 
-  // Buscar email do usuário atual
+  // Buscar email do usuário atual e verificar se é membro de equipe
   useEffect(() => {
-    async function fetchUserEmail() {
+    async function fetchUserData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUserEmail(user?.email || null);
+        
+        // Verificar se é membro de alguma equipe
+        if (user) {
+          const { data: teamMember } = await supabase
+            .from('team_members')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+          
+          setIsTeamMember(!!teamMember);
+        }
       } catch (error) {
-        console.error('Erro ao buscar email do usuário:', error);
+        console.error('Erro ao buscar dados do usuário:', error);
       }
     }
-    fetchUserEmail();
+    fetchUserData();
   }, []);
 
   // Função para fazer logout
@@ -175,9 +187,13 @@ export function AppSidebar() {
     adminNavItems.push({ title: "Admin", url: "/admin", icon: Shield });
   }
   
-  // Gestão de Equipe para owner ou admin
+  // Gestão de Equipe apenas para owner ou admin
   if (userEmail === ADMIN_EMAIL || isOwner) {
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
+  }
+  
+  // Reuniões para owner, admin E membros da equipe
+  if (userEmail === ADMIN_EMAIL || isOwner || isTeamMember) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
 
