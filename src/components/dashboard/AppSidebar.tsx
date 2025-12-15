@@ -81,11 +81,19 @@ export function AppSidebar() {
         
         // Verificar se é membro de alguma equipe
         if (user) {
-          const { data: teamMember } = await supabase
+          const { data: teamMember, error } = await supabase
             .from('team_members')
             .select('id')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
+          
+          console.log('🔍 Verificando membro da equipe:', {
+            user_id: user.id,
+            email: user.email,
+            teamMember,
+            error,
+            isTeamMember: !!teamMember
+          });
           
           setIsTeamMember(!!teamMember);
         }
@@ -190,12 +198,22 @@ export function AppSidebar() {
   // Gestão de Equipe apenas para owner ou admin
   if (userEmail === ADMIN_EMAIL || isOwner) {
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
-  }
-  
-  // Reuniões para owner, admin E membros da equipe
-  if (userEmail === ADMIN_EMAIL || isOwner || isTeamMember) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
+  
+  // Reuniões também para membros da equipe (que não são owners)
+  // Verificar se tem permissão de dashboard (membros ativos têm)
+  if (!isOwner && userEmail !== ADMIN_EMAIL && profile?.permissions?.dashboard) {
+    adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
+  }
+  
+  console.log('📋 Menu Admin:', {
+    userEmail,
+    isOwner,
+    isTeamMember,
+    hasDashboardPermission: profile?.permissions?.dashboard,
+    adminNavItems: adminNavItems.map(i => i.title)
+  });
 
   return (
     <Sidebar
