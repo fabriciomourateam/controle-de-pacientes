@@ -141,7 +141,7 @@ export function AppSidebar() {
   const getNavCls = (path: string) => 
     isActive(path) 
       ? "bg-gradient-to-r from-blue-600/20 to-blue-500/20 text-blue-400 font-medium border-blue-500/30" 
-      : "hover:bg-slate-700/50 text-slate-400 hover:text-white hover:border-slate-600/50";
+      : "hover:bg-slate-700/50 text-slate-300 hover:text-white hover:border-slate-600/50";
 
   // Mapeamento de permissões por rota
   const routePermissions: Record<string, { resource: string; action?: string }> = {

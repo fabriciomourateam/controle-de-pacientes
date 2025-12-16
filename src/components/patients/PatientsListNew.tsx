@@ -75,6 +75,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { CSVImportModal } from "@/components/import/CSVImportModal";
+import { SendPortalButton } from "@/components/patients/SendPortalButton";
 
 export function PatientsListNew() {
   const navigate = useNavigate();
@@ -407,7 +408,7 @@ export function PatientsListNew() {
             Atualizar
           </Button>
           <CSVImportModal onImportComplete={loadPatients} />
-          <Button onClick={() => setIsPatientFormOpen(true)}>
+          <Button onClick={() => setIsPatientFormOpen(true)} className="btn-premium">
             <Plus className="w-4 h-4 mr-2" />
             Novo Paciente
           </Button>
@@ -477,13 +478,14 @@ export function PatientsListNew() {
                 ))}
                 <TableHead className="w-24 text-slate-300 text-center">Plano Alimentar</TableHead>
                 <TableHead className="w-24 text-slate-300 text-center">Evolução</TableHead>
-                <TableHead className="w-12 text-slate-300">Ações</TableHead>
+                <TableHead className="w-20 text-slate-300 text-center">App</TableHead>
+                <TableHead className="w-12 text-slate-300 text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={filteredColumnOptions.length + 3} className="text-center py-8">
+                  <TableCell colSpan={filteredColumnOptions.length + 4} className="text-center py-8">
                     <div className="flex items-center justify-center gap-2 text-slate-400">
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       <span>Carregando pacientes...</span>
@@ -492,7 +494,7 @@ export function PatientsListNew() {
                 </TableRow>
               ) : patients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={filteredColumnOptions.length + 3} className="text-center py-8">
+                  <TableCell colSpan={filteredColumnOptions.length + 4} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="w-8 h-8 text-slate-400" />
                       <p className="text-slate-400">Nenhum paciente encontrado</p>
@@ -684,7 +686,16 @@ export function PatientsListNew() {
                           </Tooltip>
                         </TooltipProvider>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
+                        <SendPortalButton
+                          telefone={patient.telefone}
+                          patientName={patient.nome}
+                          variant="ghost"
+                          size="sm"
+                          showLabel={false}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-slate-700/50">
