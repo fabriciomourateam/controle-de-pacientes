@@ -242,25 +242,25 @@ export function PatientDietPortal({
     <div className="space-y-6 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
       {/* Seletor de Planos (quando houver múltiplos planos liberados) */}
       {releasedPlans.length > 1 && (
-        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200/50 shadow-sm">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[#222222] mb-1">Plano Alimentar Ativo</p>
                 <p className="text-xs text-[#777777]">Você tem {releasedPlans.length} planos disponíveis</p>
               </div>
               <Select value={activePlan?.id} onValueChange={handleChangePlan}>
-                <SelectTrigger className="w-[280px] bg-white border-green-300 text-[#222222]">
+                <SelectTrigger className="w-full sm:w-[280px] bg-white border-green-300 text-[#222222] min-h-[44px]">
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
                 <SelectContent>
                   {releasedPlans.map((plan: any) => (
-                    <SelectItem key={plan.id} value={plan.id}>
+                    <SelectItem key={plan.id} value={plan.id} className="py-3">
                       <div className="flex items-center gap-2">
-                        <Utensils className="w-4 h-4 text-[#00C98A]" />
-                        <span>{plan.name}</span>
+                        <Utensils className="w-4 h-4 text-[#00C98A] flex-shrink-0" />
+                        <span className="truncate">{plan.name}</span>
                         {(plan.status === 'active' || plan.active) && (
-                          <Badge className="ml-2 bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30">
+                          <Badge className="ml-2 bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30 flex-shrink-0">
                             Ativo
                           </Badge>
                         )}
@@ -277,23 +277,25 @@ export function PatientDietPortal({
       {/* Abas: Plano Alimentar, Metas, Progresso, Conquistas e Minha Evolução */}
       <Tabs defaultValue="diet" className="w-full">
         <TabsList className="sticky top-0 z-50 flex w-full flex-wrap bg-gray-100 gap-1 p-1 border-b border-gray-200 shadow-sm rounded-t-lg">
-          <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[120px] text-[#777777]">
-            Plano Alimentar
+          <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[100px] text-[#777777] text-xs sm:text-sm py-2 sm:py-2.5">
+            <span className="hidden sm:inline">Plano Alimentar</span>
+            <span className="sm:hidden">Plano</span>
           </TabsTrigger>
-          <TabsTrigger value="orientations" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[120px] text-[#777777]">
+          <TabsTrigger value="orientations" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[90px] text-[#777777] text-xs sm:text-sm py-2 sm:py-2.5">
             Orientações
           </TabsTrigger>
-          <TabsTrigger value="challenges" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[80px] text-[#777777]">
+          <TabsTrigger value="challenges" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[70px] text-[#777777] text-xs sm:text-sm py-2 sm:py-2.5">
             Metas
           </TabsTrigger>
-          <TabsTrigger value="progress" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[100px] text-[#777777]">
+          <TabsTrigger value="progress" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[80px] text-[#777777] text-xs sm:text-sm py-2 sm:py-2.5">
             Progresso
           </TabsTrigger>
-          <TabsTrigger value="gamification" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[100px] text-[#777777]">
+          <TabsTrigger value="gamification" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[90px] text-[#777777] text-xs sm:text-sm py-2 sm:py-2.5">
             Conquistas
           </TabsTrigger>
-          <TabsTrigger value="evolution" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[140px] text-[#777777]">
-            Minha Evolução
+          <TabsTrigger value="evolution" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm flex-1 min-w-[100px] text-[#777777] text-xs sm:text-sm py-2 sm:py-2.5">
+            <span className="hidden sm:inline">Minha Evolução</span>
+            <span className="sm:hidden">Evolução</span>
           </TabsTrigger>
         </TabsList>
         
@@ -301,10 +303,10 @@ export function PatientDietPortal({
         <TabsContent value="diet" className="mt-6 space-y-6">
           {!hasActivePlan ? (
             <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
-              <CardContent className="p-8 text-center">
-                <Utensils className="w-16 h-16 text-[#777777] mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-[#222222] mb-2">Nenhum Plano Alimentar Ativo</h3>
-                <p className="text-[#777777]">
+              <CardContent className="p-6 sm:p-8 text-center">
+                <Utensils className="w-12 h-12 sm:w-16 sm:h-16 text-[#777777] mx-auto mb-3 sm:mb-4 opacity-50" />
+                <h3 className="text-lg sm:text-xl font-bold text-[#222222] mb-2">Nenhum Plano Alimentar Ativo</h3>
+                <p className="text-sm sm:text-base text-[#777777]">
                   Seu nutricionista ainda não liberou um plano alimentar para você.
                 </p>
               </CardContent>
@@ -312,12 +314,33 @@ export function PatientDietPortal({
           ) : (
             <>
           {/* Resumo de Calorias e Macros */}
-          <Card className="bg-green-50/30 rounded-2xl p-6 shadow-sm border border-green-100/50 hover:shadow-md transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center justify-center mb-6">
+          <Card className="bg-green-50/30 rounded-2xl shadow-sm border border-green-100/50 hover:shadow-md transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
                 {/* Círculo de Progresso de Calorias */}
-                <div className="relative w-48 h-48 mb-4">
-                  <svg className="transform -rotate-90 w-48 h-48">
+                <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-3 sm:mb-4">
+                  <svg className="transform -rotate-90 w-40 h-40 sm:w-48 sm:h-48">
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      stroke="#E5E7EB"
+                      strokeWidth="10"
+                      fill="none"
+                      className="sm:hidden"
+                    />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      stroke="#00C98A"
+                      strokeWidth="10"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 70}`}
+                      strokeDashoffset={`${2 * Math.PI * 70 * (1 - percentualConsumido / 100)}`}
+                      strokeLinecap="round"
+                      className="transition-all duration-500 sm:hidden"
+                    />
                     <circle
                       cx="96"
                       cy="96"
@@ -325,6 +348,7 @@ export function PatientDietPortal({
                       stroke="#E5E7EB"
                       strokeWidth="12"
                       fill="none"
+                      className="hidden sm:block"
                     />
                     <circle
                       cx="96"
@@ -336,31 +360,31 @@ export function PatientDietPortal({
                       strokeDasharray={`${2 * Math.PI * 84}`}
                       strokeDashoffset={`${2 * Math.PI * 84 * (1 - percentualConsumido / 100)}`}
                       strokeLinecap="round"
-                      className="transition-all duration-500"
+                      className="transition-all duration-500 hidden sm:block"
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="text-4xl font-bold text-[#222222]">{Math.round(caloriasRestantes)}</p>
-                    <p className="text-sm text-[#777777] mt-1">Kcal restantes</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-[#222222]">{Math.round(caloriasRestantes)}</p>
+                    <p className="text-xs sm:text-sm text-[#777777] mt-1">Kcal restantes</p>
                   </div>
                 </div>
                 
                 {/* Informações de Consumo */}
-                <div className="flex gap-6 text-center">
+                <div className="flex gap-4 sm:gap-6 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-[#222222]">{Math.round(caloriasConsumidas)}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-[#222222]">{Math.round(caloriasConsumidas)}</p>
                     <p className="text-xs text-[#777777] mt-1">Consumidas</p>
                   </div>
                   <div className="w-px bg-gray-200"></div>
                   <div>
-                    <p className="text-2xl font-bold text-[#222222]">{Math.round(metaCalorias)}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-[#222222]">{Math.round(metaCalorias)}</p>
                     <p className="text-xs text-[#777777] mt-1">Meta do dia</p>
                   </div>
                 </div>
               </div>
 
               {/* Macros */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-100">
                 <div className="text-center">
                   <p className="text-lg font-semibold text-[#222222]">
                     {carboidratosConsumidos.toFixed(0)} / {metaCarboidratos.toFixed(0)}g
@@ -462,38 +486,38 @@ export function PatientDietPortal({
                             }`}
                           >
                             <CollapsibleTrigger asChild>
-                              <div className="flex items-center justify-between p-4 cursor-pointer rounded-t-xl transition-all duration-200">
-                                <div className="flex items-center gap-3 flex-1">
+                              <div className="flex items-center justify-between p-3 sm:p-4 cursor-pointer rounded-t-xl transition-all duration-200">
+                                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                   <div 
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                                       isConsumed
                                         ? 'bg-gradient-to-br from-[#00C98A] to-[#00A875]'
                                         : 'bg-gray-200'
                                     }`}
                                   >
                                     {isConsumed ? (
-                                      <Check className="w-5 h-5 text-white" />
+                                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                                     ) : (
-                                      <Utensils className="w-5 h-5 text-[#777777]" />
+                                      <Utensils className="w-4 h-4 sm:w-5 sm:h-5 text-[#777777]" />
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className={`text-base font-semibold transition-colors ${
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                      <h4 className={`text-sm sm:text-base font-semibold transition-colors truncate ${
                                         isConsumed ? 'text-[#00C98A]' : 'text-[#222222]'
                                       }`}>
                                         {meal.meal_name}
                                       </h4>
                                       {meal.suggested_time && (
-                                        <Badge className="bg-purple-50 text-purple-600 border-purple-200 border text-xs">
+                                        <Badge className="bg-purple-50 text-purple-600 border-purple-200 border text-xs w-fit">
                                           {meal.suggested_time}
                                         </Badge>
                                       )}
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-right flex items-center gap-3 flex-shrink-0">
-                                  <Badge className={`text-sm font-semibold border ${
+                                <div className="text-right flex items-center gap-1 sm:gap-3 flex-shrink-0">
+                                  <Badge className={`text-xs sm:text-sm font-semibold border hidden sm:inline-flex ${
                                     isConsumed 
                                       ? 'bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30' 
                                       : 'bg-blue-100 text-blue-700 border-blue-300'
@@ -506,20 +530,20 @@ export function PatientDietPortal({
                                       e.stopPropagation();
                                       handleToggleMealConsumed(meal.id);
                                     }}
-                                    className={`w-10 h-10 p-0 rounded-full transition-all duration-200 ${
+                                    className={`w-9 h-9 sm:w-10 sm:h-10 p-0 rounded-full transition-all duration-200 min-h-[44px] min-w-[44px] ${
                                       isConsumed
                                         ? 'bg-gradient-to-br from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white shadow-md'
                                         : 'bg-gray-200 hover:bg-gray-300 text-[#777777] border border-gray-300'
                                     }`}
                                   >
                                     {isConsumed ? (
-                                      <Check className="w-5 h-5" />
+                                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                                     ) : (
-                                      <Plus className="w-5 h-5" />
+                                      <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                                     )}
                                   </Button>
                                   <ChevronRight 
-                                    className={`w-5 h-5 text-[#777777] transition-transform duration-200 ${
+                                    className={`w-4 h-4 sm:w-5 sm:h-5 text-[#777777] transition-transform duration-200 ${
                                       isExpanded ? 'rotate-90' : ''
                                     }`}
                                   />
@@ -547,22 +571,22 @@ export function PatientDietPortal({
                                       return (
                                         <div 
                                           key={food.id || foodIndex} 
-                                          className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-300 transform hover:scale-[1.01] bg-white ${
+                                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 rounded-lg border transition-all duration-300 bg-white gap-2 ${
                                             isConsumed
                                               ? 'border-[#00C98A]/30 opacity-75'
                                               : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
                                           }`}
                                         >
-                                          <div className="flex items-center gap-2 flex-1">
+                                          <div className="flex items-center gap-2 flex-1 min-w-0">
                                             {isConsumed && (
                                               <CheckCircle className="w-4 h-4 text-[#00C98A] flex-shrink-0" />
                                             )}
-                                            <span className={`font-medium text-sm ${
+                                            <span className={`font-medium text-xs sm:text-sm truncate ${
                                               isConsumed ? 'text-[#00C98A] line-through' : 'text-[#222222]'
                                             }`}>
                                               {food.food_name}
                                             </span>
-                                            <Badge className={`text-xs font-medium ${
+                                            <Badge className={`text-xs font-medium flex-shrink-0 ${
                                               isConsumed 
                                                 ? 'bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30' 
                                                 : 'bg-gray-100 text-gray-600 border-gray-200'
@@ -570,7 +594,7 @@ export function PatientDietPortal({
                                               {food.quantity} {food.unit === 'unidade' && food.quantity > 1 ? 'unidades' : food.unit}
                                             </Badge>
                                           </div>
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex items-center gap-1 sm:gap-2 justify-end sm:justify-start">
                                             {substitutions.length > 0 && !isConsumed && (
                                               <Button
                                                 size="sm"
@@ -583,14 +607,15 @@ export function PatientDietPortal({
                                                   });
                                                   setSubstitutionsModalOpen(true);
                                                 }}
-                                                className="h-6 px-2 bg-[#00C98A]/10 hover:bg-[#00C98A]/20 text-[#00C98A] border border-[#00C98A]/30"
+                                                className="h-7 sm:h-8 px-2 text-xs bg-[#00C98A]/10 hover:bg-[#00C98A]/20 text-[#00C98A] border border-[#00C98A]/30 min-h-[44px]"
                                               >
                                                 <RefreshCw className="w-3 h-3 mr-1" />
-                                                Substituições
+                                                <span className="hidden sm:inline">Substituições</span>
+                                                <span className="sm:hidden">Trocar</span>
                                               </Button>
                                             )}
                                             {food.calories && (
-                                              <Badge className={`text-xs font-medium text-right min-w-[70px] ${
+                                              <Badge className={`text-xs font-medium text-right min-w-[60px] sm:min-w-[70px] ${
                                                 isConsumed 
                                                   ? 'bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30' 
                                                   : 'bg-blue-50 text-blue-600 border-blue-200'
@@ -629,22 +654,22 @@ export function PatientDietPortal({
           {/* Orientações */}
           {hasActivePlan && planDetails?.diet_guidelines && planDetails.diet_guidelines.length > 0 && (
             <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
-              <CardHeader>
-                <CardTitle className="text-[#222222] flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-[#00C98A]" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg text-[#222222] flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-[#00C98A] flex-shrink-0" />
                   Orientações ({planDetails.diet_guidelines.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {planDetails.diet_guidelines.map((guideline: any, index: number) => (
                     <div 
                       key={guideline.id || index} 
-                      className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:bg-gray-100 transition-all duration-200"
+                      className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200 hover:bg-gray-100 transition-all duration-200"
                     >
-                      <p className="font-semibold text-[#222222] mb-2">{guideline.title}</p>
-                      <p className="text-sm text-[#777777] leading-relaxed mb-3">{guideline.content}</p>
-                      <Badge className="bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30">
+                      <p className="font-semibold text-sm sm:text-base text-[#222222] mb-2">{guideline.title}</p>
+                      <p className="text-xs sm:text-sm text-[#777777] leading-relaxed mb-3">{guideline.content}</p>
+                      <Badge className="bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30 text-xs">
                         {guideline.guideline_type}
                       </Badge>
                     </div>
@@ -703,11 +728,11 @@ export function PatientDietPortal({
 
       {/* Modal de Substituições */}
       <Dialog open={substitutionsModalOpen} onOpenChange={setSubstitutionsModalOpen}>
-        <DialogContent className="max-w-2xl bg-white">
-          <DialogHeader className="relative">
+        <DialogContent className="max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="relative pb-4">
             <button
               onClick={() => setSubstitutionsModalOpen(false)}
-              className="absolute right-0 top-0 rounded-full p-2 hover:bg-gray-100 transition-colors"
+              className="absolute right-0 top-0 rounded-full p-2 hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Fechar"
             >
               <svg
@@ -726,30 +751,30 @@ export function PatientDietPortal({
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
-            <DialogTitle className="text-[#222222] text-xl font-bold flex items-center gap-2 pr-8">
-              <RefreshCw className="w-5 h-5 text-[#00C98A]" />
-              Opções de Substituição
+            <DialogTitle className="text-[#222222] text-lg sm:text-xl font-bold flex items-center gap-2 pr-12">
+              <RefreshCw className="w-5 h-5 text-[#00C98A] flex-shrink-0" />
+              <span className="truncate">Opções de Substituição</span>
             </DialogTitle>
-            <DialogDescription className="text-[#777777]">
-              Você pode substituir <strong>{selectedFoodSubstitutions?.foodName}</strong> por qualquer uma das opções abaixo
+            <DialogDescription className="text-xs sm:text-sm text-[#777777] pr-8">
+              Você pode substituir <strong className="text-[#222222]">{selectedFoodSubstitutions?.foodName}</strong> por qualquer uma das opções abaixo
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-3 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2">
             {selectedFoodSubstitutions?.substitutions.map((sub: any, index: number) => (
               <div 
                 key={index}
-                className="p-4 rounded-lg border border-[#00C98A]/30 bg-[#00C98A]/5 hover:bg-[#00C98A]/10 transition-all"
+                className="p-3 sm:p-4 rounded-lg border border-[#00C98A]/30 bg-[#00C98A]/5 hover:bg-[#00C98A]/10 transition-all"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-[#222222] text-base">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-[#222222] text-sm sm:text-base truncate">
                       {sub.food_name}
                     </h4>
-                    <p className="text-sm text-[#777777] mt-1">
+                    <p className="text-xs sm:text-sm text-[#777777] mt-1">
                       Quantidade: <span className="font-medium text-[#00C98A]">{sub.quantity} {sub.unit}</span>
                       {sub.custom_unit_name && (
-                        <span className="ml-2 text-xs">
+                        <span className="ml-2 text-xs block sm:inline mt-1 sm:mt-0">
                           ({sub.custom_unit_name}: {sub.custom_unit_grams}g)
                         </span>
                       )}

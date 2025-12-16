@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Permissões Google Drive</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        .test-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .test-name {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        .status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .status.testing {
+            background: #FFA500;
+            color: white;
+        }
+        .status.success {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        .preview-container {
+            width: 100%;
+            height: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+            position: relative;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+        .info-row {
+            margin: 8px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .info-label {
+            font-weight: bold;
+            min-width: 100px;
+        }
+        .info-value {
+            word-break: break-all;
+            opacity: 0.9;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #FFA500;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #FFA500;
+        }
+        .instructions ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        .instructions li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Verificador de Permissões</h1>
+        <p class="subtitle">Google Drive - Fotos do Paciente Alberto Lobo Galvão</p>
+        
+        <div id="testsContainer"></div>
+
+        <div class="instructions">
+            <h3>⚠️ Se as fotos não aparecerem:</h3>
+            <ol>
+                <li><strong>Abra cada link</strong> em uma nova aba (botão "Abrir no Drive")</li>
+                <li>No Google Drive, clique no botão <strong>"Compartilhar"</strong> (ícone de pessoa com +)</li>
+                <li>Em "Acesso geral", altere de <strong>"Restrito"</strong> para <strong>"Qualquer pessoa com o link"</strong></li>
+                <li>Certifique-se que está como <strong>"Leitor"</strong> (não precisa ser Editor)</li>
+                <li>Clique em <strong>"Concluído"</strong></li>
+                <li>Volte aqui e clique em <strong>"Recarregar Teste"</strong></li>
+            </ol>
+            <p><strong>Nota:</strong> Sem essas permissões, as fotos não podem ser exibidas em iframes por questões de segurança do Google.</p>
+        </div>
+    </div>
+
+    <script>
+        const photos = [
+            {
+                name: '📷 Foto Frente',
+                url: 'https://drive.google.com/open?id=1ZpaQ5EKDJOXFJrAWH1oy5u_VLGs5Xsh5',
+                fileId: '1ZpaQ5EKDJOXFJrAWH1oy5u_VLGs5Xsh5'
+            },
+            {
+                name: '📷 Foto Lado',
+                url: 'https://drive.google.com/open?id=1MWn39wmt62fT6-BcHavfmajwoQjRbTbo',
+                fileId: '1MWn39wmt62fT6-BcHavfmajwoQjRbTbo'
+            },
+            {
+                name: '📷 Foto Costas',
+                url: 'https://drive.google.com/open?id=1BFnn3SBdL25Ns2WfKzOQaUi_BFVkWKXS',
+                fileId: '1BFnn3SBdL25Ns2WfKzOQaUi_BFVkWKXS'
+            }
+        ];
+
+        function createTestCard(photo, index) {
+            const previewUrl = `https://drive.google.com/file/d/${photo.fileId}/preview`;
+            const driveUrl = `https://drive.google.com/file/d/${photo.fileId}/view`;
+            
+            const card = document.createElement('div');
+            card.className = 'test-card';
+            card.id = `test-${index}`;
+            
+            card.innerHTML = `
+                <div class="test-header">
+                    <div class="test-name">${photo.name}</div>
+                    <div class="status testing" id="status-${index}">🔄 Testando...</div>
+                </div>
+                
+                <div class="preview-container">
+                    <iframe 
+                        src="${previewUrl}" 
+                        allow="autoplay"
+                        id="iframe-${index}"
+                    ></iframe>
+                </div>
+                
+                <div class="info">
+                    <div class="info-row">
+                        <span class="info-label">File ID:</span>
+                        <span class="info-value">${photo.fileId}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Preview URL:</span>
+                        <span class="info-value">${previewUrl}</span>
+                    </div>
+                    <button class="btn" onclick="window.open('${driveUrl}', '_blank')">
+                        🔗 Abrir no Drive
+                    </button>
+                    <button class="btn" onclick="reloadTest(${index}, '${previewUrl}')">
+                        🔄 Recarregar Teste
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function updateStatus(index, success) {
+            const statusEl = document.getElementById(`status-${index}`);
+            if (success) {
+                statusEl.className = 'status success';
+                statusEl.textContent = '✅ Carregou!';
+            } else {
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Sem Permissão';
+            }
+        }
+
+        function reloadTest(index, url) {
+            const iframe = document.getElementById(`iframe-${index}`);
+            const statusEl = document.getElementById(`status-${index}`);
+            
+            statusEl.className = 'status testing';
+            statusEl.textContent = '🔄 Recarregando...';
+            
+            iframe.src = '';
+            setTimeout(() => {
+                iframe.src = url;
+            }, 100);
+        }
+
+        // Renderizar testes
+        const container = document.getElementById('testsContainer');
+        photos.forEach((photo, index) => {
+            const card = createTestCard(photo, index);
+            container.appendChild(card);
+            
+            // Tentar detectar se carregou (não é 100% confiável)
+            const iframe = document.getElementById(`iframe-${index}`);
+            
+            iframe.onload = () => {
+                setTimeout(() => {
+                    updateStatus(index, true);
+                }, 1000);
+            };
+            
+            iframe.onerror = () => {
+                updateStatus(index, false);
+            };
+            
+            // Timeout para marcar como erro se não carregar em 5s
+            setTimeout(() => {
+                const statusEl = document.getElementById(`status-${index}`);
+                if (statusEl.textContent.includes('Testando')) {
+                    updateStatus(index, false);
+                }
+            }, 5000);
+        });
+
+        console.log('📸 Teste de permissões iniciado');
+        console.log('🔍 Verifique se os iframes carregam as fotos');
+        console.log('⚠️ Se aparecer tela preta/vazia = sem permissão');
+    </script>
+</body>
+</html>

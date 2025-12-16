@@ -144,15 +144,15 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
       {/* Card Principal - Gráfico de Tendência */}
       <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[#222222] flex items-center gap-2">
-              <Target className="w-5 h-5 text-[#00C98A]" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg text-[#222222] flex items-center gap-2">
+              <Target className="w-5 h-5 text-[#00C98A] flex-shrink-0" />
               Adesão ao Plano Alimentar
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setPeriod('week')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
                   period === 'week'
                     ? 'bg-[#00C98A] text-white'
                     : 'bg-gray-100 text-[#777777] hover:bg-gray-200'
@@ -162,7 +162,7 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
               </button>
               <button
                 onClick={() => setPeriod('month')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
                   period === 'month'
                     ? 'bg-[#00C98A] text-white'
                     : 'bg-gray-100 text-[#777777] hover:bg-gray-200'
@@ -172,7 +172,7 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
               </button>
               <button
                 onClick={() => setPeriod('3months')}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] sm:min-h-0 ${
                   period === '3months'
                     ? 'bg-[#00C98A] text-white'
                     : 'bg-gray-100 text-[#777777] hover:bg-gray-200'
@@ -185,19 +185,19 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
         </CardHeader>
         <CardContent>
           {/* Estatísticas Resumo */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="text-center p-4 bg-[#00C98A]/5 rounded-xl border border-[#00C98A]/20">
-              <div className="text-2xl font-bold text-[#00C98A]">{avgAdherence}%</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="text-center p-3 sm:p-4 bg-[#00C98A]/5 rounded-xl border border-[#00C98A]/20">
+              <div className="text-xl sm:text-2xl font-bold text-[#00C98A]">{avgAdherence}%</div>
               <div className="text-xs text-[#777777] mt-1">Média de Adesão</div>
             </div>
-            <div className={`text-center p-4 rounded-xl border ${
+            <div className={`text-center p-3 sm:p-4 rounded-xl border ${
               trend?.isIncreasing
                 ? 'bg-green-50 border-green-200'
                 : trend?.isDecreasing
                 ? 'bg-red-50 border-red-200'
                 : 'bg-gray-50 border-gray-200'
             }`}>
-              <div className={`text-2xl font-bold flex items-center justify-center gap-1 ${
+              <div className={`text-xl sm:text-2xl font-bold flex items-center justify-center gap-1 ${
                 trend?.isIncreasing
                   ? 'text-green-600'
                   : trend?.isDecreasing
@@ -207,9 +207,9 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
                 {trend && (
                   <>
                     {trend.isIncreasing ? (
-                      <TrendingUp className="w-5 h-5" />
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : trend.isDecreasing ? (
-                      <TrendingDown className="w-5 h-5" />
+                      <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : null}
                     {trend.change > 0 ? '+' : ''}{trend.change}%
                   </>
@@ -218,8 +218,8 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
               </div>
               <div className="text-xs text-[#777777] mt-1">Tendência</div>
             </div>
-            <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="text-2xl font-bold text-blue-600">
+            <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">
                 {consumption.filter(d => d.completion_percentage >= lowAdherenceThreshold).length}
               </div>
               <div className="text-xs text-[#777777] mt-1">Dias com Boa Adesão</div>
@@ -227,19 +227,22 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
           </div>
 
           {/* Gráfico de Tendência */}
-          <ResponsiveContainer width="100%" height={300}>
+          <div className="w-full h-[250px] sm:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis 
                 dataKey="date" 
                 stroke="#777777"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '10px' }}
+                className="sm:text-xs"
               />
               <YAxis 
                 stroke="#777777"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '10px' }}
+                className="sm:text-xs"
                 domain={[0, 100]}
-                label={{ value: 'Adesão (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#777777' } }}
+                label={{ value: 'Adesão (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#777777', fontSize: '10px' } }}
               />
               <Tooltip
                 contentStyle={{
@@ -268,6 +271,7 @@ export function AdherenceCharts({ patientId, lowAdherenceThreshold = 70 }: Adher
               />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 

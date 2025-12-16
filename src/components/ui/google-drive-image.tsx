@@ -17,6 +17,8 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
   const [useIframe, setUseIframe] = useState(true);
   const [imageError, setImageError] = useState(false);
 
+  console.log('🖼️ GoogleDriveImage renderizado:', { src, alt, className });
+
   // Extrair ID do Google Drive
   const getFileId = (url: string): string | null => {
     const patterns = [
@@ -34,6 +36,9 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
   };
 
   const fileId = getFileId(src);
+  
+  console.log('🔍 File ID extraído:', fileId);
+  console.log('🔗 Preview URL:', fileId ? `https://drive.google.com/file/d/${fileId}/preview` : 'N/A');
 
   const handleImageError = () => {
     console.log('🔄 Imagem falhou, tentando iframe...', { src, fileId });
@@ -72,77 +77,42 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
   }
 
   // Fallback: usar iframe (funciona sempre, mas menos performático)
+  console.log('✅ Renderizando iframe do Google Drive');
+  
   return (
     <div 
-      className={className} 
-      style={{ 
-        position: 'relative', 
-        overflow: 'hidden',
+      className={className}
+      style={{
+        position: 'relative',
+        display: 'block',
       }}
     >
       <iframe
         src={`https://drive.google.com/file/d/${fileId}/preview`}
+        className="w-full h-full"
         style={{
-          width: '100%',
-          height: '100%',
           border: 'none',
-          position: 'absolute',
-          top: 0,
-          left: 0,
+          display: 'block',
         }}
         allow="autoplay"
         title={alt}
+        loading="lazy"
       />
-      {/* Botão de zoom sobre o iframe */}
+      {/* Overlay clicável para capturar cliques */}
       {onClick && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log('🔍 Botão de zoom clicado!', { url: src, alt });
-            onClick();
-          }}
+        <div
+          onClick={onClick}
           style={{
             position: 'absolute',
-            top: '8px',
-            right: '8px',
-            width: '40px',
-            height: '40px',
-            borderRadius: '8px',
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            border: 'none',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10,
-            transition: 'all 0.2s',
+            zIndex: 1,
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-            e.currentTarget.style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-          title="Ampliar foto"
-        >
-          <svg 
-            width="20" 
-            height="20" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="white" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.35-4.35"></path>
-            <line x1="11" y1="8" x2="11" y2="14"></line>
-            <line x1="8" y1="11" x2="14" y2="11"></line>
-          </svg>
-        </button>
+          title="Clique para ampliar"
+        />
       )}
     </div>
   );

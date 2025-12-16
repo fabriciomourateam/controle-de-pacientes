@@ -73,6 +73,11 @@ export function convertGoogleDriveUrl(url: string | null, isVideo: boolean = fal
  * Verifica se uma URL é do Google Drive
  */
 export function isGoogleDriveUrl(url: string | null): boolean {
-  if (!url) return false;
-  return url.includes('drive.google.com');
+  if (!url) {
+    console.log('⚠️ isGoogleDriveUrl: URL é null/undefined');
+    return false;
+  }
+  const result = url.includes('drive.google.com');
+  console.log('🔍 isGoogleDriveUrl:', { url: url.substring(0, 50) + '...', result });
+  return result;
 }

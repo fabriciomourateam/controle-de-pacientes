@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Camera, ChevronRight, ZoomIn, Calendar, ExternalLink, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getMediaType } from "@/lib/media-utils";
-import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
+import { convertGoogleDriveUrl, isGoogleDriveUrl } from "@/lib/google-drive-utils";
+import { GoogleDriveImage } from "@/components/ui/google-drive-image";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -33,6 +34,8 @@ interface PhotoData {
 }
 
 export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComparisonProps) {
+  console.log('🚀 PhotoComparison RENDERIZADO!', { checkinsLength: checkins.length, hasPatient: !!patient });
+  
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoData | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
@@ -158,6 +161,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
     }
   }
 
+  console.log('📸 initialPhotos criado:', initialPhotos.length, initialPhotos);
+
   // Extrair todas as fotos/vídeos dos check-ins (inverter ordem para ter do mais antigo ao mais recente)
   const checkinPhotos: PhotoData[] = [...checkins].reverse().flatMap(checkin => {
     const photos: PhotoData[] = [];
@@ -226,6 +231,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
 
   // Combinar fotos iniciais com fotos de check-ins
   const allPhotos = [...initialPhotos, ...checkinPhotos];
+  
+  console.log('📸 allPhotos final:', allPhotos.length, allPhotos);
 
   // Inicializar índice "Depois" quando allPhotos mudar
   if (selectedAfterIndex === null && allPhotos.length > 1) {
@@ -472,31 +479,26 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                         controls
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all"
                       />
+                    ) : isGoogleDriveUrl(firstPhoto.url) ? (
+                      <GoogleDriveImage
+                        src={firstPhoto.url}
+                        alt="Foto Inicial"
+                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
+                        onClick={() => handleZoomPhoto(firstPhoto)}
+                        onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
+                      />
                     ) : imageErrors.has(getPhotoId(firstPhoto)) ? (
                       <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
                         <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
-                        <p className="text-slate-300 mb-4">Imagem bloqueada por CORS</p>
-                        <div className="space-y-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(firstPhoto.url, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Abrir em nova aba
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => {
-                              console.log('🔍 Debug URL:', firstPhoto.url);
-                              navigator.clipboard.writeText(firstPhoto.url);
-                            }}
-                          >
-                            Copiar URL (ver console)
-                          </Button>
-                        </div>
+                        <p className="text-slate-300 mb-4">Foto não disponível</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(firstPhoto.url, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Abrir em nova aba
+                        </Button>
                       </div>
                     ) : (
                       <img 
@@ -544,10 +546,18 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                         controls
                         className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all"
                       />
+                    ) : isGoogleDriveUrl(lastPhoto.url) ? (
+                      <GoogleDriveImage
+                        src={lastPhoto.url}
+                        alt="Foto Atual"
+                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
+                        onClick={() => handleZoomPhoto(lastPhoto)}
+                        onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
+                      />
                     ) : imageErrors.has(getPhotoId(lastPhoto)) ? (
                       <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
                         <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
-                        <p className="text-slate-300 mb-4">Imagem bloqueada por CORS</p>
+                        <p className="text-slate-300 mb-4">Foto não disponível</p>
                         <Button
                           variant="outline"
                           size="sm"
@@ -613,10 +623,18 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                         controls
                         className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
                       />
+                    ) : isGoogleDriveUrl(photo.url) ? (
+                      <GoogleDriveImage
+                        src={photo.url}
+                        alt={`Foto ${index + 1}`}
+                        className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                        onClick={() => handleZoomPhoto(photo)}
+                        onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
+                      />
                     ) : imageErrors.has(getPhotoId(photo)) ? (
                       <div className="w-full h-48 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border border-slate-600">
                         <ExternalLink className="h-8 w-8 text-slate-400 mb-2" />
-                        <p className="text-xs text-slate-300 mb-2 px-2 text-center">Bloqueada por CORS</p>
+                        <p className="text-xs text-slate-300 mb-2 px-2 text-center">Foto não disponível</p>
                         <Button
                           variant="outline"
                           size="sm"
@@ -729,10 +747,17 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                     e.currentTarget.style.display = 'none';
                   }}
                 />
+              ) : isGoogleDriveUrl(selectedPhoto.url) ? (
+                <GoogleDriveImage
+                  src={selectedPhoto.url}
+                  alt="Foto ampliada"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                  onError={() => handleImageError(getPhotoId(selectedPhoto), getPhotoUrl(selectedPhoto), selectedPhoto.url)}
+                />
               ) : imageErrors.has(getPhotoId(selectedPhoto)) ? (
                 <div className="w-full h-[70vh] flex flex-col items-center justify-center bg-slate-800/50 rounded-lg">
                   <ExternalLink className="h-16 w-16 text-slate-400 mb-4" />
-                  <p className="text-slate-300 text-lg mb-6">Imagem bloqueada por CORS</p>
+                  <p className="text-slate-300 text-lg mb-6">Foto não disponível</p>
                   <Button
                     onClick={() => window.open(selectedPhoto.url, '_blank')}
                   >

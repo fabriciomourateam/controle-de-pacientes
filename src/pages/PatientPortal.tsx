@@ -196,7 +196,7 @@ export default function PatientPortal() {
           .select('*')
           .eq('telefone', telefone)
           .single(),
-        supabase
+        (supabase as any)
           .from('body_composition')
           .select('*')
           .eq('telefone', telefone)
@@ -437,30 +437,31 @@ export default function PatientPortal() {
       
       {/* Conteúdo com z-index */}
       <div className="relative z-10">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Header do Portal */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
         >
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
               📊 Meu Acompanhamento
             </h1>
-            <p className="text-slate-400 mt-1">
+            <p className="text-sm sm:text-base text-slate-400 mt-1">
               Acompanhe seu progresso e conquistas
             </p>
           </div>
-          <div className="flex gap-3 flex-wrap items-center">
+          <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto">
             <InstallPWAButton />
             <Button
               onClick={() => setWeightInputOpen(true)}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all whitespace-nowrap"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all whitespace-nowrap flex-1 sm:flex-none min-h-[44px] text-sm sm:text-base"
             >
               <Scale className="w-4 h-4 mr-2" />
-              Registrar Peso
+              <span className="hidden sm:inline">Registrar Peso</span>
+              <span className="sm:hidden">Peso</span>
             </Button>
             
             {/* Menu de ações: Baixar e Atualizar */}
@@ -469,16 +470,16 @@ export default function PatientPortal() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-slate-600 hover:bg-slate-800 text-white"
+                  className="border-slate-600 hover:bg-slate-800 text-white min-h-[44px] min-w-[44px] px-3"
                 >
-                  <MoreVertical className="w-4 h-4" />
+                  <MoreVertical className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
+              <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white w-56">
                 <DropdownMenuItem
                   onClick={handleExportEvolutionPDF}
                   disabled={exporting}
-                  className="text-white hover:bg-slate-700 cursor-pointer"
+                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   {exporting ? 'Gerando...' : 'Baixar Evolução PDF'}
@@ -486,14 +487,14 @@ export default function PatientPortal() {
                 <DropdownMenuItem
                   onClick={handleExportDietPDF}
                   disabled={exporting}
-                  className="text-white hover:bg-slate-700 cursor-pointer"
+                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   {exporting ? 'Gerando...' : 'Baixar Dieta'}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={loadPortalData}
-                  className="text-white hover:bg-slate-700 cursor-pointer"
+                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Atualizar
@@ -509,28 +510,28 @@ export default function PatientPortal() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="bg-slate-800/60 backdrop-blur-sm border-slate-700/50">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <Avatar className="w-20 h-20 border-4 border-blue-500/30">
-                  <AvatarFallback className="bg-blue-500/20 text-blue-300 text-2xl font-bold">
+          <Card className="bg-slate-800/60 backdrop-blur-sm border-slate-700/50 shadow-xl">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <Avatar className="w-14 h-14 sm:w-20 sm:h-20 border-4 border-blue-500/30 flex-shrink-0">
+                  <AvatarFallback className="bg-blue-500/20 text-blue-300 text-lg sm:text-2xl font-bold">
                     {patient?.nome?.charAt(0) || 'P'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold text-white">{patient?.nome || 'Seu Nome'}</h2>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="text-lg sm:text-2xl font-bold text-white truncate">{patient?.nome || 'Seu Nome'}</h2>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-2 sm:mt-3">
                     <div className="flex items-center gap-2 text-slate-300">
-                      <Activity className="w-4 h-4 text-emerald-400" />
-                      <span className="text-sm">{checkins.length} check-ins realizados</span>
+                      <Activity className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm">{checkins.length} check-ins</span>
                     </div>
                     {checkins.length > 0 && (
                       <div className="flex items-center gap-2 text-slate-300">
-                        <Calendar className="w-4 h-4 text-purple-400" />
-                        <span className="text-sm">
-                          Desde {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')}
+                        <Calendar className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm truncate">
+                          Desde {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                         </span>
                       </div>
                     )}
@@ -563,7 +564,7 @@ export default function PatientPortal() {
         )}
 
         {/* Footer */}
-        <div className="text-center text-sm text-white py-6">
+        <div className="text-center text-xs sm:text-sm text-white py-4 sm:py-6 px-4">
           {getDailyMotivationalPhrase()}
         </div>
         </div>

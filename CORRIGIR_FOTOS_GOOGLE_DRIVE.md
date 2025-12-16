@@ -1,115 +1,133 @@
-# Como Corrigir Fotos do Google Drive Que Não Aparecem
+# Correção de Fotos do Google Drive - EM PROGRESSO 🔧
 
-## Problema
-As fotos estão no Google Drive mas aparecem como "Foto não disponível" no sistema.
+## Status Atual
 
-## Causa
-As fotos no Google Drive precisam ter **permissão pública** para serem exibidas no sistema.
+✅ Componente `GoogleDriveImage` criado e integrado  
+✅ IDs do Google Drive sendo extraídos corretamente  
+✅ Logs de debug adicionados  
+⏳ **Fotos ainda não aparecem - investigando**
 
-## Solução
+## Problema Identificado
 
-### 1. Verificar Permissões no Google Drive
-
-Para cada foto que não aparece:
-
-1. **Abra o Google Drive**
-2. **Encontre a foto** (use o ID do link para buscar)
-3. **Clique com botão direito** na foto
-4. **Selecione "Compartilhar"** ou "Obter link"
-5. **Altere para "Qualquer pessoa com o link"**
-6. **Permissão: "Visualizador"**
-7. **Copie o link** e salve
-
-### 2. Formato Correto do Link
-
-O sistema aceita qualquer um destes formatos:
+As fotos baseline (fotos iniciais) não estão aparecendo no componente de evolução do paciente. O console mostra que os IDs estão sendo extraídos corretamente:
 
 ```
-https://drive.google.com/open?id=FILE_ID
-https://drive.google.com/file/d/FILE_ID/view
-https://drive.google.com/uc?id=FILE_ID
+✅ ID extraído do Google Drive: 1ZpaQ5EKDJOXFJrAWH1oy5u_VLGs5Xsh5
+✅ ID extraído do Google Drive: 1MWn39wmt62fT6-BcHavfmajwoQjRbTbo
+✅ ID extraído do Google Drive: 1BFnn3SBdL25Ns2WfKzOQaUi_BFVkWKXS
 ```
 
-O sistema converte automaticamente para:
-```
-https://drive.google.com/uc?export=view&id=FILE_ID
-```
+Mas as fotos não são renderizadas.
 
-### 3. Testar se a Foto Está Pública
+## Testes Disponíveis
 
-Abra este link no navegador (substitua FILE_ID):
-```
-https://drive.google.com/uc?export=view&id=FILE_ID
-```
+### 1. Página de Teste React (RECOMENDADO)
+Acesse: `http://localhost:5173/test-google-drive`
 
-Se a foto aparecer, está funcionando! ✅
-Se pedir login ou mostrar erro, a permissão não está correta. ❌
+Esta página testa o componente `GoogleDriveImage` isoladamente com as mesmas URLs do paciente Alberto.
 
-### 4. Alternativa: Usar Imgur ou Outro Serviço
+**O que verificar:**
+- ✅ Se as fotos aparecerem: componente funciona, problema está no PhotoComparison
+- ❌ Se não aparecerem: problema no GoogleDriveImage ou permissões
+- 🔍 Abra o console (F12) para ver logs detalhados
 
-Se não quiser usar Google Drive, pode usar:
-- **Imgur**: https://imgur.com (gratuito, sem login necessário)
-- **ImgBB**: https://imgbb.com
-- **Cloudinary**: https://cloudinary.com
+### 2. Teste HTML Simples
+Abra: `test-google-drive-iframe.html`
 
-Basta fazer upload e colar o link direto da imagem.
+Testa iframes puros do Google Drive sem React.
 
-## Formatos de Imagem Aceitos
+### 3. Verificador de Permissões
+Abra: `verificar-permissoes-drive.html`
 
-O sistema aceita qualquer formato que o navegador suporte:
-- JPG/JPEG
-- PNG
-- GIF
-- WEBP
-- BMP
-- SVG
+Interface visual para testar permissões e recarregar fotos.
 
-## Debug
+## Solução Implementada
 
-Se as fotos ainda não aparecerem:
+### 1. Componente GoogleDriveImage
 
-1. **Abra o Console** (F12)
-2. **Procure por logs**:
-   - `📸 Tentando carregar imagem:` - mostra a URL sendo usada
-   - `🔄 Imagem falhou, tentando iframe...` - indica que a imagem não carregou
-   - `✅ ID extraído do Google Drive:` - mostra o ID extraído
+Criado componente especializado que:
+- Extrai ID do arquivo do Google Drive
+- Usa iframe com `https://drive.google.com/file/d/{fileId}/preview`
+- Evita problemas de CORS
+- Adiciona logs de debug
 
-3. **Teste a URL manualmente**:
-   - Copie a URL do log
-   - Cole em uma nova aba
-   - Veja se a imagem aparece
+**Arquivo:** `src/components/ui/google-drive-image.tsx`
 
-## Exemplo Prático
+### 2. Integração no PhotoComparison
 
-### Link Original (não funciona para exibição):
-```
-https://drive.google.com/open?id=1ZpaQ5EKDJOXFJrAWH1oy5u_VLGs5Xsh5
+Modificado para usar `GoogleDriveImage` quando detecta URL do Google Drive:
+
+```typescript
+{isGoogleDriveUrl(firstPhoto.url) ? (
+  <GoogleDriveImage
+    src={firstPhoto.url}
+    alt="Foto Inicial"
+    className="w-full h-80 object-cover rounded-lg..."
+    onClick={() => handleZoomPhoto(firstPhoto)}
+  />
+) : (
+  <img src={firstPhoto.url} alt="Foto Inicial" ... />
+)}
 ```
 
-### Link Convertido (usado pelo sistema):
-```
-https://drive.google.com/uc?export=view&id=1ZpaQ5EKDJOXFJrAWH1oy5u_VLGs5Xsh5
-```
+**Arquivo:** `src/components/evolution/PhotoComparison.tsx`
 
-### Como Testar:
-1. Abra o link convertido no navegador
-2. Se aparecer a imagem = ✅ Permissão OK
-3. Se pedir login = ❌ Precisa tornar público
+### 3. Logs de Debug
 
-## Solução Rápida
+Adicionados logs em:
+- `GoogleDriveImage`: mostra quando é renderizado e qual URL/ID
+- `google-drive-utils.ts`: mostra IDs extraídos
+- `PhotoComparison.tsx`: mostra dados do paciente e fotos
 
-Para tornar TODAS as fotos de uma pasta públicas:
+## Próximos Passos para Diagnóstico
 
-1. No Google Drive, selecione a **pasta** com as fotos
-2. Clique com botão direito > **Compartilhar**
-3. Altere para **"Qualquer pessoa com o link"**
-4. Permissão: **"Visualizador"**
-5. Todas as fotos dentro herdarão essa permissão
+1. **Acesse a página de teste:** `http://localhost:5173/test-google-drive`
+2. **Abra o console (F12)** e procure por:
+   - `🖼️ GoogleDriveImage renderizado`
+   - `🔍 File ID extraído`
+   - `🔗 Preview URL`
+3. **Verifique se os iframes aparecem** na página
+4. **Se não aparecer:**
+   - Clique com botão direito no espaço vazio
+   - Selecione "Inspecionar"
+   - Veja se o iframe está no DOM
+   - Verifique se há erros no console
 
-## Suporte
+## Possíveis Causas
 
-Se ainda tiver problemas, verifique:
-- ✅ A foto existe no Google Drive?
-- ✅ A permissão está como "Qualquer pessoa com o link"?
-- ✅ O link está correto no banco de dados?
-- ✅ O console mostra algum erro específico?
+### Se GoogleDriveImage não é chamado
+- Problema na condição `isGoogleDriveUrl()`
+- URL não está sendo reconhecida como Google Drive
+
+### Se GoogleDriveImage é chamado mas não renderiza
+- Problema com altura do container
+- Iframe não está sendo criado
+- CSS conflitante
+
+### Se iframe é criado mas fica vazio
+- Permissões do Google Drive (mesmo que você diga que estão públicas)
+- Bloqueio de terceiros no navegador
+- Política de CSP (Content Security Policy)
+
+## Arquivos Modificados
+
+- `src/components/evolution/PhotoComparison.tsx` - Integrado GoogleDriveImage
+- `src/components/ui/google-drive-image.tsx` - Componente com logs de debug
+- `src/lib/google-drive-utils.ts` - Utilitários
+- `src/App.tsx` - Adicionada rota de teste
+- `src/pages/TestGoogleDrive.tsx` - Página de teste criada
+
+## Arquivos de Teste
+
+- `test-google-drive-iframe.html` - Teste HTML puro
+- `verificar-permissoes-drive.html` - Verificador visual
+- `/test-google-drive` - Página React de teste
+
+## Como Ajudar no Debug
+
+1. Acesse `http://localhost:5173/test-google-drive`
+2. Tire um print da tela
+3. Copie os logs do console (F12)
+4. Me envie ambos para análise
+
+Isso vai me ajudar a identificar exatamente onde está o problema!

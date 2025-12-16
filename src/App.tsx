@@ -37,6 +37,7 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
+const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 
 // Componente de loading
 const PageLoader = () => (
@@ -174,6 +175,11 @@ const App = () => (
           <Route path="/meetings" element={
             <Suspense fallback={<PageLoader />}>
                 <TeamMeetings />
+              </Suspense>
+          } />
+          <Route path="/test-google-drive" element={
+            <Suspense fallback={<PageLoader />}>
+                <TestGoogleDrive />
               </Suspense>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

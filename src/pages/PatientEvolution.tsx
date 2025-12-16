@@ -28,6 +28,8 @@ import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMe
 import { AchievementBadges } from '@/components/evolution/AchievementBadges';
 import { TrendsAnalysis } from '@/components/evolution/TrendsAnalysis';
 import { ShareButton } from '@/components/evolution/ShareButton';
+import { GoogleDriveImage } from '@/components/ui/google-drive-image';
+import { isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
 import { PortalPNGButton } from '@/components/evolution/PortalPNGButton';
@@ -870,19 +872,28 @@ export default function PatientEvolution() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {patient.foto_inicial_frente && (
                         <div className="space-y-2">
-                          <div className="relative group">
-                            <img 
-                              src={convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente} 
-                              alt="Foto Frontal Inicial"
-                              loading="lazy"
-                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                              onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente!, 'Foto Frontal')}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.onerror = null;
-                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
+                          <div className="relative group" style={{ height: '256px' }}>
+                            {isGoogleDriveUrl(patient.foto_inicial_frente) ? (
+                              <GoogleDriveImage
+                                src={patient.foto_inicial_frente}
+                                alt="Foto Frontal Inicial"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_frente!, 'Foto Frontal')}
+                              />
+                            ) : (
+                              <img 
+                                src={convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente} 
+                                alt="Foto Frontal Inicial"
+                                loading="lazy"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente!, 'Foto Frontal')}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            )}
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="icon"
@@ -907,18 +918,27 @@ export default function PatientEvolution() {
                       )}
                       {patient.foto_inicial_lado && (
                         <div className="space-y-2">
-                          <div className="relative group">
-                            <img 
-                              src={convertGoogleDriveUrl(patient.foto_inicial_lado) || patient.foto_inicial_lado} 
-                              alt="Foto Lateral Esquerda"
-                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                              onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado) || patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.onerror = null;
-                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
+                          <div className="relative group" style={{ height: '256px' }}>
+                            {isGoogleDriveUrl(patient.foto_inicial_lado) ? (
+                              <GoogleDriveImage
+                                src={patient.foto_inicial_lado}
+                                alt="Foto Lateral Esquerda"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
+                              />
+                            ) : (
+                              <img 
+                                src={convertGoogleDriveUrl(patient.foto_inicial_lado) || patient.foto_inicial_lado} 
+                                alt="Foto Lateral Esquerda"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado) || patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            )}
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="icon"
@@ -943,19 +963,28 @@ export default function PatientEvolution() {
                       )}
                       {patient.foto_inicial_lado_2 && (
                         <div className="space-y-2">
-                          <div className="relative group">
-                            <img 
-                              src={convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2} 
-                              alt="Foto Lateral Direita"
-                              loading="lazy"
-                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                              onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.onerror = null;
-                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
+                          <div className="relative group" style={{ height: '256px' }}>
+                            {isGoogleDriveUrl(patient.foto_inicial_lado_2) ? (
+                              <GoogleDriveImage
+                                src={patient.foto_inicial_lado_2}
+                                alt="Foto Lateral Direita"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
+                              />
+                            ) : (
+                              <img 
+                                src={convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2} 
+                                alt="Foto Lateral Direita"
+                                loading="lazy"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            )}
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="icon"
@@ -980,19 +1009,28 @@ export default function PatientEvolution() {
                       )}
                       {patient.foto_inicial_costas && (
                         <div className="space-y-2">
-                          <div className="relative group">
-                            <img 
-                              src={convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas} 
-                              alt="Foto Costas Inicial"
-                              loading="lazy"
-                              className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
-                              onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas!, 'Foto de Costas')}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.onerror = null;
-                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
+                          <div className="relative group" style={{ height: '256px' }}>
+                            {isGoogleDriveUrl(patient.foto_inicial_costas) ? (
+                              <GoogleDriveImage
+                                src={patient.foto_inicial_costas}
+                                alt="Foto Costas Inicial"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(patient.foto_inicial_costas!, 'Foto de Costas')}
+                              />
+                            ) : (
+                              <img 
+                                src={convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas} 
+                                alt="Foto Costas Inicial"
+                                loading="lazy"
+                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas!, 'Foto de Costas')}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23334155" width="400" height="400"/%3E%3Ctext fill="%2394a3b8" font-family="Arial" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EFoto não disponível%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            )}
                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="icon"
@@ -1205,17 +1243,27 @@ export default function PatientEvolution() {
 
         {/* Dialog de Zoom da Foto */}
         <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-          <DialogContent className="max-w-4xl bg-slate-900 border-slate-700">
+          <DialogContent className="max-w-5xl bg-slate-900 border-slate-700">
             <DialogHeader>
               <DialogTitle className="text-white">{zoomedPhoto?.label}</DialogTitle>
             </DialogHeader>
             {zoomedPhoto && (
-              <div className="flex items-center justify-center">
-                <img 
-                  src={zoomedPhoto.url} 
-                  alt={zoomedPhoto.label}
-                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                />
+              <div className="flex items-center justify-center w-full" style={{ height: '70vh', minHeight: '500px' }}>
+                {isGoogleDriveUrl(zoomedPhoto.url) ? (
+                  <div className="w-full h-full">
+                    <GoogleDriveImage
+                      src={zoomedPhoto.url}
+                      alt={zoomedPhoto.label}
+                      className="w-full h-full rounded-lg"
+                    />
+                  </div>
+                ) : (
+                  <img 
+                    src={zoomedPhoto.url} 
+                    alt={zoomedPhoto.label}
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                )}
               </div>
             )}
           </DialogContent>

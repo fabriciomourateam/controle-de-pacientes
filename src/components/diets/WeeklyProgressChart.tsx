@@ -98,22 +98,22 @@ export function WeeklyProgressChart({ patientId }: WeeklyProgressChartProps) {
       <WeeklyHabitsGrid patientId={patientId} />
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-[#222222]">{avgCompletion}%</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xl sm:text-2xl font-bold text-[#222222]">{avgCompletion}%</p>
             <p className="text-xs text-[#777777] mt-1">Média Semanal</p>
           </CardContent>
         </Card>
         <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-[#222222]">{totalDays}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xl sm:text-2xl font-bold text-[#222222]">{totalDays}</p>
             <p className="text-xs text-[#777777] mt-1">Dias Registrados</p>
           </CardContent>
         </Card>
         <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-[#00C98A]">{perfectDays}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xl sm:text-2xl font-bold text-[#00C98A]">{perfectDays}</p>
             <p className="text-xs text-[#777777] mt-1">Dias Perfeitos</p>
           </CardContent>
         </Card>
@@ -121,26 +121,28 @@ export function WeeklyProgressChart({ patientId }: WeeklyProgressChartProps) {
 
       {/* Gráfico de Percentual de Conclusão */}
       <Card className="bg-white rounded-2xl shadow-lg border border-gray-100">
-        <CardHeader>
-          <CardTitle className="text-[#222222] flex items-center gap-2">
-            <Target className="w-5 h-5 text-[#00C98A]" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg text-[#222222] flex items-center gap-2">
+            <Target className="w-5 h-5 text-[#00C98A] flex-shrink-0" />
             Percentual de Conclusão Diária
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div style={{ width: '100%', height: '300px', minHeight: '300px' }}>
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div style={{ width: '100%', height: '250px', minHeight: '250px' }} className="sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                 <XAxis 
                   dataKey="date" 
                   stroke="#777777"
-                  fontSize={12}
+                  fontSize={10}
+                  className="sm:text-xs"
                 />
                 <YAxis 
                   domain={[0, 100]}
                   stroke="#777777"
-                  fontSize={12}
+                  fontSize={10}
+                  className="sm:text-xs"
                 />
                 <Tooltip 
                   contentStyle={{

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Google Drive Iframe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .photo-card {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #444;
+        }
+        .photo-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #333;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .photo-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        h3 {
+            color: #2196F3;
+            margin-bottom: 5px;
+        }
+        .url {
+            font-size: 12px;
+            color: #888;
+            word-break: break-all;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Teste de Fotos do Google Drive - Iframe</h1>
+        <p>Testando as URLs das fotos baseline do paciente Alberto Lobo Galvão</p>
+        
+        <div class="photo-grid" id="photoGrid"></div>
+    </div>
+
+    <script>
+        // URLs das fotos do paciente
+        const photos = [
+            {
+                name: 'Frente',
+                url: 'https://drive.google.com/open?id=1ZpaQ5EKDJOXFJrAWH1oy5u_VLGs5Xsh5'
+            },
+            {
+                name: 'Lado',
+                url: 'https://drive.google.com/open?id=1MWn39wmt62fT6-BcHavfmajwoQjRbTbo'
+            },
+            {
+                name: 'Costas',
+                url: 'https://drive.google.com/open?id=1BFnn3SBdL25Ns2WfKzOQaUi_BFVkWKXS'
+            }
+        ];
+
+        // Função para extrair ID do Google Drive
+        function extractFileId(url) {
+            const patterns = [
+                /open\?id=([^&]+)/,
+                /\/file\/d\/([^/]+)/,
+                /uc\?.*id=([^&]+)/,
+                /\/d\/([^/]+)/
+            ];
+
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        // Renderizar fotos
+        const grid = document.getElementById('photoGrid');
+        
+        photos.forEach(photo => {
+            const fileId = extractFileId(photo.url);
+            const previewUrl = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
+            
+            const card = document.createElement('div');
+            card.className = 'photo-card';
+            
+            card.innerHTML = `
+                <h3>📸 ${photo.name}</h3>
+                <div class="photo-container">
+                    ${previewUrl ? 
+                        `<iframe src="${previewUrl}" allow="autoplay" loading="lazy"></iframe>` :
+                        '<p style="color: red;">Erro ao extrair ID</p>'
+                    }
+                </div>
+                <div class="photo-info">
+                    <strong>File ID:</strong> ${fileId || 'N/A'}<br>
+                    <strong>Preview URL:</strong> ${previewUrl || 'N/A'}
+                    <div class="url">
+                        <strong>URL Original:</strong><br>
+                        ${photo.url}
+                    </div>
+                </div>
+            `;
+            
+            grid.appendChild(card);
+        });
+
+        console.log('📸 Fotos carregadas:', photos);
+        console.log('✅ Se as fotos aparecerem, o problema está no componente React');
+        console.log('❌ Se as fotos NÃO aparecerem, o problema é de permissão no Google Drive');
+    </script>
+</body>
+</html>
