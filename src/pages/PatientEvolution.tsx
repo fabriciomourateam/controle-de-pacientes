@@ -909,7 +909,7 @@ export default function PatientEvolution() {
                   className="h-8 w-8"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = zoomedPhoto?.url || '';
+                    link.href = patient.foto_inicial_frente || '';
                     link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
                     link.target = '_blank';
                     document.body.appendChild(link);
@@ -970,7 +970,7 @@ export default function PatientEvolution() {
                   className="h-8 w-8"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = zoomedPhoto?.url || '';
+                    link.href = patient.foto_inicial_frente || '';
                     link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
                     link.target = '_blank';
                     document.body.appendChild(link);
@@ -1032,7 +1032,7 @@ export default function PatientEvolution() {
                   className="h-8 w-8"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = zoomedPhoto?.url || '';
+                    link.href = patient.foto_inicial_frente || '';
                     link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
                     link.target = '_blank';
                     document.body.appendChild(link);
@@ -1094,7 +1094,7 @@ export default function PatientEvolution() {
                   className="h-8 w-8"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = zoomedPhoto?.url || '';
+                    link.href = patient.foto_inicial_frente || '';
                     link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
                     link.target = '_blank';
                     document.body.appendChild(link);
@@ -1369,6 +1369,7 @@ export default function PatientEvolution() {
       </DashboardLayout>
     );
   }
+
 
 
 
