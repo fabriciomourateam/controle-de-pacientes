@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, ChevronRight, ZoomIn, Calendar, ExternalLink, Trash2 } from "lucide-react";
+import { Camera, ChevronRight, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -505,7 +505,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                         src={getPhotoUrl(firstPhoto)} 
                         alt="Foto Inicial"
                         loading="lazy"
-                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
+                        className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
                         onClick={() => handleZoomPhoto(firstPhoto)}
                         onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
                       />
@@ -515,9 +515,9 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                     </Badge>
                     {!firstPhoto.isVideo && !imageErrors.has(getPhotoId(firstPhoto)) && (
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="secondary"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
                         onClick={() => handleZoomPhoto(firstPhoto)}
                       >
                         <ZoomIn className="w-4 h-4" />
@@ -572,7 +572,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                         src={getPhotoUrl(lastPhoto)}
                         alt="Foto Atual"
                         loading="lazy"
-                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
+                        className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
                         onClick={() => handleZoomPhoto(lastPhoto)}
                         onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
                       />
@@ -582,9 +582,9 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                     </Badge>
                     {!lastPhoto.isVideo && !imageErrors.has(getPhotoId(lastPhoto)) && (
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="secondary"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
                         onClick={() => handleZoomPhoto(lastPhoto)}
                       >
                         <ZoomIn className="w-4 h-4" />
@@ -730,9 +730,30 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
           <DialogHeader>
             <DialogTitle className="text-white flex items-center justify-between">
               <span>Foto - {selectedPhoto?.date}</span>
-              <Badge variant="outline" className="text-white">
-                {selectedPhoto?.weight} kg
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-white">
+                  {selectedPhoto?.weight} kg
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                  onClick={() => {
+                    if (selectedPhoto) {
+                      const link = document.createElement('a');
+                      link.href = selectedPhoto.url;
+                      link.download = `foto-${selectedPhoto.date}.jpg`;
+                      link.target = '_blank';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Baixar
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           {selectedPhoto && (
@@ -748,11 +769,16 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                   }}
                 />
               ) : isGoogleDriveUrl(selectedPhoto.url) ? (
-                <GoogleDriveImage
-                  src={selectedPhoto.url}
+                // Usar imagem direta ao invés de iframe no modal para evitar controles do Google Drive
+                <img
+                  src={convertGoogleDriveUrl(selectedPhoto.url, false) || selectedPhoto.url}
                   alt="Foto ampliada"
-                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                  onError={() => handleImageError(getPhotoId(selectedPhoto), getPhotoUrl(selectedPhoto), selectedPhoto.url)}
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg bg-slate-800"
+                  onError={(e) => {
+                    console.error('Erro ao carregar imagem do Google Drive');
+                    handleImageError(getPhotoId(selectedPhoto), getPhotoUrl(selectedPhoto), selectedPhoto.url);
+                  }}
+                  crossOrigin="anonymous"
                 />
               ) : imageErrors.has(getPhotoId(selectedPhoto)) ? (
                 <div className="w-full h-[70vh] flex flex-col items-center justify-center bg-slate-800/50 rounded-lg">

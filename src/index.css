@@ -458,3 +458,13 @@
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
 }
+/* F
+orçar ocultação de iframes do Google Drive em modais */
+[role="dialog"] iframe[src*="drive.google.com"] {
+  display: none !important;
+}
+
+/* Garantir que imagens diretas sejam exibidas */
+[role="dialog"] img[src*="drive.google.com"] {
+  display: block !important;
+}

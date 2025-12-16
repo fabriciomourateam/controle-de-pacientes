@@ -872,12 +872,12 @@ export default function PatientEvolution() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {patient.foto_inicial_frente && (
                         <div className="space-y-2">
-                          <div className="relative group" style={{ height: '256px' }}>
+                          <div className="relative group" style={{ height: '384px' }}>
                             {isGoogleDriveUrl(patient.foto_inicial_frente) ? (
                               <GoogleDriveImage
                                 src={patient.foto_inicial_frente}
                                 alt="Foto Frontal Inicial"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(patient.foto_inicial_frente!, 'Foto Frontal')}
                               />
                             ) : (
@@ -885,7 +885,7 @@ export default function PatientEvolution() {
                                 src={convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente} 
                                 alt="Foto Frontal Inicial"
                                 loading="lazy"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_frente) || patient.foto_inicial_frente!, 'Foto Frontal')}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -903,6 +903,22 @@ export default function PatientEvolution() {
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = zoomedPhoto?.url || '';
+                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
@@ -918,19 +934,19 @@ export default function PatientEvolution() {
                       )}
                       {patient.foto_inicial_lado && (
                         <div className="space-y-2">
-                          <div className="relative group" style={{ height: '256px' }}>
+                          <div className="relative group" style={{ height: '384px' }}>
                             {isGoogleDriveUrl(patient.foto_inicial_lado) ? (
                               <GoogleDriveImage
                                 src={patient.foto_inicial_lado}
                                 alt="Foto Lateral Esquerda"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
                               />
                             ) : (
                               <img 
                                 src={convertGoogleDriveUrl(patient.foto_inicial_lado) || patient.foto_inicial_lado} 
                                 alt="Foto Lateral Esquerda"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado) || patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -948,6 +964,22 @@ export default function PatientEvolution() {
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = zoomedPhoto?.url || '';
+                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
@@ -963,12 +995,12 @@ export default function PatientEvolution() {
                       )}
                       {patient.foto_inicial_lado_2 && (
                         <div className="space-y-2">
-                          <div className="relative group" style={{ height: '256px' }}>
+                          <div className="relative group" style={{ height: '384px' }}>
                             {isGoogleDriveUrl(patient.foto_inicial_lado_2) ? (
                               <GoogleDriveImage
                                 src={patient.foto_inicial_lado_2}
                                 alt="Foto Lateral Direita"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
                               />
                             ) : (
@@ -976,7 +1008,7 @@ export default function PatientEvolution() {
                                 src={convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2} 
                                 alt="Foto Lateral Direita"
                                 loading="lazy"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_lado_2) || patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -994,6 +1026,22 @@ export default function PatientEvolution() {
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = zoomedPhoto?.url || '';
+                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
@@ -1009,12 +1057,12 @@ export default function PatientEvolution() {
                       )}
                       {patient.foto_inicial_costas && (
                         <div className="space-y-2">
-                          <div className="relative group" style={{ height: '256px' }}>
+                          <div className="relative group" style={{ height: '384px' }}>
                             {isGoogleDriveUrl(patient.foto_inicial_costas) ? (
                               <GoogleDriveImage
                                 src={patient.foto_inicial_costas}
                                 alt="Foto Costas Inicial"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(patient.foto_inicial_costas!, 'Foto de Costas')}
                               />
                             ) : (
@@ -1022,7 +1070,7 @@ export default function PatientEvolution() {
                                 src={convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas} 
                                 alt="Foto Costas Inicial"
                                 loading="lazy"
-                                className="w-full h-64 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
+                                className="w-full h-96 object-cover rounded-lg border-2 border-purple-500/50 hover:border-purple-500 transition-all cursor-pointer"
                                 onClick={() => handleZoomPhoto(convertGoogleDriveUrl(patient.foto_inicial_costas) || patient.foto_inicial_costas!, 'Foto de Costas')}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -1040,6 +1088,22 @@ export default function PatientEvolution() {
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = zoomedPhoto?.url || '';
+                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
@@ -1305,4 +1369,7 @@ export default function PatientEvolution() {
       </DashboardLayout>
     );
   }
+
+
+
 

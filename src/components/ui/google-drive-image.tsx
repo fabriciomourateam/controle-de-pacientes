@@ -13,7 +13,7 @@ interface GoogleDriveImageProps {
  * Usa iframe como fallback quando a imagem direta falha por CORS
  */
 export function GoogleDriveImage({ src, alt, className, onClick, onError }: GoogleDriveImageProps) {
-  // Sempre usar iframe para Google Drive (mais confiável)
+  // Usar iframe para Google Drive (mais confiável, mas tem controles)
   const [useIframe, setUseIframe] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -81,12 +81,29 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
   
   return (
     <div 
-      className={className}
+      className={`${className} google-drive-image-container`}
       style={{
         position: 'relative',
         display: 'block',
       }}
     >
+      <style>{`
+        /* Ocultar controles de zoom do Google Drive no iframe */
+        .google-drive-image-container iframe {
+          pointer-events: auto;
+        }
+        /* Tentar ocultar os controles nativos do Google Drive */
+        .google-drive-image-container iframe::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 50px;
+          background: transparent;
+          pointer-events: none;
+        }
+      `}</style>
       <iframe
         src={`https://drive.google.com/file/d/${fileId}/preview`}
         className="w-full h-full"
@@ -97,6 +114,7 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
         allow="autoplay"
         title={alt}
         loading="lazy"
+        sandbox="allow-same-origin allow-scripts"
       />
       {/* Overlay clicável para capturar cliques */}
       {onClick && (
