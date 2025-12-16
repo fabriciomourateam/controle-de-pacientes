@@ -12,10 +12,13 @@ export function useMeetings() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      // Buscar todas as reuniões (RLS vai filtrar automaticamente)
+      const { data, error } = await (supabase as any)
         .from("team_meetings")
         .select("*")
         .order("meeting_date", { ascending: false });
+
+      if (error) throw error;
 
       if (error) throw error;
       setMeetings(data || []);
@@ -33,7 +36,7 @@ export function useMeetings() {
   const createMeeting = async (data: any) => {
     if (!user) throw new Error("Usuário não autenticado");
 
-    const { error } = await supabase.from("team_meetings").insert({
+    const { error } = await (supabase as any).from("team_meetings").insert({
       ...data,
       owner_id: user.id,
       created_by: user.id,
@@ -44,7 +47,7 @@ export function useMeetings() {
   };
 
   const updateMeeting = async (id: string, data: any) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("team_meetings")
       .update(data)
       .eq("id", id);
@@ -54,7 +57,7 @@ export function useMeetings() {
   };
 
   const deleteMeeting = async (id: string) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("team_meetings")
       .delete()
       .eq("id", id);

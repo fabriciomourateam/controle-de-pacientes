@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +83,7 @@ export default function PatientEvolution() {
   const [weightInputOpen, setWeightInputOpen] = useState(false);
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
   const [examRequestModalOpen, setExamRequestModalOpen] = useState(false);
+  const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ field: string; label: string } | null>(null);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -108,20 +109,74 @@ export default function PatientEvolution() {
     setIsZoomOpen(true);
   };
 
-  // Função para excluir foto individual
-  const handleDeletePhoto = async (photoField: string) => {
-    if (!telefone || !patient) return;
+  // Função para baixar foto do Google Drive
+  const handleDownloadPhoto = async (url: string, label: string) => {
+    try {
+      // Extrair ID do Google Drive
+      const getFileId = (driveUrl: string): string | null => {
+        const patterns = [
+          /open\?id=([^&]+)/,
+          /\/file\/d\/([^/]+)/,
+          /uc\?.*id=([^&]+)/,
+          /\/d\/([^/]+)/
+        ];
+        for (const pattern of patterns) {
+          const match = driveUrl.match(pattern);
+          if (match) return match[1];
+        }
+        return null;
+      };
+
+      const fileId = getFileId(url);
+      
+      if (fileId && url.includes('drive.google.com')) {
+        // Para Google Drive, abrir em nova aba com opção de download
+        const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        window.open(downloadUrl, '_blank');
+        toast({
+          title: 'Download iniciado',
+          description: `Baixando ${label}...`
+        });
+      } else {
+        // Para outras URLs, tentar download direto
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Erro ao baixar foto:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível baixar a foto',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Função para abrir dialog de confirmação de exclusão
+  const handleConfirmDeletePhoto = (photoField: string, label: string) => {
+    setDeletePhotoConfirm({ field: photoField, label });
+  };
+
+  // Função para excluir foto individual (após confirmação)
+  const handleDeletePhoto = async () => {
+    if (!telefone || !patient || !deletePhotoConfirm) return;
 
     try {
       const { error } = await supabase
         .from('patients')
-        .update({ [photoField]: null })
+        .update({ [deletePhotoConfirm.field]: null })
         .eq('telefone', telefone);
 
       if (error) throw error;
 
       // Atualizar estado local
-      setPatient({ ...patient, [photoField]: null });
+      setPatient({ ...patient, [deletePhotoConfirm.field]: null });
+      setDeletePhotoConfirm(null);
 
       toast({
         title: 'Foto excluída',
@@ -894,36 +949,29 @@ export default function PatientEvolution() {
                                 }}
                               />
                             )}
-                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                               <Button
                                 size="icon"
                                 variant="secondary"
                                 className="h-8 w-8"
-                                onClick={() => handleZoomPhoto(patient.foto_inicial_frente!, 'Foto Frontal')}
+                                onClick={(e) => { e.stopPropagation(); handleZoomPhoto(patient.foto_inicial_frente!, 'Foto Frontal'); }}
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = patient.foto_inicial_frente || '';
-                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
-                    link.target = '_blank';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); handleDownloadPhoto(patient.foto_inicial_frente!, 'Foto Frontal'); }}
+                                title="Baixar foto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
                                 className="h-8 w-8"
-                                onClick={() => handleDeletePhoto('foto_inicial_frente')}
+                                onClick={(e) => { e.stopPropagation(); handleConfirmDeletePhoto('foto_inicial_frente', 'Foto Frontal'); }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -955,36 +1003,29 @@ export default function PatientEvolution() {
                                 }}
                               />
                             )}
-                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                               <Button
                                 size="icon"
                                 variant="secondary"
                                 className="h-8 w-8"
-                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda')}
+                                onClick={(e) => { e.stopPropagation(); handleZoomPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda'); }}
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = patient.foto_inicial_frente || '';
-                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
-                    link.target = '_blank';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); handleDownloadPhoto(patient.foto_inicial_lado!, 'Foto Lateral Esquerda'); }}
+                                title="Baixar foto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
                                 className="h-8 w-8"
-                                onClick={() => handleDeletePhoto('foto_inicial_lado')}
+                                onClick={(e) => { e.stopPropagation(); handleConfirmDeletePhoto('foto_inicial_lado', 'Foto Lateral Esquerda'); }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -1017,36 +1058,29 @@ export default function PatientEvolution() {
                                 }}
                               />
                             )}
-                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                               <Button
                                 size="icon"
                                 variant="secondary"
                                 className="h-8 w-8"
-                                onClick={() => handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita')}
+                                onClick={(e) => { e.stopPropagation(); handleZoomPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita'); }}
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = patient.foto_inicial_frente || '';
-                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
-                    link.target = '_blank';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); handleDownloadPhoto(patient.foto_inicial_lado_2!, 'Foto Lateral Direita'); }}
+                                title="Baixar foto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
                                 className="h-8 w-8"
-                                onClick={() => handleDeletePhoto('foto_inicial_lado_2')}
+                                onClick={(e) => { e.stopPropagation(); handleConfirmDeletePhoto('foto_inicial_lado_2', 'Foto Lateral Direita'); }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -1079,36 +1113,29 @@ export default function PatientEvolution() {
                                 }}
                               />
                             )}
-                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                               <Button
                                 size="icon"
                                 variant="secondary"
                                 className="h-8 w-8"
-                                onClick={() => handleZoomPhoto(patient.foto_inicial_costas!, 'Foto de Costas')}
+                                onClick={(e) => { e.stopPropagation(); handleZoomPhoto(patient.foto_inicial_costas!, 'Foto de Costas'); }}
                               >
                                 <ZoomIn className="w-4 h-4" />
                               </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = patient.foto_inicial_frente || '';
-                    link.download = `foto-${zoomedPhoto?.label || 'foto'}.jpg`;
-                    link.target = '_blank';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); handleDownloadPhoto(patient.foto_inicial_costas!, 'Foto de Costas'); }}
+                                title="Baixar foto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="destructive"
                                 className="h-8 w-8"
-                                onClick={() => handleDeletePhoto('foto_inicial_costas')}
+                                onClick={(e) => { e.stopPropagation(); handleConfirmDeletePhoto('foto_inicial_costas', 'Foto de Costas'); }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -1312,17 +1339,22 @@ export default function PatientEvolution() {
               <DialogTitle className="text-white">{zoomedPhoto?.label}</DialogTitle>
             </DialogHeader>
             {zoomedPhoto && (
-              <div className="flex items-center justify-center w-full bg-slate-800/50 rounded-lg" style={{ height: '70vh', minHeight: '500px' }}>
-                <img 
-                  src={isGoogleDriveUrl(zoomedPhoto.url) ? (convertGoogleDriveUrl(zoomedPhoto.url) || zoomedPhoto.url) : zoomedPhoto.url}
-                  alt={zoomedPhoto.label}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                  onError={(e) => {
-                    console.error('Erro ao carregar foto ampliada:', zoomedPhoto.url);
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
+              <div className="flex items-center justify-center w-full" style={{ height: '70vh', minHeight: '500px' }}>
+                {isGoogleDriveUrl(zoomedPhoto.url) ? (
+                  <div className="w-full h-full">
+                    <GoogleDriveImage
+                      src={zoomedPhoto.url}
+                      alt={zoomedPhoto.label}
+                      className="w-full h-full rounded-lg"
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={zoomedPhoto.url}
+                    alt={zoomedPhoto.label}
+                    className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                  />
+                )}
               </div>
             )}
           </DialogContent>
@@ -1361,6 +1393,38 @@ export default function PatientEvolution() {
             }}
           />
         )}
+
+        {/* Dialog de Confirmação de Exclusão de Foto */}
+        <Dialog open={!!deletePhotoConfirm} onOpenChange={(open) => !open && setDeletePhotoConfirm(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-500">
+                <Trash2 className="w-5 h-5" />
+                Confirmar Exclusão
+              </DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir a <strong>{deletePhotoConfirm?.label}</strong>?
+                <br />
+                <span className="text-red-400">Esta ação não pode ser desfeita.</span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setDeletePhotoConfirm(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeletePhoto}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir Foto
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
     );
   }

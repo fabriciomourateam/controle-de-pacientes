@@ -7,7 +7,7 @@ import { ActionItemsList } from "@/components/meetings/ActionItemsList";
 import { Calendar, ClipboardList, CheckSquare } from "lucide-react";
 
 export default function TeamMeetings() {
-  const [activeTab, setActiveTab] = useState("meetings");
+  const [activeTab, setActiveTab] = useState("daily");
 
   return (
     <DashboardLayout>
@@ -25,10 +25,6 @@ export default function TeamMeetings() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
-            <TabsTrigger value="meetings" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Reuniões
-            </TabsTrigger>
             <TabsTrigger value="daily" className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4" />
               Acompanhamento Diário
@@ -37,11 +33,11 @@ export default function TeamMeetings() {
               <CheckSquare className="w-4 h-4" />
               Itens de Ação
             </TabsTrigger>
+            <TabsTrigger value="meetings" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Reuniões
+            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="meetings" className="mt-6">
-            <MeetingsList />
-          </TabsContent>
 
           <TabsContent value="daily" className="mt-6">
             <DailyReportsList />
@@ -49,6 +45,10 @@ export default function TeamMeetings() {
 
           <TabsContent value="actions" className="mt-6">
             <ActionItemsList />
+          </TabsContent>
+
+          <TabsContent value="meetings" className="mt-6">
+            <MeetingsList />
           </TabsContent>
         </Tabs>
       </div>

@@ -9,13 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/contexts/AuthContext";
 
-interface CreateActionItemModalProps {
+interface EditActionItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  item: any;
   onSuccess: () => void;
 }
 
-export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateActionItemModalProps) {
+export function EditActionItemModal({ open, onOpenChange, item, onSuccess }: EditActionItemModalProps) {
   const { toast } = useToast();
   const { user } = useAuthContext();
   const [loading, setLoading] = useState(false);
@@ -27,18 +28,26 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
     assigned_to: "",
     priority: "medium",
     due_date: "",
+    status: "pending",
   });
 
-  // Carregar membros da equipe
+  // Carregar dados do item quando abrir
   useEffect(() => {
-    if (open && user) {
+    if (open && item) {
+      setFormData({
+        title: item.title || "",
+        description: item.description || "",
+        assigned_to: item.assigned_to || "",
+        priority: item.priority || "medium",
+        due_date: item.due_date ? item.due_date.split("T")[0] : "",
+        status: item.status || "pending",
+      });
       loadTeamMembers();
     }
-  }, [open, user]);
+  }, [open, item]);
 
   const loadTeamMembers = async () => {
     try {
-      // Buscar membros da equipe com nome
       const { data: members, error } = await (supabase as any)
         .from("team_members")
         .select("user_id, name")
@@ -46,13 +55,11 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
 
       if (error) throw error;
 
-      // Mapear membros com nome
       const membersWithNames = (members || []).map((member: any) => ({
         user_id: member.user_id,
         name: member.name || "Sem nome"
       }));
 
-      // Adicionar o próprio usuário à lista
       const allMembers = [
         { user_id: user?.id, name: "Eu" },
         ...membersWithNames
@@ -69,39 +76,41 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
     setLoading(true);
 
     try {
-      const { error } = await (supabase as any).from("action_items").insert({
-        owner_id: user?.id,
+      const updateData: any = {
         title: formData.title,
         description: formData.description,
         assigned_to: formData.assigned_to,
         priority: formData.priority,
         due_date: formData.due_date || null,
-        status: "pending",
-        created_by: user?.id,
-      });
+        status: formData.status,
+      };
+
+      // Se mudou para completed, adicionar timestamp
+      if (formData.status === "completed" && item.status !== "completed") {
+        updateData.completed_at = new Date().toISOString();
+      }
+      // Se mudou de completed para outro, remover timestamp
+      if (formData.status !== "completed" && item.status === "completed") {
+        updateData.completed_at = null;
+      }
+
+      const { error } = await (supabase as any)
+        .from("action_items")
+        .update(updateData)
+        .eq("id", item.id);
 
       if (error) throw error;
 
       toast({
-        title: "Item de ação criado",
-        description: "O item foi criado com sucesso",
-      });
-
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        assigned_to: "",
-        priority: "medium",
-        due_date: "",
+        title: "Item atualizado",
+        description: "O item de ação foi atualizado com sucesso",
       });
 
       onSuccess();
-      onOpenChange(false);
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível criar o item de ação",
+        description: error.message || "Não foi possível atualizar o item",
         variant: "destructive",
       });
     } finally {
@@ -113,7 +122,7 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl bg-slate-900 border-slate-700">
         <DialogHeader>
-          <DialogTitle className="text-white">Novo Item de Ação</DialogTitle>
+          <DialogTitle className="text-white">Editar Item de Ação</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -124,7 +133,6 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
-              placeholder="Ex: Revisar documentação do projeto"
               required
             />
           </div>
@@ -137,7 +145,6 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
               rows={3}
-              placeholder="Detalhes sobre o item de ação..."
             />
           </div>
 
@@ -147,7 +154,6 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
               <Select
                 value={formData.assigned_to}
                 onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
-                required
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Selecione..." />
@@ -181,15 +187,34 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="due_date">Prazo</Label>
-            <Input
-              id="due_date"
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="bg-slate-700 border-slate-600 text-white"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Prazo</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="in_progress">Em Progresso</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
@@ -197,7 +222,7 @@ export function CreateActionItemModal({ open, onOpenChange, onSuccess }: CreateA
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Criando..." : "Criar Item"}
+              {loading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </div>
         </form>

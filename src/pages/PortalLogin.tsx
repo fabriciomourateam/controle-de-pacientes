@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,27 @@ export default function PortalLogin() {
   const { toast } = useToast();
   const [telefone, setTelefone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true);
+
+  // Verificar se há um token salvo (para PWA instalado)
+  useEffect(() => {
+    const savedToken = localStorage.getItem('portal_access_token');
+    if (savedToken) {
+      // Redirecionar automaticamente para o portal com o token salvo
+      navigate(`/portal/${savedToken}`, { replace: true });
+    } else {
+      setCheckingToken(false);
+    }
+  }, [navigate]);
+
+  // Mostrar loading enquanto verifica token
+  if (checkingToken) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
+      </div>
+    );
+  }
 
   // Formatar telefone enquanto digita
   const formatPhone = (value: string) => {

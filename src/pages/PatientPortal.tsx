@@ -130,6 +130,41 @@ export default function PatientPortal() {
     loadPortalData();
   }, [token]);
 
+  // Salvar token no localStorage para PWA (permite abrir direto no portal)
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('portal_access_token', token);
+    }
+  }, [token]);
+
+  // Trocar manifest para o portal do paciente (PWA abre direto no portal)
+  useEffect(() => {
+    // Salvar referência do manifest original
+    const originalManifest = document.querySelector('link[rel="manifest"]');
+    const originalHref = originalManifest?.getAttribute('href');
+    
+    // Trocar para o manifest do portal
+    if (originalManifest) {
+      originalManifest.setAttribute('href', '/manifest-portal.json');
+    }
+    
+    // Atualizar meta tags para o portal
+    document.title = 'Meu Portal - Grow Nutri';
+    
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', 'Acompanhe sua dieta, progresso e conquistas com seu nutricionista.');
+    }
+    
+    // Restaurar ao sair da página
+    return () => {
+      if (originalManifest && originalHref) {
+        originalManifest.setAttribute('href', originalHref);
+      }
+      document.title = 'Grow Nutri - Controle da sua Empresa';
+    };
+  }, []);
+
   // Auto-download quando parâmetro autoDownload está presente
   useEffect(() => {
     if (!loading && patient && portalRef.current) {
@@ -178,13 +213,19 @@ export default function PatientPortal() {
       const telefone = await validateToken(token);
       
       if (!telefone) {
+        // Token inválido ou expirado - limpar localStorage e redirecionar para login
+        localStorage.removeItem('portal_access_token');
         setUnauthorized(true);
         setLoading(false);
         toast({
-          title: 'Link inválido ou expirado',
-          description: 'Este link de acesso não é mais válido',
+          title: 'Sessão expirada',
+          description: 'Por favor, faça login novamente com seu telefone',
           variant: 'destructive'
         });
+        // Redirecionar para login após 2 segundos
+        setTimeout(() => {
+          navigate('/portal', { replace: true });
+        }, 2000);
         return;
       }
 

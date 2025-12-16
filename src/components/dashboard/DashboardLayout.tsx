@@ -1,26 +1,59 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "@/components/ui/global-search";
 import { NotificationsPanel } from "@/components/ui/notifications-panel";
 import { useSubscriptionCheck } from "@/hooks/use-subscription-check";
 import { SubscriptionBlockedModal } from "@/components/subscription/SubscriptionBlockedModal";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { status, showBlockedModal } = useSubscriptionCheck();
+  const { user, loading: authLoading } = useAuthContext();
+  const { status, showBlockedModal, loading: subscriptionLoading } = useSubscriptionCheck();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Redirecionar para login se não estiver autenticado
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+  
+  // Não mostrar modal de bloqueio na página de pricing (para permitir escolher plano)
+  const isPricingPage = location.pathname === '/pricing';
+  
+  // Mostrar loading enquanto verifica autenticação
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="space-y-4 w-full max-w-md p-6">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+  
+  // Se não está logado, não renderizar nada (vai redirecionar)
+  if (!user) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         
-        {/* Modal de bloqueio de assinatura */}
+        {/* Modal de bloqueio de assinatura - não mostrar na página de pricing */}
         <SubscriptionBlockedModal
-          open={showBlockedModal}
+          open={showBlockedModal && !isPricingPage}
           reason={status?.reason}
           isTrial={status?.isTrial}
           daysRemaining={status?.daysRemaining}

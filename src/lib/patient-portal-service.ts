@@ -93,10 +93,10 @@ export async function validateToken(token: string): Promise<string | null> {
       if (phone && timestamp) {
         const tokenTime = parseInt(timestamp);
         const now = Date.now();
-        const hoursDiff = (now - tokenTime) / (1000 * 60 * 60);
+        const daysDiff = (now - tokenTime) / (1000 * 60 * 60 * 24);
         
-        // Token válido por 24 horas
-        if (hoursDiff < 24) {
+        // Token válido por 30 dias (para PWA funcionar bem)
+        if (daysDiff < 30) {
           // Verificar se o paciente existe
           const { data: patient } = await supabase
             .from('patients')

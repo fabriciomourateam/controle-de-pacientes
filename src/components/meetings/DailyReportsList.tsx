@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Plus, Calendar, User, Smile, Meh, Frown } from "lucide-react";
+import { Plus, Calendar, User, Smile, Meh, Frown, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CreateDailyReportModal } from "./CreateDailyReportModal";
+import { EditDailyReportModal } from "./EditDailyReportModal";
 import { useDailyReports } from "@/hooks/use-daily-reports";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function DailyReportsList() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("all");
-  const { reports, loading } = useDailyReports();
+  const [editingReport, setEditingReport] = useState<any>(null);
+  const [deletingReport, setDeletingReport] = useState<any>(null);
+  const { reports, loading, deleteReport, reload } = useDailyReports();
+  const { toast } = useToast();
 
   const getMoodIcon = (mood: string) => {
     switch (mood) {
@@ -49,6 +55,24 @@ export function DailyReportsList() {
 
   // Obter datas únicas
   const uniqueDates = Array.from(new Set(reports.map(r => r.report_date))).sort().reverse();
+
+  const handleDelete = async () => {
+    if (!deletingReport) return;
+    try {
+      await deleteReport(deletingReport.id);
+      toast({
+        title: "Relatório excluído",
+        description: "O relatório foi excluído com sucesso.",
+      });
+      setDeletingReport(null);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o relatório.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -137,6 +161,24 @@ export function DailyReportsList() {
                       <span className="text-sm">{report.member_name || "Membro da equipe"}</span>
                     </div>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-400 hover:text-blue-400"
+                      onClick={() => setEditingReport(report)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-400 hover:text-red-400"
+                      onClick={() => setDeletingReport(report)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -173,6 +215,46 @@ export function DailyReportsList() {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
       />
+
+      {/* Modal de Edição */}
+      {editingReport && (
+        <EditDailyReportModal
+          open={!!editingReport}
+          onOpenChange={(open) => !open && setEditingReport(null)}
+          report={editingReport}
+          onSuccess={() => {
+            setEditingReport(null);
+            reload();
+          }}
+        />
+      )}
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={!!deletingReport} onOpenChange={(open) => !open && setDeletingReport(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <Trash2 className="w-5 h-5" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir o relatório do dia{" "}
+              <strong>{deletingReport && format(new Date(deletingReport.report_date), "dd/MM/yyyy", { locale: ptBR })}</strong>?
+              <br />
+              <span className="text-red-400">Esta ação não pode ser desfeita.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeletingReport(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

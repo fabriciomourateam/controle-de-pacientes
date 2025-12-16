@@ -13,7 +13,7 @@ interface GoogleDriveImageProps {
  * Usa iframe como fallback quando a imagem direta falha por CORS
  */
 export function GoogleDriveImage({ src, alt, className, onClick, onError }: GoogleDriveImageProps) {
-  // Usar iframe para Google Drive (mais confiável, mas tem controles)
+  // Sempre usar iframe para Google Drive (mais confiável)
   const [useIframe, setUseIframe] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -114,9 +114,8 @@ export function GoogleDriveImage({ src, alt, className, onClick, onError }: Goog
         allow="autoplay"
         title={alt}
         loading="lazy"
-        sandbox="allow-same-origin allow-scripts"
       />
-      {/* Overlay clicável para capturar cliques */}
+      {/* Overlay clicável para capturar cliques - APENAS se tiver onClick */}
       {onClick && (
         <div
           onClick={onClick}

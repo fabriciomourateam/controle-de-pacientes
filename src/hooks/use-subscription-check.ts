@@ -16,8 +16,9 @@ export function useSubscriptionCheck() {
       const subscriptionStatus = await subscriptionService.checkSubscription();
       setStatus(subscriptionStatus);
       
-      // Mostrar modal de bloqueio se não tiver acesso
-      if (!subscriptionStatus.canAccess) {
+      // Mostrar modal de bloqueio se não tiver acesso (exceto se não estiver autenticado)
+      // Se não está autenticado, o DashboardLayout vai redirecionar para login
+      if (!subscriptionStatus.canAccess && subscriptionStatus.reason !== 'Usuário não autenticado') {
         setShowBlockedModal(true);
       }
     } catch (error) {

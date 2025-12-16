@@ -25,16 +25,16 @@ export function DietValidationAlerts({ validation, className }: DietValidationAl
     <div className={`space-y-3 ${className}`}>
       {/* Erros */}
       {validation.errors.length > 0 && (
-        <Alert className="border-red-500 bg-red-500/10">
-          <AlertTriangle className="h-4 w-4 text-red-400" />
-          <AlertTitle className="text-red-400">Erros encontrados</AlertTitle>
+        <Alert className="border-red-700 bg-red-700/25">
+          <AlertTriangle className="h-4 w-4 !text-red-600" />
+          <AlertTitle className="text-red-600 font-semibold">Erros encontrados</AlertTitle>
           <AlertDescription>
             <ul className="list-disc list-inside space-y-1 mt-2">
               {validation.errors.map((error, index) => (
-                <li key={index} className="text-red-300 text-sm">
+                <li key={index} className="text-red-600 text-sm">
                   {error.message}
                   {error.fix && (
-                    <span className="block text-red-200 text-xs mt-1">
+                    <span className="block text-red-500 text-xs mt-1">
                       💡 {error.fix}
                     </span>
                   )}
@@ -47,16 +47,16 @@ export function DietValidationAlerts({ validation, className }: DietValidationAl
 
       {/* Avisos */}
       {validation.warnings.length > 0 && (
-        <Alert className="border-yellow-500 bg-yellow-500/10">
-          <Info className="h-4 w-4 text-yellow-400" />
-          <AlertTitle className="text-yellow-400">Avisos</AlertTitle>
+        <Alert className="border-yellow-600 bg-yellow-500/30">
+          <Info className="h-4 w-4 !text-yellow-800" />
+          <AlertTitle className="text-yellow-800 font-semibold">Avisos</AlertTitle>
           <AlertDescription>
             <ul className="list-disc list-inside space-y-1 mt-2">
               {validation.warnings.map((warning, index) => (
-                <li key={index} className="text-yellow-300 text-sm">
+                <li key={index} className="text-yellow-900 text-sm">
                   {warning.message}
                   {warning.suggestion && (
-                    <span className="block text-yellow-200 text-xs mt-1">
+                    <span className="block text-yellow-800 text-xs mt-1">
                       💡 {warning.suggestion}
                     </span>
                   )}

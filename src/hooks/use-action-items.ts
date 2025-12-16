@@ -12,25 +12,35 @@ export function useActionItems() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      // Buscar todos os itens de ação (RLS vai filtrar automaticamente)
+      const { data, error } = await (supabase as any)
         .from("action_items")
         .select("*")
         .order("due_date", { ascending: true });
 
       if (error) throw error;
+
+      if (error) throw error;
       
-      // Buscar informações dos responsáveis separadamente
+      // Buscar informações dos responsáveis (nome do team_members)
       const itemsWithNames = await Promise.all(
-        (data || []).map(async (item) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, email")
-            .eq("id", item.assigned_to)
+        (data || []).map(async (item: any) => {
+          // Primeiro tentar buscar o nome do team_members
+          const { data: teamMember } = await (supabase as any)
+            .from("team_members")
+            .select("name")
+            .eq("user_id", item.assigned_to)
             .single();
+          
+          // Se não encontrar, verificar se é o próprio usuário
+          let assignedName = teamMember?.name;
+          if (!assignedName && item.assigned_to === user?.id) {
+            assignedName = "Eu";
+          }
           
           return {
             ...item,
-            assigned_name: profile?.email || "Não atribuído"
+            assigned_name: assignedName || "Não atribuído"
           };
         })
       );
@@ -60,9 +70,19 @@ export function useActionItems() {
       updateData.completed_at = null;
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("action_items")
       .update(updateData)
+      .eq("id", id);
+
+    if (error) throw error;
+    await loadActionItems();
+  };
+
+  const deleteActionItem = async (id: string) => {
+    const { error } = await (supabase as any)
+      .from("action_items")
+      .delete()
       .eq("id", id);
 
     if (error) throw error;
@@ -73,6 +93,7 @@ export function useActionItems() {
     actionItems,
     loading,
     updateActionItem,
+    deleteActionItem,
     reload: loadActionItems,
   };
 }

@@ -1326,50 +1326,84 @@ export function DietPlanForm({
                     />
                   </div>
 
-                  <div className="pt-4 border-t border-green-500/30">
-                    <h3 className="text-sm font-semibold text-[#222222] mb-4">Metas (Calculadas pelo TMB/GET)</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="target_calories"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-orange-500" />
-                              Calorias Meta
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                }}
-                                value={field.value || ""}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs text-[#777777]">kcal</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <Card className="border-cyan-500/30 bg-cyan-500/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-[#222222] flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-cyan-500" />
+                        Metas (Calculadas pelo TMB/GET)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="target_calories"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-orange-500" />
+                                Calorias Meta
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-[#777777]">kcal</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={form.control}
-                        name="target_protein"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-blue-500" />
-                              Proteína Meta
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                placeholder="0"
+                        <FormField
+                          control={form.control}
+                          name="target_protein"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                Proteína Meta
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="0"
+                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="target_carbs"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                Carboidratos Meta
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="0"
                                 className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
                                 {...field}
                                 onChange={(e) => {
@@ -1384,63 +1418,36 @@ export function DietPlanForm({
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="target_carbs"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-purple-500" />
-                              Carboidratos Meta
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                placeholder="0"
-                                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                }}
-                                value={field.value || ""}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="target_fats"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                              Gorduras Meta
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                placeholder="0"
-                                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                }}
-                                value={field.value || ""}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                        <FormField
+                          control={form.control}
+                          name="target_fats"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                Gorduras Meta
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="0"
+                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   <div className="space-y-3">
                     {/* Validação */}
@@ -2166,30 +2173,9 @@ export function DietPlanForm({
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {form.watch("meals")?.map((meal: any, index: number) => {
-                            // Calcular cores baseadas no índice usando verde claro
-                            const totalMeals = form.watch("meals")?.length || 1;
-                            const getMealCardColors = (idx: number, total: number) => {
-                              // Todos os cards usam verde claro com variações sutis
-                              if (total === 1) {
-                                return 'from-green-500/20 to-green-500/15 border-green-500/40';
-                              }
-                              const progress = idx / (total - 1);
-                              if (progress <= 0.2) {
-                                return 'from-green-500/25 to-green-500/20 border-green-500/40';
-                              } else if (progress <= 0.4) {
-                                return 'from-green-500/20 to-green-500/15 border-green-500/40';
-                              } else if (progress <= 0.6) {
-                                return 'from-green-500/15 to-green-500/10 border-green-500/30';
-                              } else if (progress <= 0.8) {
-                                return 'from-green-500/10 to-green-500/5 border-green-500/30';
-                              } else {
-                                return 'from-green-500/10 to-green-500/5 border-green-500/30';
-                              }
-                            };
-                            const colors = getMealCardColors(index, totalMeals);
                             return (
-                              <div key={index} className={`p-4 bg-gradient-to-br ${colors} rounded-lg hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300`}>
-                                <p className="font-semibold mb-2 text-[#222222]">{meal.meal_name}</p>
+                              <div key={index} className="p-4 bg-gradient-to-br from-slate-800/30 to-slate-700/30 border border-slate-700/50 rounded-lg hover:shadow-lg transition-all duration-300">
+                                <p className="font-semibold mb-2 text-white">{meal.meal_name}</p>
                                 <div className="flex items-center gap-3 text-xs">
                                   <Badge variant="outline" className="border-green-500/50 text-[#00A875] bg-green-500/10">
                                     {meal.foods?.length || 0} alimento(s)
@@ -2918,10 +2904,10 @@ const MealItemComponent = memo(function MealItemComponent({
   // Obter total de refeições para calcular progressão de cores
   const totalMeals = form.watch("meals")?.length || 1;
   
-  // Função para calcular cores baseadas no índice - usando verde claro
+  // Função para calcular cores baseadas no índice - usando verde bem leve
   const getMealCardColors = (index: number, total: number) => {
-    // Todos os cards usam verde claro com borda verde (cor do card de alimento)
-    return 'bg-green-400/10 border-green-500/30 hover:bg-green-400/15 hover:shadow-green-500/10';
+    // Todos os cards usam fundo verde muito leve com borda verde
+    return 'bg-green-50/50 border-green-500/30 hover:bg-green-50 hover:shadow-md';
   };
 
   const cardColors = getMealCardColors(mealIndex, totalMeals);

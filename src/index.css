@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Utility para esconder scrollbar mantendo funcionalidade */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 /* Modern Personal Trainer Dashboard Design System */
 @layer base {
   :root {
@@ -458,13 +467,8 @@
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
 }
-/* F
-orçar ocultação de iframes do Google Drive em modais */
+/* Garantir que imagens do Google Drive sejam exibidas corretamente em modais */
+[role="dialog"] img[src*="drive.google.com"],
 [role="dialog"] iframe[src*="drive.google.com"] {
-  display: none !important;
-}
-
-/* Garantir que imagens diretas sejam exibidas */
-[role="dialog"] img[src*="drive.google.com"] {
   display: block !important;
 }
