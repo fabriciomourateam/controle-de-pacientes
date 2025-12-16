@@ -1312,22 +1312,17 @@ export default function PatientEvolution() {
               <DialogTitle className="text-white">{zoomedPhoto?.label}</DialogTitle>
             </DialogHeader>
             {zoomedPhoto && (
-              <div className="flex items-center justify-center w-full" style={{ height: '70vh', minHeight: '500px' }}>
-                {isGoogleDriveUrl(zoomedPhoto.url) ? (
-                  <div className="w-full h-full">
-                    <GoogleDriveImage
-                      src={zoomedPhoto.url}
-                      alt={zoomedPhoto.label}
-                      className="w-full h-full rounded-lg"
-                    />
-                  </div>
-                ) : (
-                  <img 
-                    src={zoomedPhoto.url} 
-                    alt={zoomedPhoto.label}
-                    className="max-w-full max-h-full object-contain rounded-lg"
-                  />
-                )}
+              <div className="flex items-center justify-center w-full bg-slate-800/50 rounded-lg" style={{ height: '70vh', minHeight: '500px' }}>
+                <img 
+                  src={isGoogleDriveUrl(zoomedPhoto.url) ? (convertGoogleDriveUrl(zoomedPhoto.url) || zoomedPhoto.url) : zoomedPhoto.url}
+                  alt={zoomedPhoto.label}
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                  onError={(e) => {
+                    console.error('Erro ao carregar foto ampliada:', zoomedPhoto.url);
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
               </div>
             )}
           </DialogContent>
