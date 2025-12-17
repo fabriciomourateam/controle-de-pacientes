@@ -647,47 +647,59 @@ export default function PatientEvolution() {
           {checkins.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Check-ins Realizados */}
-              <Card className="bg-gradient-to-br from-blue-500/5 to-blue-600/5 border-blue-500/10">
+              <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/15 to-cyan-500/10 border-blue-500/30 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 group">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
+                  <CardTitle className="text-sm text-blue-200 flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                      <Activity className="w-4 h-4 text-blue-400" />
+                    </div>
                     Check-ins Realizados
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-white">{checkins.length}</div>
-                  <p className="text-xs text-slate-400 mt-1">Total de avaliações</p>
+                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">{checkins.length}</div>
+                  <p className="text-xs text-blue-300/70 mt-1">Total de avaliações</p>
                 </CardContent>
               </Card>
 
               {/* Idade */}
               {patient?.data_nascimento && (
-                <Card className="bg-gradient-to-br from-cyan-500/5 to-cyan-600/5 border-cyan-500/10">
+                <Card className="bg-gradient-to-br from-cyan-600/20 via-cyan-500/15 to-teal-500/10 border-cyan-500/30 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-slate-300">Idade</CardTitle>
+                    <CardTitle className="text-sm text-cyan-200 flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-cyan-500/20 group-hover:bg-cyan-500/30 transition-colors">
+                        <User className="w-4 h-4 text-cyan-400" />
+                      </div>
+                      Idade
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-cyan-300 to-teal-300 bg-clip-text text-transparent">
                       {calcularIdade(patient.data_nascimento)}
                       <span className="text-lg ml-1">anos</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">Idade atual</p>
+                    <p className="text-xs text-cyan-300/70 mt-1">Idade atual</p>
                   </CardContent>
                 </Card>
               )}
 
               {/* Altura */}
               {patient?.altura_inicial && (
-                <Card className="bg-gradient-to-br from-purple-500/5 to-purple-600/5 border-purple-500/10">
+                <Card className="bg-gradient-to-br from-purple-600/20 via-purple-500/15 to-violet-500/10 border-purple-500/30 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-slate-300">Altura</CardTitle>
+                    <CardTitle className="text-sm text-purple-200 flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                        <TrendingUp className="w-4 h-4 text-purple-400" />
+                      </div>
+                      Altura
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-violet-300 bg-clip-text text-transparent">
                       {patient.altura_inicial}
                       <span className="text-lg ml-1">m</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">Altura</p>
+                    <p className="text-xs text-purple-300/70 mt-1">Altura</p>
                   </CardContent>
                 </Card>
               )}
@@ -713,10 +725,15 @@ export default function PatientEvolution() {
                 });
 
                 return weightData.length > 0 ? (
-                  <Card className="bg-gradient-to-br from-green-500/5 to-green-600/5 border-green-500/10 relative group">
+                  <Card className="bg-gradient-to-br from-green-600/20 via-green-500/15 to-emerald-500/10 border-green-500/30 hover:border-green-400/50 hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 relative group">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-slate-300 flex items-center justify-between">
-                        Peso Inicial
+                      <CardTitle className="text-sm text-green-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                            <Scale className="w-4 h-4 text-green-400" />
+                          </div>
+                          Peso Inicial
+                        </div>
                         <InitialDataInput
                           telefone={telefone!}
                           nome={patient?.nome || 'Paciente'}
@@ -726,11 +743,11 @@ export default function PatientEvolution() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-white">
+                      <div className="text-3xl font-bold bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
                         {weightData[0]?.peso?.toFixed(1) || 'N/A'}
                         {weightData[0]?.peso && <span className="text-lg ml-1">kg</span>}
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-green-300/70 mt-1">
                         {weightData[0]?.data}
                       </p>
                     </CardContent>
@@ -740,16 +757,21 @@ export default function PatientEvolution() {
 
               {/* Peso Atual */}
               {checkins[0]?.peso && (
-                <Card className="bg-gradient-to-br from-indigo-500/5 to-indigo-600/5 border-indigo-500/10">
+                <Card className="bg-gradient-to-br from-indigo-600/20 via-indigo-500/15 to-blue-500/10 border-indigo-500/30 hover:border-indigo-400/50 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-slate-300">Peso Atual</CardTitle>
+                    <CardTitle className="text-sm text-indigo-200 flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500/30 transition-colors">
+                        <Scale className="w-4 h-4 text-indigo-400" />
+                      </div>
+                      Peso Atual
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-indigo-300 to-blue-300 bg-clip-text text-transparent">
                       {parseFloat(checkins[0].peso.replace(',', '.')).toFixed(1)}
                       <span className="text-lg ml-1">kg</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-indigo-300/70 mt-1">
                       {new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                     </p>
                   </CardContent>
@@ -776,19 +798,45 @@ export default function PatientEvolution() {
                 const isNeutral = Math.abs(parseFloat(weightChange)) < 0.1;
 
                 return (
-                  <Card className={`bg-gradient-to-br ${isNeutral ? 'from-slate-500/5 to-slate-600/5 border-slate-500/10' : isNegative ? 'from-emerald-500/5 to-emerald-600/5 border-emerald-500/10' : 'from-orange-500/5 to-orange-600/5 border-orange-500/10'}`}>
+                  <Card className={`bg-gradient-to-br transition-all duration-300 group hover:shadow-lg ${
+                    isNeutral 
+                      ? 'from-slate-600/20 via-slate-500/15 to-gray-500/10 border-slate-500/30 hover:border-slate-400/50 hover:shadow-slate-500/20' 
+                      : isNegative 
+                        ? 'from-emerald-600/20 via-emerald-500/15 to-green-500/10 border-emerald-500/30 hover:border-emerald-400/50 hover:shadow-emerald-500/20' 
+                        : 'from-orange-600/20 via-orange-500/15 to-amber-500/10 border-orange-500/30 hover:border-orange-400/50 hover:shadow-orange-500/20'
+                  }`}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-slate-300 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
+                      <CardTitle className={`text-sm flex items-center gap-2 ${
+                        isNeutral ? 'text-slate-200' : isNegative ? 'text-emerald-200' : 'text-orange-200'
+                      }`}>
+                        <div className={`p-1.5 rounded-lg transition-colors ${
+                          isNeutral 
+                            ? 'bg-slate-500/20 group-hover:bg-slate-500/30' 
+                            : isNegative 
+                              ? 'bg-emerald-500/20 group-hover:bg-emerald-500/30' 
+                              : 'bg-orange-500/20 group-hover:bg-orange-500/30'
+                        }`}>
+                          <TrendingUp className={`w-4 h-4 ${
+                            isNeutral ? 'text-slate-400' : isNegative ? 'text-emerald-400' : 'text-orange-400'
+                          }`} />
+                        </div>
                         Variação
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-white">
+                      <div className={`text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${
+                        isNeutral 
+                          ? 'from-slate-300 to-gray-300' 
+                          : isNegative 
+                            ? 'from-emerald-300 to-green-300' 
+                            : 'from-orange-300 to-amber-300'
+                      }`}>
                         {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange}
                         <span className="text-lg ml-1">kg</span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className={`text-xs mt-1 ${
+                        isNeutral ? 'text-slate-300/70' : isNegative ? 'text-emerald-300/70' : 'text-orange-300/70'
+                      }`}>
                         {isNeutral ? 'Sem variação' : isNegative ? 'Perda de peso' : 'Ganho de peso'}
                       </p>
                     </CardContent>
