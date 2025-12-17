@@ -44,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getCurrentUserId } from "@/lib/auth-helpers";
 import { CancellationPatternsAnalysis } from "@/components/retention/CancellationPatternsAnalysis";
 import { RecentCancellationsAndFreezes } from "@/components/retention/RecentCancellationsAndFreezes";
-import { DailyTasksWidget } from "@/components/retention/DailyTasksWidget";
+
 import { CancellationReasonsAnalysis } from "@/components/retention/CancellationReasonsAnalysis";
 import { ContactHistoryService } from "@/lib/contact-history-service";
 import { retentionService } from "@/lib/retention-service";
@@ -535,62 +535,6 @@ function RetentionDashboard() {
     }
   };
 
-  // Preparar tarefas do dia (top 5: críticos + congelados mais urgentes)
-  // Filtrar pacientes removidos e excluídos
-  const dailyTasks = useMemo(() => {
-    const activePatients = patients.filter(p => !removedPatients.has(p.id));
-    
-    const criticalTasks = activePatients
-      .filter(p => p.riskLevel === 'critical' && !p.plano?.toUpperCase().includes('CONGELADO'))
-      .map(p => ({
-        telefone: p.telefone,
-        nome: p.nome,
-        diasSemContato: p.diasSemContato,
-        prioridade: p.diasSemContato >= 45 ? 'urgente' as const : 
-                    p.diasSemContato >= 35 ? 'alta' as const : 'media' as const,
-        isCongelado: false,
-        patientId: p.id // Adicionar ID do paciente para poder remover
-      }));
-
-    const frozenTasks = activePatients
-      .filter(p => p.plano?.toUpperCase().includes('CONGELADO') && p.diasSemContato >= 30)
-      .map(p => ({
-        telefone: p.telefone,
-        nome: p.nome,
-        diasSemContato: p.diasSemContato,
-        prioridade: p.diasSemContato >= 60 ? 'urgente' as const : 
-                    p.diasSemContato >= 45 ? 'alta' as const : 'media' as const,
-        isCongelado: true,
-        patientId: p.id // Adicionar ID do paciente para poder remover
-      }));
-
-    // Combinar e ordenar por prioridade e dias
-    return [...criticalTasks, ...frozenTasks]
-      .sort((a, b) => {
-        // Urgente > Alta > Média
-        const priorityOrder = { urgente: 3, alta: 2, media: 1 };
-        if (priorityOrder[a.prioridade] !== priorityOrder[b.prioridade]) {
-          return priorityOrder[b.prioridade] - priorityOrder[a.prioridade];
-        }
-        // Mesmo nível de prioridade: mais dias sem contato primeiro
-        return b.diasSemContato - a.diasSemContato;
-      })
-      .slice(0, 5); // Top 5 tarefas
-  }, [patients, removedPatients]);
-  
-  // Handler para quando uma tarefa é completada (marcada como contatada)
-  const handleTaskComplete = async (telefone: string) => {
-    // Encontrar o paciente pelo telefone
-    const patient = patients.find(p => p.telefone === telefone);
-    if (patient) {
-      // Remover da lista de retenção também
-      await handleRemovePatient(patient.id, patient.nome);
-    }
-    // Recarregar pacientes para atualizar a lista
-    loadPatients();
-    loadContactStats();
-  };
-
   const progressPercentage = Math.min((contactStats.today / dailyGoal) * 100, 100);
 
   if (loading) {
@@ -820,12 +764,6 @@ function RetentionDashboard() {
           </CardContent>
         </Card>
 
-        {/* Widget de Tarefas do Dia */}
-        <DailyTasksWidget 
-          tasks={dailyTasks} 
-          onTaskComplete={handleTaskComplete} 
-        />
-
         {/* Separador Visual */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -1025,89 +963,61 @@ function RetentionDashboard() {
                         </div>
                         
                         <div className="flex flex-wrap gap-2 flex-shrink-0">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
-                                disabled={isContacting || isMarking}
-                                className={`
-                                  ${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} 
-                                  text-white flex-shrink-0
-                                  transition-all duration-200
-                                  hover:scale-105 active:scale-95
-                                  shadow-md hover:shadow-lg
-                                `}
-                              >
-                                {isContacting ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Phone className="w-4 h-4 mr-2" />
-                                )}
-                                {isContacted ? 'Contatado' : 'Contatar'}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Enviar mensagem via webhook</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
+                            disabled={isContacting || isMarking}
+                            className={`
+                              ${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} 
+                              text-white flex-shrink-0
+                              transition-all duration-200
+                              hover:scale-105 active:scale-95
+                              shadow-md hover:shadow-lg
+                            `}
+                          >
+                            {isContacting ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Phone className="w-4 h-4 mr-2" />
+                            )}
+                            {isContacted ? 'Contatado' : 'Contatar'}
+                          </Button>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
-                                disabled={isContacting || isMarking}
-                                className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
-                              >
-                                <MessageSquare className="w-4 h-4 mr-2" />
-                                WhatsApp
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Abrir conversa no WhatsApp</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
+                            disabled={isContacting || isMarking}
+                            className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            WhatsApp
+                          </Button>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleMarkAsContacted(patient.id, patient.telefone, patient.nome)}
-                                disabled={isContacting || isMarking}
-                                className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                              >
-                                {isMarking ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                                )}
-                                Contatado
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Marcar como contatado e remover da lista</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkAsContacted(patient.id, patient.telefone, patient.nome)}
+                            disabled={isContacting || isMarking}
+                            className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                          >
+                            {isMarking ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                            )}
+                            Contatado
+                          </Button>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleRemovePatient(patient.id, patient.nome)}
-                                disabled={isContacting || isMarking}
-                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Remover
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Remover da lista de retenção</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemovePatient(patient.id, patient.nome)}
+                            disabled={isContacting || isMarking}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -1345,89 +1255,61 @@ function RetentionDashboard() {
                         </div>
                         
                         <div className="flex flex-wrap gap-2 flex-shrink-0">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
-                                disabled={isContacting || isMarking}
-                                className={`
-                                  ${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} 
-                                  text-white flex-shrink-0
-                                  transition-all duration-200
-                                  hover:scale-105 active:scale-95
-                                  shadow-md hover:shadow-lg
-                                `}
-                              >
-                                {isContacting ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Phone className="w-4 h-4 mr-2" />
-                                )}
-                                {isContacted ? 'Contatado' : 'Contatar'}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Enviar mensagem via webhook</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
+                            disabled={isContacting || isMarking}
+                            className={`
+                              ${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} 
+                              text-white flex-shrink-0
+                              transition-all duration-200
+                              hover:scale-105 active:scale-95
+                              shadow-md hover:shadow-lg
+                            `}
+                          >
+                            {isContacting ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Phone className="w-4 h-4 mr-2" />
+                            )}
+                            {isContacted ? 'Contatado' : 'Contatar'}
+                          </Button>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
-                                disabled={isContacting || isMarking}
-                                className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
-                              >
-                                <MessageSquare className="w-4 h-4 mr-2" />
-                                WhatsApp
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Abrir conversa no WhatsApp</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            onClick={() => handleWhatsApp(patient.telefone, patient.nome)}
+                            disabled={isContacting || isMarking}
+                            className="bg-green-600 hover:bg-green-700 text-white flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            WhatsApp
+                          </Button>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleMarkAsContacted(patient.id, patient.telefone, patient.nome)}
-                                disabled={isContacting || isMarking}
-                                className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                              >
-                                {isMarking ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                                )}
-                                Contatado
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Marcar como contatado e remover da lista</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkAsContacted(patient.id, patient.telefone, patient.nome)}
+                            disabled={isContacting || isMarking}
+                            className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                          >
+                            {isMarking ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                            )}
+                            Contatado
+                          </Button>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleRemovePatient(patient.id, patient.nome)}
-                                disabled={isContacting || isMarking}
-                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Remover
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Remover da lista de retenção</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemovePatient(patient.id, patient.nome)}
+                            disabled={isContacting || isMarking}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30 flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
+                          </Button>
                         </div>
                       </div>
                     </CardContent>

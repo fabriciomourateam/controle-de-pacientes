@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useProfile } from "@/hooks/use-profile";
+import { useNavigate } from "react-router-dom";
 import { 
   User, 
   Calendar, 
@@ -16,9 +18,13 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  CreditCard,
+  Crown,
+  Sparkles
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { subscriptionService } from "@/lib/subscription-service";
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -41,6 +47,9 @@ export default function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { profile, loading, saving, saveProfile, updatePassword, uploadAvatar } = useProfile();
+  const navigate = useNavigate();
+  const [subscription, setSubscription] = useState<any>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
 
   // Atualizar formData quando profile carregar
   useEffect(() => {
@@ -57,6 +66,21 @@ export default function Profile() {
       });
     }
   }, [profile]);
+
+  // Carregar assinatura atual
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        const sub = await subscriptionService.getCurrentSubscription();
+        setSubscription(sub);
+      } catch (error) {
+        console.error('Erro ao carregar assinatura:', error);
+      } finally {
+        setLoadingSubscription(false);
+      }
+    };
+    loadSubscription();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -365,6 +389,82 @@ export default function Profile() {
                     {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString('pt-BR') : 'N/A'}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Assinatura */}
+            <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+              <CardHeader>
+                <CardTitle className="text-white text-lg flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-purple-400" />
+                  Assinatura
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingSubscription ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  </div>
+                ) : subscription ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Plano Atual</Label>
+                      <div className="flex items-center gap-2">
+                        {subscription.subscription_plans?.name === 'advanced' ? (
+                          <Crown className="w-4 h-4 text-yellow-400" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 text-blue-400" />
+                        )}
+                        <span className="text-white font-medium">
+                          {subscription.subscription_plans?.display_name || 'Plano Básico'}
+                        </span>
+                      </div>
+                    </div>
+                    <Separator className="bg-slate-700" />
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Status</Label>
+                      <Badge 
+                        variant="outline" 
+                        className={
+                          subscription.status === 'active' 
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                            : subscription.status === 'trial'
+                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        }
+                      >
+                        {subscription.status === 'active' ? 'Ativo' : 
+                         subscription.status === 'trial' ? 'Trial' : 
+                         subscription.status === 'expired' ? 'Expirado' : 'Inativo'}
+                      </Badge>
+                    </div>
+                    {subscription.current_period_end && (
+                      <>
+                        <Separator className="bg-slate-700" />
+                        <div className="space-y-2">
+                          <Label className="text-slate-300">
+                            {subscription.status === 'trial' ? 'Trial expira em' : 'Próxima cobrança'}
+                          </Label>
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-2">
+                    <p className="text-slate-400 text-sm mb-2">Nenhuma assinatura ativa</p>
+                  </div>
+                )}
+                <Button
+                  onClick={() => navigate('/pricing')}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  {subscription ? 'Gerenciar Assinatura' : 'Ver Planos'}
+                </Button>
               </CardContent>
             </Card>
 

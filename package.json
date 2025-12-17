@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:full": "node proxy-server.js & vite",
-    "build": "vite build",
+    "build": "node scripts/update-version.js && vite build",
+    "build:no-version": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

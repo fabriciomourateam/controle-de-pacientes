@@ -1,24 +1,53 @@
 import { useState } from "react";
-import { Plus, Calendar, User, Smile, Meh, Frown, Pencil, Trash2 } from "lucide-react";
+import { Plus, Calendar, User, Smile, Meh, Frown, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CreateDailyReportModal } from "./CreateDailyReportModal";
 import { EditDailyReportModal } from "./EditDailyReportModal";
 import { useDailyReports } from "@/hooks/use-daily-reports";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Função para formatar data sem problemas de timezone
+const formatDateLocal = (dateString: string) => {
+  // Adiciona T12:00:00 para evitar problemas de timezone
+  const date = parseISO(dateString + "T12:00:00");
+  return format(date, "dd/MM/yyyy", { locale: ptBR });
+};
 
 export function DailyReportsList() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("all");
   const [editingReport, setEditingReport] = useState<any>(null);
   const [deletingReport, setDeletingReport] = useState<any>(null);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const { reports, loading, deleteReport, reload } = useDailyReports();
   const { toast } = useToast();
+
+  const toggleCard = (id: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedCards(new Set(filteredReports.map(r => r.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedCards(new Set());
+  };
 
   const getMoodIcon = (mood: string) => {
     switch (mood) {
@@ -103,11 +132,24 @@ export function DailyReportsList() {
               <SelectItem value="all">Todas as datas</SelectItem>
               {uniqueDates.map(date => (
                 <SelectItem key={date} value={date}>
-                  {format(new Date(date), "dd/MM/yyyy", { locale: ptBR })}
+                  {formatDateLocal(date)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={expandedCards.size > 0 ? collapseAll : expandAll}>
+            {expandedCards.size > 0 ? (
+              <>
+                <ChevronUp className="w-4 h-4 mr-1" />
+                Minimizar
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4 mr-1" />
+                Expandir
+              </>
+            )}
+          </Button>
           <Button onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Relatório
@@ -138,75 +180,93 @@ export function DailyReportsList() {
       ) : (
         <div className="grid gap-4">
           {filteredReports.map((report) => (
-            <Card
+            <Collapsible
               key={report.id}
-              className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50"
+              open={expandedCards.has(report.id)}
+              onOpenChange={() => toggleCard(report.id)}
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                        {format(new Date(report.report_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </Badge>
-                      {report.mood && (
-                        <div className="flex items-center gap-2">
-                          {getMoodIcon(report.mood)}
-                          <span className="text-sm text-slate-400">{getMoodLabel(report.mood)}</span>
+              <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <CollapsibleTrigger asChild>
+                      <div className="space-y-2 flex-1 cursor-pointer hover:opacity-80 transition-opacity">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                            {formatDateLocal(report.report_date)}
+                          </Badge>
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <User className="w-4 h-4" />
+                            <span className="text-sm">{report.member_name || "Membro da equipe"}</span>
+                          </div>
+                          {expandedCards.has(report.id) ? (
+                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                          )}
                         </div>
-                      )}
+                        {!expandedCards.has(report.id) && report.tasks_completed && (
+                          <div className="text-sm text-slate-300 line-clamp-2">
+                            <span className="text-green-400 font-medium">✅ </span>
+                            {report.tasks_completed.split('\n').filter((line: string) => line.trim()).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleTrigger>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-blue-400"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingReport(report);
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-red-400"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingReport(report);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <User className="w-4 h-4" />
-                      <span className="text-sm">{report.member_name || "Membro da equipe"}</span>
+                  </div>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-2">
+                    <div>
+                      <h4 className="text-sm font-semibold text-green-400 mb-2">✅ Demandas Concluídas Hoje</h4>
+                      <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.tasks_completed}</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-slate-400 hover:text-blue-400"
-                      onClick={() => setEditingReport(report)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-slate-400 hover:text-red-400"
-                      onClick={() => setDeletingReport(report)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold text-green-400 mb-2">✅ Demandas Concluídas Hoje</h4>
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.tasks_completed}</p>
-                </div>
 
-                <div>
-                  <h4 className="text-sm font-semibold text-blue-400 mb-2">📋 Demandas Planejadas para Amanhã</h4>
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.tasks_planned}</p>
-                </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-blue-400 mb-2">📋 Demandas Planejadas para Amanhã</h4>
+                      <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.tasks_planned}</p>
+                    </div>
 
-                {report.blockers && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-orange-400 mb-2">⚠️ Dúvidas e Dificuldades</h4>
-                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.blockers}</p>
-                  </div>
-                )}
+                    {report.blockers && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-orange-400 mb-2">⚠️ Dúvidas e Dificuldades</h4>
+                        <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.blockers}</p>
+                      </div>
+                    )}
 
-                {report.observations && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-purple-400 mb-2">💡 Observações</h4>
-                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.observations}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    {report.observations && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-purple-400 mb-2">💡 Observações</h4>
+                        <p className="text-sm text-slate-300 whitespace-pre-wrap">{report.observations}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           ))}
         </div>
       )}
@@ -239,7 +299,7 @@ export function DailyReportsList() {
             </DialogTitle>
             <DialogDescription>
               Tem certeza que deseja excluir o relatório do dia{" "}
-              <strong>{deletingReport && format(new Date(deletingReport.report_date), "dd/MM/yyyy", { locale: ptBR })}</strong>?
+              <strong>{deletingReport && formatDateLocal(deletingReport.report_date)}</strong>?
               <br />
               <span className="text-red-400">Esta ação não pode ser desfeita.</span>
             </DialogDescription>

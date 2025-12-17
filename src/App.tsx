@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UpdateNotification } from "@/components/UpdateNotification";
 import "./test-theme.css";
 
 // Componentes leves - import direto
@@ -69,6 +70,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <UpdateNotification />
           <BrowserRouter>
         <Routes>
           {/* Rotas públicas - não requerem autenticação */}
