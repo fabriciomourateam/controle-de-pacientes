@@ -4,28 +4,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  HelpCircle, 
   Search, 
-  BookOpen, 
-  MessageCircle, 
   Mail, 
   Phone, 
   Clock, 
   CheckCircle,
-  AlertCircle,
-  Info,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  Video,
-  FileText,
   Users,
   Settings,
   BarChart3,
-  Calendar,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from "lucide-react";
 
 interface FAQItem {
@@ -46,24 +38,45 @@ interface HelpSection {
 }
 
 export default function HelpPage() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
+  const handleClearCache = async () => {
+    try {
+      // Limpar caches do Service Worker
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      
+      // Limpar localStorage (exceto dados de autenticação)
+      const authKeys = ['sb-qhzifnyjyxdushxorzrk-auth-token'];
+      const keysToKeep: Record<string, string> = {};
+      authKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) keysToKeep[key] = value;
+      });
+      localStorage.clear();
+      Object.entries(keysToKeep).forEach(([key, value]) => {
+        localStorage.setItem(key, value);
+      });
+
+      toast({
+        title: "Cache Limpo",
+        description: "Cache do aplicativo foi limpo com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível limpar o cache.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const helpSections: HelpSection[] = [
-    {
-      id: "getting-started",
-      title: "Primeiros Passos",
-      description: "Comece a usar o sistema",
-      icon: BookOpen,
-      color: "text-blue-400",
-      items: [
-        "Como criar seu primeiro paciente",
-        "Configurando planos de treinamento",
-        "Entendendo o dashboard",
-        "Configurações iniciais"
-      ]
-    },
     {
       id: "patients",
       title: "Gestão de Pacientes",
@@ -86,8 +99,7 @@ export default function HelpPage() {
       items: [
         "Como fazer checkins",
         "Entendendo as pontuações",
-        "Relatórios de progresso",
-        "Notificações automáticas"
+        "Relatórios de progresso"
       ]
     },
     {
@@ -99,23 +111,9 @@ export default function HelpPage() {
       items: [
         "Dashboard de métricas",
         "Relatórios mensais",
-        "Análise de crescimento",
-        "Indicadores de saúde"
+        "Análise de crescimento"
       ]
     },
-    {
-      id: "settings",
-      title: "Configurações",
-      description: "Personalize o sistema",
-      icon: Settings,
-      color: "text-cyan-400",
-      items: [
-        "Configurações de perfil",
-        "Preferências de notificação",
-        "Backup de dados",
-        "Integrações"
-      ]
-    }
   ];
 
   const faqItems: FAQItem[] = [
@@ -142,42 +140,24 @@ export default function HelpPage() {
     },
     {
       id: "4",
-      question: "Como configurar notificações?",
-      answer: "Vá para Configurações > Notificações. Você pode escolher receber notificações por e-mail sobre pacientes expirando, checkins pendentes e relatórios semanais/mensais.",
-      category: "settings"
-    },
-    {
-      id: "5",
-      question: "Como fazer backup dos dados?",
-      answer: "O sistema faz backup automático diariamente. Você também pode exportar seus dados manualmente em Configurações > Backup e Dados. Recomendamos fazer backup antes de grandes alterações.",
-      category: "settings"
-    },
-    {
-      id: "6",
-      question: "O que significa 'Pacientes Ativos'?",
-      answer: "Pacientes ativos são aqueles com planos válidos (não inativos, cancelados ou com pendências). O sistema exclui automaticamente planos como 'INATIVO', 'RESCISÃO', 'NEGATIVADO' do cálculo.",
-      category: "patients"
-    },
-    {
-      id: "7",
       question: "Como funciona o filtro de meses nas métricas?",
       answer: "O filtro permite analisar dados de períodos específicos. Você pode selecionar meses individuais ou usar os filtros pré-definidos (3, 6, 12 meses) para comparar diferentes períodos.",
       category: "metrics"
     },
     {
-      id: "8",
+      id: "6",
       question: "Como editar informações de um paciente?",
       answer: "Na página de Pacientes, clique no nome do paciente desejado ou no botão de editar. Você pode alterar dados pessoais, plano, vencimento e outras informações. As alterações são salvas automaticamente.",
       category: "patients"
     },
     {
-      id: "9",
+      id: "7",
       question: "O que são 'Checkins Pendentes'?",
       answer: "São pacientes que não fizeram checkin há mais de 30 dias. Isso ajuda a identificar quem precisa de acompanhamento mais próximo ou motivação para manter o engajamento.",
       category: "checkins"
     },
     {
-      id: "10",
+      id: "8",
       question: "Como interpretar o 'Score Médio'?",
       answer: "O score médio é calculado baseado nas pontuações dos checkins. Valores acima de 70 indicam bom engajamento, entre 50-70 indicam atenção moderada, e abaixo de 50 indicam necessidade de intervenção.",
       category: "metrics"
@@ -230,15 +210,7 @@ export default function HelpPage() {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 transition-colors cursor-pointer">
-            <CardContent className="p-4 text-center">
-              <MessageCircle className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <h3 className="font-semibold text-white">Suporte ao Vivo</h3>
-              <p className="text-sm text-slate-400">Chat em tempo real</p>
-            </CardContent>
-          </Card>
-          
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 transition-colors cursor-pointer">
             <CardContent className="p-4 text-center">
               <Mail className="w-8 h-8 text-green-400 mx-auto mb-2" />
@@ -251,7 +223,7 @@ export default function HelpPage() {
             <CardContent className="p-4 text-center">
               <Phone className="w-8 h-8 text-purple-400 mx-auto mb-2" />
               <h3 className="font-semibold text-white">Telefone</h3>
-              <p className="text-sm text-slate-400">(11) 99999-9999</p>
+              <p className="text-sm text-slate-400">(11) 99141-8266</p>
             </CardContent>
           </Card>
           
@@ -375,48 +347,56 @@ export default function HelpPage() {
           </div>
         </div>
 
-        {/* Additional Resources */}
-        <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30">
+        {/* Sistema */}
+        <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
-              <BookOpen className="w-5 h-5 text-blue-400" />
-              Recursos Adicionais
+              <Settings className="w-5 h-5 text-cyan-400" />
+              Sistema
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Documentação completa e tutoriais em vídeo
+              Informações e manutenção do aplicativo
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                <FileText className="w-6 h-6 text-blue-400" />
-                <div>
-                  <h4 className="font-semibold text-white">Documentação</h4>
-                  <p className="text-sm text-slate-400">Guia completo do sistema</p>
+              <div className="p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-400 text-sm">Versão</span>
+                  <Badge variant="outline" className="text-green-400 border-green-400">
+                    1.0.0
+                  </Badge>
                 </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 ml-auto" />
+                <p className="text-xs text-slate-500">Versão atual do sistema</p>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                <Video className="w-6 h-6 text-green-400" />
-                <div>
-                  <h4 className="font-semibold text-white">Tutoriais</h4>
-                  <p className="text-sm text-slate-400">Vídeos explicativos</p>
+              <div className="p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-400 text-sm">Status</span>
+                  <Badge variant="outline" className="text-green-400 border-green-400">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Online
+                  </Badge>
                 </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 ml-auto" />
+                <p className="text-xs text-slate-500">Sistema funcionando normalmente</p>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                <MessageCircle className="w-6 h-6 text-purple-400" />
-                <div>
-                  <h4 className="font-semibold text-white">Comunidade</h4>
-                  <p className="text-sm text-slate-400">Fórum de usuários</p>
-                </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 ml-auto" />
+              <div className="p-4 bg-slate-700/50 rounded-lg">
+                <Button 
+                  onClick={handleClearCache}
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-black font-semibold"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar Cache
+                </Button>
+                <p className="text-xs text-slate-500 mt-2 text-center">Limpa dados temporários</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
+
       </div>
     </DashboardLayout>
   );

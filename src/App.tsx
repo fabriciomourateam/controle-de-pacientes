@@ -29,7 +29,7 @@ const CommercialMetrics = lazy(() => import("./pages/CommercialMetrics"));
 const DebugVendas = lazy(() => import("./pages/DebugVendas"));
 const Workspace = lazy(() => import("./pages/Workspace"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Settings = lazy(() => import("./pages/Settings"));
+// Settings removido - funcionalidades movidas para Help
 const Help = lazy(() => import("./pages/Help"));
 const Reports = lazy(() => import("./pages/Reports"));
 const RetentionDashboard = lazy(() => import("./pages/RetentionDashboard"));
@@ -147,11 +147,7 @@ const App = () => (
                 <Profile />
               </Suspense>
           } />
-          <Route path="/settings" element={
-            <Suspense fallback={<PageLoader />}>
-                <Settings />
-              </Suspense>
-          } />
+
           <Route path="/help" element={
             <Suspense fallback={<PageLoader />}>
                 <Help />

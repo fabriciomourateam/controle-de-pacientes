@@ -64,12 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       // Verificar se é membro de alguma equipe
-      const { data: memberData } = await supabase
+      const { data: memberDataArray } = await supabase
         .from('team_members')
         .select('*, role:team_roles(*)')
         .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
+        .eq('is_active', true);
+
+      const memberData = memberDataArray?.[0];
 
       if (memberData) {
         // É membro da equipe

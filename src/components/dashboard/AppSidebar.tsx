@@ -53,7 +53,6 @@ const mainNavItems = [
 
 const secondaryNavItems = [
   { title: "Perfil", url: "/profile", icon: User },
-  { title: "Configurações", url: "/settings", icon: Settings },
   { title: "Ajuda", url: "/help", icon: HelpCircle },
 ];
 
