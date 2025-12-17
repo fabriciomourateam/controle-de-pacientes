@@ -41,7 +41,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUserId } from "@/lib/auth-helpers";
+import { getCurrentUserId, getTeamUserIds } from "@/lib/auth-helpers";
 import { CancellationPatternsAnalysis } from "@/components/retention/CancellationPatternsAnalysis";
 import { RecentCancellationsAndFreezes } from "@/components/retention/RecentCancellationsAndFreezes";
 
@@ -95,11 +95,12 @@ function RetentionDashboard() {
   }, []);
 
   // Carregar pacientes que foram contatados (para mostrar como "Contatado")
+  // Inclui contatos de toda a equipe (owner + membros)
   const loadContactedPatients = async () => {
     try {
-      // Obter user_id do usuário atual para filtrar apenas seus contatos
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      // Obter todos os user_ids da equipe (owner + membros)
+      const teamUserIds = await getTeamUserIds();
+      if (teamUserIds.length === 0) {
         console.warn('Usuário não autenticado, não é possível carregar contatos');
         return;
       }
@@ -107,17 +108,17 @@ function RetentionDashboard() {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       
-      // Buscar contatos de hoje do usuário atual (RLS já filtra por user_id)
+      // Buscar contatos de hoje de TODA A EQUIPE
       const { data, error } = await supabase
         .from('contact_history')
         .select('telefone')
         .gte('contact_date', hoje.toISOString())
-        .eq('user_id', user.id); // Garantir que só busca contatos do usuário atual
+        .in('user_id', teamUserIds); // Buscar contatos de toda a equipe
 
       if (error) throw error;
       
       if (data) {
-        // Buscar IDs dos pacientes pelos telefones (já filtrados por user_id via RLS)
+        // Buscar IDs dos pacientes pelos telefones
         const telefones = data.map(c => c.telefone);
         if (telefones.length > 0) {
           const { data: patientsData } = await supabase
@@ -143,9 +144,9 @@ function RetentionDashboard() {
   // Carregar estatísticas de contatos
   const loadContactStats = async () => {
     try {
-      // Obter user_id do usuário autenticado
-      const userId = await getCurrentUserId();
-      if (!userId) {
+      // Obter todos os user_ids da equipe (owner + membros)
+      const teamUserIds = await getTeamUserIds();
+      if (teamUserIds.length === 0) {
         // Se não estiver autenticado, retornar zeros
         setContactStats({
           today: 0,
@@ -161,25 +162,25 @@ function RetentionDashboard() {
       const umaSemanaAtras = new Date(hoje);
       umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
 
-      // Contatos hoje - FILTRAR POR USER_ID
+      // Contatos hoje - FILTRAR POR TODOS OS USER_IDS DA EQUIPE
       const { count: todayCount } = await supabase
         .from('contact_history')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId) // FILTRAR POR USER_ID
+        .in('user_id', teamUserIds) // FILTRAR POR TODA A EQUIPE
         .gte('contact_date', hoje.toISOString());
 
-      // Contatos esta semana - FILTRAR POR USER_ID
+      // Contatos esta semana - FILTRAR POR TODOS OS USER_IDS DA EQUIPE
       const { count: weekCount } = await supabase
         .from('contact_history')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId) // FILTRAR POR USER_ID
+        .in('user_id', teamUserIds) // FILTRAR POR TODA A EQUIPE
         .gte('contact_date', umaSemanaAtras.toISOString());
 
-      // Dados para gráfico (últimos 7 dias) - FILTRAR POR USER_ID
+      // Dados para gráfico (últimos 7 dias) - FILTRAR POR TODA A EQUIPE
       const { data: chartData } = await supabase
         .from('contact_history')
         .select('contact_date')
-        .eq('user_id', userId) // FILTRAR POR USER_ID
+        .in('user_id', teamUserIds) // FILTRAR POR TODA A EQUIPE
         .gte('contact_date', umaSemanaAtras.toISOString())
         .order('contact_date', { ascending: true });
 

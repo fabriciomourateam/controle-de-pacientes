@@ -77,6 +77,64 @@ export async function ensureUserId<T extends { user_id?: string | null }>(
 }
 
 /**
+ * Obtém o owner_id para contabilização de equipe
+ * Se for membro da equipe, retorna o owner_id do team_members
+ * Se for owner, retorna o próprio user_id
+ * Isso permite que contatos de toda a equipe sejam contabilizados juntos
+ */
+export async function getTeamOwnerId(): Promise<string | null> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return null;
+
+    // Verificar se é membro de alguma equipe (user_id = meu id)
+    const { data: memberData } = await (supabase as any)
+      .from('team_members')
+      .select('owner_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    // Se for membro, retorna o owner_id
+    if (memberData?.owner_id) {
+      return memberData.owner_id;
+    }
+
+    // Se não for membro, é owner - retorna o próprio user_id
+    return userId;
+  } catch (error) {
+    console.error('Erro ao obter owner_id da equipe:', error);
+    return await getCurrentUserId();
+  }
+}
+
+/**
+ * Obtém todos os user_ids da equipe (owner + membros ativos)
+ * Útil para queries que precisam incluir dados de toda a equipe
+ */
+export async function getTeamUserIds(): Promise<string[]> {
+  try {
+    const ownerId = await getTeamOwnerId();
+    if (!ownerId) return [];
+
+    // Buscar todos os membros da equipe (com user_id preenchido)
+    const { data: members } = await (supabase as any)
+      .from('team_members')
+      .select('user_id')
+      .eq('owner_id', ownerId)
+      .not('user_id', 'is', null);
+
+    const memberIds = members?.map((m: any) => m.user_id).filter(Boolean) || [];
+    
+    // Incluir o owner também
+    return [ownerId, ...memberIds];
+  } catch (error) {
+    console.error('Erro ao obter user_ids da equipe:', error);
+    const userId = await getCurrentUserId();
+    return userId ? [userId] : [];
+  }
+}
+
+/**
  * Hook para obter o ID do usuário atual de forma reativa
  * Use este hook em componentes React
  */
