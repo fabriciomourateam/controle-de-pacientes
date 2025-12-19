@@ -472,3 +472,46 @@
 [role="dialog"] iframe[src*="drive.google.com"] {
   display: block !important;
 }
+
+/* Estilos para Exportação de Evolução */
+.export-container {
+  /* Garantir renderização consistente */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  
+  /* Melhorar qualidade de texto */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Forçar renderização de gradientes */
+  background-attachment: fixed;
+}
+
+/* Ocultar elementos interativos na exportação */
+.hide-in-export {
+  display: block;
+}
+
+/* Garantir que canvas sejam renderizados com qualidade */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Melhorar qualidade de gradientes para exportação */
+.gradient-export {
+  background-attachment: fixed;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Estilos específicos para impressão/exportação */
+@media print {
+  .hide-in-export {
+    display: none !important;
+  }
+  
+  .export-container {
+    background: -webkit-print-color-adjust !important;
+  }
+}

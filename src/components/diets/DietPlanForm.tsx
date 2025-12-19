@@ -43,7 +43,7 @@ import { TemplateLibraryModal } from "./TemplateLibraryModal";
 import { FoodSuggestionsDropdown } from "./FoodSuggestionsDropdown";
 import { FoodSearchInput } from "./FoodSearchInput";
 import { FoodSelectionModal } from "./FoodSelectionModal";
-import { FoodSubstitutionModal } from "./FoodSubstitutionModal";
+
 import { FoodSubstitutionsModal } from "./FoodSubstitutionsModal";
 import { ProportionalAdjustmentModal } from "./ProportionalAdjustmentModal";
 import { QuickPortionAdjustment } from "./QuickPortionAdjustment";
@@ -170,11 +170,13 @@ type DietPlanFormData = z.infer<typeof dietPlanSchema>;
 
 interface DietPlanFormProps {
   patientId: string;
-  patientUserId: string | null;
+  patientUserId?: string | null;
   planId?: string; // ID do plano para edição (opcional)
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  onSaveSuccess?: () => void;
+  isPageMode?: boolean; // Se true, renderiza sem Dialog
 }
 
 export function DietPlanForm({
@@ -184,6 +186,8 @@ export function DietPlanForm({
   open,
   onOpenChange,
   onSuccess,
+  onSaveSuccess,
+  isPageMode = false,
 }: DietPlanFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -201,13 +205,11 @@ export function DietPlanForm({
   // Estados para novos modais e funcionalidades
   const [macroDistributionOpen, setMacroDistributionOpen] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
-  const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
   const [substitutionsModalOpen, setSubstitutionsModalOpen] = useState(false);
   const [proportionalAdjustmentOpen, setProportionalAdjustmentOpen] = useState(false);
   const [quickPortionAdjustmentOpen, setQuickPortionAdjustmentOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [comparatorOpen, setComparatorOpen] = useState(false);
-  const [substitutionFoodIndex, setSubstitutionFoodIndex] = useState<{ mealIndex: number; foodIndex: number } | null>(null);
   const [substitutionsFoodIndex, setSubstitutionsFoodIndex] = useState<{ mealIndex: number; foodIndex: number } | null>(null);
   const [validationResult, setValidationResult] = useState<any>(null);
   const [foodGroupsModalOpen, setFoodGroupsModalOpen] = useState(false);
@@ -277,6 +279,10 @@ export function DietPlanForm({
   // Carregar banco de alimentos e dados do plano (se estiver editando)
   useEffect(() => {
     if (open) {
+      // Limpar refs de macros originais ao abrir o modal
+      originalQuantitiesRef.current.clear();
+      originalMacrosRef.current.clear();
+      
       loadFoodDatabase();
       loadPatientData();
       if (planId) {
@@ -621,11 +627,22 @@ export function DietPlanForm({
     const foodName = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.food_name`);
     if (!foodName) return;
 
-    const currentQuantity = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 100;
+    const currentQuantity = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 0;
     const currentCalories = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.calories`) || 0;
     const currentProtein = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.protein`) || 0;
     const currentCarbs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0;
     const currentFats = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.fats`) || 0;
+    
+    // Se quantidade é 0 ou negativa, zerar todos os macros
+    if (currentQuantity <= 0) {
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, 0);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, 0);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, 0);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, 0);
+      calculateMealMacros(mealIndex);
+      calculateTotals();
+      return;
+    }
 
     // Primeiro, tentar encontrar no banco de dados (busca case-insensitive)
     const selectedFood = foodDatabase.find((f) => 
@@ -653,53 +670,59 @@ export function DietPlanForm({
         `meals.${mealIndex}.foods.${foodIndex}.fats`,
         Math.round(selectedFood.fats_per_100g * multiplier * 10) / 10
       );
-    } else if (currentCalories > 0 || currentProtein > 0 || currentCarbs > 0 || currentFats > 0) {
-      // Alimento não está no banco, mas já tem macros preenchidos (ex: do n8n)
+    } else {
+      // Alimento não está no banco (ex: do n8n)
       // Recalcular proporcionalmente baseado nos macros originais e quantidade original
       const foodKey = `${mealIndex}_${foodIndex}`;
-      const originalQuantity = originalQuantitiesRef.current.get(foodKey);
-      const originalMacros = originalMacrosRef.current.get(foodKey);
+      let originalQuantity = originalQuantitiesRef.current.get(foodKey);
+      let originalMacros = originalMacrosRef.current.get(foodKey);
       
       // Se não temos quantidade original ou macros originais armazenados, armazenar agora
-      if (!originalQuantity || originalQuantity <= 0 || !originalMacros) {
-        const quantityToStore = currentQuantity || 100;
-        originalQuantitiesRef.current.set(foodKey, quantityToStore);
+      // Mas só armazenar se temos macros válidos (pelo menos um > 0)
+      if ((!originalQuantity || originalQuantity <= 0 || !originalMacros) && 
+          (currentCalories > 0 || currentProtein > 0 || currentCarbs > 0 || currentFats > 0)) {
+        // Armazenar os valores atuais como referência original
+        originalQuantitiesRef.current.set(foodKey, currentQuantity);
         originalMacrosRef.current.set(foodKey, {
           calories: currentCalories,
           protein: currentProtein,
           carbs: currentCarbs,
           fats: currentFats,
         });
-        // Não recalcular na primeira vez, apenas armazenar a referência
+        // Na primeira vez, não recalcular pois já temos os valores corretos
+        calculateMealMacros(mealIndex);
+        calculateTotals();
         return;
       }
       
-      // Temos quantidade original e macros originais, recalcular proporcionalmente
-      // Calcular macros por unidade baseado nos macros originais e quantidade original
-      const macrosPerUnit = {
-        calories: originalMacros.calories / originalQuantity,
-        protein: originalMacros.protein / originalQuantity,
-        carbs: originalMacros.carbs / originalQuantity,
-        fats: originalMacros.fats / originalQuantity,
-      };
-      
-      // Recalcular para a nova quantidade
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.calories`,
-        Math.round(macrosPerUnit.calories * currentQuantity)
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.protein`,
-        Math.round(macrosPerUnit.protein * currentQuantity * 10) / 10
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.carbs`,
-        Math.round(macrosPerUnit.carbs * currentQuantity * 10) / 10
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.fats`,
-        Math.round(macrosPerUnit.fats * currentQuantity * 10) / 10
-      );
+      // Se temos macros originais armazenados, recalcular proporcionalmente
+      if (originalQuantity && originalQuantity > 0 && originalMacros) {
+        // Calcular macros por unidade baseado nos macros originais e quantidade original
+        const macrosPerUnit = {
+          calories: originalMacros.calories / originalQuantity,
+          protein: originalMacros.protein / originalQuantity,
+          carbs: originalMacros.carbs / originalQuantity,
+          fats: originalMacros.fats / originalQuantity,
+        };
+        
+        // Recalcular para a nova quantidade
+        form.setValue(
+          `meals.${mealIndex}.foods.${foodIndex}.calories`,
+          Math.round(macrosPerUnit.calories * currentQuantity)
+        );
+        form.setValue(
+          `meals.${mealIndex}.foods.${foodIndex}.protein`,
+          Math.round(macrosPerUnit.protein * currentQuantity * 10) / 10
+        );
+        form.setValue(
+          `meals.${mealIndex}.foods.${foodIndex}.carbs`,
+          Math.round(macrosPerUnit.carbs * currentQuantity * 10) / 10
+        );
+        form.setValue(
+          `meals.${mealIndex}.foods.${foodIndex}.fats`,
+          Math.round(macrosPerUnit.fats * currentQuantity * 10) / 10
+        );
+      }
     }
 
     // Recalcular macros da refeição e totais (sem delay para melhor performance)
@@ -790,32 +813,6 @@ export function DietPlanForm({
     });
     calculateTotals();
     validatePlan();
-  };
-
-  // Handler para substituição de alimento
-  const handleSubstituteFood = async (substitution: any, newQuantity: number) => {
-    if (!substitutionFoodIndex) return;
-    
-    const { mealIndex, foodIndex } = substitutionFoodIndex;
-    const food = foodDatabase.find(f => f.name === substitution.food_name);
-    
-    if (food) {
-      const quantityInGrams = foodSubstitutionService.convertToGrams(newQuantity, form.watch(`meals.${mealIndex}.foods.${foodIndex}.unit`) || 'g');
-      const multiplier = quantityInGrams / 100;
-      
-      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.food_name`, substitution.food_name);
-      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.quantity`, newQuantity);
-      // Calorias arredondadas para inteiro, macros com 1 casa decimal
-      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, Math.round(substitution.calories_per_100g * multiplier));
-      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, Math.round(substitution.protein_per_100g * multiplier * 10) / 10);
-      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, Math.round(substitution.carbs_per_100g * multiplier * 10) / 10);
-      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, Math.round(substitution.fats_per_100g * multiplier * 10) / 10);
-      
-      calculateMealMacros(mealIndex);
-      calculateTotals();
-      validatePlan();
-      setSubstitutionFoodIndex(null);
-    }
   };
 
   // Handler para ajuste proporcional
@@ -1095,22 +1092,12 @@ export function DietPlanForm({
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200 bg-white text-[#222222] shadow-2xl">
-        <DialogHeader className="pb-4 border-b border-gray-200">
-          <DialogTitle className="text-[#222222] text-2xl font-bold flex items-center gap-3">
-            <Utensils className="w-6 h-6 text-[#00C98A]" />
-            {isEditing ? "Editar Plano Alimentar" : "Criar Novo Plano Alimentar"}
-          </DialogTitle>
-          <DialogDescription className="text-[#777777] mt-2">
-            Preencha as informações do plano alimentar do paciente
-          </DialogDescription>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+  // Conteúdo do formulário (usado tanto no Dialog quanto na página)
+  const formContent = (
+    <>
+      <Form {...form}>
+        <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
                 <TabsTrigger 
                   value="basic"
@@ -1629,8 +1616,6 @@ export function DietPlanForm({
                                 calculateTotals={calculateTotals}
                                 setFoodGroupsMealIndex={setFoodGroupsMealIndex}
                                 setFoodGroupsModalOpen={setFoodGroupsModalOpen}
-                                setSubstitutionFoodIndex={setSubstitutionFoodIndex}
-                                setSubstitutionModalOpen={setSubstitutionModalOpen}
                                 setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
                                 setSubstitutionsModalOpen={setSubstitutionsModalOpen}
                                 setFoodSelectionMealIndex={setFoodSelectionMealIndex}
@@ -2255,39 +2240,45 @@ export function DietPlanForm({
                 )}
               </div>
             </Tabs>
+
+            {/* Botões de ação */}
+            <div className="pt-4 border-t border-gray-200 mt-4 flex justify-end gap-3">
+              {!isPageMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  className="border-gray-300 text-[#222222] hover:bg-gray-100"
+                >
+                  Cancelar
+                </Button>
+              )}
+              <Button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  console.log('🖱️ Botão Salvar clicado!');
+                  console.log('📝 Valores do formulário:', form.getValues());
+                  
+                  // Forçar submit sem validação
+                  const values = form.getValues();
+                  await onSubmit(values as DietPlanFormData);
+                }}
+                className="bg-[#00C98A] hover:bg-[#00A875] text-white"
+              >
+                {loading ? "Salvando..." : "Salvar Plano"}
+              </Button>
+            </div>
           </form>
         </Form>
+      </>
+    );
 
-        <DialogFooter className="pt-4 border-t border-gray-200 mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="border-gray-300 text-white hover:bg-gray-100 hover:text-[#222222]"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            disabled={loading}
-            onClick={async () => {
-              console.log('🖱️ Botão Salvar clicado!');
-              console.log('� Errtos do formulário:', form.formState.errors);
-              console.log('✅ Formulário válido?', form.formState.isValid);
-              console.log('📝 Valores do formulário:', form.getValues());
-              
-              // Forçar submit sem validação
-              const values = form.getValues();
-              await onSubmit(values as DietPlanFormData);
-            }}
-            className="bg-[#00C98A] hover:bg-[#00A875] text-white"
-          >
-            {loading ? "Salvando..." : "Salvar Plano"}
-          </Button>
-        </DialogFooter>
-
-        {/* Modais e Componentes Avançados */}
-        <TemplateLibraryModal
+  // Modais (renderizados fora do formContent para evitar problemas de estrutura)
+  const modalsContent = (
+    <>
+      {/* Modais e Componentes Avançados */}
+      <TemplateLibraryModal
           open={templateLibraryOpen}
           onOpenChange={setTemplateLibraryOpen}
           patientId={patientId}
@@ -2309,40 +2300,7 @@ export function DietPlanForm({
           />
         )}
 
-        {substitutionFoodIndex && (
-          <FoodSubstitutionModal
-            open={substitutionModalOpen}
-            onOpenChange={(open) => {
-              setSubstitutionModalOpen(open);
-              if (!open) setSubstitutionFoodIndex(null);
-            }}
-            originalFood={{
-              name: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.food_name`) || '',
-              quantity: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.quantity`) || 0,
-              unit: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.unit`) || 'g',
-              calories: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.calories`) || 0,
-              protein: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.protein`) || 0,
-              carbs: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.carbs`) || 0,
-              fats: form.watch(`meals.${substitutionFoodIndex.mealIndex}.foods.${substitutionFoodIndex.foodIndex}.fats`) || 0,
-            }}
-            onSubstitute={handleSubstituteFood}
-            foodDatabase={foodDatabase}
-            onFoodSaved={async () => {
-              try {
-                const { data } = await supabase
-                  .from('food_database')
-                  .select('*')
-                  .eq('is_active', true)
-                  .order('name');
-                if (data) {
-                  setFoodDatabase(data);
-                }
-              } catch (error) {
-                console.error('Erro ao recarregar banco de alimentos:', error);
-              }
-            }}
-          />
-        )}
+
 
         <FoodSubstitutionsModal
           open={substitutionsModalOpen}
@@ -2362,6 +2320,68 @@ export function DietPlanForm({
             if (substitutionsFoodIndex) {
               form.setValue(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`, substitutions);
             }
+          }}
+          onSwapWithMain={(substitution, substitutionMacros) => {
+            if (!substitutionsFoodIndex) return;
+            
+            const { mealIndex, foodIndex } = substitutionsFoodIndex;
+            
+            // Pegar dados do alimento principal atual
+            const currentFood = {
+              food_name: form.watch(`meals.${mealIndex}.foods.${foodIndex}.food_name`) || '',
+              quantity: form.watch(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 100,
+              unit: form.watch(`meals.${mealIndex}.foods.${foodIndex}.unit`) || 'g',
+              calories: form.watch(`meals.${mealIndex}.foods.${foodIndex}.calories`) || 0,
+              protein: form.watch(`meals.${mealIndex}.foods.${foodIndex}.protein`) || 0,
+              carbs: form.watch(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0,
+              fats: form.watch(`meals.${mealIndex}.foods.${foodIndex}.fats`) || 0,
+            };
+            const currentSubstitutions = form.watch(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
+            
+            // Atualizar o alimento principal com os dados da substituição
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.food_name`, substitution.food_name);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.quantity`, substitution.quantity);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.unit`, substitution.unit);
+            
+            // Usar macros calculados se disponíveis, senão zerar
+            if (substitutionMacros) {
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, substitutionMacros.calories);
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, substitutionMacros.protein);
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, substitutionMacros.carbs);
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, substitutionMacros.fats);
+            } else {
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, 0);
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, 0);
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, 0);
+              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, 0);
+            }
+            
+            // Atualizar lista de substituições: remover a que virou principal e adicionar o antigo principal
+            const newSubstitutions = currentSubstitutions
+              .filter((sub: any) => sub.food_name !== substitution.food_name)
+              .concat([{
+                food_name: currentFood.food_name,
+                quantity: currentFood.quantity,
+                unit: currentFood.unit,
+              }]);
+            
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, newSubstitutions);
+            
+            // Atualizar macros originais para o novo alimento principal
+            const foodKey = `${mealIndex}_${foodIndex}`;
+            originalQuantitiesRef.current.set(foodKey, substitution.quantity);
+            if (substitutionMacros) {
+              originalMacrosRef.current.set(foodKey, {
+                calories: substitutionMacros.calories,
+                protein: substitutionMacros.protein,
+                carbs: substitutionMacros.carbs,
+                fats: substitutionMacros.fats,
+              });
+            }
+            
+            // Recalcular totais
+            calculateMealMacros(mealIndex);
+            calculateTotals();
           }}
         />
 
@@ -2523,8 +2543,38 @@ export function DietPlanForm({
             }
           }}
         />
-      </DialogContent>
-    </Dialog>
+    </>
+  );
+
+  // Se estiver em modo página, renderiza sem Dialog
+  if (isPageMode) {
+    return (
+      <div className="p-6 bg-white text-[#222222]">
+        {formContent}
+        {modalsContent}
+      </div>
+    );
+  }
+
+  // Modo Dialog (padrão)
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200 bg-white text-[#222222] shadow-2xl">
+          <DialogHeader className="pb-4 border-b border-gray-200">
+            <DialogTitle className="text-[#222222] text-2xl font-bold flex items-center gap-3">
+              <Utensils className="w-6 h-6 text-[#00C98A]" />
+              {isEditing ? "Editar Plano Alimentar" : "Criar Novo Plano Alimentar"}
+            </DialogTitle>
+            <DialogDescription className="text-[#777777] mt-2">
+              Preencha as informações do plano alimentar do paciente
+            </DialogDescription>
+          </DialogHeader>
+          {formContent}
+        </DialogContent>
+      </Dialog>
+      {modalsContent}
+    </>
   );
 }
 
@@ -2537,8 +2587,6 @@ const FoodItem = memo(function FoodItem({
   handleFoodSelect,
   recalculateFoodMacros,
   removeFoodFromMeal,
-  setSubstitutionFoodIndex,
-  setSubstitutionModalOpen,
   setSubstitutionsFoodIndex,
   setSubstitutionsModalOpen: setSubstitutionsModalOpenProp,
   mealType,
@@ -2713,20 +2761,6 @@ const FoodItem = memo(function FoodItem({
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setSubstitutionFoodIndex({ mealIndex, foodIndex });
-                      setSubstitutionModalOpen(true);
-                    }}
-                    className="h-7 w-7 p-0 text-[#00C98A] hover:text-[#00A875] hover:bg-green-500/10"
-                    title="Substituir"
-                    disabled={!foodNameField.value}
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
                       setSubstitutionsFoodIndex({ mealIndex, foodIndex });
                       setSubstitutionsModalOpenProp(true);
                     }}
@@ -2737,10 +2771,10 @@ const FoodItem = memo(function FoodItem({
                     }`}
                     title={foodData?.substitutions && foodData.substitutions.length > 0 
                       ? `${foodData.substitutions.length} substituição(ões) cadastrada(s)` 
-                      : "Adicionar Substitutos"}
+                      : "Opções de Substituição"}
                     disabled={!foodNameField.value}
                   >
-                    <Plus className="w-3 h-3" />
+                    <RefreshCw className="w-3 h-3" />
                     {foodData?.substitutions && foodData.substitutions.length > 0 && (
                       <span className="absolute -top-1 -right-1 bg-[#00C98A] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                         {foodData.substitutions.length}

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, ArrowUpDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -41,6 +41,7 @@ interface FoodSubstitutionsModalProps {
   originalFoodFats?: number;
   substitutions: FoodSubstitution[];
   onSave: (substitutions: FoodSubstitution[]) => void;
+  onSwapWithMain?: (substitution: FoodSubstitution, substitutionMacros: { calories: number; protein: number; carbs: number; fats: number } | null) => void;
 }
 
 interface FoodData {
@@ -65,6 +66,7 @@ export function FoodSubstitutionsModal({
   originalFoodFats,
   substitutions: initialSubstitutions,
   onSave,
+  onSwapWithMain,
 }: FoodSubstitutionsModalProps) {
   const { toast } = useToast();
   const [substitutions, setSubstitutions] = useState<FoodSubstitution[]>(initialSubstitutions || []);
@@ -79,6 +81,10 @@ export function FoodSubstitutionsModal({
   const [customUnitGrams, setCustomUnitGrams] = useState<Map<number, number>>(new Map());
   const [customUnitNames, setCustomUnitNames] = useState<Map<number, string>>(new Map());
   const [showCustomUnitInput, setShowCustomUnitInput] = useState<number | null>(null);
+  const [showFoodDropdown, setShowFoodDropdown] = useState(false);
+  const [filteredFoods, setFilteredFoods] = useState<FoodData[]>([]);
+  const foodInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -88,6 +94,8 @@ export function FoodSubstitutionsModal({
         quantity: originalFoodQuantity,
         unit: originalFoodUnit,
       });
+      setShowFoodDropdown(false);
+      setFilteredFoods([]);
       
       // Carregar medidas personalizadas das substituições existentes
       const gramsMap = new Map<number, number>();
@@ -107,6 +115,37 @@ export function FoodSubstitutionsModal({
       loadOriginalFoodData();
     }
   }, [open, initialSubstitutions, originalFoodQuantity, originalFoodUnit]);
+
+  // Filtrar alimentos quando digita
+  useEffect(() => {
+    if (newSubstitution.food_name.length >= 2) {
+      const filtered = foodDatabase.filter((food) =>
+        food.name.toLowerCase().includes(newSubstitution.food_name.toLowerCase())
+      ).slice(0, 10);
+      setFilteredFoods(filtered);
+      setShowFoodDropdown(filtered.length > 0);
+    } else {
+      setFilteredFoods([]);
+      setShowFoodDropdown(false);
+    }
+  }, [newSubstitution.food_name, foodDatabase]);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        foodInputRef.current &&
+        !foodInputRef.current.contains(event.target as Node)
+      ) {
+        setShowFoodDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadFoodDatabase = async () => {
     try {
@@ -335,7 +374,7 @@ export function FoodSubstitutionsModal({
                   <th className="text-center py-3 px-3 text-sm font-semibold text-[#777777]">Proteínas</th>
                   <th className="text-center py-3 px-3 text-sm font-semibold text-[#777777]">Carbos</th>
                   <th className="text-center py-3 px-3 text-sm font-semibold text-[#777777]">Gorduras</th>
-                  <th className="w-10"></th>
+                  <th className="text-center py-3 px-3 text-sm font-semibold text-[#777777] w-20">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -489,15 +528,36 @@ export function FoodSubstitutionsModal({
                           </span>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeSubstitution(index)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 w-7 p-0 rounded-lg transition-all duration-300"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-1 justify-center">
+                            {onSwapWithMain && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  onSwapWithMain(sub, substitutionMacros);
+                                  onOpenChange(false);
+                                  toast({
+                                    title: 'Alimento trocado!',
+                                    description: `${sub.food_name} agora é o alimento principal`,
+                                  });
+                                }}
+                                title="Trocar com o alimento principal"
+                                className="text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 h-7 w-7 p-0 rounded-lg transition-all duration-300"
+                              >
+                                <ArrowUpDown className="w-3 h-3" />
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeSubstitution(index)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 w-7 p-0 rounded-lg transition-all duration-300"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -514,45 +574,77 @@ export function FoodSubstitutionsModal({
               <div className="col-span-6">
                 <Label className="text-[#777777] text-sm mb-1 block">Nome do Alimento *</Label>
                 <div className="relative">
-                  <style>{`
-                    input[list]::-webkit-calendar-picker-indicator {
-                      filter: invert(0.5);
-                    }
-                    input[list] {
-                      border: 1px solid #86efac !important;
-                      outline: none !important;
-                      box-shadow: none !important;
-                    }
-                    input[list]:focus {
-                      border-color: #4ade80 !important;
-                      outline: none !important;
-                      box-shadow: none !important;
-                    }
-                  `}</style>
-                  <Input
-                    type="text"
-                    value={newSubstitution.food_name}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setNewSubstitution({ ...newSubstitution, food_name: value });
-                    }}
-                    placeholder="Digite o nome do alimento..."
-                    className="!border-green-300 bg-white text-[#222222] placeholder:text-[#777777]"
-                    style={{ 
-                      borderColor: '#86efac !important', 
-                      borderWidth: '1px',
-                      outline: 'none',
-                      boxShadow: 'none'
-                    }}
-                    list="food-datalist-new"
-                  />
-                  <datalist id="food-datalist-new">
-                    {foodDatabase.map((food, i) => (
-                      <option key={i} value={food.name}>
-                        {food.name} - {Math.round(food.calories_per_100g)} kcal
-                      </option>
-                    ))}
-                  </datalist>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#777777]" />
+                    <Input
+                      ref={foodInputRef}
+                      type="text"
+                      value={newSubstitution.food_name}
+                      onChange={(e) => {
+                        setNewSubstitution({ ...newSubstitution, food_name: e.target.value });
+                      }}
+                      onFocus={() => {
+                        if (newSubstitution.food_name.length >= 2 && filteredFoods.length > 0) {
+                          setShowFoodDropdown(true);
+                        }
+                      }}
+                      placeholder="Digite para buscar alimentos..."
+                      className="pl-10 border-green-300 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/20"
+                    />
+                  </div>
+                  
+                  {/* Dropdown customizado de alimentos */}
+                  {showFoodDropdown && filteredFoods.length > 0 && (
+                    <div 
+                      ref={dropdownRef}
+                      className="absolute z-50 w-full mt-1 bg-white border border-green-300 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                    >
+                      {filteredFoods.map((food, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => {
+                            setNewSubstitution({ ...newSubstitution, food_name: food.name });
+                            setShowFoodDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors border-b border-gray-100 last:border-b-0 focus:bg-green-50 focus:outline-none"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium text-[#222222] text-sm">{food.name}</div>
+                              <div className="flex items-center gap-3 mt-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
+                                  {Math.round(food.calories_per_100g)} kcal
+                                </span>
+                                <span className="text-xs text-blue-600">
+                                  P: {food.protein_per_100g.toFixed(1)}g
+                                </span>
+                                <span className="text-xs text-purple-600">
+                                  C: {food.carbs_per_100g.toFixed(1)}g
+                                </span>
+                                <span className="text-xs text-emerald-600">
+                                  G: {food.fats_per_100g.toFixed(1)}g
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                      {newSubstitution.food_name.length >= 2 && (
+                        <div className="px-4 py-2 bg-gray-50 text-xs text-[#777777] border-t border-gray-200">
+                          {filteredFoods.length} alimento(s) encontrado(s) • Digite para refinar a busca
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Mensagem quando não encontra */}
+                  {newSubstitution.food_name.length >= 2 && filteredFoods.length === 0 && showFoodDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center">
+                      <p className="text-sm text-[#777777]">Nenhum alimento encontrado</p>
+                      <p className="text-xs text-[#999999] mt-1">Você pode digitar o nome manualmente</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -567,13 +659,7 @@ export function FoodSubstitutionsModal({
                   onChange={(e) => {
                     setNewSubstitution({ ...newSubstitution, quantity: parseFloat(e.target.value) || 0 });
                   }}
-                  className="!border-green-300 bg-white text-[#222222] placeholder:text-[#777777]"
-                  style={{ 
-                    borderColor: '#86efac !important', 
-                    borderWidth: '1px',
-                    outline: 'none',
-                    boxShadow: 'none'
-                  }}
+                  className="border-green-300 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/20"
                 />
               </div>
 
@@ -585,12 +671,7 @@ export function FoodSubstitutionsModal({
                     setNewSubstitution({ ...newSubstitution, unit: value });
                   }}
                 >
-                  <SelectTrigger className="!border-green-300 bg-white text-[#222222]" style={{ 
-                    borderColor: '#86efac !important', 
-                    borderWidth: '1px',
-                    outline: 'none',
-                    boxShadow: 'none'
-                  }}>
+                  <SelectTrigger className="border-green-300 bg-white text-[#222222] focus:border-green-500 focus:ring-green-500/20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">

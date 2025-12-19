@@ -32,10 +32,10 @@ import { GoogleDriveImage } from '@/components/ui/google-drive-image';
 import { isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
-import { PortalPNGButton } from '@/components/evolution/PortalPNGButton';
 import { WeightInput } from '@/components/evolution/WeightInput';
 import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
-import { PortalPDFButton } from '@/components/evolution/PortalPDFButton';
+import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
+import html2canvas from 'html2canvas';
 import { ExamRequestModal } from '@/components/exams/ExamRequestModal';
 import { ExamsHistory } from '@/components/exams/ExamsHistory';
 import { detectAchievements } from '@/lib/achievement-system';
@@ -84,6 +84,8 @@ export default function PatientEvolution() {
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
   const [examRequestModalOpen, setExamRequestModalOpen] = useState(false);
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ field: string; label: string } | null>(null);
+  const [showEvolutionExport, setShowEvolutionExport] = useState(false);
+  const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -264,49 +266,51 @@ export default function PatientEvolution() {
 
   const handleExport = async (format: 'pdf' | 'png' | 'jpeg') => {
     if (!patient) return;
+    
+    // Usar o mesmo componente de exportação do portal
+    setEvolutionExportMode(format === 'jpeg' ? 'png' : format);
+    setShowEvolutionExport(true);
+  };
 
-    // Verificar se há algum dado para exportar
-    const hasData = checkins.length > 0 || 
-                    bodyCompositions.length > 0 || 
-                    patient.foto_inicial_frente || 
-                    patient.foto_inicial_lado || 
-                    patient.foto_inicial_lado_2 || 
-                    patient.foto_inicial_costas ||
-                    patient.peso_inicial ||
-                    patient.altura_inicial;
-
-    if (!hasData) {
-      toast({
-        title: 'Sem dados para exportar',
-        description: 'Adicione check-ins, bioimpedância ou dados iniciais antes de exportar',
-        variant: 'destructive'
-      });
-      return;
-    }
-
+  // Callback quando a exportação direta é concluída
+  const handleDirectEvolutionExport = async (exportRef: HTMLDivElement, format: 'png' | 'pdf') => {
     try {
       setGeneratingPDF(true);
-      
-      const formatLabel = format === 'pdf' ? 'PDF' : format === 'png' ? 'PNG' : 'JPEG';
-      
-      // Abrir portal em nova aba com parâmetro de auto-download
-      const timestamp = Date.now();
-      const portalUrl = `/portal/${patient.telefone}?autoDownload=${format}&t=${timestamp}`;
-      window.open(portalUrl, '_blank');
-      
       toast({
-        title: `Abrindo Portal`,
-        description: `O download ${formatLabel} iniciará automaticamente`
+        title: format === 'png' ? '📸 Gerando PNG...' : '📄 Gerando PDF...',
+        description: 'Aguarde enquanto criamos seu arquivo'
       });
 
-      setGeneratingPDF(false);
-    } catch (error) {
-      console.error('Erro ao abrir portal:', error);
-      toast({
-        title: 'Erro ao abrir portal',
-        description: 'Ocorreu um erro ao gerar o arquivo',
-        variant: 'destructive'
+      const canvas = await html2canvas(exportRef, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#0f172a',
+        logging: false,
       });
+
+      if (format === 'png') {
+        const dataURL = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = `evolucao-${patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.png`;
+        link.href = dataURL;
+        link.click();
+        toast({ title: 'PNG gerado! 🎉', description: 'Evolução exportada com sucesso' });
+      } else {
+        const { jsPDF } = await import('jspdf');
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const pdfWidth = 210;
+        const imgHeightMM = (canvas.height * pdfWidth) / canvas.width;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, imgHeightMM] });
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM);
+        pdf.save(`evolucao-${patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
+        toast({ title: 'PDF gerado! 📄', description: 'Relatório baixado com sucesso' });
+      }
+      setShowEvolutionExport(false);
+      setEvolutionExportMode(null);
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      toast({ title: 'Erro', description: 'Não foi possível gerar o arquivo', variant: 'destructive' });
     } finally {
       setGeneratingPDF(false);
     }
@@ -512,10 +516,8 @@ export default function PatientEvolution() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-4">
               <Button
-                variant="outline"
                 size="icon"
                 onClick={() => navigate('/checkins')}
-                className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
@@ -893,9 +895,8 @@ export default function PatientEvolution() {
                     onSuccess={handleBioSuccess}
                   />
                   <Button
-                    variant="outline"
                     onClick={() => navigate('/checkins')}
-                    className="gap-2 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                    className="gap-2"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Voltar
@@ -1357,20 +1358,33 @@ export default function PatientEvolution() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                <PortalPNGButton
-                  telefone={telefone!}
-                  patientName={patient?.nome || 'Paciente'}
-                />
-                
-                <PortalPDFButton
-                  telefone={telefone!}
-                  patientName={patient?.nome || 'Paciente'}
-                />
+                <Button
+                  onClick={() => {
+                    setEvolutionExportMode('png');
+                    setShowEvolutionExport(true);
+                  }}
+                  disabled={generatingPDF}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all gap-2"
+                >
+                  <Image className="w-4 h-4" />
+                  {generatingPDF ? 'Gerando...' : 'Baixar evolução'}
+                </Button>
                 
                 <Button
-                  variant="outline"
+                  onClick={() => {
+                    setEvolutionExportMode('pdf');
+                    setShowEvolutionExport(true);
+                  }}
+                  disabled={generatingPDF}
+                  className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all gap-2"
+                >
+                  <FileDown className="w-4 h-4" />
+                  {generatingPDF ? 'Gerando...' : 'Baixar evolução (PDF)'}
+                </Button>
+                
+                <Button
                   onClick={() => navigate('/checkins')}
-                  className="gap-2 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                  className="gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Voltar para Check-ins
@@ -1473,6 +1487,18 @@ export default function PatientEvolution() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Exportação da Evolução */}
+        {showEvolutionExport && patient && (
+          <EvolutionExportPage
+            patient={patient}
+            checkins={checkins}
+            bodyCompositions={bodyCompositions}
+            onClose={() => { setShowEvolutionExport(false); setEvolutionExportMode(null); }}
+            directExportMode={evolutionExportMode || undefined}
+            onDirectExport={handleDirectEvolutionExport}
+          />
+        )}
       </DashboardLayout>
     );
   }

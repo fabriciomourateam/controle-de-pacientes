@@ -99,7 +99,9 @@ export default function PatientDetails() {
         <div className="text-center py-20">
           <h1 className="text-2xl font-bold text-white mb-4">Paciente não encontrado</h1>
           <p className="text-slate-400 mb-6">O paciente solicitado não foi encontrado.</p>
-          <Button onClick={() => navigate("/patients")}>
+          <Button 
+            onClick={() => navigate("/patients")}
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para Pacientes
           </Button>
@@ -115,9 +117,8 @@ export default function PatientDetails() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
-              variant="ghost"
+              size="sm"
               onClick={() => navigate(`/checkins/evolution/${patient.telefone}`)}
-              className="text-slate-400 hover:text-white"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar

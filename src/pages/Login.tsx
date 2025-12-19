@@ -293,7 +293,7 @@ export default function Login() {
             <div className="mt-6 text-center">
               <Link
                 to="/"
-                className="inline-flex items-center text-sm text-slate-400 hover:text-white transition-colors"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 transition-all duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Dashboard

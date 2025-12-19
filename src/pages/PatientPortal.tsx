@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import * as domtoimage from 'dom-to-image-more';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,7 @@ import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
 import { InstallPWAButton } from '@/components/InstallPWAButton';
 import { PatientDietPortal } from '@/components/patient-portal/PatientDietPortal';
+import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
 import { dietService } from '@/lib/diet-service';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
 import { DietPDFGenerator } from '@/lib/diet-pdf-generator';
@@ -37,7 +39,9 @@ import {
   Smartphone,
   FileText,
   Scale,
-  MoreVertical
+  MoreVertical,
+  Eye,
+  FileImage
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -108,6 +112,8 @@ export default function PatientPortal() {
   const portalRef = useRef<HTMLDivElement>(null);
   const [weightInputOpen, setWeightInputOpen] = useState(false);
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
+  const [showEvolutionExport, setShowEvolutionExport] = useState(false);
+  const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
 
   // Calcular dados
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -174,27 +180,23 @@ export default function PatientPortal() {
       if (autoDownloadFormat) {
         console.log(`🎯 Auto-download ${autoDownloadFormat.toUpperCase()} detectado! Iniciando captura...`);
         
-        // Aguardar renderização completa
+        // Aguardar renderização completa dos gráficos
         setTimeout(async () => {
           console.log(`📸 Capturando portal como ${autoDownloadFormat.toUpperCase()}...`);
           
           if (autoDownloadFormat === 'png' || autoDownloadFormat === 'jpeg') {
-            await handleExportEvolutionPDF();
+            await handleExportEvolutionImage();
           } else if (autoDownloadFormat === 'pdf') {
-            toast({
-              title: 'PDF em desenvolvimento',
-              description: 'Use a exportação PNG por enquanto',
-              variant: 'destructive'
-            });
+            await handleExportEvolutionPDF();
           }
           
-          console.log('✅ Download iniciado! Fechando aba em 2 segundos...');
+          console.log('✅ Download iniciado! Fechando aba em 3 segundos...');
           
           // Fechar aba automaticamente após download
           setTimeout(() => {
             window.close();
-          }, 2000);
-        }, 2000);
+          }, 3000);
+        }, 3000); // Aumentar tempo para garantir que gráficos carregaram
       }
     }
   }, [loading, patient]);
@@ -209,24 +211,31 @@ export default function PatientPortal() {
     try {
       setLoading(true);
       
-      // Validar token e obter telefone
-      const telefone = await validateToken(token);
+      // MODO TESTE: Usar telefone fixo para demonstração
+      let telefone;
       
-      if (!telefone) {
-        // Token inválido ou expirado - limpar localStorage e redirecionar para login
-        localStorage.removeItem('portal_access_token');
-        setUnauthorized(true);
-        setLoading(false);
-        toast({
-          title: 'Sessão expirada',
-          description: 'Por favor, faça login novamente com seu telefone',
-          variant: 'destructive'
-        });
-        // Redirecionar para login após 2 segundos
-        setTimeout(() => {
-          navigate('/portal', { replace: true });
-        }, 2000);
-        return;
+      if (token === 'teste123') {
+        telefone = '11999999999'; // Telefone de teste
+      } else {
+        // Validar token real
+        telefone = await validateToken(token);
+        
+        if (!telefone) {
+          // Token inválido ou expirado - limpar localStorage e redirecionar para login
+          localStorage.removeItem('portal_access_token');
+          setUnauthorized(true);
+          setLoading(false);
+          toast({
+            title: 'Sessão expirada',
+            description: 'Por favor, faça login novamente com seu telefone',
+            variant: 'destructive'
+          });
+          // Redirecionar para login após 2 segundos
+          setTimeout(() => {
+            navigate('/portal', { replace: true });
+          }, 2000);
+          return;
+        }
       }
 
       // Buscar todos os dados em paralelo para melhor performance
@@ -276,76 +285,248 @@ export default function PatientPortal() {
     }
   }
 
+  // Função simples para aguardar carregamento
+  const waitForChartsToLoad = async () => {
+    console.log('🔍 Aguardando carregamento...');
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Tempo de espera concluído');
+        resolve();
+      }, 1000);
+    });
+  };
+
+  async function handleExportEvolutionImage() {
+    console.log('🎯 Função handleExportEvolutionImage chamada');
+    
+    if (!patient) {
+      console.error('❌ Paciente não encontrado');
+      toast({
+        title: 'Erro',
+        description: 'Dados do paciente não carregados',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!portalRef.current) {
+      console.error('❌ Referência do portal não encontrada');
+      toast({
+        title: 'Erro',
+        description: 'Elemento do portal não encontrado',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      setExporting(true);
+      console.log('🚀 Iniciando captura de imagem...');
+      console.log('👤 Paciente:', patient.nome);
+      console.log('📱 Portal ref:', portalRef.current);
+      
+      toast({
+        title: 'Gerando imagem...',
+        description: 'Aguarde enquanto criamos seu relatório'
+      });
+
+      // Aguardar carregamento
+      console.log('⏳ Aguardando 3 segundos...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      console.log('📸 Iniciando html2canvas...');
+      console.log('📏 Dimensões do elemento:', {
+        width: portalRef.current.offsetWidth,
+        height: portalRef.current.offsetHeight,
+        scrollWidth: portalRef.current.scrollWidth,
+        scrollHeight: portalRef.current.scrollHeight
+      });
+
+      // Verificar todos os canvas antes de capturar
+      const allCanvas = portalRef.current.querySelectorAll('canvas');
+      console.log(`🔍 Encontrados ${allCanvas.length} canvas na página:`);
+      allCanvas.forEach((canvas, index) => {
+        const c = canvas as HTMLCanvasElement;
+        console.log(`Canvas ${index}: ${c.width}x${c.height} (${c.className || 'sem classe'})`);
+        if (c.width === 0 || c.height === 0) {
+          console.log(`⚠️ Canvas ${index} tem dimensões inválidas e será ignorado`);
+        }
+      });
+
+      let dataURL;
+      
+      try {
+        // Tentar com dom-to-image com máxima qualidade
+        console.log('🎯 Tentativa 1: dom-to-image alta qualidade...');
+        dataURL = await domtoimage.toPng(portalRef.current, {
+          quality: 1.0, // Máxima qualidade
+          bgcolor: '#0f172a',
+          width: portalRef.current.offsetWidth * 2, // Dobrar resolução
+          height: portalRef.current.offsetHeight * 2,
+          style: {
+            transform: 'scale(2)', // Escalar para alta resolução
+            transformOrigin: 'top left'
+          },
+          filter: (element) => {
+            // Apenas ocultar botões interativos
+            return !element.classList.contains('hide-in-pdf');
+          }
+        });
+        console.log('✅ dom-to-image funcionou!');
+      } catch (error1) {
+        console.log('❌ dom-to-image falhou, tentando html2canvas...');
+        console.log('🎯 Tentativa 2: html2canvas básico...');
+        
+        try {
+          // Tentar html2canvas com alta qualidade
+          const canvas = await html2canvas(portalRef.current, {
+            scale: 2, // Alta resolução
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#0f172a',
+            width: portalRef.current.offsetWidth,
+            height: portalRef.current.offsetHeight,
+            ignoreElements: (element) => {
+              // Apenas ocultar botões interativos
+              return element.classList.contains('hide-in-pdf');
+            }
+          });
+          dataURL = canvas.toDataURL('image/png', 1.0); // Máxima qualidade
+          console.log('✅ html2canvas funcionou como fallback!');
+        } catch (error2) {
+          console.log('❌ html2canvas também falhou, tentando captura simples...');
+          console.log('🎯 Tentativa 3: captura sem elementos complexos...');
+          
+          // Última tentativa: usar API nativa de screenshot se disponível
+          if ('getDisplayMedia' in navigator.mediaDevices) {
+            console.log('🎯 Tentando API nativa de screenshot...');
+            // Implementar captura nativa aqui se necessário
+          }
+          
+          // Fallback: html2canvas com configuração básica mas boa qualidade
+          const canvas = await html2canvas(portalRef.current, {
+            scale: 1.5, // Boa qualidade
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#0f172a',
+            ignoreElements: (element) => {
+              // Ignorar apenas elementos realmente problemáticos
+              return element.classList.contains('hide-in-pdf') ||
+                     (element.tagName === 'CANVAS' && (element as HTMLCanvasElement).width === 0);
+            }
+          });
+          dataURL = canvas.toDataURL('image/png', 1.0); // Máxima qualidade
+          console.log('✅ Captura básica funcionou!');
+        }
+      }
+
+      if (!dataURL || dataURL === 'data:,' || dataURL.length < 100) {
+        throw new Error('Falha ao gerar imagem válida');
+      }
+
+      console.log('✅ Imagem gerada com sucesso!');
+      console.log('📏 Tamanho da imagem:', Math.round(dataURL.length / 1024), 'KB');
+
+      console.log('💾 Iniciando download...');
+      const link = document.createElement('a');
+      link.download = `evolucao-${patient.nome?.replace(/\s+/g, '-') || 'paciente'}-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = dataURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('✅ Download iniciado com sucesso!');
+      
+      toast({
+        title: 'Imagem gerada! 🎉',
+        description: 'Seu relatório foi baixado com sucesso'
+      });
+
+    } catch (error) {
+      console.error('❌ Erro detalhado:', error);
+      console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      
+      let errorMessage = 'Erro desconhecido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('❌ Mensagem do erro:', error.message);
+      }
+      
+      toast({
+        title: 'Erro ao gerar imagem',
+        description: `Detalhes: ${errorMessage}`,
+        variant: 'destructive'
+      });
+    } finally {
+      console.log('🏁 Finalizando função...');
+      setExporting(false);
+    }
+  }
+
   async function handleExportEvolutionPDF() {
-    if (!portalRef.current || !patient) return;
+    if (!patient || !portalRef.current) return;
 
     try {
       setExporting(true);
       toast({
         title: 'Gerando PDF...',
-        description: 'Aguarde enquanto criamos seu relatório em PDF'
+        description: 'Aguarde enquanto criamos seu relatório'
       });
+
+      // Aguardar que todos os gráficos carreguem
+      await waitForChartsToLoad();
 
       // Importar jsPDF dinamicamente
       const { jsPDF } = await import('jspdf');
 
-      // Ocultar apenas elementos marcados para ocultar no PDF
+      // Ocultar apenas botões interativos
       const elementsToHide = portalRef.current.querySelectorAll('.hide-in-pdf');
       const originalDisplay: string[] = [];
+      
       elementsToHide.forEach((el, index) => {
         originalDisplay[index] = (el as HTMLElement).style.display;
         (el as HTMLElement).style.display = 'none';
       });
 
-      // Aguardar um pouco para garantir que elementos foram ocultados
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capturar o portal inteiro como imagem
       const canvas = await html2canvas(portalRef.current, {
-        scale: 2.5, // Alta qualidade
+        scale: 1.5,
         useCORS: true,
-        logging: false,
-        backgroundColor: '#0f172a', // Cor do fundo do portal
-        windowWidth: portalRef.current.scrollWidth,
-        windowHeight: portalRef.current.scrollHeight,
+        logging: true,
+        backgroundColor: '#0f172a',
+        width: portalRef.current.scrollWidth,
+        height: portalRef.current.scrollHeight,
         scrollX: 0,
-        scrollY: -window.scrollY,
+        scrollY: 0,
+        allowTaint: true,
         ignoreElements: (element) => {
-          // Ignorar apenas elementos marcados para ocultar
           return element.classList.contains('hide-in-pdf');
         }
       });
 
-      // Restaurar elementos ocultos
       elementsToHide.forEach((el, index) => {
         (el as HTMLElement).style.display = originalDisplay[index];
       });
 
-      // Converter canvas para imagem
-      const imgData = canvas.toDataURL('image/png', 0.98);
-      
-      // Dimensões do canvas em pixels
+      // Converter para PDF
+      const imgData = canvas.toDataURL('image/png', 0.9);
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // Largura fixa A4 em mm
-      const pdfWidth = 210;
-      
-      // Calcular altura proporcional (página contínua)
+      const pdfWidth = 210; // A4 width in mm
       const imgHeightMM = (imgHeight * pdfWidth) / imgWidth;
       
-      // Criar PDF com altura customizada (página contínua)
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: [pdfWidth, imgHeightMM] // Largura A4, altura ajustada ao conteúdo
+        format: [pdfWidth, imgHeightMM]
       });
 
-      // Adicionar imagem ocupando toda a página (sem margens)
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM, undefined, 'FAST');
-      
-      // Fazer download
-      pdf.save(`minha-evolucao-${patient.nome.replace(/\s+/g, '-')}.pdf`);
+      pdf.save(`evolucao-${patient.nome?.replace(/\s+/g, '-') || 'paciente'}-${new Date().toISOString().split('T')[0]}.pdf`);
 
       toast({
         title: 'PDF gerado! 🎉',
@@ -416,6 +597,55 @@ export default function PatientPortal() {
     }
   }
 
+  // Função para exportar evolução diretamente
+  function handleExportEvolution(format: 'png' | 'pdf') {
+    setEvolutionExportMode(format);
+    setShowEvolutionExport(true);
+  }
+
+  // Callback quando a exportação direta é concluída
+  async function handleDirectEvolutionExport(exportRef: HTMLDivElement, format: 'png' | 'pdf') {
+    try {
+      setExporting(true);
+      toast({
+        title: format === 'png' ? '📸 Gerando PNG...' : '📄 Gerando PDF...',
+        description: 'Aguarde enquanto criamos seu arquivo'
+      });
+
+      const canvas = await html2canvas(exportRef, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#0f172a',
+        logging: false,
+      });
+
+      if (format === 'png') {
+        const dataURL = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = `evolucao-${patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.png`;
+        link.href = dataURL;
+        link.click();
+        toast({ title: 'PNG gerado! 🎉', description: 'Sua evolução foi exportada' });
+      } else {
+        const { jsPDF } = await import('jspdf');
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const pdfWidth = 210;
+        const imgHeightMM = (canvas.height * pdfWidth) / canvas.width;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, imgHeightMM] });
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM);
+        pdf.save(`evolucao-${patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
+        toast({ title: 'PDF gerado! 📄', description: 'Seu relatório foi baixado' });
+      }
+      setShowEvolutionExport(false);
+      setEvolutionExportMode(null);
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      toast({ title: 'Erro', description: 'Não foi possível gerar o arquivo', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -494,7 +724,7 @@ export default function PatientPortal() {
               Acompanhe seu progresso e conquistas
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto">
+          <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto hide-in-pdf">
             <InstallPWAButton />
             <Button
               onClick={() => setWeightInputOpen(true)}
@@ -505,7 +735,7 @@ export default function PatientPortal() {
               <span className="sm:hidden">Peso</span>
             </Button>
             
-            {/* Menu de ações: Baixar e Atualizar */}
+            {/* Menu de ações: Dieta, Evolução e Atualizar */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -518,27 +748,47 @@ export default function PatientPortal() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white w-56">
                 <DropdownMenuItem
-                  onClick={handleExportEvolutionPDF}
-                  disabled={exporting}
-                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {exporting ? 'Gerando...' : 'Baixar Evolução PDF'}
-                </DropdownMenuItem>
-                <DropdownMenuItem
                   onClick={handleExportDietPDF}
                   disabled={exporting}
                   className="text-white hover:bg-slate-700 cursor-pointer py-3"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  {exporting ? 'Gerando...' : 'Baixar Dieta'}
+                  {exporting ? 'Gerando...' : 'Baixar Dieta PDF'}
                 </DropdownMenuItem>
+                
+                {/* Opções de Evolução */}
+                {patient && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setShowEvolutionExport(true)}
+                      className="text-white hover:bg-blue-700/50 cursor-pointer py-3"
+                    >
+                      <Eye className="w-4 h-4 mr-2 text-blue-400" />
+                      Visualizar Evolução
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExportEvolution('png')}
+                      className="text-white hover:bg-green-700/50 cursor-pointer py-3"
+                    >
+                      <FileImage className="w-4 h-4 mr-2 text-green-400" />
+                      Baixar Evolução PNG
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExportEvolution('pdf')}
+                      className="text-white hover:bg-purple-700/50 cursor-pointer py-3"
+                    >
+                      <FileText className="w-4 h-4 mr-2 text-purple-400" />
+                      Baixar Evolução PDF
+                    </DropdownMenuItem>
+                  </>
+                )}
+                
                 <DropdownMenuItem
                   onClick={loadPortalData}
                   className="text-white hover:bg-slate-700 cursor-pointer py-3"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Atualizar
+                  Atualizar Dados
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -590,7 +840,6 @@ export default function PatientPortal() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="hide-in-pdf"
           >
             <PatientDietPortal 
               patientId={patientId} 
@@ -622,6 +871,18 @@ export default function PatientPortal() {
             // Forçar atualização dos gráficos
             setChartsRefreshTrigger(prev => prev + 1);
           }}
+        />
+      )}
+
+      {/* Modal de Exportação da Evolução */}
+      {showEvolutionExport && patient && (
+        <EvolutionExportPage
+          patient={patient}
+          checkins={checkins}
+          bodyCompositions={bodyCompositions}
+          onClose={() => { setShowEvolutionExport(false); setEvolutionExportMode(null); }}
+          directExportMode={evolutionExportMode || undefined}
+          onDirectExport={handleDirectEvolutionExport}
         />
       )}
     </div>

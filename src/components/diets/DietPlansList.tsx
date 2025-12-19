@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, Utensils, Calendar, Eye, Edit, X, CheckCircle, History, Star, Copy, Trash2, BookOpen, Save, Package, Upload, MoreVertical, ChevronDown, Sparkles, TrendingUp, Clock, AlertTriangle, Check, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { DietPlanForm } from './DietPlanForm';
+import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,9 +35,8 @@ interface DietPlansListProps {
 export function DietPlansList({ patientId }: DietPlansListProps) {
   const { plans, loading, error, releasePlan, refetch } = useDietPlans(patientId);
   const { toast } = useToast();
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const navigate = useNavigate();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [planDetails, setPlanDetails] = useState<any>(null);
   const [patientUserId, setPatientUserId] = useState<string | null>(null);
@@ -153,7 +152,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
   useEffect(() => {
     const handleOpenForm = (event: CustomEvent) => {
       if (event.detail.patientId === patientId) {
-        setIsFormOpen(true);
+        navigate(`/patients/${patientId}/diet-plan/new`);
       }
     };
 
@@ -161,7 +160,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
     return () => {
       window.removeEventListener('open-diet-plan-form' as any, handleOpenForm as EventListener);
     };
-  }, [patientId]);
+  }, [patientId, navigate]);
 
   // Encontrar plano ativo
   useEffect(() => {
@@ -326,8 +325,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
   };
 
   const handleEdit = (plan: any) => {
-    setSelectedPlan(plan);
-    setIsEditOpen(true);
+    navigate(`/patients/${patientId}/diet-plan/${plan.id}/edit`);
   };
 
   const handleDelete = async (planId: string, planName: string) => {
@@ -443,7 +441,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => setIsFormOpen(true)}>
+            <DropdownMenuItem onClick={() => navigate(`/patients/${patientId}/diet-plan/new`)}>
               <Plus className="w-4 h-4 mr-2" />
               Criar Novo Plano
             </DropdownMenuItem>
@@ -512,7 +510,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
               Os planos criados via N8N ou manualmente aparecerão aqui. Comece criando seu primeiro plano!
             </p>
             <Button
-              onClick={() => setIsFormOpen(true)}
+              onClick={() => navigate(`/patients/${patientId}/diet-plan/new`)}
               className="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 text-white shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 transition-all duration-300"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -1376,27 +1374,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
       <FoodGroupsManager
         open={foodGroupsManagerOpen}
         onOpenChange={setFoodGroupsManagerOpen}
-      />
-
-      {/* Formulário de criação/edição */}
-      <DietPlanForm
-        patientId={patientId}
-        patientUserId={patientUserId || ''}
-        planId={isEditOpen ? selectedPlan?.id : undefined}
-        open={isFormOpen || isEditOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsFormOpen(false);
-            setIsEditOpen(false);
-            setSelectedPlan(null);
-          }
-        }}
-        onSuccess={() => {
-          refetch();
-          setIsFormOpen(false);
-          setIsEditOpen(false);
-          setSelectedPlan(null);
-        }}
       />
 
       {/* Modal de detalhes */}

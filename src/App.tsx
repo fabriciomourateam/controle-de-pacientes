@@ -39,6 +39,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
+const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
 
 // Componente de loading
 const PageLoader = () => (
@@ -178,6 +179,16 @@ const App = () => (
           <Route path="/test-google-drive" element={
             <Suspense fallback={<PageLoader />}>
                 <TestGoogleDrive />
+              </Suspense>
+          } />
+          <Route path="/patients/:patientId/diet-plan/new" element={
+            <Suspense fallback={<PageLoader />}>
+                <DietPlanEditor />
+              </Suspense>
+          } />
+          <Route path="/patients/:patientId/diet-plan/:planId/edit" element={
+            <Suspense fallback={<PageLoader />}>
+                <DietPlanEditor />
               </Suspense>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

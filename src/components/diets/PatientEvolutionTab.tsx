@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +52,9 @@ export function PatientEvolutionTab({
   const [bodyCompositions, setBodyCompositions] = useState<any[]>(propsBodyCompositions || []);
   const [loading, setLoading] = useState(!propsCheckins);
   const [localRefreshTrigger, setLocalRefreshTrigger] = useState(0);
+  
+  // Ref para exportação
+  const evolutionContainerRef = useRef<HTMLDivElement>(null);
 
   // Calcular dados
   const achievements = propsAchievements || (checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : []);
@@ -194,7 +197,7 @@ export function PatientEvolutionTab({
   const isNeutral = Math.abs(parseFloat(weightChange)) < 0.1;
 
   return (
-    <div className="space-y-6">
+    <div ref={evolutionContainerRef} className="space-y-6">
       {/* Cards de Resumo */}
       {checkins.length > 0 && (
         <motion.div
