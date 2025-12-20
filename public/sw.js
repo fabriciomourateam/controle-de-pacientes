@@ -1,5 +1,5 @@
 // Service Worker para PWA
-const CACHE_NAME = 'controle-pacientes-v3'; // Incrementar versão para forçar atualização
+const CACHE_NAME = 'controle-pacientes-v4'; // Incrementar versão para forçar atualização
 const urlsToCache = [
   '/',
   '/index.html',

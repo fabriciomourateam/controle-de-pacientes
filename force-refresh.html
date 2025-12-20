@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forçar Atualização - Grow Nutri</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .big-button {
+            font-size: 18px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Forçar Atualização do Sistema</h1>
+        <p>Use esta página para forçar a atualização do sistema e limpar todos os caches que podem estar causando problemas com o novo design do PDF.</p>
+        
+        <div id="status"></div>
+        
+        <button class="big-button" onclick="forceCompleteRefresh()">
+            🚀 ATUALIZAÇÃO COMPLETA
+        </button>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="clearServiceWorkers()">Limpar Service Workers</button>
+            <button onclick="clearCaches()">Limpar Cache</button>
+            <button onclick="clearLocalStorage()">Limpar LocalStorage</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="testPDFGenerator()">🧪 Testar Novo PDF</button>
+            <button onclick="goToPortal()">📱 Ir para Portal</button>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function clearServiceWorkers() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                    showStatus(`✅ ${registrations.length} Service Worker(s) desregistrado(s)`, 'success');
+                } else {
+                    showStatus('ℹ️ Service Workers não suportados neste navegador', 'info');
+                }
+            } catch (error) {
+                showStatus('❌ Erro ao limpar Service Workers: ' + error.message, 'error');
+            }
+        }
+
+        async function clearCaches() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                    showStatus(`✅ ${cacheNames.length} cache(s) limpo(s)`, 'success');
+                } else {
+                    showStatus('ℹ️ Cache API não suportada neste navegador', 'info');
+                }
+            } catch (error) {
+                showStatus('❌ Erro ao limpar caches: ' + error.message, 'error');
+            }
+        }
+
+        function clearLocalStorage() {
+            try {
+                const itemCount = localStorage.length;
+                localStorage.clear();
+                sessionStorage.clear();
+                showStatus(`✅ ${itemCount} item(s) do localStorage limpo(s)`, 'success');
+            } catch (error) {
+                showStatus('❌ Erro ao limpar localStorage: ' + error.message, 'error');
+            }
+        }
+
+        async function forceCompleteRefresh() {
+            showStatus('🔄 Iniciando limpeza completa...', 'info');
+            
+            try {
+                await clearServiceWorkers();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await clearCaches();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                clearLocalStorage();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                showStatus('✅ Limpeza completa! Recarregando em 3 segundos...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:5173';
+                }, 3000);
+                
+            } catch (error) {
+                showStatus('❌ Erro durante limpeza: ' + error.message, 'error');
+            }
+        }
+
+        function testPDFGenerator() {
+            // Abrir console para ver os logs
+            console.log('🧪 Teste do gerador de PDF - verifique o console quando gerar um PDF');
+            showStatus('🧪 Console aberto - gere um PDF e verifique as mensagens no console', 'info');
+        }
+
+        function goToPortal() {
+            window.location.href = 'http://localhost:5173/portal/teste123';
+        }
+
+        // Mostrar informações do navegador
+        window.addEventListener('load', () => {
+            const info = `
+                Navegador: ${navigator.userAgent.split(' ').slice(-2).join(' ')}<br>
+                Service Workers: ${'serviceWorker' in navigator ? '✅ Suportado' : '❌ Não suportado'}<br>
+                Cache API: ${'caches' in window ? '✅ Suportado' : '❌ Não suportado'}<br>
+                LocalStorage: ${typeof(Storage) !== "undefined" ? '✅ Suportado' : '❌ Não suportado'}
+            `;
+            showStatus(info, 'info');
+        });
+    </script>
+</body>
+</html>

@@ -26,6 +26,7 @@ import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage'
 import { dietService } from '@/lib/diet-service';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
 import { DietPDFGenerator } from '@/lib/diet-pdf-generator';
+import { DietPremiumPDFGenerator } from '@/lib/diet-pdf-premium-generator';
 import { 
   Activity, 
   Calendar,
@@ -597,6 +598,58 @@ export default function PatientPortal() {
     }
   }
 
+  async function handleExportDietPremiumPDF() {
+    if (!patient || !patientId) return;
+
+    try {
+      setExporting(true);
+      toast({
+        title: 'Gerando PDF Premium...',
+        description: 'Aguarde enquanto criamos seu plano alimentar premium'
+      });
+
+      // Buscar dados do plano alimentar
+      const plans = await dietService.getByPatientId(patientId);
+      const activePlan = plans.find((p: any) => p.status === 'active' || p.active);
+      
+      if (!activePlan) {
+        toast({
+          title: 'Erro',
+          description: 'Nenhum plano alimentar ativo encontrado',
+          variant: 'destructive'
+        });
+        setExporting(false);
+        return;
+      }
+
+      const planDetails = await dietService.getById(activePlan.id);
+
+      // Usar o NOVO gerador premium de PDF
+      await DietPremiumPDFGenerator.generatePremiumPDF(
+        planDetails as any,
+        patient,
+        {
+          theme: 'dark',
+          showMacrosPerMeal: true
+        }
+      );
+
+      setExporting(false);
+      toast({
+        title: 'PDF Premium gerado! 🎉',
+        description: 'Seu plano alimentar premium foi baixado com sucesso'
+      });
+    } catch (error: any) {
+      console.error('Erro ao gerar PDF Premium:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível gerar o PDF Premium',
+        variant: 'destructive'
+      });
+      setExporting(false);
+    }
+  }
+
   // Função para exportar evolução diretamente
   function handleExportEvolution(format: 'png' | 'pdf') {
     setEvolutionExportMode(format);
@@ -748,7 +801,7 @@ export default function PatientPortal() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white w-56">
                 <DropdownMenuItem
-                  onClick={handleExportDietPDF}
+                  onClick={handleExportDietPremiumPDF}
                   disabled={exporting}
                   className="text-white hover:bg-slate-700 cursor-pointer py-3"
                 >

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste PDF Premium - Grow Nutri</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .premium-button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            font-size: 18px;
+            padding: 20px 30px;
+        }
+        .test-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste do PDF Premium</h1>
+        <p>Use esta página para testar se o novo gerador de PDF Premium está funcionando corretamente.</p>
+        
+        <div id="status"></div>
+        
+        <div class="test-info">
+            <h3>📋 Como testar:</h3>
+            <ol>
+                <li>Abra o console do navegador (F12)</li>
+                <li>Vá para o portal do paciente: <code>localhost:5173/portal/teste123</code></li>
+                <li>Clique nos 3 pontos (⋮) no canto superior direito</li>
+                <li>Clique em "Baixar Dieta PDF" (agora usa o gerador premium automaticamente)</li>
+                <li>Verifique no console se aparece:</li>
+                <ul>
+                    <li><strong>🚀🚀🚀 NOVO GERADOR PREMIUM V3.0</strong></li>
+                    <li><strong>✨ ESTE É O NOVO GERADOR PREMIUM - SEM CACHE!</strong></li>
+                    <li><strong>🍽️ NOVO GERADOR - getMealEmoji chamada para:</strong></li>
+                </ul>
+            </ol>
+        </div>
+        
+        <div class="test-info">
+            <h3>✅ O que esperar no PDF:</h3>
+            <ul>
+                <li><strong>Título:</strong> "🥗 Plano Alimentar" (limpo, sem "PREMIUM")</li>
+                <li><strong>Badge:</strong> Apenas o nome do paciente (sem "Plano Personalizado")</li>
+                <li><strong>Layout:</strong> Margens laterais maiores para melhor espaçamento</li>
+                <li><strong>Fundo:</strong> Escuro (#0f172a) com cards coloridos</li>
+                <li><strong>Cards de macros:</strong> Com emojis (🔥 calorias, 💪 proteínas, ⚡ carbos, 🥑 gorduras)</li>
+                <li><strong>Refeições:</strong> Mais espaçadas entre si com emojis automáticos</li>
+                <li><strong>Alimentos:</strong> Calorias em badge cinza alinhada à direita</li>
+                <li><strong>Nome do arquivo:</strong> "plano-premium-[nome]-[data].pdf"</li>
+                <li><strong>Rodapé:</strong> Data de geração simples</li>
+            </ul>
+        </div>
+        
+        <button class="premium-button" onclick="goToPortal()">
+            🚀 IR PARA PORTAL E TESTAR
+        </button>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="openConsole()">📱 Abrir Console</button>
+            <button onclick="clearCache()">🧹 Limpar Cache</button>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 12px; color: #666;">
+            <p><strong>Mudança Implementada:</strong></p>
+            <p>• Agora existe apenas uma opção: <strong>"Baixar Dieta PDF"</strong></p>
+            <p>• Esta opção usa automaticamente o novo gerador premium (fundo escuro)</p>
+            <p>• O nome não menciona "Premium" para manter simplicidade</p>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function goToPortal() {
+            showStatus('🚀 Abrindo portal do paciente...', 'info');
+            setTimeout(() => {
+                window.open('http://localhost:5173/portal/teste123', '_blank');
+            }, 1000);
+        }
+
+        function openConsole() {
+            showStatus('📱 Abra o console com F12 ou Ctrl+Shift+I', 'info');
+            console.log('🧪 Console aberto para teste do PDF Premium');
+            console.log('📋 Instruções:');
+            console.log('1. Vá para localhost:5173/portal/teste123');
+            console.log('2. Clique nos 3 pontos (⋮)');
+            console.log('3. Clique em "Baixar Dieta PDF" (agora usa o gerador premium)');
+            console.log('4. Verifique se aparecem as mensagens do novo gerador');
+        }
+
+        async function clearCache() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                    showStatus(`✅ ${cacheNames.length} cache(s) limpo(s)`, 'success');
+                } else {
+                    showStatus('ℹ️ Cache API não suportada', 'info');
+                }
+            } catch (error) {
+                showStatus('❌ Erro ao limpar cache: ' + error.message, 'error');
+            }
+        }
+
+        // Mostrar informações iniciais
+        window.addEventListener('load', () => {
+            showStatus('🧪 Pronto para testar o PDF Premium! Siga as instruções acima.', 'info');
+        });
+    </script>
+</body>
+</html>

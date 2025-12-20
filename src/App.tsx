@@ -90,6 +90,11 @@ const App = () => (
                 <Dashboard />
               </Suspense>
           } />
+          <Route path="/dashboard" element={
+            <Suspense fallback={<PageLoader />}>
+                <Dashboard />
+              </Suspense>
+          } />
           <Route path="/patients" element={
             <Suspense fallback={<PageLoader />}>
                 <Patients />
