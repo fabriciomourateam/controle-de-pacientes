@@ -132,28 +132,134 @@ export default function PatientEvolution() {
       const fileId = getFileId(url);
       
       if (fileId && url.includes('drive.google.com')) {
-        // Para Google Drive, abrir em nova aba com opção de download
-        const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-        window.open(downloadUrl, '_blank');
-        toast({
-          title: 'Download iniciado',
-          description: `Baixando ${label}...`
-        });
+        // Para Google Drive, usar fetch para baixar como blob
+        try {
+          const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+          
+          toast({
+            title: 'Iniciando download...',
+            description: `Baixando ${label}...`
+          });
+
+          // Tentar fetch direto primeiro
+          const response = await fetch(downloadUrl, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Limpar blob URL
+            window.URL.revokeObjectURL(blobUrl);
+            
+            toast({
+              title: 'Download concluído!',
+              description: `${label} foi baixado com sucesso.`
+            });
+          } else {
+            throw new Error('Fetch falhou');
+          }
+        } catch (fetchError) {
+          console.log('Fetch falhou, tentando método alternativo...', fetchError);
+          
+          // Fallback: tentar converter URL para formato direto
+          const directUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
+          
+          try {
+            const response = await fetch(directUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const blobUrl = window.URL.createObjectURL(blob);
+              
+              const link = document.createElement('a');
+              link.href = blobUrl;
+              link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              window.URL.revokeObjectURL(blobUrl);
+              
+              toast({
+                title: 'Download concluído!',
+                description: `${label} foi baixado com sucesso.`
+              });
+            } else {
+              throw new Error('Thumbnail fetch falhou');
+            }
+          } catch (thumbnailError) {
+            console.log('Thumbnail fetch falhou, abrindo em nova aba...', thumbnailError);
+            
+            // Último recurso: abrir em nova aba
+            const fallbackUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            window.open(fallbackUrl, '_blank');
+            
+            toast({
+              title: 'Download iniciado',
+              description: `${label} será aberto em nova aba para download manual.`
+            });
+          }
+        }
       } else {
-        // Para outras URLs, tentar download direto
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Para outras URLs, tentar download direto via fetch
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            window.URL.revokeObjectURL(blobUrl);
+            
+            toast({
+              title: 'Download concluído!',
+              description: `${label} foi baixado com sucesso.`
+            });
+          } else {
+            throw new Error('Fetch direto falhou');
+          }
+        } catch (directError) {
+          console.log('Fetch direto falhou, usando método tradicional...', directError);
+          
+          // Fallback para método tradicional
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast({
+            title: 'Download iniciado',
+            description: `Baixando ${label}...`
+          });
+        }
       }
     } catch (error) {
       console.error('Erro ao baixar foto:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível baixar a foto',
+        description: 'Não foi possível baixar a foto. Tente novamente.',
         variant: 'destructive'
       });
     }

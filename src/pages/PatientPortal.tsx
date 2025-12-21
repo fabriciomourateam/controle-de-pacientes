@@ -809,6 +809,15 @@ export default function PatientPortal() {
                   {exporting ? 'Gerando...' : 'Baixar Dieta PDF'}
                 </DropdownMenuItem>
                 
+                <DropdownMenuItem
+                  onClick={handleExportDietPDF}
+                  disabled={exporting}
+                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  {exporting ? 'Gerando...' : 'Baixar Dieta (Impressão)'}
+                </DropdownMenuItem>
+                
                 {/* Opções de Evolução */}
                 {patient && (
                   <>

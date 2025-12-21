@@ -46,6 +46,148 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
+  // Função para baixar foto do Google Drive (versão melhorada para download direto)
+  const handleDownloadPhoto = async (url: string, label: string) => {
+    try {
+      // Extrair ID do Google Drive
+      const fileId = url.match(/[?&]id=([^&]+)/)?.[1] || 
+                     url.match(/\/file\/d\/([^\/]+)/)?.[1] ||
+                     url.match(/\/d\/([^\/]+)/)?.[1];
+      
+      if (fileId && url.includes('drive.google.com')) {
+        // Para Google Drive, usar fetch para baixar como blob
+        try {
+          const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+          
+          toast({
+            title: 'Iniciando download...',
+            description: `Baixando ${label}...`
+          });
+
+          // Tentar fetch direto primeiro
+          const response = await fetch(downloadUrl, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Limpar blob URL
+            window.URL.revokeObjectURL(blobUrl);
+            
+            toast({
+              title: 'Download concluído!',
+              description: `${label} foi baixado com sucesso.`
+            });
+          } else {
+            throw new Error('Fetch falhou');
+          }
+        } catch (fetchError) {
+          console.log('Fetch falhou, tentando método alternativo...', fetchError);
+          
+          // Fallback: tentar converter URL para formato direto
+          const directUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
+          
+          try {
+            const response = await fetch(directUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const blobUrl = window.URL.createObjectURL(blob);
+              
+              const link = document.createElement('a');
+              link.href = blobUrl;
+              link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              window.URL.revokeObjectURL(blobUrl);
+              
+              toast({
+                title: 'Download concluído!',
+                description: `${label} foi baixado com sucesso.`
+              });
+            } else {
+              throw new Error('Thumbnail fetch falhou');
+            }
+          } catch (thumbnailError) {
+            console.log('Thumbnail fetch falhou, abrindo em nova aba...', thumbnailError);
+            
+            // Último recurso: abrir em nova aba
+            const fallbackUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            window.open(fallbackUrl, '_blank');
+            
+            toast({
+              title: 'Download iniciado',
+              description: `${label} será aberto em nova aba para download manual.`
+            });
+          }
+        }
+      } else {
+        // Para outras URLs, tentar download direto via fetch
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            window.URL.revokeObjectURL(blobUrl);
+            
+            toast({
+              title: 'Download concluído!',
+              description: `${label} foi baixado com sucesso.`
+            });
+          } else {
+            throw new Error('Fetch direto falhou');
+          }
+        } catch (directError) {
+          console.log('Fetch direto falhou, usando método tradicional...', directError);
+          
+          // Fallback para método tradicional
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast({
+            title: 'Download iniciado',
+            description: `Baixando ${label}...`
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao baixar foto:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível baixar a foto. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Log de debug
   const patientPhotos = patient ? {
     frente: (patient as any).foto_inicial_frente,
@@ -514,14 +656,28 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                       {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
                     </Badge>
                     {!firstPhoto.isVideo && !imageErrors.has(getPhotoId(firstPhoto)) && (
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                        onClick={() => handleZoomPhoto(firstPhoto)}
-                      >
-                        <ZoomIn className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="absolute top-1/2 -translate-y-1/2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadPhoto(firstPhoto.url, `Foto-Antes-${firstPhoto.date}-${firstPhoto.weight}kg`);
+                          }}
+                          title="Baixar foto"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                          onClick={() => handleZoomPhoto(firstPhoto)}
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                   <div className="bg-slate-700/50 p-3 rounded-lg">
@@ -581,14 +737,28 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                       ATUAL
                     </Badge>
                     {!lastPhoto.isVideo && !imageErrors.has(getPhotoId(lastPhoto)) && (
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                        onClick={() => handleZoomPhoto(lastPhoto)}
-                      >
-                        <ZoomIn className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="absolute top-1/2 -translate-y-1/2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadPhoto(lastPhoto.url, `Foto-Depois-${lastPhoto.date}-${lastPhoto.weight}kg`);
+                          }}
+                          title="Baixar foto"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                          onClick={() => handleZoomPhoto(lastPhoto)}
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                   <div className="bg-slate-700/50 p-3 rounded-lg">
@@ -658,6 +828,19 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                     <Badge className={`absolute top-2 left-2 ${photo.isInitial ? 'bg-purple-600/90' : 'bg-slate-800/90'} text-white text-xs`}>
                       {photo.isInitial ? '⭐' : `#${index + 1}`}
                     </Badge>
+                    {/* Botão de download */}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="absolute top-2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadPhoto(photo.url, `Foto-${photo.date}-${photo.weight}kg`);
+                      }}
+                      title="Baixar foto"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
                     {/* Botão de deletar */}
                     <Button
                       size="sm"
