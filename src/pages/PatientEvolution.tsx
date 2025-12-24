@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { checkinService } from '@/lib/checkin-service';
@@ -21,7 +22,6 @@ import { EvolutionCharts } from '@/components/evolution/EvolutionCharts';
 import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
 import { AIInsights } from '@/components/evolution/AIInsights';
-import { CheckinFeedbackSection } from '@/components/evolution/CheckinFeedbackSection';
 import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
 import { InitialDataInput } from '@/components/evolution/InitialDataInput';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
@@ -49,6 +49,8 @@ import {
   ArrowLeft, 
   TrendingUp, 
   User,
+  Eye,
+  EyeOff,
   FileText,
   Calendar,
   Utensils,
@@ -87,6 +89,11 @@ export default function PatientEvolution() {
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ field: string; label: string } | null>(null);
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
+  
+  // Estados para controlar visibilidade dos cards opcionais
+  const [showDailyWeights, setShowDailyWeights] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showExams, setShowExams] = useState(false);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -1365,20 +1372,31 @@ export default function PatientEvolution() {
           </motion.div>
 
           {/* 3. Histórico de Exames Laboratoriais */}
-          {telefone && (
+          {telefone && showExams && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <ExamsHistory
-                patientId={patient?.id}
-                telefone={telefone}
-                onUpdate={loadEvolution}
-                refreshTrigger={chartsRefreshTrigger}
-                allowDelete={false}
-                variant="dark"
-              />
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 z-10 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800"
+                  onClick={() => setShowExams(false)}
+                  title="Ocultar seção"
+                >
+                  <EyeOff className="w-4 h-4" />
+                </Button>
+                <ExamsHistory
+                  patientId={patient?.id}
+                  telefone={telefone}
+                  onUpdate={loadEvolution}
+                  refreshTrigger={chartsRefreshTrigger}
+                  allowDelete={false}
+                  variant="dark"
+                />
+              </div>
             </motion.div>
           )}
 
@@ -1404,47 +1422,55 @@ export default function PatientEvolution() {
             <Timeline checkins={checkins} onCheckinUpdated={loadEvolution} />
           </motion.div>
 
-          {/* 5.5. Sistema de Feedback de Check-in com IA */}
-          {telefone && patient && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.42 }}
-            >
-              <CheckinFeedbackSection
-                telefone={telefone!}
-                patientName={patient.nome || 'Paciente'}
-              />
-            </motion.div>
-          )}
-
           {/* 6. Lista de Pesos Diários */}
-          {telefone && (
+          {telefone && showDailyWeights && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.45 }}
             >
-              <DailyWeightsList
-                telefone={telefone}
-                onUpdate={() => {
-                  loadEvolution();
-                  setChartsRefreshTrigger(prev => prev + 1);
-                }}
-              />
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 z-10 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800"
+                  onClick={() => setShowDailyWeights(false)}
+                  title="Ocultar seção"
+                >
+                  <EyeOff className="w-4 h-4" />
+                </Button>
+                <DailyWeightsList
+                  telefone={telefone}
+                  onUpdate={() => {
+                    loadEvolution();
+                    setChartsRefreshTrigger(prev => prev + 1);
+                  }}
+                />
+              </div>
             </motion.div>
           )}
             </>
           )}
 
           {/* 7. Badges de Conquistas */}
-          {achievements.length > 0 && (
+          {achievements.length > 0 && showAchievements && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <AchievementBadges achievements={achievements} />
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 z-10 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800"
+                  onClick={() => setShowAchievements(false)}
+                  title="Ocultar seção"
+                >
+                  <EyeOff className="w-4 h-4" />
+                </Button>
+                <AchievementBadges achievements={achievements} />
+              </div>
             </motion.div>
           )}
 
@@ -1478,38 +1504,87 @@ export default function PatientEvolution() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => {
-                    setEvolutionExportMode('png');
-                    setShowEvolutionExport(true);
-                  }}
-                  disabled={generatingPDF}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all gap-2"
-                >
-                  <Image className="w-4 h-4" />
-                  {generatingPDF ? 'Gerando...' : 'Baixar evolução'}
-                </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => {
+                      setEvolutionExportMode('png');
+                      setShowEvolutionExport(true);
+                    }}
+                    disabled={generatingPDF}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all gap-2"
+                  >
+                    <Image className="w-4 h-4" />
+                    {generatingPDF ? 'Gerando...' : 'Baixar evolução'}
+                  </Button>
+                  
+                  <Button
+                    onClick={() => {
+                      setEvolutionExportMode('pdf');
+                      setShowEvolutionExport(true);
+                    }}
+                    disabled={generatingPDF}
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all gap-2"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    {generatingPDF ? 'Gerando...' : 'Baixar evolução (PDF)'}
+                  </Button>
+                  
+                  <Button
+                    onClick={() => navigate('/checkins')}
+                    className="gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Voltar para Check-ins
+                  </Button>
+                </div>
                 
-                <Button
-                  onClick={() => {
-                    setEvolutionExportMode('pdf');
-                    setShowEvolutionExport(true);
-                  }}
-                  disabled={generatingPDF}
-                  className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all gap-2"
-                >
-                  <FileDown className="w-4 h-4" />
-                  {generatingPDF ? 'Gerando...' : 'Baixar evolução (PDF)'}
-                </Button>
-                
-                <Button
-                  onClick={() => navigate('/checkins')}
-                  className="gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Voltar para Check-ins
-                </Button>
+                {/* Botão para mostrar seções ocultas - canto direito inferior */}
+                {(!showExams || !showDailyWeights || !showAchievements) && (
+                  <div className="flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-slate-400 hover:text-white border-slate-700 hover:bg-slate-800/50"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Mostrar seções ocultas
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                        {telefone && !showExams && (
+                          <DropdownMenuItem
+                            onClick={() => setShowExams(true)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <FlaskConical className="w-4 h-4 mr-2" />
+                            Exames
+                          </DropdownMenuItem>
+                        )}
+                        {telefone && !showDailyWeights && (
+                          <DropdownMenuItem
+                            onClick={() => setShowDailyWeights(true)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Scale className="w-4 h-4 mr-2" />
+                            Pesos Diários
+                          </DropdownMenuItem>
+                        )}
+                        {achievements.length > 0 && !showAchievements && (
+                          <DropdownMenuItem
+                            onClick={() => setShowAchievements(true)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Activity className="w-4 h-4 mr-2" />
+                            Conquistas
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

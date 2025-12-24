@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -44,7 +44,7 @@ const statusOptions: Array<{ value: CheckinStatus; label: string; color: string 
   { value: 'enviado', label: 'Enviado', color: 'bg-green-500/20 text-green-400 border-green-500/30' }
 ];
 
-export function CheckinQuickControls({
+function CheckinQuickControlsComponent({
   checkin,
   teamMembers,
   onUpdate,
@@ -403,3 +403,16 @@ export function CheckinQuickControls({
     </div>
   );
 }
+
+// Memoizar o componente para evitar re-renders desnecessários
+export const CheckinQuickControls = memo(CheckinQuickControlsComponent, (prevProps, nextProps) => {
+  // Só re-renderiza se checkin.id, notesCount, ou teamMembers mudarem
+  const teamMembersChanged = prevProps.teamMembers.length !== nextProps.teamMembers.length ||
+    prevProps.teamMembers.some((member, index) => 
+      member.user_id !== nextProps.teamMembers[index]?.user_id
+    );
+  
+  return prevProps.checkin.id === nextProps.checkin.id && 
+         prevProps.notesCount === nextProps.notesCount &&
+         !teamMembersChanged;
+});

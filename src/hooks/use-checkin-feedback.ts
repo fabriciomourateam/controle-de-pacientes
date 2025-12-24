@@ -246,6 +246,7 @@ export const useCheckinFeedback = (telefone: string) => {
           Number((aproveitamentoAtual - aproveitamentoAnterior).toFixed(1)) : 0,
         tem_checkin_anterior: true,
         checkin_anterior_data: previousCheckin.data_checkin,
+        checkin_anterior_id: previousCheckin.id,
         medidas_atuais: medidasAtuais,
         medidas_anteriores: medidasAnteriores
       };

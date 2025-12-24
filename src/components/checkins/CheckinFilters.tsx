@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, X, Filter } from 'lucide-react';
+import { Search, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckinStatus, TeamMember } from '@/hooks/use-checkin-management';
 
@@ -16,6 +16,10 @@ interface CheckinFiltersProps {
   onResponsibleChange: (responsibles: string[]) => void;
   teamMembers: TeamMember[];
   totalResults: number;
+  sortBy: 'date' | 'name' | 'status' | 'score';
+  onSortByChange: (sortBy: 'date' | 'name' | 'status' | 'score') => void;
+  sortOrder: 'asc' | 'desc';
+  onSortOrderChange: (sortOrder: 'asc' | 'desc') => void;
 }
 
 const statusOptions: Array<{ value: CheckinStatus; label: string; color: string }> = [
@@ -32,119 +36,160 @@ export function CheckinFilters({
   selectedResponsibles,
   onResponsibleChange,
   teamMembers,
-  totalResults
+  totalResults,
+  sortBy,
+  onSortByChange,
+  sortOrder,
+  onSortOrderChange
 }: CheckinFiltersProps) {
   
   const clearAllFilters = () => {
     onSearchChange('');
-    onStatusChange(['pendente']); // Voltar para pendente ao limpar
+    onStatusChange([]); // Limpar status ao limpar filtros
     onResponsibleChange([]);
   };
+
+  // Verificar se "Pendente" está ativo (inclui pendente e em_analise)
+  const isPendenteActive = selectedStatuses.includes('pendente') || selectedStatuses.includes('em_analise');
+  const isEnviadoActive = selectedStatuses.includes('enviado');
 
   const hasActiveFilters = searchTerm || selectedStatuses.length > 0 || selectedResponsibles.length > 0;
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-      <CardContent className="p-6">
-        {/* Header dos Filtros */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-slate-400" />
-            <h3 className="text-lg font-semibold text-white">Filtros</h3>
-            <Badge variant="outline" className="text-slate-300 border-slate-600">
-              {totalResults} resultado{totalResults !== 1 ? 's' : ''}
-            </Badge>
+    <Card className="bg-slate-800/40 border-slate-700/50">
+      <CardContent className="p-3">
+        <div className="flex flex-col md:flex-row gap-3 items-start md:items-end">
+          {/* Busca */}
+          <div className="relative w-[380px]">
+            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Input
+              placeholder="Buscar paciente..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-9 h-9 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 text-sm"
+            />
           </div>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="text-slate-400 hover:text-white"
+
+          {/* Responsável */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400">Responsável</label>
+            <Select
+              value={selectedResponsibles[0] || 'all'}
+              onValueChange={(value) => {
+                if (value === 'all') {
+                  onResponsibleChange([]);
+                } else {
+                  onResponsibleChange([value]);
+                }
+              }}
             >
-              <X className="w-4 h-4 mr-1" />
-              Limpar Filtros
-            </Button>
-          )}
-        </div>
+              <SelectTrigger className="h-9 w-[180px] bg-slate-800/50 border-slate-600/50 text-white text-sm">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os responsáveis</SelectItem>
+                {teamMembers.map((member) => (
+                  <SelectItem key={member.user_id} value={member.user_id}>
+                    {member.is_owner && '👑 '}
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-4">
-          {/* Linha 1: Busca */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Buscar Paciente
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input
-                placeholder="Digite o nome do paciente..."
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
-              />
+          {/* Status - Badges clicáveis */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400">Status</label>
+            <div className="flex gap-2">
+              <Badge
+                onClick={() => {
+                  if (isPendenteActive) {
+                    // Se já está ativo, remover
+                    onStatusChange(selectedStatuses.filter(s => s !== 'pendente' && s !== 'em_analise'));
+                  } else {
+                    // Se não está ativo, adicionar
+                    const newStatuses = selectedStatuses.filter(s => s !== 'enviado');
+                    onStatusChange([...newStatuses, 'pendente', 'em_analise']);
+                  }
+                }}
+                className={`
+                  cursor-pointer transition-all px-3 py-1.5 text-sm
+                  ${isPendenteActive
+                    ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 hover:bg-yellow-500/30'
+                    : 'bg-slate-700/50 text-slate-400 border-slate-600/50 hover:bg-slate-600/50'
+                  }
+                `}
+              >
+                Pendente
+              </Badge>
+              <Badge
+                onClick={() => {
+                  if (isEnviadoActive) {
+                    // Se já está ativo, remover
+                    onStatusChange(selectedStatuses.filter(s => s !== 'enviado'));
+                  } else {
+                    // Se não está ativo, adicionar
+                    onStatusChange([...selectedStatuses, 'enviado']);
+                  }
+                }}
+                className={`
+                  cursor-pointer transition-all px-3 py-1.5 text-sm
+                  ${isEnviadoActive
+                    ? 'bg-green-500/20 text-green-400 border-green-500/50 hover:bg-green-500/30'
+                    : 'bg-slate-700/50 text-slate-400 border-slate-600/50 hover:bg-slate-600/50'
+                  }
+                `}
+              >
+                Enviado
+              </Badge>
             </div>
           </div>
 
-          {/* Linha 2: Responsável e Status (lado a lado) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Responsável */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Responsável
-              </label>
-              <Select
-                value={selectedResponsibles[0] || 'all'}
-                onValueChange={(value) => {
-                  if (value === 'all') {
-                    onResponsibleChange([]);
-                  } else {
-                    onResponsibleChange([value]);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
-                  <SelectValue placeholder="Todos os responsáveis" />
+          {/* Ordenação */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400">Ordenar por</label>
+            <div className="flex gap-2">
+              <Select value={sortBy} onValueChange={(value) => onSortByChange(value as 'date' | 'name' | 'status' | 'score')}>
+                <SelectTrigger className="h-9 w-[140px] bg-slate-800/50 border-slate-600/50 text-white text-sm">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os responsáveis</SelectItem>
-                  {teamMembers.map((member) => (
-                    <SelectItem key={member.user_id} value={member.user_id}>
-                      {member.is_owner && '👑 '}
-                      {member.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="date">Data</SelectItem>
+                  <SelectItem value="name">Nome</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="score">Pontuação</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-9 bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700/50 px-2"
+              >
+                {sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+              </Button>
             </div>
+          </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Status do Check-in
-              </label>
-              <Select
-                value={selectedStatuses[0] || 'all'}
-                onValueChange={(value) => {
-                  if (value === 'all') {
-                    onStatusChange([]);
-                  } else {
-                    onStatusChange([value as CheckinStatus]);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  {statusOptions.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Badge de resultados e botão limpar */}
+          <div className="flex items-end gap-2 ml-auto">
+            <div className="flex items-center gap-2 h-9">
+              <span className="text-xs text-slate-400">Filtro:</span>
+              <Badge variant="outline" className="text-xs text-slate-300 border-slate-600 h-9 px-2">
+                {totalResults}
+              </Badge>
             </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

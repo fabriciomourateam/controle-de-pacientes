@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles } from 'lucide-react';
+import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X } from 'lucide-react';
 import { useCheckinFeedback } from '../../hooks/use-checkin-feedback';
 import { useFeedbackTemplates } from '../../hooks/use-feedback-templates';
 import { extractMeasurements } from '../../lib/measurement-utils';
@@ -20,7 +21,7 @@ interface CheckinFeedbackCardProps {
   onUpdate?: () => void;
 }
 
-export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
+const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   checkin,
   totalCheckins = 0,
   onUpdate
@@ -28,6 +29,7 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [observedImprovements, setObservedImprovements] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [dietAdjustments, setDietAdjustments] = useState('');
   const [generatedFeedback, setGeneratedFeedback] = useState('');
 
@@ -40,8 +42,16 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     patientId,
     generateFeedback,
     saveFeedbackAnalysis,
-    markFeedbackAsSent
+    markFeedbackAsSent,
+    refreshData
   } = useCheckinFeedback(checkin.telefone);
+
+  // Estados para edição inline dos valores
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [isUpdatingCheckin, setIsUpdatingCheckin] = useState(false);
+  const [editingPrevious, setEditingPrevious] = useState(false); // Indica se está editando check-in anterior
+  const [previousCheckinId, setPreviousCheckinId] = useState<string | null>(null);
 
   const { activeTemplate } = useFeedbackTemplates();
   const { updateCheckinStatus } = useCheckinManagement();
@@ -51,10 +61,10 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     if (feedbackAnalysis) {
       // Só atualizar se os dados vierem do mesmo check-in
       if (feedbackAnalysis.checkin_id === checkin.id) {
-        setObservedImprovements(feedbackAnalysis.observed_improvements || '');
-        setDietAdjustments(feedbackAnalysis.diet_adjustments || '');
-        setGeneratedFeedback(feedbackAnalysis.generated_feedback || '');
-      }
+      setObservedImprovements(feedbackAnalysis.observed_improvements || '');
+      setDietAdjustments(feedbackAnalysis.diet_adjustments || '');
+      setGeneratedFeedback(feedbackAnalysis.generated_feedback || '');
+    }
     }
   }, [feedbackAnalysis, checkin.id]);
   
@@ -93,7 +103,38 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     loadAnalysisForCheckin();
   }, [checkin.id]);
 
-  const handleGenerateFeedback = async () => {
+  // Buscar ID do check-in anterior quando os dados de evolução estiverem disponíveis
+  React.useEffect(() => {
+    if (evolutionData?.checkin_anterior_id) {
+      setPreviousCheckinId(evolutionData.checkin_anterior_id);
+    } else if (evolutionData?.tem_checkin_anterior && evolutionData?.checkin_anterior_data && checkin?.telefone) {
+      // Fallback: buscar por data se o ID não estiver disponível
+      const fetchPreviousCheckinId = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('checkin')
+            .select('id')
+            .eq('telefone', checkin.telefone)
+            .eq('data_checkin', evolutionData.checkin_anterior_data)
+            .maybeSingle();
+          
+          if (!error && data) {
+            setPreviousCheckinId(data.id);
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Erro ao buscar ID do check-in anterior:', error);
+          }
+        }
+      };
+      
+      fetchPreviousCheckinId();
+    } else {
+      setPreviousCheckinId(null);
+    }
+  }, [evolutionData?.checkin_anterior_id, evolutionData?.tem_checkin_anterior, evolutionData?.checkin_anterior_data, checkin?.telefone]);
+
+  const handleGenerateFeedback = useCallback(async () => {
     if (!activeTemplate) {
       toast.error('Nenhum template ativo encontrado');
       return;
@@ -109,29 +150,30 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     if (feedback) {
       setGeneratedFeedback(feedback);
     }
-  };
+  }, [activeTemplate, checkin.patient?.nome, observedImprovements, dietAdjustments, generateFeedback]);
 
-  const handleSaveAnnotations = async () => {
+  const handleSaveAnnotations = useCallback(async () => {
     if (!checkin || !patientId) {
       toast.error('Dados do check-in não disponíveis');
       return;
     }
 
+    setIsSaving(true);
     try {
       const result = await saveFeedbackAnalysis({
         // Se já existe uma análise salva, incluir o ID para fazer UPDATE ao invés de INSERT
         ...(feedbackAnalysis?.id && { id: feedbackAnalysis.id }),
-        patient_id: patientId!,
+      patient_id: patientId!,
         checkin_id: checkin.id,
-        checkin_date: checkin.data_checkin?.split('T')[0] || new Date().toISOString().split('T')[0],
-        checkin_data: checkin,
-        evolution_data: evolutionData,
-        observed_improvements: observedImprovements,
-        diet_adjustments: dietAdjustments,
-        generated_feedback: generatedFeedback,
+      checkin_date: checkin.data_checkin?.split('T')[0] || new Date().toISOString().split('T')[0],
+      checkin_data: checkin,
+      evolution_data: evolutionData,
+      observed_improvements: observedImprovements,
+      diet_adjustments: dietAdjustments,
+      generated_feedback: generatedFeedback,
         feedback_status: feedbackAnalysis?.feedback_status || 'draft', // Manter status se já existir
-        prompt_template_id: activeTemplate?.id || ''
-      });
+      prompt_template_id: activeTemplate?.id || ''
+    });
       
       if (result) {
         toast.success('Anotações e feedback salvos com sucesso!');
@@ -141,10 +183,12 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao salvar anotações:', error);
       }
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [checkin, patientId, feedbackAnalysis, saveFeedbackAnalysis, evolutionData, observedImprovements, dietAdjustments, generatedFeedback, activeTemplate]);
 
-  const handleCopyFeedback = async () => {
+  const handleCopyFeedback = useCallback(async () => {
     if (!generatedFeedback) return;
     
     try {
@@ -153,9 +197,9 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     } catch (error) {
       toast.error('Erro ao copiar feedback');
     }
-  };
+  }, [generatedFeedback]);
 
-  const handleOpenWhatsApp = async () => {
+  const handleOpenWhatsApp = useCallback(async () => {
     if (!generatedFeedback) return;
     
     const encodedMessage = encodeURIComponent(generatedFeedback);
@@ -168,9 +212,140 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     
     // Marcar feedback como enviado também
     markFeedbackAsSent('whatsapp');
-  };
+  }, [generatedFeedback, checkin.id, updateCheckinStatus, onUpdate, markFeedbackAsSent]);
 
-  const handleMarkAsSent = async () => {
+
+  // Função para iniciar edição de um campo
+  const handleStartEdit = useCallback((field: string, currentValue: number | null, isPrevious: boolean = false) => {
+    setEditingField(field);
+    setEditValue(currentValue?.toString() || '');
+    setEditingPrevious(isPrevious);
+  }, []);
+
+  // Função para cancelar edição
+  const handleCancelEdit = useCallback(() => {
+    setEditingField(null);
+    setEditValue('');
+    setEditingPrevious(false);
+  }, []);
+
+  // Função para salvar valor editado
+  const handleSaveEdit = useCallback(async (field: string) => {
+    const targetCheckinId = editingPrevious ? previousCheckinId : checkin?.id;
+    if (!targetCheckinId) {
+      toast.error('Check-in não encontrado');
+      return;
+    }
+
+    // Salvar posição de scroll antes de atualizar
+    const scrollPosition = window.scrollY;
+    const element = document.activeElement as HTMLElement;
+    let elementToRestore: HTMLElement | null = null;
+    if (element && element.closest('[data-checkin-feedback]')) {
+      elementToRestore = element.closest('[data-checkin-feedback]') as HTMLElement;
+    }
+
+    setIsUpdatingCheckin(true);
+    try {
+      const value = editValue.trim();
+      const numValue = value ? parseFloat(value.replace(',', '.')) : null;
+
+      // Buscar check-in atual para obter valores existentes
+      const { data: targetCheckin } = await supabase
+        .from('checkin')
+        .select('*')
+        .eq('id', targetCheckinId)
+        .single();
+
+      if (!targetCheckin) {
+        throw new Error('Check-in não encontrado');
+      }
+
+      let updateData: any = {};
+
+      // Mapear campos para colunas do banco
+      switch (field) {
+        case 'peso':
+          updateData.peso = numValue?.toString() || null;
+          break;
+        case 'cintura':
+        case 'quadril': {
+          // Reconstruir campo medida usando os valores atuais do check-in
+          const measurements = extractMeasurements(targetCheckin.medida || '');
+          if (field === 'cintura') {
+            measurements.cintura = numValue;
+          } else {
+            measurements.quadril = numValue;
+          }
+          const medidaParts: string[] = [];
+          if (measurements.cintura !== null && measurements.cintura !== undefined) {
+            medidaParts.push(`Cintura: ${measurements.cintura}cm`);
+          }
+          if (measurements.quadril !== null && measurements.quadril !== undefined) {
+            medidaParts.push(`Quadril: ${measurements.quadril}cm`);
+          }
+          updateData.medida = medidaParts.length > 0 ? medidaParts.join(' ') : null;
+          break;
+        }
+        case 'treino':
+          updateData.pontos_treinos = numValue?.toString() || null;
+          break;
+        case 'cardio':
+          updateData.pontos_cardios = numValue?.toString() || null;
+          break;
+        case 'agua':
+          updateData.pontos_agua = numValue?.toString() || null;
+          break;
+        case 'sono':
+          updateData.pontos_sono = numValue?.toString() || null;
+          break;
+        case 'ref_livre':
+          updateData.pontos_refeicao_livre = numValue?.toString() || null;
+          break;
+        case 'beliscos':
+          updateData.pontos_beliscos = numValue?.toString() || null;
+          break;
+        default:
+          return;
+      }
+
+      // Atualizar no banco
+      const { error } = await supabase
+        .from('checkin')
+        .update(updateData)
+        .eq('id', targetCheckinId);
+
+      if (error) throw error;
+
+      toast.success('Valor atualizado com sucesso!');
+      
+      // Recarregar dados
+      await refreshData();
+      onUpdate?.(); // Atualizar lista
+      
+      // Restaurar posição de scroll após um pequeno delay para garantir que o DOM foi atualizado
+      setTimeout(() => {
+        if (elementToRestore) {
+          elementToRestore.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: scrollPosition, behavior: 'auto' });
+        }
+      }, 100);
+      
+      setEditingField(null);
+      setEditValue('');
+      setEditingPrevious(false);
+    } catch (error) {
+      toast.error('Erro ao atualizar valor');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao atualizar check-in:', error);
+      }
+    } finally {
+      setIsUpdatingCheckin(false);
+    }
+  }, [checkin, editValue, editingPrevious, previousCheckinId, refreshData, onUpdate]);
+
+  const handleMarkAsSent = useCallback(async () => {
     try {
       // Atualizar status do check-in para enviado
       const success = await updateCheckinStatus(checkin.id, 'enviado');
@@ -192,12 +367,12 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
         console.error('Erro ao marcar como enviado:', error);
       }
     }
-  };
+  }, [checkin.id, updateCheckinStatus, onUpdate, feedbackAnalysis, markFeedbackAsSent]);
 
   if (!checkin) return null;
 
   return (
-    <div className="mt-3 border-t border-slate-700/50 pt-3">
+    <div>
       {/* Botão de Expandir/Colapsar */}
       <div className="flex items-center justify-between mb-3">
         <Button
@@ -237,7 +412,7 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             style={{ overflow: 'hidden' }}
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Editor de Prompt (colapsável) */}
               {showPromptEditor && (
                 <motion.div
@@ -250,9 +425,9 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
               )}
 
               {/* Evolução Comparativa - Tabela */}
-              <Card className="bg-slate-800/30 border-slate-700/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-4">
+                <Card className="bg-slate-800/30 border-slate-700/50">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-green-400" />
                       <h4 className="text-sm font-medium text-slate-200">Evolução Comparativa</h4>
@@ -263,33 +438,119 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                         Primeiro Check-in
                       </Badge>
                     )}
-                  </div>
+                        </div>
                   
                   {evolutionData?.tem_checkin_anterior ? (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-slate-700/50">
-                            <th className="text-left py-2 px-2 text-slate-400 font-medium text-xs">Métrica</th>
-                            <th className="text-center py-2 px-2 text-slate-400 font-medium text-xs">
+                            <th className="text-left py-1.5 px-2 text-slate-400 font-medium">Métrica</th>
+                            <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-[10px]">
                               {evolutionData.checkin_anterior_data 
                                 ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
                                 : 'Anterior'}
                             </th>
-                            <th className="text-center py-2 px-2 text-slate-400 font-medium text-xs">
+                            <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-[10px]">
                               {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                             </th>
-                            <th className="text-center py-2 px-2 text-slate-400 font-medium text-xs">Evolução</th>
+                            <th className="text-center py-1.5 px-2 text-slate-400 font-medium">Evolução</th>
                           </tr>
                         </thead>
                         <tbody>
                           {/* Peso */}
                           {evolutionData.peso_anterior !== undefined && evolutionData.peso_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Peso</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.peso_anterior || 0}kg</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.peso_atual || 0}kg</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">Peso</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'peso' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('peso');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">kg</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('peso')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('peso', evolutionData.peso_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.peso_anterior || 0}kg
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'peso' ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('peso');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">kg</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('peso')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.peso_atual || 0}kg
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.peso_diferenca > 0 ? '+' : ''}{evolutionData.peso_diferenca}kg
                               </td>
                             </tr>
@@ -299,10 +560,96 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {(evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined) || 
                            (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) ? (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Cintura</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.cintura_anterior || '-'}cm</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.cintura_atual || '-'}cm</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">Cintura</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'cintura' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('cintura');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">cm</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('cintura')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('cintura', evolutionData.cintura_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.cintura_anterior || '-'}cm
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'cintura' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('cintura');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">cm</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('cintura')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('cintura', evolutionData.cintura_atual, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.cintura_atual || '-'}cm
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.cintura_diferenca !== undefined && evolutionData.cintura_diferenca !== 0
                                   ? `${evolutionData.cintura_diferenca > 0 ? '+' : ''}${evolutionData.cintura_diferenca}cm`
                                   : '0cm'}
@@ -314,10 +661,96 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {(evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined) || 
                            (evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined) ? (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Quadril</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.quadril_anterior || '-'}cm</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.quadril_atual || '-'}cm</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">Quadril</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'quadril' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('quadril');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">cm</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('quadril')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                      </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('quadril', evolutionData.quadril_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.quadril_anterior || '-'}cm
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'quadril' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('quadril');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">cm</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('quadril')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                        </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('quadril', evolutionData.quadril_atual, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.quadril_atual || '-'}cm
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.quadril_diferenca !== undefined && evolutionData.quadril_diferenca !== 0
                                   ? `${evolutionData.quadril_diferenca > 0 ? '+' : ''}${evolutionData.quadril_diferenca}cm`
                                   : '0cm'}
@@ -325,13 +758,13 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                             </tr>
                           ) : null}
                           
-                          {/* Aproveitamento */}
+                          {/* Aproveitamento - não editável, calculado automaticamente */}
                           {evolutionData.aderencia_anterior !== undefined && evolutionData.aderencia_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Aproveitamento</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.aderencia_anterior || 0}%</td>
-                              <td className="py-2 px-2 text-center text-blue-400">{evolutionData.aderencia_atual || 0}%</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.aderencia_diferenca > 0 ? 'text-green-400' : evolutionData.aderencia_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">Aproveitamento</td>
+                              <td className="py-1.5 px-1.5 text-center text-slate-400">{evolutionData.aderencia_anterior || 0}%</td>
+                              <td className="py-1.5 px-1.5 text-center text-blue-400">{evolutionData.aderencia_atual || 0}%</td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.aderencia_diferenca > 0 ? 'text-green-400' : evolutionData.aderencia_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.aderencia_diferenca !== 0
                                   ? `${evolutionData.aderencia_diferenca > 0 ? '+' : ''}${evolutionData.aderencia_diferenca}%`
                                   : '0%'}
@@ -342,10 +775,94 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Treinos */}
                           {evolutionData.treino_anterior !== undefined && evolutionData.treino_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🏃 Treinos</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.treino_anterior || 0}</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.treino_atual || 0}</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.treino_diferenca > 0 ? 'text-green-400' : evolutionData.treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">🏃 Treinos</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'treino' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('treino');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('treino')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                    </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('treino', evolutionData.treino_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.treino_anterior || 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'treino' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('treino');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('treino')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('treino', evolutionData.treino_atual ?? null, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.treino_atual ?? 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.treino_diferenca > 0 ? 'text-green-400' : evolutionData.treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.treino_diferenca !== 0
                                   ? `${evolutionData.treino_diferenca > 0 ? '+' : ''}${evolutionData.treino_diferenca}`
                                   : '0'}
@@ -356,10 +873,94 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Cardio */}
                           {evolutionData.cardio_anterior !== undefined && evolutionData.cardio_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🏃‍♂️ Cardio</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.cardio_anterior || 0}</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.cardio_atual || 0}</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.cardio_diferenca > 0 ? 'text-green-400' : evolutionData.cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">🏃‍♂️ Cardio</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'cardio' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('cardio');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('cardio')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                    </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('cardio', evolutionData.cardio_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.cardio_anterior || 0}
+                          </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'cardio' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('cardio');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('cardio')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                        </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('cardio', evolutionData.cardio_atual ?? null, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.cardio_atual ?? 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.cardio_diferenca > 0 ? 'text-green-400' : evolutionData.cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.cardio_diferenca !== 0
                                   ? `${evolutionData.cardio_diferenca > 0 ? '+' : ''}${evolutionData.cardio_diferenca}`
                                   : '0'}
@@ -370,10 +971,94 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Água */}
                           {evolutionData.agua_anterior !== undefined && evolutionData.agua_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">💧 Água</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.agua_anterior || 0}</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.agua_atual || 0}</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.agua_diferenca > 0 ? 'text-green-400' : evolutionData.agua_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">💧 Água</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'agua' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('agua');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('agua')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('agua', evolutionData.agua_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.agua_anterior || 0}
+                          </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'agua' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('agua');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('agua')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                        </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('agua', evolutionData.agua_atual ?? null, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.agua_atual ?? 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.agua_diferenca > 0 ? 'text-green-400' : evolutionData.agua_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.agua_diferenca !== 0
                                   ? `${evolutionData.agua_diferenca > 0 ? '+' : ''}${evolutionData.agua_diferenca}`
                                   : '0'}
@@ -384,10 +1069,94 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Sono */}
                           {evolutionData.sono_anterior !== undefined && evolutionData.sono_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">😴 Sono</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.sono_anterior || 0}</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.sono_atual || 0}</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.sono_diferenca > 0 ? 'text-green-400' : evolutionData.sono_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">😴 Sono</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'sono' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('sono');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('sono')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('sono', evolutionData.sono_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.sono_anterior || 0}
+                          </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'sono' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('sono');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('sono')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                        </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('sono', evolutionData.sono_atual ?? null, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.sono_atual ?? 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.sono_diferenca > 0 ? 'text-green-400' : evolutionData.sono_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.sono_diferenca !== 0
                                   ? `${evolutionData.sono_diferenca > 0 ? '+' : ''}${evolutionData.sono_diferenca}`
                                   : '0'}
@@ -398,10 +1167,94 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Refeições Livres */}
                           {evolutionData.ref_livre_anterior !== undefined && evolutionData.ref_livre_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🍽️ Refeições Livres</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.ref_livre_anterior || 0}</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.ref_livre_atual || 0}</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.ref_livre_diferenca > 0 ? 'text-green-400' : evolutionData.ref_livre_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">🍽️ Refeições Livres</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'ref_livre' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('ref_livre');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('ref_livre')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.ref_livre_anterior || 0}
+                              </span>
+                            )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'ref_livre' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('ref_livre');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('ref_livre')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                          </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_atual ?? null, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.ref_livre_atual ?? 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.ref_livre_diferenca > 0 ? 'text-green-400' : evolutionData.ref_livre_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.ref_livre_diferenca !== 0
                                   ? `${evolutionData.ref_livre_diferenca > 0 ? '+' : ''}${evolutionData.ref_livre_diferenca}`
                                   : '0'}
@@ -412,10 +1265,94 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Beliscos */}
                           {evolutionData.beliscos_anterior !== undefined && evolutionData.beliscos_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🍪 Beliscos</td>
-                              <td className="py-2 px-2 text-center text-slate-400">{evolutionData.beliscos_anterior || 0}</td>
-                              <td className="py-2 px-2 text-center text-slate-200">{evolutionData.beliscos_atual || 0}</td>
-                              <td className={`py-2 px-2 text-center font-medium ${evolutionData.beliscos_diferenca < 0 ? 'text-green-400' : evolutionData.beliscos_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                              <td className="py-1.5 px-2 text-slate-300">🍪 Beliscos</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'beliscos' && editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('beliscos');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('beliscos')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                        </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-400 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_anterior ?? null, true)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.beliscos_anterior || 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'beliscos' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('beliscos');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('beliscos')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                        </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline"
+                                    onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_atual ?? null, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.beliscos_atual ?? 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-1.5 px-2 text-center font-medium ${evolutionData.beliscos_diferenca < 0 ? 'text-green-400' : evolutionData.beliscos_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                                 {evolutionData.beliscos_diferenca !== 0
                                   ? `${evolutionData.beliscos_diferenca > 0 ? '+' : ''}${evolutionData.beliscos_diferenca}`
                                   : '0'}
@@ -427,11 +1364,11 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-slate-700/50">
-                            <th className="text-left py-2 px-2 text-slate-400 font-medium text-xs">Métrica</th>
-                            <th className="text-center py-2 px-2 text-slate-400 font-medium text-xs">
+                            <th className="text-left py-1.5 px-2 text-slate-400 font-medium">Métrica</th>
+                            <th className="text-center py-1.5 px-2 text-slate-400 font-medium text-[10px]">
                               {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </th>
                           </tr>
@@ -440,151 +1377,151 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Peso */}
                           {evolutionData?.peso_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Peso</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.peso_atual || 0}kg</td>
+                              <td className="py-1.5 px-2 text-slate-300">Peso</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.peso_atual || 0}kg</td>
                             </tr>
                           )}
                           
                           {/* Cintura */}
                           {evolutionData?.cintura_atual !== null && evolutionData?.cintura_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Cintura</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.cintura_atual}cm</td>
+                              <td className="py-1.5 px-2 text-slate-300">Cintura</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.cintura_atual}cm</td>
                             </tr>
                           )}
                           
                           {/* Quadril */}
                           {evolutionData?.quadril_atual !== null && evolutionData?.quadril_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Quadril</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.quadril_atual}cm</td>
+                              <td className="py-1.5 px-2 text-slate-300">Quadril</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.quadril_atual}cm</td>
                             </tr>
                           )}
                           
                           {/* Aproveitamento */}
                           {evolutionData?.aderencia_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">Aproveitamento</td>
-                              <td className="py-2 px-2 text-center text-blue-400 font-medium">{evolutionData.aderencia_atual || 0}%</td>
+                              <td className="py-1.5 px-2 text-slate-300">Aproveitamento</td>
+                              <td className="py-1.5 px-2 text-center text-blue-400 font-medium">{evolutionData.aderencia_atual || 0}%</td>
                             </tr>
                           )}
                           
                           {/* Treinos */}
                           {evolutionData?.treino_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🏃 Treinos</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.treino_atual || 0}</td>
+                              <td className="py-1.5 px-2 text-slate-300">🏃 Treinos</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.treino_atual || 0}</td>
                             </tr>
                           )}
                           
                           {/* Cardio */}
                           {evolutionData?.cardio_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🏃‍♂️ Cardio</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.cardio_atual || 0}</td>
+                              <td className="py-1.5 px-2 text-slate-300">🏃‍♂️ Cardio</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.cardio_atual || 0}</td>
                             </tr>
                           )}
                           
                           {/* Água */}
                           {evolutionData?.agua_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">💧 Água</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.agua_atual || 0}</td>
+                              <td className="py-1.5 px-2 text-slate-300">💧 Água</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.agua_atual || 0}</td>
                             </tr>
                           )}
                           
                           {/* Sono */}
                           {evolutionData?.sono_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">😴 Sono</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.sono_atual || 0}</td>
+                              <td className="py-1.5 px-2 text-slate-300">😴 Sono</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.sono_atual || 0}</td>
                             </tr>
                           )}
                           
                           {/* Refeições Livres */}
                           {evolutionData?.ref_livre_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🍽️ Refeições Livres</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.ref_livre_atual || 0}</td>
+                              <td className="py-1.5 px-2 text-slate-300">🍽️ Refeições Livres</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.ref_livre_atual || 0}</td>
                             </tr>
                           )}
                           
                           {/* Beliscos */}
                           {evolutionData?.beliscos_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-2 px-2 text-slate-300">🍪 Beliscos</td>
-                              <td className="py-2 px-2 text-center text-slate-200 font-medium">{evolutionData.beliscos_atual || 0}</td>
+                              <td className="py-1.5 px-2 text-slate-300">🍪 Beliscos</td>
+                              <td className="py-1.5 px-2 text-center text-slate-200 font-medium">{evolutionData.beliscos_atual || 0}</td>
                             </tr>
                           )}
                         </tbody>
                       </table>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
               {/* Informações Adicionais para Elaboração do Feedback */}
               <Card className="bg-slate-800/30 border-slate-700/50">
-                <CardContent className="p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-slate-200">📋 Informações para Elaboração do Feedback</h4>
+                <CardContent className="p-3 space-y-3">
+                  <h4 className="text-xs font-semibold text-slate-200 mb-2">📋 Informações para Elaboração do Feedback</h4>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Objetivo & Dificuldades */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300">🎯 Objetivo & Dificuldades</h5>
-                      <div className="space-y-1 text-xs">
+                      <h5 className="text-xs font-semibold text-slate-300 mb-2">🎯 Objetivo & Dificuldades</h5>
+                      <div className="space-y-2.5 text-xs">
                         <div>
-                          <span className="text-slate-400">Objetivo:</span>
-                          <p className="text-slate-200 mt-1">{checkin.objetivo || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">Objetivo: </span>
+                          <span className="text-slate-200">{checkin.objetivo || 'Não informado'}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400">Dificuldades:</span>
-                          <p className="text-slate-200 mt-1">{checkin.dificuldades || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">Dificuldades: </span>
+                          <span className="text-slate-200">{checkin.dificuldades || 'Não informado'}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Percepções Visuais */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300">👁️ Percepções Visuais</h5>
-                      <div className="space-y-1 text-xs">
+                      <h5 className="text-xs font-semibold text-slate-300 mb-2">👁️ Percepções Visuais</h5>
+                      <div className="space-y-2.5 text-xs">
                         <div>
-                          <span className="text-slate-400">Melhora Visual:</span>
-                          <p className="text-slate-200 mt-1">{checkin.melhora_visual || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">Melhora Visual: </span>
+                          <span className="text-slate-200">{checkin.melhora_visual || 'Não informado'}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400">Quais Pontos:</span>
-                          <p className="text-slate-200 mt-1">{checkin.quais_pontos || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">Quais Pontos: </span>
+                          <span className="text-slate-200">{checkin.quais_pontos || 'Não informado'}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Refeições Livres & Beliscos */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300">🍽️ Refeições Livres & Beliscos</h5>
-                      <div className="space-y-1 text-xs">
+                      <h5 className="text-xs font-semibold text-slate-300 mb-2">🍽️ Refeições Livres & Beliscos</h5>
+                      <div className="space-y-2.5 text-xs">
                         <div>
-                          <span className="text-slate-400">O que comeu na refeição livre:</span>
-                          <p className="text-slate-200 mt-1">{checkin.oq_comeu_ref_livre || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">O que comeu na refeição livre: </span>
+                          <span className="text-slate-200">{checkin.oq_comeu_ref_livre || 'Não informado'}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400">O que beliscou:</span>
-                          <p className="text-slate-200 mt-1">{checkin.oq_beliscou || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">O que beliscou: </span>
+                          <span className="text-slate-200">{checkin.oq_beliscou || 'Não informado'}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Fome & Ajustes */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300">🍴 Fome & Ajustes</h5>
-                      <div className="space-y-1 text-xs">
+                      <h5 className="text-xs font-semibold text-slate-300 mb-2">🍴 Fome & Ajustes</h5>
+                      <div className="space-y-2.5 text-xs">
                         <div>
-                          <span className="text-slate-400">Comeu menos que o planejado:</span>
-                          <p className="text-slate-200 mt-1">{checkin.comeu_menos || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">Comeu menos que o planejado: </span>
+                          <span className="text-slate-200">{checkin.comeu_menos || 'Não informado'}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400">Alimento para incluir:</span>
-                          <p className="text-slate-200 mt-1">{checkin.alimento_para_incluir || 'Não informado'}</p>
+                          <span className="font-semibold text-blue-400">Alimento para incluir: </span>
+                          <span className="text-slate-200">{checkin.alimento_para_incluir || 'Não informado'}</span>
                         </div>
                       </div>
                     </div>
@@ -594,11 +1531,11 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
 
               {/* Suas Observações */}
               <Card className="bg-slate-800/30 border-slate-700/50">
-                <CardContent className="p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-slate-200">📝 Suas Observações</h4>
+                <CardContent className="p-3 space-y-3">
+                  <h4 className="text-xs font-semibold text-slate-200">📝 Suas Observações</h4>
                   
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-2">
+                    <label className="block text-xs font-medium text-blue-400 mb-1.5">
                       🔍 Melhoras Observadas:
                     </label>
                     <Textarea
@@ -606,12 +1543,12 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                       onChange={(e) => setObservedImprovements(e.target.value)}
                       placeholder="Descreva as melhoras que você observou no paciente..."
                       rows={2}
-                      className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-sm"
+                      className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-2">
+                    <label className="block text-xs font-medium text-blue-400 mb-1.5">
                       ⚙️ Ajustes Realizados na Dieta:
                     </label>
                     <Textarea
@@ -619,22 +1556,32 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                       onChange={(e) => setDietAdjustments(e.target.value)}
                       placeholder="Descreva os ajustes que você fez na dieta..."
                       rows={2}
-                      className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-sm"
+                      className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs"
                     />
                   </div>
 
                   <div className="flex gap-2">
                     {/* Botão Salvar (mostra antes de gerar feedback) */}
                     {!generatedFeedback && (
-                      <Button
-                        onClick={handleSaveAnnotations}
-                        variant="outline"
-                        size="sm"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                      >
-                        <Save className="h-3 w-3 mr-1" />
-                        Salvar
-                      </Button>
+                    <Button
+                      onClick={handleSaveAnnotations}
+                      variant="outline"
+                      size="sm"
+                        disabled={isSaving}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                      <Save className="h-3 w-3 mr-1" />
+                      Salvar
+                          </>
+                        )}
+                    </Button>
                     )}
                     <Button
                       onClick={handleGenerateFeedback}
@@ -656,18 +1603,18 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
               {/* Feedback Gerado */}
               {generatedFeedback && (
                 <Card className="bg-slate-800/30 border-slate-700/50">
-                  <CardContent className="p-4 space-y-3">
+                  <CardContent className="p-3 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-slate-200">🤖 Feedback Gerado</h4>
-                      <span className="text-xs text-slate-400 italic">Você pode editar o feedback antes de enviar</span>
+                      <h4 className="text-xs font-semibold text-slate-200">🤖 Feedback Gerado</h4>
+                      <span className="text-[10px] text-slate-400 italic">Você pode editar o feedback antes de enviar</span>
                     </div>
                     
                     <Textarea
                       value={generatedFeedback}
                       onChange={(e) => setGeneratedFeedback(e.target.value)}
                       placeholder="O feedback gerado aparecerá aqui..."
-                      rows={12}
-                      className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-sm font-mono whitespace-pre-wrap"
+                      rows={10}
+                      className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs font-mono whitespace-pre-wrap"
                     />
                     
                     <div className="flex flex-wrap gap-2">
@@ -675,10 +1622,20 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
                         onClick={handleSaveAnnotations}
                         variant="outline"
                         size="sm"
+                        disabled={isSaving}
                         className="border-slate-600 text-slate-300 hover:bg-slate-700"
                       >
-                        <Save className="h-3 w-3 mr-1" />
-                        Salvar
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar
+                          </>
+                        )}
                       </Button>
                       
                       <Button
@@ -721,3 +1678,10 @@ export const CheckinFeedbackCard: React.FC<CheckinFeedbackCardProps> = ({
     </div>
   );
 };
+
+// Memoizar o componente para evitar re-renders desnecessários
+export const CheckinFeedbackCard = React.memo(CheckinFeedbackCardComponent, (prevProps, nextProps) => {
+  // Só re-renderiza se o checkin.id ou totalCheckins mudarem
+  return prevProps.checkin.id === nextProps.checkin.id && 
+         prevProps.totalCheckins === nextProps.totalCheckins;
+});

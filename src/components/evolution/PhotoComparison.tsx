@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, ChevronRight, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2 } from "lucide-react";
+import { Camera, ChevronRight, ChevronDown, ChevronUp, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   const [selectedAfterIndex, setSelectedAfterIndex] = useState<number | null>(null);
   const [photoToDelete, setPhotoToDelete] = useState<PhotoData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const { toast } = useToast();
 
   // Função para baixar foto do Google Drive (versão melhorada para download direto)
@@ -487,15 +489,38 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
     return (
       <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Camera className="w-5 h-5 text-blue-400" />
-            Evolução Fotográfica
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Comparação visual da evolução
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Camera className="w-5 h-5 text-blue-400" />
+                Evolução Fotográfica
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Comparação visual da evolução
+              </CardDescription>
+            </div>
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+            >
+              {isMinimized ? (
+                <ChevronDown className="w-5 h-5 text-slate-300" />
+              ) : (
+                <ChevronUp className="w-5 h-5 text-slate-300" />
+              )}
+            </button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <AnimatePresence>
+          {!isMinimized && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Camera className="w-16 h-16 text-slate-600 mb-4" />
             <p className="text-slate-400 text-lg">Nenhuma foto disponível</p>
@@ -534,7 +559,10 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
               </div>
             )}
           </div>
-        </CardContent>
+              </CardContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Card>
     );
   }
@@ -543,15 +571,38 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
     <>
       <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Camera className="w-5 h-5 text-blue-400" />
-            Evolução Fotográfica
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Comparação visual da evolução - {allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'} disponíveis
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Camera className="w-5 h-5 text-blue-400" />
+                Evolução Fotográfica
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Comparação visual da evolução - {allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'} disponíveis
+              </CardDescription>
+            </div>
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+            >
+              {isMinimized ? (
+                <ChevronDown className="w-5 h-5 text-slate-300" />
+              ) : (
+                <ChevronUp className="w-5 h-5 text-slate-300" />
+              )}
+            </button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <AnimatePresence>
+          {!isMinimized && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CardContent className="space-y-6">
           {/* Comparação Antes/Depois */}
           {allPhotos.length >= 2 && firstPhoto && lastPhoto && (
             <div className="space-y-4">
@@ -862,7 +913,10 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
               ))}
             </div>
           </div>
-        </CardContent>
+              </CardContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Card>
 
       {/* Dialog de Confirmação de Exclusão */}
