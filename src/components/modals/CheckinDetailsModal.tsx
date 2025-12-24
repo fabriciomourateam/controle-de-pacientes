@@ -22,9 +22,11 @@ import {
   Utensils, 
   Target,
   TrendingUp,
-  X
+  X,
+  Ruler
 } from "lucide-react";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
+import { extractMeasurements, formatMeasurement } from "@/lib/measurement-utils";
 
 interface CheckinDetailsModalProps {
   checkin: CheckinWithPatient | null;
@@ -113,12 +115,33 @@ export function CheckinDetailsModal({ checkin, isOpen, onClose }: CheckinDetails
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-slate-700/30 rounded-lg">
                   <Weight className="w-6 h-6 mx-auto mb-2 text-blue-400" />
                   <p className="text-sm text-slate-400">Peso</p>
                   <p className="text-lg font-semibold text-white">{checkin.peso ? `${checkin.peso}kg` : 'N/A'}</p>
                 </div>
+                {(() => {
+                  const measurements = extractMeasurements(checkin.medida);
+                  return (
+                    <>
+                      {measurements.cintura && (
+                        <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+                          <Ruler className="w-6 h-6 mx-auto mb-2 text-purple-400" />
+                          <p className="text-sm text-slate-400">Cintura</p>
+                          <p className="text-lg font-semibold text-white">{formatMeasurement(measurements.cintura)}</p>
+                        </div>
+                      )}
+                      {measurements.quadril && (
+                        <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+                          <Ruler className="w-6 h-6 mx-auto mb-2 text-purple-400" />
+                          <p className="text-sm text-slate-400">Quadril</p>
+                          <p className="text-lg font-semibold text-white">{formatMeasurement(measurements.quadril)}</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 <div className="text-center p-4 bg-slate-700/30 rounded-lg">
                   <TrendingUp className="w-6 h-6 mx-auto mb-2 text-emerald-400" />
                   <p className="text-sm text-slate-400">Aproveitamento</p>

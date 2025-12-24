@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Layout Timeline 2x5 Cards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1e293b;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="p-8">
+    <h1 class="text-2xl font-bold mb-6 text-white">🧪 Teste - Layout Timeline (2 linhas x 5 cards)</h1>
+    
+    <div class="bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-lg p-6 border border-slate-600/50">
+        <h2 class="text-lg font-semibold text-white mb-4">Check-in #1 - 22/12/2024</h2>
+        
+        <!-- Primeira linha (5 cards) -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-slate-400">⚖️</span>
+                    <p class="text-xs text-slate-400">Peso</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <p class="text-lg font-bold text-white">55</p>
+                    <span class="text-xs text-slate-400">kg</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-cyan-400">📏</span>
+                    <p class="text-xs text-slate-400">Cintura</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <p class="text-lg font-bold text-white">63</p>
+                    <span class="text-xs text-slate-400">cm</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-teal-400">📐</span>
+                    <p class="text-xs text-slate-400">Quadril</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <p class="text-lg font-bold text-white">97</p>
+                    <span class="text-xs text-slate-400">cm</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-orange-400">🏃</span>
+                    <p class="text-xs text-slate-400">Treino</p>
+                </div>
+                <div class="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-2 py-1 rounded text-sm font-medium">
+                    10
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-red-400">🏃‍♂️</span>
+                    <p class="text-xs text-slate-400">Cardio</p>
+                </div>
+                <div class="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-2 py-1 rounded text-sm font-medium">
+                    5
+                </div>
+            </div>
+        </div>
+
+        <!-- Segunda linha (5 cards) -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-purple-400">😴</span>
+                    <p class="text-xs text-slate-400">Sono</p>
+                </div>
+                <div class="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-2 py-1 rounded text-sm font-medium">
+                    10
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-blue-400">💧</span>
+                    <p class="text-xs text-slate-400">Hidratação</p>
+                </div>
+                <div class="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-2 py-1 rounded text-sm font-medium">
+                    8
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-amber-400">😰</span>
+                    <p class="text-xs text-slate-400">Stress</p>
+                </div>
+                <div class="bg-amber-500/20 text-amber-400 border-amber-500/30 px-2 py-1 rounded text-sm font-medium">
+                    3
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-pink-400">🔥</span>
+                    <p class="text-xs text-slate-400">Libido</p>
+                </div>
+                <div class="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-2 py-1 rounded text-sm font-medium">
+                    8
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 p-3 rounded-lg">
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="text-indigo-400">🛏️</span>
+                    <p class="text-xs text-slate-400">Qualidade Sono</p>
+                </div>
+                <div class="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-2 py-1 rounded text-sm font-medium">
+                    8
+                </div>
+            </div>
+        </div>
+
+        <!-- Pontuação Total -->
+        <div class="flex justify-end">
+            <div class="text-right">
+                <div class="text-2xl font-bold text-white">85</div>
+                <p class="text-xs text-slate-400">pontos totais</p>
+                <div class="mt-1 bg-purple-600/20 text-purple-300 border-purple-500/30 px-2 py-1 rounded text-xs">
+                    85% aproveitamento
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teste Responsivo -->
+    <div class="mt-8">
+        <h2 class="text-lg font-semibold text-white mb-4">📱 Teste Responsivo (Mobile)</h2>
+        <div class="max-w-sm mx-auto bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-lg p-4 border border-slate-600/50">
+            <h3 class="text-base font-semibold text-white mb-3">Check-in Mobile</h3>
+            
+            <!-- Primeira linha mobile (2 colunas) -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                    <div class="flex items-center gap-1 mb-1">
+                        <span class="text-slate-400">⚖️</span>
+                        <p class="text-xs text-slate-400">Peso</p>
+                    </div>
+                    <p class="text-sm font-bold text-white">55kg</p>
+                </div>
+
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                    <div class="flex items-center gap-1 mb-1">
+                        <span class="text-cyan-400">📏</span>
+                        <p class="text-xs text-slate-400">Cintura</p>
+                    </div>
+                    <p class="text-sm font-bold text-white">63cm</p>
+                </div>
+            </div>
+
+            <!-- Segunda linha mobile -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                    <div class="flex items-center gap-1 mb-1">
+                        <span class="text-teal-400">📐</span>
+                        <p class="text-xs text-slate-400">Quadril</p>
+                    </div>
+                    <p class="text-sm font-bold text-white">97cm</p>
+                </div>
+
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                    <div class="flex items-center gap-1 mb-1">
+                        <span class="text-orange-400">🏃</span>
+                        <p class="text-xs text-slate-400">Treino</p>
+                    </div>
+                    <div class="bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded text-xs">10</div>
+                </div>
+            </div>
+
+            <!-- Terceira linha mobile -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                    <div class="flex items-center gap-1 mb-1">
+                        <span class="text-red-400">🏃‍♂️</span>
+                        <p class="text-xs text-slate-400">Cardio</p>
+                    </div>
+                    <div class="bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded text-xs">5</div>
+                </div>
+
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                    <div class="flex items-center gap-1 mb-1">
+                        <span class="text-purple-400">😴</span>
+                        <p class="text-xs text-slate-400">Sono</p>
+                    </div>
+                    <div class="bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded text-xs">10</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8 p-4 bg-slate-800/50 rounded-lg">
+        <h3 class="text-lg font-semibold text-white mb-2">✅ Layout Implementado</h3>
+        <ul class="text-slate-300 space-y-1">
+            <li>• <strong>Desktop:</strong> 2 linhas de 5 cards cada (grid-cols-5)</li>
+            <li>• <strong>Mobile:</strong> 2 colunas adaptáveis (grid-cols-2)</li>
+            <li>• <strong>Ordem:</strong> Peso, Cintura, Quadril, Treino, Cardio (linha 1)</li>
+            <li>• <strong>Ordem:</strong> Sono, Hidratação, Stress, Libido, Qualidade Sono (linha 2)</li>
+            <li>• <strong>Responsivo:</strong> Adapta automaticamente para telas menores</li>
+        </ul>
+    </div>
+</body>
+</html>

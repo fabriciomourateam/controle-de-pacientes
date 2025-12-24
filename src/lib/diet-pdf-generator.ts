@@ -38,429 +38,203 @@ export interface DietPlanForPDF {
 
 export interface PatientForPDF {
   nome: string;
+  objetivo?: string;
   [key: string]: any;
 }
 
 export type PDFTheme = 'light' | 'dark';
 
+// Premium Diet PDF Generator v2
+function getMealEmoji(mealName: string): string {
+  console.log('🍽️ getMealEmoji chamada para:', mealName);
+  const name = mealName.toLowerCase();
+  if (name.includes('café') || name.includes('desjejum') || name.includes('manhã')) return '☕';
+  if (name.includes('lanche') && name.includes('manhã')) return '🍎';
+  if (name.includes('almoço')) return '🍽️';
+  if (name.includes('lanche') && name.includes('tarde')) return '🥤';
+  if (name.includes('jantar')) return '🌙';
+  if (name.includes('ceia')) return '🌜';
+  if (name.includes('pré') && name.includes('treino')) return '💪';
+  if (name.includes('pós') && name.includes('treino')) return '🏋️';
+  if (name.includes('lanche')) return '🍌';
+  return '🍴';
+}
+
+
 export class DietPDFGenerator {
-  /**
-   * Gerar PDF do plano alimentar com branding e opções de tema
-   */
   static async generatePDF(
     plan: DietPlanForPDF,
     patient: PatientForPDF,
-    options: {
-      theme?: PDFTheme;
-      showMacrosPerMeal?: boolean;
-    } = {}
+    options: { theme?: PDFTheme; showMacrosPerMeal?: boolean; } = {}
   ): Promise<void> {
-    const { theme = 'light', showMacrosPerMeal = true } = options;
-
-    // Buscar configurações de branding
+    const timestamp = new Date().toISOString();
+    console.log('🎨🎨🎨 VERSÃO PREMIUM V2.0 - DEZEMBRO 2024 🎨🎨🎨', { plan, patient, timestamp });
+    console.log('Se você está vendo esta mensagem, o novo gerador está funcionando!');
+    console.log('Timestamp:', timestamp);
+    const { showMacrosPerMeal = true } = options;
     const branding = await ConfigService.getPDFBrandingConfig();
-
-    // Calcular totais do plano
     const totais = calcularTotaisPlano(plan as any);
     const totalCalories = plan.total_calories || totais.calorias;
     const totalProtein = plan.total_protein || totais.proteinas;
     const totalCarbs = plan.total_carbs || totais.carboidratos;
     const totalFats = plan.total_fats || totais.gorduras;
+    const totalMacroGrams = totalProtein + totalCarbs + totalFats;
+    const proteinPercent = totalMacroGrams > 0 ? Math.round((totalProtein / totalMacroGrams) * 100) : 0;
+    const carbsPercent = totalMacroGrams > 0 ? Math.round((totalCarbs / totalMacroGrams) * 100) : 0;
+    const fatsPercent = totalMacroGrams > 0 ? Math.round((totalFats / totalMacroGrams) * 100) : 0;
 
-    // Estilos baseados no tema
-    const isDark = theme === 'dark';
-    const bgColor = isDark ? '#1e293b' : '#ffffff';
-    const textColor = isDark ? '#f1f5f9' : '#222222';
-    const cardBg = isDark ? '#334155' : '#F5F7FB';
-    const borderColor = isDark ? '#475569' : '#E5E7EB';
-    const secondaryText = isDark ? '#94a3b8' : '#777777';
-    const primaryColor = branding.primary_color || '#00C98A';
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            font-family: 'Arial', 'Helvetica', sans-serif;
-            color: ${textColor};
-            background: ${bgColor};
-            padding: 30px;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 25px;
-            border-bottom: 4px solid ${primaryColor};
-          }
-          .logo-container {
-            margin-bottom: 15px;
-          }
-          .logo-container img {
-            max-height: 60px;
-            max-width: 200px;
-          }
-          .header h1 {
-            color: ${primaryColor};
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 10px;
-          }
-          .header .patient-name {
-            font-size: 20px;
-            color: ${textColor};
-            font-weight: 600;
-            margin-bottom: 5px;
-          }
-          .header .plan-name {
-            font-size: 14px;
-            color: ${secondaryText};
-          }
-          .company-name {
-            font-size: 12px;
-            color: ${secondaryText};
-            margin-top: 10px;
-          }
-          .totals-summary {
-            background: ${cardBg};
-            border: 2px solid ${borderColor};
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-          }
-          .total-item {
-            text-align: center;
-          }
-          .total-label {
-            font-size: 11px;
-            color: ${secondaryText};
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-          }
-          .total-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: ${primaryColor};
-          }
-          .total-unit {
-            font-size: 12px;
-            color: ${secondaryText};
-            margin-left: 2px;
-          }
-          .meal-card {
-            background: ${cardBg};
-            border: 2px solid ${borderColor};
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-            page-break-inside: avoid;
-          }
-          .meal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid ${borderColor};
-          }
-          .meal-title {
-            color: ${textColor};
-            font-size: 22px;
-            font-weight: bold;
-          }
-          .meal-time {
-            color: ${secondaryText};
-            font-size: 14px;
-            font-style: italic;
-          }
-          ${showMacrosPerMeal ? `
-          .meal-macros {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-            padding: 12px;
-            background: ${isDark ? '#475569' : '#ffffff'};
-            border-radius: 8px;
-          }
-          .meal-macro-item {
-            text-align: center;
-          }
-          .meal-macro-label {
-            font-size: 10px;
-            color: ${secondaryText};
-            text-transform: uppercase;
-            margin-bottom: 3px;
-          }
-          .meal-macro-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: ${primaryColor};
-          }
-          ` : ''}
-          .food-item {
-            background: ${isDark ? '#475569' : '#FFFFFF'};
-            border: 1px solid ${borderColor};
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .food-name {
-            font-weight: 600;
-            color: ${textColor};
-            font-size: 15px;
-          }
-          .food-quantity {
-            color: ${secondaryText};
-            font-size: 14px;
-            margin-left: 10px;
-          }
-          .food-calories {
-            color: ${secondaryText};
-            font-size: 13px;
-            font-weight: 500;
-          }
-          .meal-instructions {
-            background: ${isDark ? '#7c2d12' : '#FEF3C7'};
-            border-left: 4px solid ${isDark ? '#ea580c' : '#F59E0B'};
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 4px;
-          }
-          .meal-instructions strong {
-            color: ${isDark ? '#fed7aa' : '#92400E'};
-            display: block;
-            margin-bottom: 8px;
-          }
-          .meal-instructions p {
-            color: ${isDark ? '#ffedd5' : '#78350F'};
-            line-height: 1.6;
-            font-size: 14px;
-          }
-          .meal-total {
-            text-align: right;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid ${borderColor};
-            color: ${secondaryText};
-            font-size: 13px;
-            font-weight: 600;
-          }
-          .guidelines-section {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 3px solid ${borderColor};
-            page-break-inside: avoid;
-          }
-          .guidelines-title {
-            color: ${primaryColor};
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 20px;
-          }
-          .guideline-card {
-            background: ${cardBg};
-            border: 2px solid ${borderColor};
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-          }
-          .guideline-title {
-            color: ${textColor};
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-          }
-          .guideline-content {
-            color: ${secondaryText};
-            line-height: 1.8;
-            font-size: 14px;
-            margin-bottom: 10px;
-          }
-          .guideline-type {
-            display: inline-block;
-            background: ${primaryColor};
-            color: white;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-          }
-          .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid ${borderColor};
-            text-align: center;
-            color: ${secondaryText};
-            font-size: 11px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          ${branding.show_logo && branding.logo_url ? `
-            <div class="logo-container">
-              <img src="${branding.logo_url}" alt="Logo" />
+    const mealsHtml = plan.diet_meals && plan.diet_meals.length > 0 
+      ? plan.diet_meals.sort((a, b) => (a.meal_order || 0) - (b.meal_order || 0)).map((meal: any) => {
+          const mealTotals = calcularTotaisRefeicao(meal);
+          const emoji = getMealEmoji(meal.meal_name);
+          const foodsHtml = meal.diet_foods && meal.diet_foods.length > 0 
+            ? meal.diet_foods.map((food: any) => `
+              <div style="background:rgba(15,23,42,0.5);border:1px solid rgba(71,85,105,0.3);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#10b981;"></div>
+                  <span style="font-size:15px;font-weight:600;color:#e2e8f0;">${food.food_name}</span>
+                  <span style="font-size:14px;color:#64748b;">• ${food.quantity} ${food.unit}</span>
+                </div>
+                ${food.calories ? `<span style="font-size:13px;color:#94a3b8;font-weight:500;">${food.calories} kcal</span>` : ''}
+              </div>
+            `).join('') 
+            : '<div style="color:#64748b;padding:12px;text-align:center;">Nenhum alimento</div>';
+          
+          const instructionsHtml = meal.instructions ? `
+            <div style="background:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:14px 16px;margin-top:16px;border-radius:0 10px 10px 0;">
+              <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:6px;">💡 Instruções</div>
+              <div style="font-size:14px;color:#fcd34d;line-height:1.6;">${meal.instructions}</div>
             </div>
-          ` : ''}
-          <h1>🥗 Plano Alimentar</h1>
-          ${branding.show_company_name ? `<div class="company-name">${branding.company_name}</div>` : ''}
-          <div class="patient-name">${patient.nome}</div>
-          <div class="plan-name">${plan.name || 'Plano Alimentar'}</div>
-        </div>
+          ` : '';
 
-        <!-- Resumo de Totais -->
-        <div class="totals-summary">
-          <div class="total-item">
-            <div class="total-label">Calorias</div>
-            <div class="total-value">${totalCalories}<span class="total-unit">kcal</span></div>
-          </div>
-          <div class="total-item">
-            <div class="total-label">Proteínas</div>
-            <div class="total-value">${totalProtein}<span class="total-unit">g</span></div>
-          </div>
-          <div class="total-item">
-            <div class="total-label">Carboidratos</div>
-            <div class="total-value">${totalCarbs}<span class="total-unit">g</span></div>
-          </div>
-          <div class="total-item">
-            <div class="total-label">Gorduras</div>
-            <div class="total-value">${totalFats}<span class="total-unit">g</span></div>
-          </div>
-        </div>
+          const macrosHtml = showMacrosPerMeal ? `
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;padding:12px;background:rgba(15,23,42,0.5);border-radius:12px;">
+              <div style="text-align:center;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Calorias</div><div style="font-size:16px;font-weight:700;color:#ef4444;">${mealTotals.calorias}</div></div>
+              <div style="text-align:center;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Proteínas</div><div style="font-size:16px;font-weight:700;color:#10b981;">${mealTotals.proteinas}g</div></div>
+              <div style="text-align:center;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Carbos</div><div style="font-size:16px;font-weight:700;color:#3b82f6;">${mealTotals.carboidratos}g</div></div>
+              <div style="text-align:center;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Gorduras</div><div style="font-size:16px;font-weight:700;color:#f97316;">${mealTotals.gorduras}g</div></div>
+            </div>
+          ` : '';
 
-        <!-- Refeições -->
-        ${plan.diet_meals && plan.diet_meals.length > 0 ? plan.diet_meals
-          .sort((a, b) => (a.meal_order || 0) - (b.meal_order || 0))
-          .map((meal: any) => {
-            const mealTotals = calcularTotaisRefeicao(meal);
-            return `
-              <div class="meal-card">
-                <div class="meal-header">
-                  <div class="meal-title">${meal.meal_name}</div>
-                  ${meal.suggested_time ? `<div class="meal-time">${meal.suggested_time}</div>` : ''}
+          return `
+            <div style="background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.5);border-radius:16px;padding:24px;margin-bottom:16px;page-break-inside:avoid;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(71,85,105,0.5);">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:28px;">${emoji}</span>
+                  <span style="font-size:20px;font-weight:700;color:#ffffff;">${meal.meal_name}</span>
                 </div>
-                
-                ${showMacrosPerMeal ? `
-                  <div class="meal-macros">
-                    <div class="meal-macro-item">
-                      <div class="meal-macro-label">Cal</div>
-                      <div class="meal-macro-value">${mealTotals.calorias}</div>
-                    </div>
-                    <div class="meal-macro-item">
-                      <div class="meal-macro-label">Prot</div>
-                      <div class="meal-macro-value">${mealTotals.proteinas}g</div>
-                    </div>
-                    <div class="meal-macro-item">
-                      <div class="meal-macro-label">Carb</div>
-                      <div class="meal-macro-value">${mealTotals.carboidratos}g</div>
-                    </div>
-                    <div class="meal-macro-item">
-                      <div class="meal-macro-label">Gord</div>
-                      <div class="meal-macro-value">${mealTotals.gorduras}g</div>
-                    </div>
-                  </div>
-                ` : ''}
-
-                ${meal.diet_foods && meal.diet_foods.length > 0 ? meal.diet_foods.map((food: any) => `
-                  <div class="food-item">
-                    <div>
-                      <span class="food-name">${food.food_name}</span>
-                      <span class="food-quantity">- ${food.quantity} ${food.unit}</span>
-                    </div>
-                    ${food.calories ? `<span class="food-calories">${food.calories} kcal</span>` : ''}
-                  </div>
-                `).join('') : '<p style="color: ' + secondaryText + '; padding: 15px;">Nenhum alimento adicionado</p>'}
-
-                ${meal.instructions ? `
-                  <div class="meal-instructions">
-                    <strong>⚠️ Instruções:</strong>
-                    <p>${meal.instructions}</p>
-                  </div>
-                ` : ''}
-
-                <div class="meal-total">
-                  Total da refeição: ${mealTotals.calorias} kcal
-                </div>
+                ${meal.suggested_time ? `<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:500;border:1px solid rgba(99,102,241,0.3);">⏰ ${meal.suggested_time}</span>` : ''}
               </div>
-            `;
-          }).join('') : '<p style="color: ' + secondaryText + '; padding: 30px; text-align: center;">Nenhuma refeição cadastrada</p>'}
+              ${macrosHtml}
+              <div style="display:flex;flex-direction:column;gap:8px;">${foodsHtml}</div>
+              ${instructionsHtml}
+            </div>
+          `;
+        }).join('') 
+      : '<div style="color:#64748b;padding:24px;text-align:center;">Nenhuma refeição cadastrada</div>';
 
-        <!-- Orientações -->
-        ${plan.diet_guidelines && plan.diet_guidelines.length > 0 ? `
-          <div class="guidelines-section">
-            <h2 class="guidelines-title">📚 Orientações</h2>
-            ${plan.diet_guidelines.map((guideline: any) => `
-              <div class="guideline-card">
-                <h3 class="guideline-title">${guideline.title}</h3>
-                <p class="guideline-content">${guideline.content}</p>
-                <span class="guideline-type">${guideline.guideline_type}</span>
-              </div>
-            `).join('')}
+    const guidelinesHtml = plan.diet_guidelines && plan.diet_guidelines.length > 0 ? `
+      <div style="margin-top:32px;padding-top:24px;border-top:2px solid rgba(71,85,105,0.5);">
+        <div style="font-size:20px;font-weight:700;color:#ffffff;margin-bottom:16px;display:flex;align-items:center;gap:10px;">📚 Orientações Nutricionais</div>
+        ${plan.diet_guidelines.map((g: any) => `
+          <div style="background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.5);border-radius:12px;padding:20px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <span style="background:rgba(16,185,129,0.15);color:#10b981;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;">${g.guideline_type}</span>
+              <span style="font-size:16px;font-weight:700;color:#ffffff;">${g.title}</span>
+            </div>
+            <div style="font-size:14px;color:#94a3b8;line-height:1.7;">${g.content}</div>
           </div>
-        ` : ''}
+        `).join('')}
+      </div>
+    ` : '';
 
-        <!-- Rodapé -->
-        <div class="footer">
-          <p>${branding.footer_text || 'Sistema de Controle de Pacientes'}</p>
-          <p>Documento gerado em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+
+    const htmlContent = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Inter','Segoe UI','Arial',sans-serif;color:#f1f5f9;background:#0f172a;padding:32px;line-height:1.5;}</style></head><body>
+      <!-- VERSÃO PREMIUM V2.0 - DEZEMBRO 2024 -->
+      <div style="background:rgba(30,41,59,0.8);border:1px solid rgba(71,85,105,0.5);border-radius:16px;padding:24px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:20px;">
+          <div style="width:72px;height:72px;border-radius:50%;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#10b981;border:3px solid rgba(16,185,129,0.3);">${patient.nome?.charAt(0) || 'P'}</div>
+          <div style="flex:1;">
+            <div style="font-size:28px;font-weight:700;color:#ffffff;margin-bottom:4px;">🥗 Plano Alimentar PREMIUM</div>
+            <div style="font-size:14px;color:#94a3b8;">${patient.nome}</div>
+            <div style="display:inline-block;background:rgba(16,185,129,0.15);color:#10b981;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-top:8px;border:1px solid rgba(16,185,129,0.3);">${plan.name || 'Plano Personalizado'}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:8px;">✨ Versão Premium V2.0 - Design Moderno</div>
+          </div>
         </div>
-      </body>
-      </html>
-    `;
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+        <div style="border-radius:16px;padding:20px;border:1px solid rgba(71,85,105,0.5);background:rgba(239,68,68,0.15);position:relative;overflow:hidden;border-top:3px solid #ef4444;">
+          <div style="font-size:24px;margin-bottom:8px;">🔥</div>
+          <div style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Calorias</div>
+          <div style="font-size:32px;font-weight:700;color:#ffffff;">${totalCalories}<span style="font-size:14px;color:#94a3b8;margin-left:4px;">kcal</span></div>
+        </div>
+        <div style="border-radius:16px;padding:20px;border:1px solid rgba(71,85,105,0.5);background:rgba(16,185,129,0.15);position:relative;overflow:hidden;border-top:3px solid #10b981;">
+          <div style="font-size:24px;margin-bottom:8px;">💪</div>
+          <div style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Proteínas</div>
+          <div style="font-size:32px;font-weight:700;color:#ffffff;">${totalProtein}<span style="font-size:14px;color:#94a3b8;margin-left:4px;">g</span></div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">${proteinPercent}% dos macros</div>
+        </div>
+        <div style="border-radius:16px;padding:20px;border:1px solid rgba(71,85,105,0.5);background:rgba(59,130,246,0.15);position:relative;overflow:hidden;border-top:3px solid #3b82f6;">
+          <div style="font-size:24px;margin-bottom:8px;">⚡</div>
+          <div style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Carboidratos</div>
+          <div style="font-size:32px;font-weight:700;color:#ffffff;">${totalCarbs}<span style="font-size:14px;color:#94a3b8;margin-left:4px;">g</span></div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">${carbsPercent}% dos macros</div>
+        </div>
+        <div style="border-radius:16px;padding:20px;border:1px solid rgba(71,85,105,0.5);background:rgba(249,115,22,0.15);position:relative;overflow:hidden;border-top:3px solid #f97316;">
+          <div style="font-size:24px;margin-bottom:8px;">🥑</div>
+          <div style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Gorduras</div>
+          <div style="font-size:32px;font-weight:700;color:#ffffff;">${totalFats}<span style="font-size:14px;color:#94a3b8;margin-left:4px;">g</span></div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">${fatsPercent}% dos macros</div>
+        </div>
+      </div>
+      <div style="background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.5);border-radius:16px;padding:20px;margin-bottom:24px;">
+        <div style="font-size:14px;color:#94a3b8;margin-bottom:12px;font-weight:600;">📊 Distribuição de Macronutrientes</div>
+        <div style="height:24px;border-radius:12px;overflow:hidden;display:flex;background:rgba(15,23,42,0.5);">
+          <div style="background:#10b981;width:${proteinPercent}%;"></div>
+          <div style="background:#3b82f6;width:${carbsPercent}%;"></div>
+          <div style="background:#f97316;width:${fatsPercent}%;"></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:24px;margin-top:12px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;"><div style="width:12px;height:12px;border-radius:50%;background:#10b981;"></div>Proteínas ${proteinPercent}%</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;"><div style="width:12px;height:12px;border-radius:50%;background:#3b82f6;"></div>Carboidratos ${carbsPercent}%</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;"><div style="width:12px;height:12px;border-radius:50%;background:#f97316;"></div>Gorduras ${fatsPercent}%</div>
+        </div>
+      </div>
+      <div style="margin-bottom:24px;">
+        <div style="font-size:20px;font-weight:700;color:#ffffff;margin-bottom:16px;display:flex;align-items:center;gap:10px;">🍽️ Refeições do Dia</div>
+        ${mealsHtml}
+      </div>
+      ${guidelinesHtml}
+      <div style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(71,85,105,0.5);text-align:center;">
+        <div style="font-size:12px;color:#64748b;">${branding.footer_text || branding.company_name || 'Plano Alimentar Personalizado'}</div>
+        <div style="font-size:11px;color:#475569;margin-top:4px;">Gerado em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+      </div>
+    </body></html>`;
 
-    // Criar elemento temporário
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
-    tempDiv.style.width = '800px';
+    tempDiv.style.width = '900px';
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
     document.body.appendChild(tempDiv);
 
     try {
-      // Capturar como imagem
       const canvas = await html2canvas(tempDiv, {
-        scale: 2.5,
+        scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: bgColor,
-        windowWidth: 800,
+        backgroundColor: '#0f172a',
+        windowWidth: 900,
         windowHeight: tempDiv.scrollHeight,
       });
-
-      // Converter para PDF
-      const imgData = canvas.toDataURL('image/png', 0.98);
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const pdfWidth = 210; // A4 width in mm
-      const imgHeightMM = (imgHeight * pdfWidth) / imgWidth;
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: [pdfWidth, imgHeightMM]
-      });
-
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdfWidth = 210;
+      const imgHeightMM = (canvas.height * pdfWidth) / canvas.width;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, imgHeightMM] });
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM, undefined, 'FAST');
-      pdf.save(`plano-alimentar-${patient.nome.replace(/\s+/g, '-')}.pdf`);
+      pdf.save(`plano-alimentar-${patient.nome.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
     } finally {
-      // Remover elemento temporário
       document.body.removeChild(tempDiv);
     }
   }
 }
-
-
-
-
-

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Comparativo de Evolução</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1e293b;
+            color: #e2e8f0;
+        }
+        .test-case {
+            background-color: #334155;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .result {
+            background-color: #0f172a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .comparison-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #475569;
+        }
+        .positive { color: #10b981; }
+        .negative { color: #ef4444; }
+        .neutral { color: #64748b; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste - Comparativo de Evolução de Check-ins</h1>
+    
+    <div class="grid">
+        <div class="test-case">
+            <h3>📊 Check-in Atual</h3>
+            <div class="result">
+                <div class="comparison-item">
+                    <span>⚖️ Peso:</span>
+                    <span>75.5kg</span>
+                </div>
+                <div class="comparison-item">
+                    <span>📏 Cintura:</span>
+                    <span>63cm</span>
+                </div>
+                <div class="comparison-item">
+                    <span>📐 Quadril:</span>
+                    <span>97cm</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🏃 Treinos:</span>
+                    <span>5</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🏃‍♂️ Cardio:</span>
+                    <span>3</span>
+                </div>
+                <div class="comparison-item">
+                    <span>💧 Água:</span>
+                    <span>2.5L</span>
+                </div>
+                <div class="comparison-item">
+                    <span>😴 Sono:</span>
+                    <span>7.5h</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🍽️ Refeições Livres:</span>
+                    <span>2</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🍪 Beliscos:</span>
+                    <span>1</span>
+                </div>
+                <div class="comparison-item">
+                    <span>📈 Aproveitamento:</span>
+                    <span>85%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <h3>📊 Check-in Anterior</h3>
+            <div class="result">
+                <div class="comparison-item">
+                    <span>⚖️ Peso:</span>
+                    <span>76.2kg</span>
+                </div>
+                <div class="comparison-item">
+                    <span>📏 Cintura:</span>
+                    <span>65cm</span>
+                </div>
+                <div class="comparison-item">
+                    <span>📐 Quadril:</span>
+                    <span>99cm</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🏃 Treinos:</span>
+                    <span>3</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🏃‍♂️ Cardio:</span>
+                    <span>2</span>
+                </div>
+                <div class="comparison-item">
+                    <span>💧 Água:</span>
+                    <span>2.0L</span>
+                </div>
+                <div class="comparison-item">
+                    <span>😴 Sono:</span>
+                    <span>6.5h</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🍽️ Refeições Livres:</span>
+                    <span>3</span>
+                </div>
+                <div class="comparison-item">
+                    <span>🍪 Beliscos:</span>
+                    <span>4</span>
+                </div>
+                <div class="comparison-item">
+                    <span>📈 Aproveitamento:</span>
+                    <span>78%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>📈 Evolução Comparativa (Simulação)</h3>
+        <div class="result" id="evolution-result">
+            <!-- Será preenchido pelo JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Simular função cleanNumber
+        function cleanNumber(value) {
+            if (!value) return 0;
+            const str = value.toString().replace(/[^\d.,]/g, '');
+            const normalized = str.replace(',', '.');
+            const num = parseFloat(normalized);
+            return isNaN(num) ? 0 : num;
+        }
+
+        // Dados simulados
+        const currentCheckin = {
+            peso: '75.5',
+            medida: 'cintura: 63 quadril: 97',
+            treino: '5',
+            cardio: '3',
+            agua: '2.5',
+            sono: '7.5',
+            ref_livre: '2',
+            beliscos: '1',
+            percentual_aproveitamento: '85'
+        };
+
+        const previousCheckin = {
+            peso: '76.2',
+            medida: 'cintura: 65 quadril: 99',
+            treino: '3',
+            cardio: '2',
+            agua: '2.0',
+            sono: '6.5',
+            ref_livre: '3',
+            beliscos: '4',
+            percentual_aproveitamento: '78'
+        };
+
+        // Simular extração de medidas
+        function extractMeasurements(text) {
+            if (!text) return { cintura: null, quadril: null };
+            
+            const cinturaMatch = text.match(/cintura[^:]*:\s*(\d+(?:\.\d+)?)/i);
+            const quadrilMatch = text.match(/quadril[^:]*:\s*(\d+(?:\.\d+)?)/i);
+            
+            return {
+                cintura: cinturaMatch ? parseFloat(cinturaMatch[1]) : null,
+                quadril: quadrilMatch ? parseFloat(quadrilMatch[1]) : null
+            };
+        }
+
+        // Calcular evolução
+        function calculateEvolution() {
+            const pesoAtual = cleanNumber(currentCheckin.peso);
+            const pesoAnterior = cleanNumber(previousCheckin.peso);
+            
+            const medidasAtuais = extractMeasurements(currentCheckin.medida);
+            const medidasAnteriores = extractMeasurements(previousCheckin.medida);
+
+            const evolution = {
+                peso_diferenca: pesoAtual && pesoAnterior ? 
+                    Number((pesoAtual - pesoAnterior).toFixed(1)) : 0,
+                cintura_diferenca: medidasAtuais.cintura && medidasAnteriores.cintura ? 
+                    Number((medidasAtuais.cintura - medidasAnteriores.cintura).toFixed(1)) : 0,
+                quadril_diferenca: medidasAtuais.quadril && medidasAnteriores.quadril ? 
+                    Number((medidasAtuais.quadril - medidasAnteriores.quadril).toFixed(1)) : 0,
+                treino_diferenca: (() => {
+                    const treinoAtual = cleanNumber(currentCheckin.treino);
+                    const treinoAnterior = cleanNumber(previousCheckin.treino);
+                    return treinoAtual && treinoAnterior ? Number((treinoAtual - treinoAnterior).toFixed(1)) : 0;
+                })(),
+                cardio_diferenca: (() => {
+                    const cardioAtual = cleanNumber(currentCheckin.cardio);
+                    const cardioAnterior = cleanNumber(previousCheckin.cardio);
+                    return cardioAtual && cardioAnterior ? Number((cardioAtual - cardioAnterior).toFixed(1)) : 0;
+                })(),
+                agua_diferenca: (() => {
+                    const aguaAtual = cleanNumber(currentCheckin.agua);
+                    const aguaAnterior = cleanNumber(previousCheckin.agua);
+                    return aguaAtual && aguaAnterior ? Number((aguaAtual - aguaAnterior).toFixed(1)) : 0;
+                })(),
+                sono_diferenca: (() => {
+                    const sonoAtual = cleanNumber(currentCheckin.sono);
+                    const sonoAnterior = cleanNumber(previousCheckin.sono);
+                    return sonoAtual && sonoAnterior ? Number((sonoAtual - sonoAnterior).toFixed(1)) : 0;
+                })(),
+                ref_livre_diferenca: (() => {
+                    const refLivreAtual = cleanNumber(currentCheckin.ref_livre);
+                    const refLivreAnterior = cleanNumber(previousCheckin.ref_livre);
+                    return refLivreAtual && refLivreAnterior ? Number((refLivreAtual - refLivreAnterior).toFixed(1)) : 0;
+                })(),
+                beliscos_diferenca: (() => {
+                    const beliscosAtual = cleanNumber(currentCheckin.beliscos);
+                    const beliscosAnterior = cleanNumber(previousCheckin.beliscos);
+                    return beliscosAtual && beliscosAnterior ? Number((beliscosAtual - beliscosAnterior).toFixed(1)) : 0;
+                })(),
+                aderencia_diferenca: (() => {
+                    const aproveitamentoAtual = Number(currentCheckin.percentual_aproveitamento) || 0;
+                    const aproveitamentoAnterior = Number(previousCheckin.percentual_aproveitamento) || 0;
+                    return aproveitamentoAtual && aproveitamentoAnterior ? 
+                        Number((aproveitamentoAtual - aproveitamentoAnterior).toFixed(1)) : 0;
+                })()
+            };
+
+            return evolution;
+        }
+
+        // Renderizar resultado
+        function renderEvolution() {
+            const evolution = calculateEvolution();
+            const resultDiv = document.getElementById('evolution-result');
+            
+            const items = [
+                { label: '⚖️ Peso:', value: evolution.peso_diferenca, unit: 'kg', good: 'negative' },
+                { label: '📏 Cintura:', value: evolution.cintura_diferenca, unit: 'cm', good: 'negative' },
+                { label: '📐 Quadril:', value: evolution.quadril_diferenca, unit: 'cm', good: 'negative' },
+                { label: '🏃 Treinos:', value: evolution.treino_diferenca, unit: '', good: 'positive' },
+                { label: '🏃‍♂️ Cardio:', value: evolution.cardio_diferenca, unit: '', good: 'positive' },
+                { label: '💧 Água:', value: evolution.agua_diferenca, unit: 'L', good: 'positive' },
+                { label: '😴 Sono:', value: evolution.sono_diferenca, unit: 'h', good: 'positive' },
+                { label: '🍽️ Refeições Livres:', value: evolution.ref_livre_diferenca, unit: '', good: 'negative' },
+                { label: '🍪 Beliscos:', value: evolution.beliscos_diferenca, unit: '', good: 'negative' },
+                { label: '📈 Aproveitamento:', value: evolution.aderencia_diferenca, unit: '%', good: 'positive' }
+            ];
+
+            let html = '';
+            items.forEach(item => {
+                // Mostrar TODOS os campos, mesmo os que são 0
+                const isGood = (item.good === 'positive' && item.value > 0) || 
+                              (item.good === 'negative' && item.value < 0);
+                const colorClass = item.value === 0 ? 'neutral' : (isGood ? 'positive' : 'negative');
+                const sign = item.value > 0 ? '+' : '';
+                
+                html += `
+                    <div class="comparison-item">
+                        <span>${item.label}</span>
+                        <span class="${colorClass}">${sign}${item.value}${item.unit}</span>
+                    </div>
+                `;
+            });
+
+            if (!html) {
+                html = '<div class="comparison-item"><span>Nenhuma diferença significativa encontrada</span></div>';
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        // Executar quando a página carregar
+        document.addEventListener('DOMContentLoaded', renderEvolution);
+    </script>
+</body>
+</html>

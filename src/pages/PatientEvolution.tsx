@@ -21,6 +21,7 @@ import { EvolutionCharts } from '@/components/evolution/EvolutionCharts';
 import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
 import { AIInsights } from '@/components/evolution/AIInsights';
+import { CheckinFeedbackSection } from '@/components/evolution/CheckinFeedbackSection';
 import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
 import { InitialDataInput } from '@/components/evolution/InitialDataInput';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
@@ -1402,6 +1403,20 @@ export default function PatientEvolution() {
           >
             <Timeline checkins={checkins} onCheckinUpdated={loadEvolution} />
           </motion.div>
+
+          {/* 5.5. Sistema de Feedback de Check-in com IA */}
+          {telefone && patient && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.42 }}
+            >
+              <CheckinFeedbackSection
+                telefone={telefone!}
+                patientName={patient.nome || 'Paciente'}
+              />
+            </motion.div>
+          )}
 
           {/* 6. Lista de Pesos Diários */}
           {telefone && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, 
@@ -10,7 +10,8 @@ import {
   Eye,
   BarChart3,
   FileText,
-  Edit
+  Edit,
+  ChevronDown
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,10 @@ import { CheckinForm } from "@/components/forms/CheckinForm";
 import { formatWeight } from "@/lib/weight-utils";
 import { EditCheckinModal } from "@/components/evolution/EditCheckinModal";
 import { RankingPanel } from "@/components/checkins/RankingPanel";
+import { CheckinFeedbackCard } from "@/components/checkins/CheckinFeedbackCard";
+import { CheckinFilters } from "@/components/checkins/CheckinFilters";
+import { CheckinQuickControls } from "@/components/checkins/CheckinQuickControls";
+import { useCheckinManagement, CheckinStatus } from "@/hooks/use-checkin-management";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import {
   LineChart,
@@ -50,18 +55,20 @@ import {
 export function CheckinsList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPeriod, setSelectedPeriod] = useState("7d");
-  const [selectedPatient, setSelectedPatient] = useState("all");
+  const [selectedStatuses, setSelectedStatuses] = useState<CheckinStatus[]>(['pendente']); // Padrão: pendentes
+  const [selectedResponsibles, setSelectedResponsibles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinWithPatient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCheckin, setEditingCheckin] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(10); // Mostrar 10 por padrão
 
   const { checkins: recentCheckins, loading: checkinsLoading, refetch } = useCheckinsWithPatient();
+  const { teamMembers } = useCheckinManagement();
 
-  // Gerar dados reais para o gráfico de evolução de scores
-  const generateScoreEvolutionData = () => {
+  // Gerar dados reais para o gráfico de evolução de scores (memoizado)
+  const scoreEvolutionData = useMemo(() => {
     if (recentCheckins.length === 0) return [];
     
     // Agrupar checkins por data e calcular médias
@@ -110,10 +117,10 @@ export function CheckinsList() {
       }))
       .sort((a, b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime())
       .slice(-10); // Últimos 10 registros
-  };
+  }, [recentCheckins]);
 
-  // Gerar dados reais para o radar de categorias
-  const generateCategoryRadarData = () => {
+  // Gerar dados reais para o radar de categorias (memoizado)
+  const categoryRadarData = useMemo(() => {
     if (recentCheckins.length === 0) return [];
     
     const categories = [
@@ -140,17 +147,52 @@ export function CheckinsList() {
         fullMark: 10
       };
     });
-  };
+  }, [recentCheckins]);
 
-  const scoreEvolutionData = generateScoreEvolutionData();
-  const categoryRadarData = generateCategoryRadarData();
+  // Calcular contagem de checkins por paciente (uma única vez, antes do map)
+  const patientCheckinsCount = useMemo(() => {
+    const countMap = new Map<string, number>();
+    recentCheckins.forEach(checkin => {
+      const patientId = checkin.patient?.id;
+      if (patientId) {
+        countMap.set(patientId, (countMap.get(patientId) || 0) + 1);
+      }
+    });
+    return countMap;
+  }, [recentCheckins]);
 
-  // Filtrar checkins
-  const filteredCheckins = recentCheckins.filter(checkin => {
-    const matchesSearch = checkin.patient?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
-    const matchesPatient = selectedPatient === "all" || checkin.patient?.id === selectedPatient;
-    return matchesSearch && matchesPatient;
-  });
+  // Filtrar checkins com base nos filtros selecionados
+  const filteredCheckins = useMemo(() => {
+    return recentCheckins.filter(checkin => {
+      // Filtro de busca por nome
+      const matchesSearch = !searchTerm || 
+        checkin.patient?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filtro de status
+      const matchesStatus = selectedStatuses.length === 0 || 
+        selectedStatuses.includes((checkin.status as CheckinStatus) || 'pendente');
+      
+      // Filtro de responsável
+      const matchesResponsible = selectedResponsibles.length === 0 || 
+        selectedResponsibles.includes(checkin.assigned_to || 'unassigned');
+      
+      return matchesSearch && matchesStatus && matchesResponsible;
+    });
+  }, [recentCheckins, searchTerm, selectedStatuses, selectedResponsibles]);
+
+  // Limitar check-ins exibidos baseado no displayLimit
+  const displayedCheckins = useMemo(() => {
+    return filteredCheckins.slice(0, displayLimit);
+  }, [filteredCheckins, displayLimit]);
+
+  // Verificar se há mais check-ins para carregar
+  const hasMore = filteredCheckins.length > displayLimit;
+
+  // Resetar limite quando os filtros mudarem
+  useEffect(() => {
+    setDisplayLimit(10);
+  }, [selectedStatuses, selectedResponsibles, searchTerm]);
+
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
@@ -207,51 +249,17 @@ export function CheckinsList() {
         </div>
       </div>
 
-      {/* Filtros */}
-      <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar por paciente..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-full sm:w-[140px] bg-slate-800/50 border-slate-600/50 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                <SelectItem value="90d">Últimos 90 dias</SelectItem>
-                <SelectItem value="1y">Último ano</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={selectedPatient} onValueChange={setSelectedPatient}>
-              <SelectTrigger className="w-full sm:w-[160px] bg-slate-800/50 border-slate-600/50 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os pacientes</SelectItem>
-                {Array.from(new Set(recentCheckins.map(c => c.patient?.id).filter(Boolean))).map((patientId, index) => {
-                  const checkin = recentCheckins.find(c => c.patient?.id === patientId);
-                  return (
-                    <SelectItem key={`patient-${patientId}-${index}`} value={patientId || ''}>
-                      {checkin?.patient?.nome || 'Paciente não informado'}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filtros Avançados */}
+      <CheckinFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedStatuses={selectedStatuses}
+        onStatusChange={setSelectedStatuses}
+        selectedResponsibles={selectedResponsibles}
+        onResponsibleChange={setSelectedResponsibles}
+        teamMembers={teamMembers}
+        totalResults={filteredCheckins.length}
+      />
 
       {/* Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -441,7 +449,14 @@ export function CheckinsList() {
       {/* Lista de Checkins */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
         <CardHeader>
-          <CardTitle className="text-white">Checkins Recentes ({filteredCheckins.length})</CardTitle>
+          <CardTitle className="text-white">
+            Checkins Recentes ({filteredCheckins.length})
+            {displayedCheckins.length < filteredCheckins.length && (
+              <span className="text-slate-400 text-sm font-normal ml-2">
+                (mostrando {displayedCheckins.length} de {filteredCheckins.length})
+              </span>
+            )}
+          </CardTitle>
           <CardDescription className="text-slate-400">
             Histórico detalhado dos checkins dos pacientes
           </CardDescription>
@@ -452,112 +467,119 @@ export function CheckinsList() {
               <CheckinItemSkeleton key={i} />
             ))
           ) : (
-            filteredCheckins.map((checkin) => (
-              <div key={checkin.id} className="p-6 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-xl hover:shadow-slate-900/20 hover:scale-[1.02] transition-all duration-300 ease-out">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-12 h-12 dark:ring-2 dark:ring-blue-600/30 dark:ring-offset-2 dark:ring-offset-[#1e3a8a] hover:dark:ring-blue-600/50 transition-all duration-300">
-                      <AvatarFallback className="bg-primary/20 dark:bg-gradient-to-br dark:from-primary/30 dark:to-primary/50 text-primary dark:text-primary-foreground font-semibold text-lg">
-                        {checkin.patient?.nome?.charAt(0) || 'P'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-semibold text-white text-lg">{checkin.patient?.nome || 'Paciente não informado'}</h4>
-                      <p className="text-sm text-slate-400 font-medium">
-                        {checkin.data_preenchimento ? new Date(checkin.data_preenchimento).toLocaleDateString('pt-BR') : 
-                         checkin.data_checkin ? new Date(checkin.data_checkin).toLocaleDateString('pt-BR') : 'Data não informada'} • 
-                        Peso: {formatWeight(checkin.peso)}
-                      </p>
+            displayedCheckins.map((checkin) => {
+              // Obter total de check-ins para este paciente (já calculado anteriormente)
+              const totalPatientCheckins = checkin.patient?.id 
+                ? (patientCheckinsCount.get(checkin.patient.id) || 0)
+                : 0;
+              
+              return (
+                <div key={checkin.id} className="p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-300 ease-out">
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Informações do Paciente */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarFallback className="bg-primary/20 text-primary font-semibold text-sm">
+                          {checkin.patient?.nome?.charAt(0) || 'P'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <h4 className="font-semibold text-white text-base truncate">{checkin.patient?.nome || 'Paciente não informado'}</h4>
+                      </div>
+                    </div>
+                    
+                    {/* Controles e Botões */}
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                      {/* Status, Responsável, Notas e Lock - integrados na linha */}
+                      <CheckinQuickControls
+                        checkin={checkin}
+                        teamMembers={teamMembers}
+                        onUpdate={refetch}
+                        notesCount={checkin.notes_count || 0}
+                        compact={true}
+                      />
+                      
+                      <div className="flex items-center gap-1">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => navigate(`/checkins/evolution/${checkin.telefone}`)}
+                                className="hover:bg-blue-500/20 hover:text-blue-300 h-8 w-8 p-0"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver dossiê de evolução</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => handleViewCheckin(checkin)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver detalhes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => handleEditCheckin(checkin)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar checkin</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant="outline" 
-                      className={`${getScoreColor(checkin.total_pontuacao || 0)}`}
-                    >
-                      {checkin.total_pontuacao ? `${checkin.total_pontuacao} pts` : 'N/A'}
-                    </Badge>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => navigate(`/checkins/evolution/${checkin.telefone}`)}
-                            className="hover:bg-blue-500/20 hover:text-blue-300"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Ver dossiê de evolução</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => handleViewCheckin(checkin)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Ver detalhes</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => handleEditCheckin(checkin)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Editar checkin</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+
+                  {/* Feedback */}
+                  <div className="mt-3 pt-3 border-t border-slate-700/50">
+                    <CheckinFeedbackCard
+                      checkin={checkin}
+                      totalCheckins={totalPatientCheckins}
+                      onUpdate={refetch}
+                    />
                   </div>
                 </div>
-                
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400">Treino</p>
-                    <p className="font-semibold text-white">{checkin.pontos_treinos || 'N/A'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400">Cardio</p>
-                    <p className="font-semibold text-white">{checkin.pontos_cardios || 'N/A'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400">Sono</p>
-                    <p className="font-semibold text-white">{checkin.pontos_sono || 'N/A'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400">Hidratação</p>
-                    <p className="font-semibold text-white">{checkin.pontos_agua || 'N/A'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400">Stress</p>
-                    <p className="font-semibold text-white">{checkin.pontos_stress || 'N/A'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400">Libido</p>
-                    <p className="font-semibold text-white">{checkin.pontos_libido || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-            ))
+              );
+            })
+          )}
+          
+          {/* Botão Carregar Mais */}
+          {hasMore && !checkinsLoading && (
+            <div className="flex justify-center pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setDisplayLimit(prev => prev + 10)}
+                className="bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+              >
+                <ChevronDown className="w-4 h-4 mr-2" />
+                Carregar mais ({filteredCheckins.length - displayLimit} restantes)
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -7,6 +7,7 @@ import { EditCheckinModal } from "./EditCheckinModal";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { extractMeasurements } from "@/lib/measurement-utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -197,8 +198,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                     </div>
                   </div>
 
-                  {/* Dados Físicos */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {/* Dados Físicos - Primeira linha (5 cards) */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                     <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <Weight className="w-3 h-3 text-slate-400" />
@@ -217,6 +218,59 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                         )}
                       </div>
                     </div>
+
+                    {/* Medidas (Cintura e Quadril) */}
+                    {checkin.medida && (
+                      (() => {
+                        const measurements = extractMeasurements(checkin.medida);
+                        
+                        return (
+                          <>
+                            {/* Cintura */}
+                            {measurements.cintura && (
+                              <div className="bg-slate-800/50 p-3 rounded-lg">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Target className="w-3 h-3 text-cyan-400" />
+                                  <p className="text-xs text-slate-400">Cintura</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-lg font-bold text-white">{measurements.cintura}</p>
+                                  <span className="text-xs text-slate-400">cm</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Quadril */}
+                            {measurements.quadril && (
+                              <div className="bg-slate-800/50 p-3 rounded-lg">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Target className="w-3 h-3 text-teal-400" />
+                                  <p className="text-xs text-slate-400">Quadril</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-lg font-bold text-white">{measurements.quadril}</p>
+                                  <span className="text-xs text-slate-400">cm</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Se não conseguiu extrair medidas válidas, mostrar valor original com aviso */}
+                            {!measurements.cintura && !measurements.quadril && (
+                              <div className="bg-slate-800/50 p-3 rounded-lg">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Target className="w-3 h-3 text-orange-400" />
+                                  <p className="text-xs text-slate-400">Medida</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-lg font-bold text-white">{checkin.medida}</p>
+                                  <span className="text-xs text-orange-400" title="Não foi possível extrair medidas válidas">⚠️</span>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()
+                    )}
 
                     <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
@@ -237,7 +291,10 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                         {checkin.pontos_cardios || 'N/A'}
                       </Badge>
                     </div>
+                  </div>
 
+                  {/* Segunda linha (5 cards) */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                     <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <Moon className="w-3 h-3 text-purple-400" />
@@ -247,11 +304,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                         {checkin.pontos_sono || 'N/A'}
                       </Badge>
                     </div>
-                  </div>
 
-                  {/* Métricas Adicionais */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                    <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <Droplets className="w-3 h-3 text-blue-400" />
                         <p className="text-xs text-slate-400">Hidratação</p>
@@ -261,7 +315,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                    <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <Target className="w-3 h-3 text-amber-400" />
                         <p className="text-xs text-slate-400">Stress</p>
@@ -271,7 +325,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                    <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <Flame className="w-3 h-3 text-pink-400" />
                         <p className="text-xs text-slate-400">Libido</p>
@@ -281,7 +335,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                    <div className="bg-slate-800/50 p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <BedDouble className="w-3 h-3 text-indigo-400" />
                         <p className="text-xs text-slate-400">Qualidade Sono</p>

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Feedback IA Integrado aos Check-ins</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #ffffff, #e2e8f0, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .checkin-card {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(30, 41, 59, 0.5) 100%);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .checkin-card:hover {
+            background: linear-gradient(135deg, rgba(71, 85, 105, 0.6) 0%, rgba(51, 65, 85, 0.6) 100%);
+            border-color: rgba(100, 116, 139, 0.6);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+        }
+        
+        .card-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        
+        .patient-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #3b82f6;
+            flex-shrink: 0;
+        }
+        
+        .patient-details h4 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .patient-details p {
+            margin: 4px 0 0 0;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        .metrics {
+            display: flex;
+            gap: 16px;
+            font-size: 0.875rem;
+        }
+        
+        .metric {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .metric-label {
+            color: #94a3b8;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid;
+        }
+        
+        .badge-good {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        
+        .feedback-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        
+        .feedback-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .feedback-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .feedback-btn:hover {
+            background: rgba(71, 85, 105, 0.5);
+            color: #ffffff;
+        }
+        
+        .feedback-content {
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .feedback-content.expanded {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .feedback-card {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .feedback-card h5 {
+            margin: 0 0 12px 0;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feedback-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+        }
+        
+        .feedback-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .feedback-label {
+            color: #94a3b8;
+        }
+        
+        .feedback-value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        
+        .feedback-value.positive {
+            color: #10b981;
+        }
+        
+        .feedback-value.negative {
+            color: #ef4444;
+        }
+        
+        .textarea {
+            width: 100%;
+            background: rgba(71, 85, 105, 0.5);
+            border: 1px solid rgba(100, 116, 139, 0.5);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .textarea::placeholder {
+            color: #94a3b8;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: #cbd5e1;
+            border: 1px solid rgba(100, 116, 139, 0.5);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(71, 85, 105, 0.5);
+        }
+        
+        .generated-feedback {
+            background: rgba(71, 85, 105, 0.5);
+            border: 1px solid rgba(100, 116, 139, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        @media (max-width: 768px) {
+            .metrics {
+                display: none;
+            }
+            
+            .feedback-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Feedback IA Integrado</h1>
+            <p>Sistema de análise inteligente de check-ins com IA</p>
+        </div>
+        
+        <!-- Card de Check-in com Feedback -->
+        <div class="checkin-card">
+            <div class="card-main">
+                <div class="patient-info">
+                    <div class="avatar">J</div>
+                    <div class="patient-details">
+                        <h4>Jullyana Motta Oliveira</h4>
+                        <p>22/12/2025 • Peso: 90 kg</p>
+                    </div>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">Treino</span>
+                        <span class="metric-value">5</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Cardio</span>
+                        <span class="metric-value">5</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Sono</span>
+                        <span class="metric-value">10</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Hidratação</span>
+                        <span class="metric-value">8</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Stress</span>
+                        <span class="metric-value">6</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Libido</span>
+                        <span class="metric-value">8</span>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <div class="badge badge-good">85 pts</div>
+                    <button class="btn">📄</button>
+                    <button class="btn">👁️</button>
+                    <button class="btn">✏️</button>
+                </div>
+            </div>
+            
+            <div class="feedback-section">
+                <div class="feedback-toggle">
+                    <button class="feedback-btn" onclick="toggleFeedback(this)">
+                        🤖 <span>Feedback IA</span>
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3);">Rascunho</span>
+                        <span class="chevron">▼</span>
+                    </button>
+                    <button class="btn">⚙️</button>
+                </div>
+                
+                <div class="feedback-content" id="feedbackContent">
+                    <div class="feedback-grid">
+                        <div class="feedback-card">
+                            <h5>📅 Check-in Atual (22/12/2025)</h5>
+                            <div class="feedback-item">
+                                <span class="feedback-label">⚖️ Peso:</span>
+                                <span class="feedback-value">90kg</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">📏 Cintura:</span>
+                                <span class="feedback-value">63cm</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">📐 Quadril:</span>
+                                <span class="feedback-value">97cm</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">📊 Total de Check-ins:</span>
+                                <span class="feedback-value">12</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">📈 Aproveitamento:</span>
+                                <span class="feedback-value">85%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="feedback-card">
+                            <h5>📈 Evolução Comparativa</h5>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Peso:</span>
+                                <span class="feedback-value negative">+0.5kg</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Cintura:</span>
+                                <span class="feedback-value positive">-2cm</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Quadril:</span>
+                                <span class="feedback-value positive">-1cm</span>
+                            </div>
+                            <div class="feedback-item">
+                                <span class="feedback-label">Aproveitamento:</span>
+                                <span class="feedback-value positive">85% (+5%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feedback-card">
+                        <h5>📝 Suas Observações</h5>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.75rem; color: #cbd5e1; margin-bottom: 4px;">🔍 Melhoras Observadas:</label>
+                            <textarea class="textarea" placeholder="Descreva as melhoras que você observou no paciente...">Paciente demonstrou maior consistência nos treinos e melhor qualidade do sono. Redução visível na circunferência abdominal.</textarea>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 0.75rem; color: #cbd5e1; margin-bottom: 4px;">⚙️ Ajustes Realizados na Dieta:</label>
+                            <textarea class="textarea" placeholder="Descreva os ajustes que você fez na dieta...">Aumentei a quantidade de proteína no café da manhã e ajustei o timing dos carboidratos pré-treino.</textarea>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn-secondary">💾 Salvar</button>
+                            <button class="btn-primary">🤖 Gerar Feedback</button>
+                        </div>
+                    </div>
+                    
+                    <div class="feedback-card">
+                        <h5>🤖 Feedback Gerado</h5>
+                        <div class="generated-feedback">📌 FEEDBACK DO CHECK-IN
+
+📈 Progresso e Evolução: Show, Jullyana! Você está no caminho certo com 85% de aproveitamento (+5% em relação ao último check-in). Peso subiu 0.5kg, mas as medidas mostram o que realmente importa: -2cm na cintura e -1cm no quadril. Isso é recomposição corporal acontecendo!
+
+💡 Pontos de Melhoria:
+• Manter a consistência nos treinos que está perfeita
+• Continuar priorizando a qualidade do sono que melhorou muito
+
+🔄 Ajustes no Planejamento:
+- Aumentei a proteína no café da manhã para potencializar a síntese proteica
+- Ajustei o timing dos carboidratos pré-treino para melhor performance
+- Foco na recomposição corporal: ganhar massa muscular enquanto perde gordura
+
+📢 Conclusão e Próximos Passos:
+Você está evoluindo top! As medidas provam que está perdendo gordura e ganhando músculo. Vamos manter essa estratégia e focar na consistência. Próximo check-in em 15 dias para acompanhar essa evolução linda!
+
+Se tiver alguma dúvida pode me mandar aqui</div>
+                        <div class="btn-group">
+                            <button class="btn-secondary">📋 Copiar</button>
+                            <button class="btn-secondary" style="color: #10b981; border-color: rgba(16, 185, 129, 0.5);">📱 WhatsApp</button>
+                            <button class="btn-secondary">📤 Marcar Enviado</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card Minimalista (Colapsado) -->
+        <div class="checkin-card">
+            <div class="card-main">
+                <div class="patient-info">
+                    <div class="avatar">M</div>
+                    <div class="patient-details">
+                        <h4>Maria Silva Santos</h4>
+                        <p>21/12/2025 • Peso: 75 kg</p>
+                    </div>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">Treino</span>
+                        <span class="metric-value">8</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Cardio</span>
+                        <span class="metric-value">7</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Sono</span>
+                        <span class="metric-value">9</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Hidratação</span>
+                        <span class="metric-value">10</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Stress</span>
+                        <span class="metric-value">4</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Libido</span>
+                        <span class="metric-value">7</span>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <div class="badge badge-good">92 pts</div>
+                    <button class="btn">📄</button>
+                    <button class="btn">👁️</button>
+                    <button class="btn">✏️</button>
+                </div>
+            </div>
+            
+            <div class="feedback-section">
+                <div class="feedback-toggle">
+                    <button class="feedback-btn" onclick="toggleFeedback(this)">
+                        🤖 <span>Feedback IA</span>
+                        <span class="chevron">▼</span>
+                    </button>
+                    <button class="btn">⚙️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleFeedback(button) {
+            const content = button.closest('.feedback-section').querySelector('.feedback-content');
+            const chevron = button.querySelector('.chevron');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                chevron.textContent = '▼';
+            } else {
+                content.classList.add('expanded');
+                chevron.textContent = '▲';
+            }
+        }
+    </script>
+</body>
+</html>

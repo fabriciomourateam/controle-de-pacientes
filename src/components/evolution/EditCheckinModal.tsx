@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { cleanWeight } from '@/lib/weight-utils';
+import { extractMeasurements } from '@/lib/measurement-utils';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 
@@ -24,6 +25,8 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         peso: '',
+        cintura: '',
+        quadril: '',
         pontos_treinos: '',
         pontos_cardios: '',
         pontos_descanso_entre_series: '',
@@ -42,8 +45,13 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
 
     useEffect(() => {
         if (checkin) {
+            // Extrair medidas do campo medida
+            const measurements = extractMeasurements(checkin.medida);
+            
             setFormData({
                 peso: checkin.peso || '',
+                cintura: measurements.cintura || '',
+                quadril: measurements.quadril || '',
                 pontos_treinos: checkin.pontos_treinos || '',
                 pontos_cardios: checkin.pontos_cardios || '',
                 pontos_descanso_entre_series: checkin.pontos_descanso_entre_series || '',
@@ -93,11 +101,22 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
         try {
             const totalScore = calculateTotalScore();
             const aproveitamento = calculateAproveitamento();
+            
+            // Formatar medidas para salvar no campo medida
+            const medidaParts: string[] = [];
+            if (formData.cintura) {
+                medidaParts.push(`Cintura: ${formData.cintura}cm`);
+            }
+            if (formData.quadril) {
+                medidaParts.push(`Quadril: ${formData.quadril}cm`);
+            }
+            const medida = medidaParts.length > 0 ? medidaParts.join(' ') : null;
 
             const { error } = await supabase
                 .from('checkin')
                 .update({
                     peso: cleanWeight(formData.peso) || null,
+                    medida: medida,
                     pontos_treinos: formData.pontos_treinos || null,
                     pontos_cardios: formData.pontos_cardios || null,
                     pontos_descanso_entre_series: formData.pontos_descanso_entre_series || null,
@@ -150,17 +169,41 @@ export function EditCheckinModal({ checkin, open, onOpenChange, onSuccess }: Edi
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Peso */}
-                    <div>
-                        <Label htmlFor="peso" className="text-slate-300">Peso (kg)</Label>
-                        <Input
-                            id="peso"
-                            type="text"
-                            value={formData.peso}
-                            onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
-                            className="bg-slate-800 border-slate-700 text-white"
-                            placeholder="Ex: 75.5"
-                        />
+                    {/* Peso e Medidas */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <Label htmlFor="peso" className="text-slate-300">Peso (kg)</Label>
+                            <Input
+                                id="peso"
+                                type="text"
+                                value={formData.peso}
+                                onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
+                                className="bg-slate-800 border-slate-700 text-white"
+                                placeholder="Ex: 75.5"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="cintura" className="text-slate-300">Cintura (cm)</Label>
+                            <Input
+                                id="cintura"
+                                type="text"
+                                value={formData.cintura}
+                                onChange={(e) => setFormData({ ...formData, cintura: e.target.value })}
+                                className="bg-slate-800 border-slate-700 text-white"
+                                placeholder="Ex: 85"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="quadril" className="text-slate-300">Quadril (cm)</Label>
+                            <Input
+                                id="quadril"
+                                type="text"
+                                value={formData.quadril}
+                                onChange={(e) => setFormData({ ...formData, quadril: e.target.value })}
+                                className="bg-slate-800 border-slate-700 text-white"
+                                placeholder="Ex: 95"
+                            />
+                        </div>
                     </div>
 
                     {/* Pontuações */}
