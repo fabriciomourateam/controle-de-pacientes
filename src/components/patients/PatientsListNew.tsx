@@ -94,12 +94,31 @@ export function PatientsListNew() {
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
+  
+  // Paginação: mostrar apenas os primeiros N pacientes
+  const [displayLimit, setDisplayLimit] = useState(15);
+  const INITIAL_DISPLAY_LIMIT = 15;
+  const LOAD_MORE_INCREMENT = 15;
 
-  // Obter planos únicos de TODOS os pacientes (não filtrados)
-  const uniquePlans = useMemo(() => {
-    const plans = [...new Set(allPatients.map(p => p.plano).filter(Boolean))];
-    return plans.sort();
-  }, [allPatients]);
+  // Estado para planos únicos (otimizado)
+  const [uniquePlans, setUniquePlans] = useState<string[]>([]);
+  
+  // Obter planos únicos de TODOS os pacientes (não filtrados) - fallback
+  const uniquePlansFromAll = useMemo(() => {
+    if (allPatients.length > 0) {
+      const plans = [...new Set(allPatients.map(p => p.plano).filter(Boolean))];
+      return plans.sort();
+    }
+    return uniquePlans;
+  }, [allPatients, uniquePlans]);
+  
+  // Pacientes visíveis (limitados pela paginação)
+  const visiblePatients = useMemo(() => {
+    return patients.slice(0, displayLimit);
+  }, [patients, displayLimit]);
+  
+  // Verificar se há mais pacientes para mostrar
+  const hasMorePatients = patients.length > displayLimit;
 
   // Verificar status de assinatura e limites
   useEffect(() => {
@@ -163,15 +182,43 @@ export function PatientsListNew() {
     { field: 'valor', label: 'Valor' }
   ];
 
-  // Carregar todos os pacientes (para lista de planos)
-  const loadAllPatients = async () => {
+  // Carregar planos únicos (otimizado - não precisa carregar todos os pacientes)
+  const loadUniquePlans = async () => {
     try {
-      const data = await patientService.getAll();
-      setAllPatients(data);
+      const plans = await patientService.getUniquePlans();
+      setUniquePlans(plans);
+      // Não precisamos mais carregar todos os pacientes só para os planos
     } catch (error) {
-      console.error('Erro ao carregar todos os pacientes:', error);
+      console.error('Erro ao carregar planos únicos:', error);
+      // Fallback: carregar todos os pacientes se o método otimizado falhar
+      try {
+        const data = await patientService.getAll();
+        setAllPatients(data);
+      } catch (fallbackError) {
+        console.error('Erro ao carregar pacientes (fallback):', fallbackError);
+      }
     }
   };
+  
+  // Carregar todos os pacientes (para lista de planos) - mantido para compatibilidade
+  const loadAllPatients = async () => {
+    try {
+      // Usar método otimizado primeiro
+      await loadUniquePlans();
+    } catch (error) {
+      console.error('Erro ao carregar planos:', error);
+    }
+  };
+  
+  // Função para carregar mais pacientes
+  const handleLoadMore = () => {
+    setDisplayLimit(prev => prev + LOAD_MORE_INCREMENT);
+  };
+  
+  // Resetar limite quando filtros mudarem
+  useEffect(() => {
+    setDisplayLimit(INITIAL_DISPLAY_LIMIT);
+  }, [preferences?.filters, preferences?.sorting]);
 
   // Carregar pacientes com filtros
   const loadPatients = async () => {
@@ -352,17 +399,30 @@ export function PatientsListNew() {
     }
   };
 
-  // Filtrar e ordenar colunas visíveis
-  const visibleColumns = preferences?.visible_columns || columnOptions.map(col => col.key);
-  const columnOrder = preferences?.column_order || columnOptions.map(col => col.key);
+  // Filtrar e ordenar colunas visíveis (memoizado para evitar re-renders)
+  const visibleColumns = useMemo(() => 
+    preferences?.visible_columns || columnOptions.map(col => col.key),
+    [preferences?.visible_columns]
+  );
   
-  // Filtrar colunas visíveis
-  const visibleColumnOptions = columnOptions.filter(col => visibleColumns.includes(col.key));
+  const columnOrder = useMemo(() => 
+    preferences?.column_order || columnOptions.map(col => col.key),
+    [preferences?.column_order]
+  );
   
-  // Ordenar colunas conforme a ordem salva
-  const filteredColumnOptions = columnOrder
-    .map(key => visibleColumnOptions.find(col => col.key === key))
-    .filter(Boolean) as typeof columnOptions;
+  // Filtrar colunas visíveis (memoizado)
+  const visibleColumnOptions = useMemo(() => 
+    columnOptions.filter(col => visibleColumns.includes(col.key)),
+    [visibleColumns]
+  );
+  
+  // Ordenar colunas conforme a ordem salva (memoizado)
+  const filteredColumnOptions = useMemo(() => 
+    columnOrder
+      .map(key => visibleColumnOptions.find(col => col.key === key))
+      .filter(Boolean) as typeof columnOptions,
+    [columnOrder, visibleColumnOptions]
+  );
 
   if (preferencesLoading) {
     return (
@@ -429,7 +489,7 @@ export function PatientsListNew() {
         filters={preferences?.filters || {}}
         onFiltersChange={handleFiltersChange}
         onReset={handleResetFilters}
-        plans={uniquePlans}
+        plans={uniquePlansFromAll}
       />
 
       {/* Controles de visualização */}
@@ -502,7 +562,7 @@ export function PatientsListNew() {
                   </TableCell>
                 </TableRow>
               ) : (
-                patients.map((patient) => {
+                visiblePatients.map((patient) => {
                   const status = getPatientStatus(patient);
                   
                   return (
@@ -733,6 +793,29 @@ export function PatientsListNew() {
             </TableBody>
           </Table>
         </CardContent>
+        
+        {/* Botão Mostrar Mais */}
+        {!loading && hasMorePatients && (
+          <div className="p-4 border-t border-slate-700/50 flex justify-center">
+            <Button
+              onClick={handleLoadMore}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Mostrar mais ({patients.length - displayLimit} restantes)
+            </Button>
+          </div>
+        )}
+        
+        {/* Indicador de pacientes visíveis */}
+        {!loading && patients.length > 0 && (
+          <div className="px-4 pb-4 text-center">
+            <p className="text-sm text-slate-400">
+              Mostrando {visiblePatients.length} de {patients.length} pacientes
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Modais */}

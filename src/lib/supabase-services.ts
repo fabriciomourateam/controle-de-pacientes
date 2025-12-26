@@ -95,6 +95,20 @@ export const patientService = {
     return updatedData;
   },
 
+  // Buscar apenas planos únicos (otimizado - não carrega todos os pacientes)
+  async getUniquePlans(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('plano')
+      .not('plano', 'is', null);
+
+    if (error) throw error;
+    
+    // Extrair planos únicos e ordenar
+    const uniquePlans = [...new Set(data?.map(p => p.plano).filter(Boolean))];
+    return uniquePlans.sort();
+  },
+
   // Buscar paciente por ID
   async getById(id: string) {
     const { data, error } = await supabase
@@ -382,12 +396,28 @@ export const patientService = {
     // Aplicar ordenação
     if (sorting.field) {
       query = query.order(sorting.field, { ascending: sorting.direction === 'asc' });
+    } else {
+      // Ordenação padrão se não especificada
+      query = query.order('created_at', { ascending: false });
     }
 
+    // Não aplicar limite aqui - deixar o componente controlar a paginação
+    // Isso permite que filtros funcionem corretamente
     const { data, error } = await query;
     
     if (error) throw error;
-    return data || [];
+    
+    // Atualizar days_to_expiration para todos os pacientes retornados
+    const updatedData = data?.map(patient => {
+      const diasParaVencer = this.calculateDaysToExpiration(patient.vencimento);
+      
+      return {
+        ...patient,
+        dias_para_vencer: diasParaVencer
+      };
+    }) || [];
+    
+    return updatedData;
   }
 };
 
