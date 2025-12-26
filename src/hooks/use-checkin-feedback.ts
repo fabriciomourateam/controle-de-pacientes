@@ -160,6 +160,58 @@ export const useCheckinFeedback = (telefone: string) => {
         const cinturaDiferenca = cinturaAnterior !== null && cinturaAtual !== null ? Number((cinturaAtual - cinturaAnterior).toFixed(1)) : null;
         const quadrilDiferenca = quadrilAnterior !== null && quadrilAtual !== null ? Number((quadrilAtual - quadrilAnterior).toFixed(1)) : null;
 
+        // Função para extrair número de tempo (minutos) de texto livre
+        const extractTimeMinutes = (text: string | null | undefined): number | null => {
+          if (!text) return null;
+          const str = text.toString().trim();
+          
+          // Padrões comuns: "1h15", "1:10", "2 horas", "60 a 70 min", "30 a 45"
+          const hourMinMatch = str.match(/(\d+)[h:]\s*(\d+)/i);
+          if (hourMinMatch) {
+            const hours = parseInt(hourMinMatch[1]) || 0;
+            const minutes = parseInt(hourMinMatch[2]) || 0;
+            return hours * 60 + minutes;
+          }
+          
+          const rangeMatch = str.match(/(\d+)\s*(?:a|até|-)\s*\d+/i);
+          if (rangeMatch) {
+            return parseInt(rangeMatch[1]);
+          }
+          
+          const numMatch = str.match(/(\d+)/);
+          if (numMatch) {
+            return parseInt(numMatch[1]);
+          }
+          
+          return null;
+        };
+
+        // Função para extrair segundos de descanso de texto livre
+        const extractRestSeconds = (text: string | null | undefined): number | null => {
+          if (!text) return null;
+          const str = text.toString().toLowerCase().trim();
+          
+          if (str.includes('mais de um minuto') || str.includes('mais de 1 minuto')) {
+            return 60;
+          }
+          
+          const minMatch = str.match(/(\d+)\s*min/i);
+          if (minMatch) {
+            return parseInt(minMatch[1]) * 60;
+          }
+          
+          const numMatch = str.match(/(\d+)/);
+          if (numMatch) {
+            return parseInt(numMatch[1]);
+          }
+          
+          return null;
+        };
+
+        const tempoTreinoAtualText = currentCheckin.tempo || null;
+        const tempoCardioAtualText = currentCheckin.tempo_cardio || null;
+        const descansoAtualText = currentCheckin.descanso || null;
+
         const evolution = {
           peso_anterior: pesoAnterior,
           cintura_anterior: cinturaAnterior,
@@ -170,6 +222,12 @@ export const useCheckinFeedback = (telefone: string) => {
           sono_anterior: null, // Sem dados iniciais
           ref_livre_anterior: null, // Sem dados iniciais
           beliscos_anterior: null, // Sem dados iniciais
+          tempo_treino_anterior: null, // Sem dados iniciais
+          tempo_treino_anterior_text: null,
+          tempo_cardio_anterior: null, // Sem dados iniciais
+          tempo_cardio_anterior_text: null,
+          descanso_anterior: null, // Sem dados iniciais
+          descanso_anterior_text: null,
           aderencia_anterior: null, // Sem dados iniciais
           peso_atual: pesoAtual,
           cintura_atual: cinturaAtual,
@@ -180,6 +238,12 @@ export const useCheckinFeedback = (telefone: string) => {
           sono_atual: cleanNumber(currentCheckin.sono),
           ref_livre_atual: cleanNumber(currentCheckin.ref_livre),
           beliscos_atual: cleanNumber(currentCheckin.beliscos),
+          tempo_treino_atual: extractTimeMinutes(tempoTreinoAtualText),
+          tempo_treino_atual_text: tempoTreinoAtualText,
+          tempo_cardio_atual: extractTimeMinutes(tempoCardioAtualText),
+          tempo_cardio_atual_text: tempoCardioAtualText,
+          descanso_atual: extractRestSeconds(descansoAtualText),
+          descanso_atual_text: descansoAtualText,
           aderencia_atual: Number(currentCheckin.percentual_aproveitamento) || 0,
           peso_diferenca: pesoDiferenca,
           cintura_diferenca: cinturaDiferenca,
@@ -190,6 +254,9 @@ export const useCheckinFeedback = (telefone: string) => {
           sono_diferenca: null, // Sem dados iniciais
           ref_livre_diferenca: null, // Sem dados iniciais
           beliscos_diferenca: null, // Sem dados iniciais
+          tempo_treino_diferenca: null, // Sem dados iniciais
+          tempo_cardio_diferenca: null, // Sem dados iniciais
+          descanso_diferenca: null, // Sem dados iniciais
           aderencia: Number(currentCheckin.percentual_aproveitamento) || 0,
           aderencia_diferenca: null, // Sem dados iniciais
           tem_checkin_anterior: false,
@@ -210,6 +277,60 @@ export const useCheckinFeedback = (telefone: string) => {
       const medidasAtuais = extractMeasurements(currentCheckin.medida);
       const medidasAnteriores = extractMeasurements(previousCheckin.medida);
 
+      // Função para extrair número de tempo (minutos) de texto livre
+      const extractTimeMinutes = (text: string | null | undefined): number | null => {
+        if (!text) return null;
+        const str = text.toString().trim();
+        
+        // Padrões comuns: "1h15", "1:10", "2 horas", "60 a 70 min", "30 a 45"
+        // Extrair horas e minutos de formato "1h15" ou "1:10"
+        const hourMinMatch = str.match(/(\d+)[h:]\s*(\d+)/i);
+        if (hourMinMatch) {
+          const hours = parseInt(hourMinMatch[1]) || 0;
+          const minutes = parseInt(hourMinMatch[2]) || 0;
+          return hours * 60 + minutes;
+        }
+        
+        // Extrair primeiro número de range "60 a 70" -> usa o primeiro
+        const rangeMatch = str.match(/(\d+)\s*(?:a|até|-)\s*\d+/i);
+        if (rangeMatch) {
+          return parseInt(rangeMatch[1]);
+        }
+        
+        // Extrair qualquer número do texto
+        const numMatch = str.match(/(\d+)/);
+        if (numMatch) {
+          return parseInt(numMatch[1]);
+        }
+        
+        return null;
+      };
+
+      // Função para extrair segundos de descanso de texto livre
+      const extractRestSeconds = (text: string | null | undefined): number | null => {
+        if (!text) return null;
+        const str = text.toString().toLowerCase().trim();
+        
+        // "Mais de um minuto" -> 60 segundos
+        if (str.includes('mais de um minuto') || str.includes('mais de 1 minuto')) {
+          return 60;
+        }
+        
+        // Extrair minutos e converter para segundos
+        const minMatch = str.match(/(\d+)\s*min/i);
+        if (minMatch) {
+          return parseInt(minMatch[1]) * 60;
+        }
+        
+        // Extrair qualquer número (assume segundos)
+        const numMatch = str.match(/(\d+)/);
+        if (numMatch) {
+          return parseInt(numMatch[1]);
+        }
+        
+        return null;
+      };
+
       // Calcular valores atuais e anteriores
       const treinoAtual = cleanNumber(currentCheckin.treino);
       const treinoAnterior = cleanNumber(previousCheckin.treino);
@@ -223,6 +344,23 @@ export const useCheckinFeedback = (telefone: string) => {
       const refLivreAnterior = cleanNumber(previousCheckin.ref_livre);
       const beliscosAtual = cleanNumber(currentCheckin.beliscos);
       const beliscosAnterior = cleanNumber(previousCheckin.beliscos);
+      
+      // Para tempo de treino, cardio e descanso, manter texto original e extrair número para cálculo
+      const tempoTreinoAtualText = currentCheckin.tempo || null;
+      const tempoTreinoAnteriorText = previousCheckin.tempo || null;
+      const tempoTreinoAtual = extractTimeMinutes(tempoTreinoAtualText);
+      const tempoTreinoAnterior = extractTimeMinutes(tempoTreinoAnteriorText);
+      
+      const tempoCardioAtualText = currentCheckin.tempo_cardio || null;
+      const tempoCardioAnteriorText = previousCheckin.tempo_cardio || null;
+      const tempoCardioAtual = extractTimeMinutes(tempoCardioAtualText);
+      const tempoCardioAnterior = extractTimeMinutes(tempoCardioAnteriorText);
+      
+      const descansoAtualText = currentCheckin.descanso || null;
+      const descansoAnteriorText = previousCheckin.descanso || null;
+      const descansoAtual = extractRestSeconds(descansoAtualText);
+      const descansoAnterior = extractRestSeconds(descansoAnteriorText);
+      
       const aproveitamentoAtual = Number(currentCheckin.percentual_aproveitamento) || 0;
       const aproveitamentoAnterior = Number(previousCheckin.percentual_aproveitamento) || 0;
 
@@ -243,6 +381,12 @@ export const useCheckinFeedback = (telefone: string) => {
         sono_anterior: sonoAnterior,
         ref_livre_anterior: refLivreAnterior,
         beliscos_anterior: beliscosAnterior,
+        tempo_treino_anterior: tempoTreinoAnterior,
+        tempo_treino_anterior_text: tempoTreinoAnteriorText,
+        tempo_cardio_anterior: tempoCardioAnterior,
+        tempo_cardio_anterior_text: tempoCardioAnteriorText,
+        descanso_anterior: descansoAnterior,
+        descanso_anterior_text: descansoAnteriorText,
         aderencia_anterior: aproveitamentoAnterior,
         // Valores atuais
         peso_atual: pesoAtual,
@@ -254,6 +398,12 @@ export const useCheckinFeedback = (telefone: string) => {
         sono_atual: sonoAtual,
         ref_livre_atual: refLivreAtual,
         beliscos_atual: beliscosAtual,
+        tempo_treino_atual: tempoTreinoAtual,
+        tempo_treino_atual_text: tempoTreinoAtualText,
+        tempo_cardio_atual: tempoCardioAtual,
+        tempo_cardio_atual_text: tempoCardioAtualText,
+        descanso_atual: descansoAtual,
+        descanso_atual_text: descansoAtualText,
         aderencia_atual: aproveitamentoAtual,
         // Diferenças
         peso_diferenca: pesoAtual && pesoAnterior ? 
@@ -268,6 +418,9 @@ export const useCheckinFeedback = (telefone: string) => {
         sono_diferenca: sonoAtual && sonoAnterior ? Number((sonoAtual - sonoAnterior).toFixed(1)) : 0,
         ref_livre_diferenca: refLivreAtual && refLivreAnterior ? Number((refLivreAtual - refLivreAnterior).toFixed(1)) : 0,
         beliscos_diferenca: beliscosAtual && beliscosAnterior ? Number((beliscosAtual - beliscosAnterior).toFixed(1)) : 0,
+        tempo_treino_diferenca: tempoTreinoAtual !== null && tempoTreinoAnterior !== null ? Number((tempoTreinoAtual - tempoTreinoAnterior).toFixed(1)) : null,
+        tempo_cardio_diferenca: tempoCardioAtual !== null && tempoCardioAnterior !== null ? Number((tempoCardioAtual - tempoCardioAnterior).toFixed(1)) : null,
+        descanso_diferenca: descansoAtual !== null && descansoAnterior !== null ? Number((descansoAtual - descansoAnterior).toFixed(1)) : null,
         aderencia: aproveitamentoAtual,
         aderencia_diferenca: aproveitamentoAtual && aproveitamentoAnterior ? 
           Number((aproveitamentoAtual - aproveitamentoAnterior).toFixed(1)) : 0,
@@ -435,12 +588,12 @@ export const useCheckinFeedback = (telefone: string) => {
       }
 
       // Se não tiver ID mas tiver checkin_id, buscar se já existe
+      // Buscar por checkin_id sem filtrar por user_id para permitir que owner e membros vejam o mesmo feedback
       if (analysis.checkin_id) {
         const { data: existing } = await supabase
           .from('checkin_feedback_analysis' as any)
           .select('*')
           .eq('checkin_id', analysis.checkin_id)
-          .eq('user_id', user.id)
           .maybeSingle();
 
         if (existing) {

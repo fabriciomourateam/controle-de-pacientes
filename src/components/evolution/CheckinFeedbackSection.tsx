@@ -95,7 +95,7 @@ export const CheckinFeedbackSection: React.FC<CheckinFeedbackSectionProps> = ({
       diet_adjustments: dietAdjustments,
       generated_feedback: generatedFeedback,
       feedback_status: 'draft',
-      prompt_template_id: activeTemplate?.id || ''
+      prompt_template_id: activeTemplate?.id || null
     });
   };
 
