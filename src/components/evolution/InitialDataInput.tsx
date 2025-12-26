@@ -19,10 +19,14 @@ interface InitialDataInputProps {
   nome: string;
   onSuccess: () => void;
   editMode?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }: InitialDataInputProps) {
-  const [open, setOpen] = useState(false);
+export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, open: externalOpen, onOpenChange: externalOnOpenChange }: InitialDataInputProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = externalOnOpenChange || setInternalOpen;
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -287,23 +291,25 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {editMode ? (
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Editar dados iniciais"
-          >
-            <Edit className="w-3 h-3" />
-          </Button>
-        ) : (
-          <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
-            <Camera className="w-4 h-4" />
-            Adicionar Dados Iniciais
-          </Button>
-        )}
-      </DialogTrigger>
+      {externalOpen === undefined && (
+        <DialogTrigger asChild>
+          {editMode ? (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Editar dados iniciais"
+            >
+              <Edit className="w-3 h-3" />
+            </Button>
+          ) : (
+            <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
+              <Camera className="w-4 h-4" />
+              Adicionar Dados Iniciais
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>📸 {editMode ? 'Editar' : 'Adicionar'} Dados Iniciais - {nome}</DialogTitle>

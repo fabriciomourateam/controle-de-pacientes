@@ -131,23 +131,49 @@ export const useCheckinFeedback = (telefone: string) => {
         return isNaN(num) ? 0 : num;
       };
 
-      // Se não há check-in anterior, usar valores zerados
+      // Se não há check-in anterior, buscar dados iniciais do paciente
       if (!previousCheckin) {
+        // Buscar dados do paciente
+        const { data: patientData, error: patientError } = await supabase
+          .from('patients')
+          .select('peso_inicial, medida_cintura_inicial, medida_quadril_inicial, altura_inicial')
+          .eq('telefone', telefone)
+          .single();
+
+        if (patientError && process.env.NODE_ENV === 'development') {
+          console.error('Erro ao buscar dados iniciais do paciente:', patientError);
+        }
+
         const medidasAtuais = extractMeasurements(currentCheckin.medida);
+        
+        // Usar dados iniciais do paciente se disponíveis, senão usar null/0
+        const pesoAnterior = patientData?.peso_inicial ? cleanNumber(patientData.peso_inicial) : null;
+        const cinturaAnterior = patientData?.medida_cintura_inicial ? cleanNumber(patientData.medida_cintura_inicial) : null;
+        const quadrilAnterior = patientData?.medida_quadril_inicial ? cleanNumber(patientData.medida_quadril_inicial) : null;
+        
+        const pesoAtual = cleanNumber(currentCheckin.peso);
+        const cinturaAtual = medidasAtuais.cintura;
+        const quadrilAtual = medidasAtuais.quadril;
+
+        // Calcular diferenças apenas se ambos os valores existirem
+        const pesoDiferenca = pesoAnterior !== null && pesoAtual ? Number((pesoAtual - pesoAnterior).toFixed(1)) : null;
+        const cinturaDiferenca = cinturaAnterior !== null && cinturaAtual !== null ? Number((cinturaAtual - cinturaAnterior).toFixed(1)) : null;
+        const quadrilDiferenca = quadrilAnterior !== null && quadrilAtual !== null ? Number((quadrilAtual - quadrilAnterior).toFixed(1)) : null;
+
         const evolution = {
-          peso_anterior: 0,
-          cintura_anterior: null,
-          quadril_anterior: null,
-          treino_anterior: 0,
-          cardio_anterior: 0,
-          agua_anterior: 0,
-          sono_anterior: 0,
-          ref_livre_anterior: 0,
-          beliscos_anterior: 0,
-          aderencia_anterior: 0,
-          peso_atual: cleanNumber(currentCheckin.peso),
-          cintura_atual: medidasAtuais.cintura,
-          quadril_atual: medidasAtuais.quadril,
+          peso_anterior: pesoAnterior,
+          cintura_anterior: cinturaAnterior,
+          quadril_anterior: quadrilAnterior,
+          treino_anterior: null, // Sem dados iniciais
+          cardio_anterior: null, // Sem dados iniciais
+          agua_anterior: null, // Sem dados iniciais
+          sono_anterior: null, // Sem dados iniciais
+          ref_livre_anterior: null, // Sem dados iniciais
+          beliscos_anterior: null, // Sem dados iniciais
+          aderencia_anterior: null, // Sem dados iniciais
+          peso_atual: pesoAtual,
+          cintura_atual: cinturaAtual,
+          quadril_atual: quadrilAtual,
           treino_atual: cleanNumber(currentCheckin.treino),
           cardio_atual: cleanNumber(currentCheckin.cardio),
           agua_atual: cleanNumber(currentCheckin.agua),
@@ -155,21 +181,22 @@ export const useCheckinFeedback = (telefone: string) => {
           ref_livre_atual: cleanNumber(currentCheckin.ref_livre),
           beliscos_atual: cleanNumber(currentCheckin.beliscos),
           aderencia_atual: Number(currentCheckin.percentual_aproveitamento) || 0,
-          peso_diferenca: 0,
-          cintura_diferenca: 0,
-          quadril_diferenca: 0,
-          treino_diferenca: 0,
-          cardio_diferenca: 0,
-          agua_diferenca: 0,
-          sono_diferenca: 0,
-          ref_livre_diferenca: 0,
-          beliscos_diferenca: 0,
+          peso_diferenca: pesoDiferenca,
+          cintura_diferenca: cinturaDiferenca,
+          quadril_diferenca: quadrilDiferenca,
+          treino_diferenca: null, // Sem dados iniciais
+          cardio_diferenca: null, // Sem dados iniciais
+          agua_diferenca: null, // Sem dados iniciais
+          sono_diferenca: null, // Sem dados iniciais
+          ref_livre_diferenca: null, // Sem dados iniciais
+          beliscos_diferenca: null, // Sem dados iniciais
           aderencia: Number(currentCheckin.percentual_aproveitamento) || 0,
-          aderencia_diferenca: 0,
-          tem_checkin_anterior: false
+          aderencia_diferenca: null, // Sem dados iniciais
+          tem_checkin_anterior: false,
+          usando_dados_iniciais: true // Flag para indicar que está usando dados iniciais
         };
         if (process.env.NODE_ENV === 'development') {
-          console.log('📈 Evolução (primeiro check-in):', evolution);
+          console.log('📈 Evolução (primeiro check-in com dados iniciais):', evolution);
         }
         setEvolutionData(evolution);
         return evolution;

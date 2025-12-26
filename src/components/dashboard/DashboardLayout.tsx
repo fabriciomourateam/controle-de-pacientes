@@ -30,12 +30,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const isPricingPage = location.pathname === '/pricing';
   
   // Mostrar loading enquanto verifica autenticação
-  if (authLoading) {
+  if (authLoading || subscriptionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="space-y-4 w-full max-w-md p-6">
+          <div className="flex items-center justify-center mb-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+          </div>
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-32 w-full" />
         </div>
       </div>
     );

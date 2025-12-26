@@ -33,11 +33,19 @@ export function DashboardOverview() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [filterThisMonth, setFilterThisMonth] = useState(false);
-  const { metrics, loading: metricsLoading } = useDashboardMetrics(filterThisMonth);
-  const { chartData, loading: chartLoading } = useChartData(filterThisMonth);
-  const { patients: expiringPatients, loading: expiringLoading } = useExpiringPatients();
-  const { feedbacks: recentCheckinsFromHook, loading: checkinsLoadingFromHook } = useRecentFeedbacks();
-  const { checkins: recentCheckins, loading: checkinsLoading } = useCheckinsWithPatient();
+  const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics(filterThisMonth);
+  const { data: chartData, isLoading: chartLoading } = useChartData(filterThisMonth);
+  const { data: expiringPatients = [], isLoading: expiringLoading } = useExpiringPatients();
+  const { data: recentCheckinsFromHook = [], isLoading: checkinsLoadingFromHook } = useRecentFeedbacks();
+  const { data: recentCheckins = [], isLoading: checkinsLoading } = useCheckinsWithPatient();
+  
+  const metrics = metricsData || {
+    totalPatients: 0,
+    activePatients: 0,
+    expiringPatients: 0,
+    pendingFeedbacks: 0,
+    avgOverallScore: '0.0'
+  };
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinWithPatient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLegendMinimized, setIsLegendMinimized] = useState(true);

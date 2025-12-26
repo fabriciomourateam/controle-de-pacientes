@@ -176,7 +176,7 @@ function CheckinQuickControlsComponent({
   const getAssigneeName = (userId: string) => {
     if (!userId || userId === 'unassigned') return 'Não atribuído';
     const member = teamMembers.find(m => m.user_id === userId);
-    return member ? (member.is_owner ? `👑 ${member.name}` : member.name) : 'Usuário desconhecido';
+    return member ? member.name : 'Usuário desconhecido';
   };
 
   const statusBadge = getStatusBadge(currentStatus);
@@ -282,7 +282,6 @@ function CheckinQuickControlsComponent({
                   <div className="flex items-center gap-2">
                     <User className="w-3 h-3 text-slate-400" />
                     <span>
-                      {member.is_owner && '👑 '}
                       {member.name}
                     </span>
                   </div>

@@ -25,8 +25,8 @@ interface PatientDetailsModalProps {
 
 export function PatientDetailsModal({ patient, open, onClose, onEdit, onRenewPlan }: PatientDetailsModalProps) {
   const { plans } = usePlans();
-  const { feedbacks } = useFeedbacks();
-  const { checkins: patientCheckins, loading: checkinsLoading } = usePatientCheckins(patient?.telefone || '');
+  const { feedbacks = [] } = useFeedbacks();
+  const { data: patientCheckins = [], isLoading: checkinsLoading } = usePatientCheckins(patient?.telefone || '');
   
   if (!patient) return null;
 

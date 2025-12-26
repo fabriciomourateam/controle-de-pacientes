@@ -35,9 +35,17 @@ import { useDashboardMetrics, usePatients, useChartData } from "@/hooks/use-supa
 
 export default function ReportsPage() {
   const { toast } = useToast();
-  const { metrics, loading: metricsLoading } = useDashboardMetrics();
+  const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics();
   const { patients, loading: patientsLoading } = usePatients();
-  const { chartData } = useChartData();
+  const { data: chartData } = useChartData();
+  
+  const metrics = metricsData || {
+    totalPatients: 0,
+    activePatients: 0,
+    expiringPatients: 0,
+    pendingFeedbacks: 0,
+    avgOverallScore: '0.0'
+  };
   const [filters, setFilters] = useState({
     period: 'last-30-days',
     startDate: '',

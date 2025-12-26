@@ -68,7 +68,7 @@ export function CheckinsList() {
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'status' | 'score'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Padrão: mais recente primeiro
 
-  const { checkins: recentCheckins, loading: checkinsLoading, refetch } = useCheckinsWithPatient();
+  const { data: recentCheckins = [], isLoading: checkinsLoading, refetch } = useCheckinsWithPatient();
   const { teamMembers } = useCheckinManagement();
 
   // Debounce na busca para melhorar performance

@@ -41,10 +41,13 @@ const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
 
-// Componente de loading
+// Componente de loading melhorado
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
+  <div className="flex items-center justify-center min-h-screen bg-background">
     <div className="space-y-4 w-full max-w-md p-6">
+      <div className="flex items-center justify-center mb-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-64 w-full" />
       <Skeleton className="h-32 w-full" />
@@ -52,14 +55,16 @@ const PageLoader = () => (
   </div>
 );
 
-// Configurar React Query com cache otimizado
+// Configurar React Query com cache otimizado e refetch automático
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados "frescos"
-      cacheTime: 10 * 60 * 1000, // 10 minutos - cache mantido
-      refetchOnWindowFocus: false, // Não refetch ao focar na janela
+      staleTime: 30 * 1000, // 30 segundos - dados considerados "frescos" (reduzido para atualizações mais rápidas)
+      gcTime: 5 * 60 * 1000, // 5 minutos - cache mantido (cacheTime foi renomeado para gcTime no React Query v5)
+      refetchOnWindowFocus: true, // Refetch ao focar na janela para dados atualizados
+      refetchOnReconnect: true, // Refetch ao reconectar
       retry: 1, // Tentar apenas 1 vez em caso de erro
+      refetchInterval: false, // Desabilitado por padrão, pode ser habilitado por query específica
     },
   },
 });

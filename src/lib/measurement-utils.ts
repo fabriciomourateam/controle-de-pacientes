@@ -24,7 +24,9 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
   
   // Padrão 1: Procurar por palavras-chave específicas com mais precisão
   // Buscar por "Cintura" seguido de dois pontos e número (incluindo texto complexo)
+  // Padrões mais específicos primeiro (com palavras-chave explícitas)
   const cinturaPatterns = [
+    /cintura\s+(\d+(?:\.\d+)?)(?:\s|$|cm|quadril|\n)/i, // Padrão mais específico primeiro: "Cintura 87" seguido de espaço, fim, quebra de linha ou "Quadril"
     /cintura[^:]*:\*?\s*(\d+(?:\.\d+)?)/i,
     /cintura[^:]*\s+(\d+(?:\.\d+)?)/i,
     /waist[^:]*:\*?\s*(\d+(?:\.\d+)?)/i,
@@ -32,6 +34,7 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
   ];
   
   const quadrilPatterns = [
+    /quadril\s+(\d+(?:\.\d+)?)(?:\s|$|cm|\n)/i, // Padrão mais específico primeiro: "Quadril 115" seguido de espaço, fim, quebra de linha ou "cm"
     /quadril[^:]*:\*?\s*(\d+(?:\.\d+)?)/i,
     /quadril[^:]*\s+(\d+(?:\.\d+)?)/i,
     /glúteo[^:]*:\*?\s*(\d+(?:\.\d+)?)/i,
@@ -39,7 +42,7 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
     /glúteo\s+maior[^:]*:\*?\s*(\d+(?:\.\d+)?)/i
   ];
   
-  // Tentar encontrar cintura
+  // Tentar encontrar cintura - buscar primeiro para evitar conflitos
   for (const pattern of cinturaPatterns) {
     const match = textStr.match(pattern);
     if (match) {
@@ -51,12 +54,13 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
     }
   }
   
-  // Tentar encontrar quadril
+  // Tentar encontrar quadril - buscar após cintura para evitar capturar o mesmo número
   for (const pattern of quadrilPatterns) {
     const match = textStr.match(pattern);
     if (match) {
       const value = parseFloat(match[1]);
-      if (isValidMeasurement(value, 'quadril')) {
+      // Verificar se não é o mesmo valor da cintura (para evitar duplicação)
+      if (isValidMeasurement(value, 'quadril') && (cintura === null || value !== cintura)) {
         quadril = value;
         break;
       }

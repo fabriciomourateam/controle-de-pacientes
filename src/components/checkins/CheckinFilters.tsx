@@ -90,7 +90,6 @@ export function CheckinFilters({
                 <SelectItem value="all">Todos os responsáveis</SelectItem>
                 {teamMembers.map((member) => (
                   <SelectItem key={member.user_id} value={member.user_id}>
-                    {member.is_owner && '👑 '}
                     {member.name}
                   </SelectItem>
                 ))}
