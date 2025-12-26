@@ -18,7 +18,7 @@ interface PromptTemplate {
   temperature: number;
 }
 
-// Cache para economizar tokens
+// Cache para economizar tokens - Versão híbrida (memória + localStorage)
 interface CacheEntry {
   hash: string;
   feedback: string;
@@ -26,31 +26,248 @@ interface CacheEntry {
 }
 
 class FeedbackCache {
-  private cache = new Map<string, CacheEntry>();
+  // Cache em memória para acesso rápido
+  private memoryCache = new Map<string, CacheEntry>();
+  
+  // Configurações
+  private readonly STORAGE_KEY = 'checkin_feedback_cache_v1';
   private readonly CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 dias
+  private readonly MAX_CACHE_SIZE = 100; // Limitar a 100 entradas
+  
+  // Flag para carregar do localStorage apenas uma vez
+  private storageCacheLoaded = false;
 
   generateHash(data: any): string {
-    return btoa(JSON.stringify(data)).slice(0, 32);
+    // Usar hash mais robusto e longo (32 caracteres) para evitar colisões
+    const str = JSON.stringify(data);
+    
+    // Primeira passada (esquerda para direita)
+    let hash1 = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash1 = ((hash1 << 5) - hash1) + char;
+      hash1 = hash1 & hash1; // Convert to 32bit integer
+    }
+    
+    // Segunda passada (direita para esquerda) para mais robustez
+    let hash2 = 0;
+    for (let i = str.length - 1; i >= 0; i--) {
+      const char = str.charCodeAt(i);
+      hash2 = ((hash2 << 5) - hash2) + char;
+      hash2 = hash2 & hash2;
+    }
+    
+    // Combinar hashes e retornar 32 caracteres
+    const combined = Math.abs(hash1).toString(36) + Math.abs(hash2).toString(36);
+    return combined.slice(0, 32).padEnd(32, '0');
   }
 
   get(hash: string): string | null {
-    const entry = this.cache.get(hash);
-    if (!entry) return null;
-    
-    if (Date.now() - entry.timestamp > this.CACHE_DURATION) {
-      this.cache.delete(hash);
-      return null;
+    // 1. Verificar memória primeiro (mais rápido - O(1))
+    const memoryEntry = this.memoryCache.get(hash);
+    if (memoryEntry) {
+      if (Date.now() - memoryEntry.timestamp < this.CACHE_DURATION) {
+        return memoryEntry.feedback;
+      } else {
+        // Entrada expirada - remover
+        this.memoryCache.delete(hash);
+      }
     }
-    
-    return entry.feedback;
+
+    // 2. Se não tiver em memória, carregar do localStorage (só uma vez)
+    if (!this.storageCacheLoaded) {
+      this.loadStorageCacheToMemory();
+    }
+
+    // 3. Verificar novamente na memória (agora pode ter sido carregado)
+    const loadedEntry = this.memoryCache.get(hash);
+    if (loadedEntry) {
+      if (Date.now() - loadedEntry.timestamp < this.CACHE_DURATION) {
+        return loadedEntry.feedback;
+      } else {
+        this.memoryCache.delete(hash);
+      }
+    }
+
+    return null;
   }
 
   set(hash: string, feedback: string): void {
-    this.cache.set(hash, {
+    const entry: CacheEntry = {
       hash,
       feedback,
       timestamp: Date.now()
-    });
+    };
+
+    // Salvar em memória imediatamente (rápido, não bloqueia)
+    this.memoryCache.set(hash, entry);
+
+    // Salvar no localStorage de forma assíncrona (não bloqueia a thread principal)
+    this.saveToStorageAsync(hash, entry);
+  }
+
+  // Carregar cache do localStorage para memória (só uma vez)
+  private loadStorageCacheToMemory(): void {
+    if (this.storageCacheLoaded) return;
+    
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        this.storageCacheLoaded = true;
+        return; // SSR ou localStorage não disponível
+      }
+
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) {
+        this.storageCacheLoaded = true;
+        return;
+      }
+
+      const data = JSON.parse(stored);
+      const now = Date.now();
+      let hasExpiredEntries = false;
+
+      // Carregar entradas válidas para memória
+      Object.entries(data).forEach(([hash, entry]: [string, any]) => {
+        if (now - entry.timestamp < this.CACHE_DURATION) {
+          this.memoryCache.set(hash, entry);
+        } else {
+          hasExpiredEntries = true;
+        }
+      });
+
+      // Se limpou entradas expiradas, salvar de volta
+      if (hasExpiredEntries) {
+        this.saveStorageCacheFromMemory();
+      }
+
+      this.storageCacheLoaded = true;
+    } catch (error) {
+      console.warn('Erro ao carregar cache do localStorage:', error);
+      this.storageCacheLoaded = true; // Não tentar de novo
+    }
+  }
+
+  // Salvar cache no localStorage de forma assíncrona
+  private saveToStorageAsync(hash: string, entry: CacheEntry): void {
+    // Usar setTimeout para não bloquear a thread principal
+    setTimeout(() => {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) {
+          return; // SSR ou localStorage não disponível
+        }
+
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        const data: Record<string, CacheEntry> = stored ? JSON.parse(stored) : {};
+        
+        // Atualizar entrada
+        data[hash] = entry;
+
+        // Limitar tamanho (manter apenas os mais recentes)
+        const entries = Object.entries(data)
+          .sort((a, b) => b[1].timestamp - a[1].timestamp)
+          .slice(0, this.MAX_CACHE_SIZE);
+
+        const limitedData: Record<string, CacheEntry> = {};
+        entries.forEach(([h, e]) => {
+          limitedData[h] = e;
+        });
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(limitedData));
+      } catch (error) {
+        // Tratar erro de quota excedida
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          this.clearOldStorageEntries();
+        } else {
+          console.warn('Erro ao salvar cache no localStorage:', error);
+        }
+      }
+    }, 0);
+  }
+
+  // Salvar todo o cache da memória para localStorage
+  private saveStorageCacheFromMemory(): void {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+
+      const data: Record<string, CacheEntry> = {};
+      this.memoryCache.forEach((entry, hash) => {
+        data[hash] = entry;
+      });
+
+      // Limitar tamanho
+      const entries = Object.entries(data)
+        .sort((a, b) => b[1].timestamp - a[1].timestamp)
+        .slice(0, this.MAX_CACHE_SIZE);
+
+      const limitedData: Record<string, CacheEntry> = {};
+      entries.forEach(([hash, entry]) => {
+        limitedData[hash] = entry;
+      });
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(limitedData));
+    } catch (error) {
+      console.warn('Erro ao salvar cache completo:', error);
+    }
+  }
+
+  // Limpar entradas antigas quando localStorage estiver cheio
+  private clearOldStorageEntries(): void {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return;
+
+      const data = JSON.parse(stored);
+      const entries = Object.entries(data)
+        .sort((a, b) => b[1].timestamp - a[1].timestamp)
+        .slice(0, Math.floor(this.MAX_CACHE_SIZE / 2)); // Manter só metade
+
+      const limitedData: Record<string, CacheEntry> = {};
+      entries.forEach(([hash, entry]) => {
+        limitedData[hash] = entry;
+      });
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(limitedData));
+
+      // Atualizar memória também
+      this.memoryCache.clear();
+      Object.entries(limitedData).forEach(([hash, entry]) => {
+        this.memoryCache.set(hash, entry);
+      });
+    } catch (error) {
+      console.error('Erro ao limpar cache antigo:', error);
+      // Último recurso: limpar tudo
+      try {
+        localStorage.removeItem(this.STORAGE_KEY);
+        this.memoryCache.clear();
+      } catch (e) {
+        // Ignorar erro final
+      }
+    }
+  }
+
+  // Métodos úteis para debug/manutenção (opcional)
+  clear(): void {
+    this.memoryCache.clear();
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
+    this.storageCacheLoaded = false;
+  }
+
+  getStats(): { size: number; oldestEntry: number | null; newestEntry: number | null } {
+    const timestamps = Array.from(this.memoryCache.values()).map(e => e.timestamp);
+    
+    return {
+      size: this.memoryCache.size,
+      oldestEntry: timestamps.length > 0 ? Math.min(...timestamps) : null,
+      newestEntry: timestamps.length > 0 ? Math.max(...timestamps) : null
+    };
   }
 }
 
@@ -102,8 +319,28 @@ class CheckinFeedbackAI {
     data: CheckinFeedbackData, 
     template: PromptTemplate
   ): Promise<string> {
-    // Verificar cache primeiro
-    const cacheKey = this.cache.generateHash({ data, template: template.id });
+    // Extrair identificadores únicos para garantir hash único por paciente + check-in
+    const checkinId = data.checkinData?.id || data.checkinData?.checkin_id || 'no-id';
+    const patientName = data.patientName || 'unknown';
+    const checkinDate = data.checkinData?.data_checkin || '';
+    
+    // Criar chave de cache com identificadores explícitos para evitar colisões
+    // IMPORTANTE: Incluir o conteúdo do prompt no hash para invalidar cache quando o prompt for editado
+    const cacheKey = this.cache.generateHash({ 
+      patient: patientName,
+      checkinId: checkinId,
+      checkinDate: checkinDate,
+      checkinData: data.checkinData,
+      evolutionData: data.evolutionData,
+      observedImprovements: data.observedImprovements || '',
+      dietAdjustments: data.dietAdjustments || '',
+      templateId: template.id,
+      templateContent: template.prompt_template, // ✅ Invalida cache quando prompt for editado
+      templateModel: template.ai_model, // ✅ Invalida cache se modelo mudar
+      templateMaxTokens: template.max_tokens, // ✅ Invalida cache se configurações mudarem
+      templateTemperature: template.temperature // ✅ Invalida cache se temperatura mudar
+    });
+    
     const cachedResult = this.cache.get(cacheKey);
     
     if (cachedResult) {
@@ -154,8 +391,32 @@ class CheckinFeedbackAI {
     prompt = prompt.replace(/{patientName}/g, data.patientName || 'Paciente');
     prompt = prompt.replace(/{checkinData}/g, this.formatCheckinData(data.checkinData));
     prompt = prompt.replace(/{evolutionData}/g, this.formatEvolutionData(data.evolutionData));
-    prompt = prompt.replace(/{observedImprovements}/g, data.observedImprovements || 'Nenhuma observação específica registrada.');
-    prompt = prompt.replace(/{dietAdjustments}/g, data.dietAdjustments || 'Nenhum ajuste específico realizado.');
+    
+    // Enfatizar observações e ajustes quando preenchidos para garantir que a IA os use
+    const hasObservations = data.observedImprovements && data.observedImprovements.trim().length > 0;
+    const hasDietAdjustments = data.dietAdjustments && data.dietAdjustments.trim().length > 0;
+    
+    if (hasObservations) {
+      // Enfatizar observações quando preenchidas
+      const emphasizedObservations = `\n⚠️ **ATENÇÃO - OBSERVAÇÕES IMPORTANTES DO NUTRICIONISTA:**\n${data.observedImprovements}\n\n*IMPORTANTE: Estas observações devem ser REFLETIDAS e MENCIONADAS no feedback, especialmente na seção de Progresso e Evolução e Pontos de Melhoria.*\n`;
+      prompt = prompt.replace(/{observedImprovements}/g, emphasizedObservations);
+    } else {
+      prompt = prompt.replace(/{observedImprovements}/g, 'Nenhuma observação específica registrada.');
+    }
+    
+    if (hasDietAdjustments) {
+      // Enfatizar ajustes quando preenchidos
+      const emphasizedAdjustments = `\n⚠️ **ATENÇÃO - AJUSTES REALIZADOS NA DIETA:**\n${data.dietAdjustments}\n\n*IMPORTANTE: Estes ajustes devem ser DESTACADOS na seção "Ajustes no Planejamento" do feedback, explicando o motivo e em quais refeições foram feitas as modificações.*\n`;
+      prompt = prompt.replace(/{dietAdjustments}/g, emphasizedAdjustments);
+    } else {
+      prompt = prompt.replace(/{dietAdjustments}/g, 'Nenhum ajuste específico realizado.');
+    }
+    
+    // Adicionar instrução final reforçando o uso das observações e ajustes
+    if (hasObservations || hasDietAdjustments) {
+      const reinforcement = `\n\n*INSTRUÇÃO FINAL CRÍTICA:*\n- Se houver observações de melhoras preenchidas acima, elas DEVEM ser mencionadas e refletidas no feedback.\n- Se houver ajustes na dieta preenchidos acima, eles DEVEM ser destacados na seção de ajustes do feedback.\n- Não ignore ou omita essas informações - elas são essenciais para o feedback completo.\n`;
+      prompt += reinforcement;
+    }
     
     return prompt;
   }
