@@ -59,27 +59,39 @@ class CheckinFeedbackAI {
   private cache = new FeedbackCache();
   
   constructor() {
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      console.error('VITE_ANTHROPIC_API_KEY não está configurada. Configure a variável de ambiente.');
+      throw new Error('Chave da API do Anthropic não configurada. Configure VITE_ANTHROPIC_API_KEY no arquivo .env.local ou nas variáveis de ambiente da Vercel.');
+    }
+    
     this.anthropic = new Anthropic({
-      apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+      apiKey: apiKey,
       dangerouslyAllowBrowser: true, // Permitir uso no browser
     });
   }
 
   // Normalizar nome do modelo para garantir compatibilidade
   private normalizeModel(model: string): string {
-    // Mapear modelos Sonnet para o formato correto que funciona
+    // Mapear modelos Sonnet para o formato mais recente (Claude Sonnet 4.5)
     const modelMap: Record<string, string> = {
-      'claude-3-5-sonnet-20241022': 'claude-3-7-sonnet-20250219',
-      'claude-3-5-sonnet-20240620': 'claude-3-7-sonnet-20250219',
-      'claude-3-5-sonnet': 'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514': 'claude-3-7-sonnet-20250219',
-      // Manter o modelo correto como está
-      'claude-3-7-sonnet-20250219': 'claude-3-7-sonnet-20250219',
+      // Modelo mais recente - Claude Sonnet 4.5
+      'claude-sonnet-4-5-20250929': 'claude-sonnet-4-5-20250929',
+      'claude-sonnet-4.5': 'claude-sonnet-4-5-20250929',
+      'claude-sonnet-4-5': 'claude-sonnet-4-5-20250929',
+      
+      // Modelos anteriores (migrar para Sonnet 4.5)
+      'claude-3-7-sonnet-20250219': 'claude-sonnet-4-5-20250929',
+      'claude-3-5-sonnet-20241022': 'claude-sonnet-4-5-20250929',
+      'claude-3-5-sonnet-20240620': 'claude-sonnet-4-5-20250929',
+      'claude-3-5-sonnet': 'claude-sonnet-4-5-20250929',
+      'claude-sonnet-4-20250514': 'claude-sonnet-4-5-20250929',
     };
     
-    // Se for um modelo Sonnet, usar o formato correto
+    // Se for um modelo Sonnet, usar o formato mais recente
     if (model.includes('sonnet')) {
-      return modelMap[model] || 'claude-3-7-sonnet-20250219';
+      return modelMap[model] || 'claude-sonnet-4-5-20250929';
     }
     
     // Manter outros modelos como estão

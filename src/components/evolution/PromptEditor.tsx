@@ -38,7 +38,7 @@ export const PromptEditor: React.FC = () => {
   const defaultTemplate: Partial<PromptTemplate> = {
     name: 'Template Padrão Fabricio Moura',
     description: 'Template personalizado com o estilo e formato do Fabricio Moura',
-    ai_model: 'claude-3-7-sonnet-20250219',
+    ai_model: 'claude-sonnet-4-5-20250929',
     max_tokens: 1200,
     temperature: 0.3,
     prompt_template: `Quero que você seja eu, Fabricio Moura, nutricionista e treinador, com mais de 500 alunos ativos.
@@ -97,7 +97,7 @@ Se tiver alguma dúvida pode me mandar aqui`
     setEditingTemplate({
       name: '',
       description: '',
-      ai_model: 'claude-3-7-sonnet-20250219',
+      ai_model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1000,
       temperature: 0.7,
       prompt_template: ''
@@ -275,14 +275,15 @@ Se tiver alguma dúvida pode me mandar aqui`
                   <div>
                     <Label className="text-slate-300">Modelo de IA</Label>
                     <select
-                      value={editingTemplate.ai_model || 'claude-3-7-sonnet-20250219'}
+                      value={editingTemplate.ai_model || 'claude-sonnet-4-5-20250929'}
                       onChange={(e) => setEditingTemplate({
                         ...editingTemplate,
                         ai_model: e.target.value
                       })}
                       className="w-full p-2 rounded-md bg-slate-700/50 border border-slate-600 text-slate-200"
                     >
-                      <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
+                      <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Mais Recente)</option>
+                      <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                       <option value="claude-3-opus-20240229">Claude 3 Opus</option>
                       <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
                     </select>
