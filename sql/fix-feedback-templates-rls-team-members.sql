@@ -44,3 +44,6 @@ CREATE POLICY "Users can update templates" ON feedback_prompt_templates
 CREATE POLICY "Users can delete templates" ON feedback_prompt_templates
     FOR DELETE USING (auth.uid() = user_id);
 
+
+
+

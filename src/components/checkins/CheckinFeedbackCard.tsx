@@ -515,7 +515,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   return (
     <div>
       {/* Botão de Expandir/Colapsar */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <Button
           variant="ghost"
           size="sm"
@@ -591,10 +591,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowPhotoComparison(true)}
-                        className="text-xs h-6 px-2 text-slate-400 hover:text-green-400 hover:bg-slate-700/50"
+                        className="text-xs h-7 px-3 font-semibold bg-green-500/20 text-green-400 border border-green-500/30 hover:text-green-300 hover:bg-green-500/30 hover:border-green-500/50 shadow-sm shadow-green-500/10 transition-all"
                         title="Comparar fotos lado a lado"
                       >
-                        <Camera className="w-3 h-3 mr-1" />
+                        <Camera className="w-3.5 h-3.5 mr-1.5" />
                         Comparar Fotos
                       </Button>
                       {!evolutionData?.tem_checkin_anterior && (
@@ -640,7 +640,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <tbody>
                           {/* Peso */}
                           {evolutionData.peso_anterior !== undefined && evolutionData.peso_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">Peso</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'peso' && editingPrevious ? (
@@ -739,7 +739,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Cintura */}
                           {(evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined) || 
                            (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">Cintura</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'cintura' && editingPrevious ? (
@@ -840,7 +840,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Quadril */}
                           {(evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined) || 
                            (evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">Quadril</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'quadril' && editingPrevious ? (
@@ -940,7 +940,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Aproveitamento - não editável, calculado automaticamente */}
                           {evolutionData.aderencia_anterior !== undefined && evolutionData.aderencia_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">🎯 Aproveitamento</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">{evolutionData.aderencia_anterior || 0}%</td>
                               <td className="py-1.5 px-1.5 text-center text-blue-400">{evolutionData.aderencia_atual || 0}%</td>
@@ -954,7 +954,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Treinos */}
                           {evolutionData.treino_anterior !== undefined && evolutionData.treino_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃 Treinos</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'treino' && editingPrevious ? (
@@ -1052,7 +1052,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Cardio */}
                           {evolutionData.cardio_anterior !== undefined && evolutionData.cardio_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃‍♂️ Cardio</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'cardio' && editingPrevious ? (
@@ -1150,7 +1150,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
                           {/* Tempo de Treino */}
                           {((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">⏱️ Tempo de Treino</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'tempo_treino' && editingPrevious ? (
@@ -1256,7 +1256,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
                           {/* Tempo de Cardio */}
                           {((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃 Tempo de Cardio</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'tempo_cardio' && editingPrevious ? (
@@ -1362,7 +1362,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
                           {/* Descanso entre Séries */}
                           {((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">⏸️ Descanso entre as séries</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'descanso' && editingPrevious ? (
@@ -1468,7 +1468,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Água */}
                           {evolutionData.agua_anterior !== undefined && evolutionData.agua_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">💧 Água</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'agua' && editingPrevious ? (
@@ -1566,7 +1566,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Sono */}
                           {evolutionData.sono_anterior !== undefined && evolutionData.sono_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">😴 Sono</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'sono' && editingPrevious ? (
@@ -1664,7 +1664,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Refeições Livres */}
                           {evolutionData.ref_livre_anterior !== undefined && evolutionData.ref_livre_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">🍽️ Refeições Livres</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'ref_livre' && editingPrevious ? (
@@ -1762,7 +1762,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Beliscos */}
                           {evolutionData.beliscos_anterior !== undefined && evolutionData.beliscos_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">🍪 Beliscos</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'beliscos' && editingPrevious ? (
@@ -1858,7 +1858,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             </tr>
                           )}
                           {/* Linha de botões de fotos */}
-                          <tr className="border-b border-slate-700/30">
+                          <tr className="border-b border-slate-700/30 bg-blue-500/10">
                             <td className="py-1.5 px-2 text-slate-300">📷 Fotos</td>
                             <td className="py-1.5 px-1.5 text-center">
                               <Button
@@ -1945,7 +1945,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <tbody>
                           {/* Peso */}
                           {evolutionData?.peso_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">Peso</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'peso' && editingInitialData ? (
@@ -2028,7 +2028,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Cintura */}
                           {(evolutionData?.cintura_anterior !== null && evolutionData?.cintura_anterior !== undefined) || 
                            (evolutionData?.cintura_atual !== null && evolutionData?.cintura_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">Cintura</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'cintura' && editingInitialData ? (
@@ -2117,7 +2117,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Quadril */}
                           {(evolutionData?.quadril_anterior !== null && evolutionData?.quadril_anterior !== undefined) || 
                            (evolutionData?.quadril_atual !== null && evolutionData?.quadril_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">Quadril</td>
                               <td className="py-1.5 px-1.5 text-center">
                                 {editingField === 'quadril' && editingInitialData ? (
@@ -2199,9 +2199,50 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             </tr>
                           ) : null}
                           
+                          {/* Aproveitamento */}
+                          {evolutionData?.aderencia_atual !== undefined && (
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
+                              <td className="py-1.5 px-2 text-slate-300">🎯 Aproveitamento</td>
+                              <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'aderencia' && !editingInitialData && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('aderencia');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">%</span>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('aderencia')} disabled={isUpdatingCheckin}>
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-blue-400 cursor-pointer hover:text-blue-300 hover:underline font-medium"
+                                    onClick={() => handleStartEdit('aderencia', evolutionData.aderencia_atual || 0, false, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.aderencia_atual || 0}%
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-2 text-center text-slate-400">-</td>
+                            </tr>
+                          )}
+                          
                           {/* Treinos */}
                           {evolutionData?.treino_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃 Treinos</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2241,7 +2282,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Cardio */}
                           {evolutionData?.cardio_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃‍♂️ Cardio</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2279,9 +2320,168 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             </tr>
                           )}
                           
+                          {/* Tempo de Treino */}
+                          {((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
+                              <td className="py-1.5 px-2 text-slate-300">⏱️ Tempo de Treino</td>
+                              <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'tempo_treino' && !editingInitialData && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      placeholder="Ex: 60 a 70 min"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('tempo_treino');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('tempo_treino')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline text-xs"
+                                    onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_atual_text ?? null, false, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {(evolutionData as any).tempo_treino_atual_text || '-'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-2 text-center text-slate-400">-</td>
+                            </tr>
+                          )}
+                          
+                          {/* Tempo de Cardio */}
+                          {((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
+                              <td className="py-1.5 px-2 text-slate-300">🏃 Tempo de Cardio</td>
+                              <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'tempo_cardio' && !editingInitialData && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      placeholder="Ex: 30 minutos"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('tempo_cardio')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline text-xs"
+                                    onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_atual_text ?? null, false, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {(evolutionData as any).tempo_cardio_atual_text || '-'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-2 text-center text-slate-400">-</td>
+                            </tr>
+                          )}
+                          
+                          {/* Descanso entre Séries */}
+                          {((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
+                            <tr className="border-b border-slate-700/30 bg-blue-500/10">
+                              <td className="py-1.5 px-2 text-slate-300">⏸️ Descanso entre as séries</td>
+                              <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
+                              <td className="py-1.5 px-1.5 text-center">
+                                {editingField === 'descanso' && !editingInitialData && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      placeholder="Ex: 60 seg"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('descanso');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                      onClick={() => handleSaveEdit('descanso')}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                      onClick={handleCancelEdit}
+                                      disabled={isUpdatingCheckin}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-blue-400 hover:underline text-xs"
+                                    onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_atual_text ?? null, false, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {(evolutionData as any).descanso_atual_text || '-'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-2 text-center text-slate-400">-</td>
+                            </tr>
+                          )}
+                          
                           {/* Água */}
                           {evolutionData?.agua_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">💧 Água</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2321,7 +2521,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Sono */}
                           {evolutionData?.sono_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">😴 Sono</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2361,7 +2561,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Refeições Livres */}
                           {evolutionData?.ref_livre_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">🍽️ Refeições Livres</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2401,7 +2601,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           
                           {/* Beliscos */}
                           {evolutionData?.beliscos_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-slate-700/30 bg-blue-500/5">
                               <td className="py-1.5 px-2 text-slate-300">🍪 Beliscos</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2438,49 +2638,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                               <td className="py-1.5 px-2 text-center text-slate-400">-</td>
                             </tr>
                           )}
-                          
-                          {/* Aproveitamento */}
-                          {evolutionData?.aderencia_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300">🎯 Aproveitamento</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
-                              <td className="py-1.5 px-1.5 text-center">
-                                {editingField === 'aderencia' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('aderencia');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">%</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('aderencia')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-blue-400 cursor-pointer hover:text-blue-300 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('aderencia', evolutionData.aderencia_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.aderencia_atual || 0}%
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400">-</td>
-                            </tr>
-                          )}
                           {/* Linha de botões de fotos */}
-                          <tr className="border-b border-slate-700/30">
+                          <tr className="border-b border-slate-700/30 bg-blue-500/10">
                             <td className="py-1.5 px-2 text-slate-300">📷 Fotos</td>
                             <td className="py-1.5 px-1.5 text-center">
                               <Button
@@ -2542,7 +2701,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           <ChevronDown className="w-4 h-4" />
                         )}
                       </Button>
-                      <h4 className="text-xs font-semibold text-slate-200">📋 Informações para Elaboração do Feedback</h4>
+                      <h4 className="text-sm font-semibold text-slate-200">📋 Informações para Elaboração do Feedback</h4>
                     </div>
                   </div>
                   
@@ -2557,7 +2716,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Objetivo & Dificuldades */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300 mb-2">🎯 Objetivo & Dificuldades</h5>
+                      <h5 className="text-sm font-semibold text-slate-300 mb-2">🎯 Objetivo & Dificuldades</h5>
                       <div className="space-y-2.5 text-xs">
                         <div>
                           <span className="font-semibold text-blue-400">Objetivo: </span>
@@ -2572,7 +2731,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
                     {/* Percepções Visuais */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300 mb-2">👁️ Percepções Visuais</h5>
+                      <h5 className="text-sm font-semibold text-slate-300 mb-2">👁️ Percepções Visuais</h5>
                       <div className="space-y-2.5 text-xs">
                         <div>
                           <span className="font-semibold text-blue-400">Melhora Visual: </span>
@@ -2587,7 +2746,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
                     {/* Refeições Livres & Beliscos */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300 mb-2">🍽️ Refeições Livres & Beliscos</h5>
+                      <h5 className="text-sm font-semibold text-slate-300 mb-2">🍽️ Refeições Livres & Beliscos</h5>
                       <div className="space-y-2.5 text-xs">
                         <div>
                           <span className="font-semibold text-blue-400">O que comeu na refeição livre: </span>
@@ -2602,11 +2761,15 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
                     {/* Fome & Ajustes */}
                     <div className="space-y-2">
-                      <h5 className="text-xs font-semibold text-slate-300 mb-2">🍴 Fome & Ajustes</h5>
+                      <h5 className="text-sm font-semibold text-slate-300 mb-2">🍴 Fome & Ajustes</h5>
                       <div className="space-y-2.5 text-xs">
                         <div>
                           <span className="font-semibold text-blue-400">Comeu menos que o planejado: </span>
                           <span className="text-slate-200">{checkin.comeu_menos || 'Não informado'}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-blue-400">Fome em algum horário: </span>
+                          <span className="text-slate-200">{checkin.fome_algum_horario || 'Não informado'}</span>
                         </div>
                         <div>
                           <span className="font-semibold text-blue-400">Alimento para incluir: </span>

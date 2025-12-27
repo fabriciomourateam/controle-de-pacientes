@@ -40,7 +40,7 @@ interface CheckinQuickControlsProps {
 
 const statusOptions: Array<{ value: CheckinStatus; label: string; color: string }> = [
   { value: 'pendente', label: 'Pendente', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-  { value: 'em_analise', label: 'Em Análise', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  { value: 'em_analise', label: 'Aguardando', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   { value: 'enviado', label: 'Enviado', color: 'bg-green-500/20 text-green-400 border-green-500/30' }
 ];
 
