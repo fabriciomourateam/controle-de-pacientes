@@ -152,8 +152,9 @@ function CheckinQuickControlsComponent({
       // Se está locked, tentar liberar
       const success = await releaseLock(checkin.id);
       if (success) {
-        setLockInfo({ is_locked: false });
-        // Atualizar status do lock para garantir sincronização
+        // Aguardar um pouco para garantir que o banco foi atualizado
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Atualizar status do lock para garantir sincronização (cache já foi invalidado em releaseLock)
         const updatedLockStatus = await checkLockStatus(checkin.id);
         setLockInfo(updatedLockStatus);
       }
@@ -161,7 +162,9 @@ function CheckinQuickControlsComponent({
       // Se não está locked, adquirir lock
       const success = await acquireLock(checkin.id);
       if (success) {
-        // Atualizar status do lock para obter informações completas
+        // Aguardar um pouco para garantir que o banco foi atualizado
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Atualizar status do lock para obter informações completas (cache já foi invalidado em acquireLock)
         const updatedLockStatus = await checkLockStatus(checkin.id);
         setLockInfo(updatedLockStatus);
       }

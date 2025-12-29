@@ -26,6 +26,10 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
   // Buscar por "Cintura" seguido de dois pontos e número (incluindo texto complexo)
   // Padrões mais específicos primeiro (com palavras-chave explícitas)
   const cinturaPatterns = [
+    // Padrões com número ANTES da palavra-chave (ex: "96cm cintura", "96 cintura", "96 cm cintura")
+    /(\d+(?:\.\d+)?)\s*cm\s*cintura/i, // "96cm cintura" ou "96 cm cintura" (com ou sem espaço entre cm e cintura)
+    /(\d+(?:\.\d+)?)\s+cintura/i, // "96 cintura"
+    // Padrões com palavra-chave ANTES do número (ex: "cintura 96", "cintura: 96")
     /cintura\s+(\d+(?:\.\d+)?)(?:\s|$|cm|quadril|\n)/i, // Padrão mais específico primeiro: "Cintura 87" seguido de espaço, fim, quebra de linha ou "Quadril"
     /cintura[^:]*:\*?\s*(\d+(?:\.\d+)?)/i,
     /cintura[^:]*\s+(\d+(?:\.\d+)?)/i,
@@ -34,6 +38,10 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
   ];
   
   const quadrilPatterns = [
+    // Padrões com número ANTES da palavra-chave (ex: "104cm quadril", "104 quadril", "104 cm quadril")
+    /(\d+(?:\.\d+)?)\s*cm\s*quadril/i, // "104cm quadril" ou "104 cm quadril" (com ou sem espaço entre cm e quadril)
+    /(\d+(?:\.\d+)?)\s+quadril/i, // "104 quadril"
+    // Padrões com palavra-chave ANTES do número (ex: "quadril 104", "quadril: 104")
     /quadril\s+(\d+(?:\.\d+)?)(?:\s|$|cm|\n)/i, // Padrão mais específico primeiro: "Quadril 115" seguido de espaço, fim, quebra de linha ou "cm"
     /quadril[^:]*:\*?\s*(\d+(?:\.\d+)?)/i,
     /quadril[^:]*\s+(\d+(?:\.\d+)?)/i,

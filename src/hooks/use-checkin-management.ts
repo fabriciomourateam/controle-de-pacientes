@@ -302,11 +302,36 @@ export function useCheckinManagement() {
     try {
       if (!user) return false;
 
-      // Primeiro verificar se já está locked
-      const lockStatus = await checkLockStatus(checkinId);
-      if (lockStatus.is_locked && lockStatus.locked_by !== user.id) {
-        toast.error(`Check-in está sendo editado por ${lockStatus.locked_by_name}`);
-        return false;
+      // Invalidar cache antes de verificar para garantir dados atualizados
+      lockStatusCache.delete(checkinId);
+      
+      // Verificar diretamente no banco se já está locked (sem usar cache)
+      const { data: checkinData, error: checkError } = await supabase
+        .from('checkin')
+        .select('locked_by, locked_at')
+        .eq('id', checkinId)
+        .single();
+      
+      if (checkError) throw checkError;
+      
+      // Verificar se já está locked por outro usuário
+      if (checkinData?.locked_by && checkinData.locked_by !== user.id) {
+        // Verificar se o lock expirou (30 minutos)
+        if (checkinData.locked_at) {
+          const lockTime = new Date(checkinData.locked_at);
+          const now = new Date();
+          const diffMinutes = (now.getTime() - lockTime.getTime()) / (1000 * 60);
+          
+          if (diffMinutes <= 30) {
+            // Lock ainda válido, buscar nome do usuário para mensagem
+            const lockStatus = await checkLockStatus(checkinId);
+            toast.error(`Check-in está sendo editado por ${lockStatus.locked_by_name || 'outro usuário'}`);
+            return false;
+          }
+          // Lock expirado, pode adquirir
+        } else {
+          // Sem data de lock, pode adquirir
+        }
       }
       
       // Adquirir o lock
@@ -319,6 +344,9 @@ export function useCheckinManagement() {
         .eq('id', checkinId);
       
       if (error) throw error;
+      
+      // Invalidar cache após adquirir lock
+      lockStatusCache.delete(checkinId);
       
       return true;
     } catch (error) {
@@ -333,28 +361,37 @@ export function useCheckinManagement() {
     try {
       if (!user) return false;
 
-      // Primeiro verificar o status atual do lock
-      const lockStatus = await checkLockStatus(checkinId);
+      // Invalidar cache antes de verificar para garantir dados atualizados
+      lockStatusCache.delete(checkinId);
+      
+      // Verificar diretamente no banco se está locked (sem usar cache)
+      const { data: checkinData, error: checkError } = await supabase
+        .from('checkin')
+        .select('locked_by, locked_at')
+        .eq('id', checkinId)
+        .single();
+      
+      if (checkError) throw checkError;
       
       // Se não está locked, já está ok
-      if (!lockStatus.is_locked) {
+      if (!checkinData?.locked_by) {
         return true;
       }
       
       // Se está locked por outro usuário, verificar se expirou
-      if (lockStatus.locked_by && lockStatus.locked_by !== user.id) {
-        // Verificar novamente se expirou (pode ter mudado desde o cache)
-        if (lockStatus.locked_at) {
-          const lockTime = new Date(lockStatus.locked_at);
+      if (checkinData.locked_by !== user.id) {
+        if (checkinData.locked_at) {
+          const lockTime = new Date(checkinData.locked_at);
           const now = new Date();
           const diffMinutes = (now.getTime() - lockTime.getTime()) / (1000 * 60);
           
-          if (diffMinutes > 30) {
-            // Lock expirado, pode liberar
-          } else {
-            // Ainda está locked por outro usuário
+          if (diffMinutes <= 30) {
+            // Ainda está locked por outro usuário e não expirou
             return false;
           }
+          // Lock expirado, pode liberar
+        } else {
+          // Sem data de lock, pode liberar
         }
       }
       
@@ -366,7 +403,7 @@ export function useCheckinManagement() {
       
       if (error) throw error;
       
-      // Invalidar cache
+      // Invalidar cache após liberar lock
       lockStatusCache.delete(checkinId);
       
       return true;
@@ -374,7 +411,7 @@ export function useCheckinManagement() {
       console.error('Erro ao liberar lock:', error);
       return false;
     }
-  }, [user, checkLockStatus]);
+  }, [user]);
 
   // Carregar anotações do check-in
   const loadCheckinNotes = useCallback(async (checkinId: string): Promise<CheckinNote[]> => {
