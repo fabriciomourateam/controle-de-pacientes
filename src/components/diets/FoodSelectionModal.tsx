@@ -11,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { foodSuggestionsService } from '@/lib/diet-food-suggestions-service';
+import { Sparkles } from 'lucide-react';
+import FoodCacheService from '@/lib/food-cache-service';
 
 interface Food {
   id?: string;
@@ -27,6 +30,12 @@ interface FoodSelectionModalProps {
   foodDatabase: Food[];
   onSelect: (food: Food) => void;
   onFoodSaved?: () => void;
+  mealType?: string;
+  existingFoods?: string[];
+  targetCalories?: number;
+  targetProtein?: number;
+  targetCarbs?: number;
+  targetFats?: number;
 }
 
 export function FoodSelectionModal({
@@ -35,12 +44,20 @@ export function FoodSelectionModal({
   foodDatabase,
   onSelect,
   onFoodSaved,
+  mealType = '',
+  existingFoods = [],
+  targetCalories,
+  targetProtein,
+  targetCarbs,
+  targetFats,
 }: FoodSelectionModalProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFoods, setFilteredFoods] = useState<Food[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -48,12 +65,34 @@ export function FoodSelectionModal({
     if (open) {
       setSearchTerm('');
       setFilteredFoods([]);
+      // Carregar sugestões inteligentes quando o modal abrir
+      loadSuggestions();
       // Focar no input quando o modal abrir
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
-  }, [open]);
+  }, [open, mealType, existingFoods, targetCalories, targetProtein, targetCarbs, targetFats]);
+
+  const loadSuggestions = async () => {
+    if (!mealType) return;
+    setLoadingSuggestions(true);
+    try {
+      const data = await foodSuggestionsService.suggestFoods({
+        mealType,
+        targetCalories,
+        targetProtein,
+        targetCarbs,
+        targetFats,
+        existingFoods,
+      }, 8);
+      setSuggestions(data);
+    } catch (error) {
+      console.error('Erro ao carregar sugestões:', error);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
   useEffect(() => {
     if (searchTimeoutRef.current) {
@@ -63,11 +102,21 @@ export function FoodSelectionModal({
     if (searchTerm.length >= 2) {
       setIsSearching(true);
       searchTimeoutRef.current = setTimeout(() => {
-        const filtered = foodDatabase.filter((food) =>
-          food.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ).slice(0, 20); // Mostrar até 20 resultados
-        setFilteredFoods(filtered);
-        setIsSearching(false);
+        // Verificar cache de busca primeiro
+        const cached = FoodCacheService.getCachedSearch(searchTerm);
+        if (cached && cached.length > 0) {
+          setFilteredFoods(cached.slice(0, 20));
+          setIsSearching(false);
+        } else {
+          // Buscar no banco de dados
+          const filtered = foodDatabase.filter((food) =>
+            food.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ).slice(0, 20); // Mostrar até 20 resultados
+          setFilteredFoods(filtered);
+          // Salvar no cache
+          FoodCacheService.cacheSearch(searchTerm, filtered);
+          setIsSearching(false);
+        }
       }, 200);
     } else {
       setFilteredFoods([]);
@@ -202,9 +251,58 @@ export function FoodSelectionModal({
           {/* Lista de resultados */}
           <div className="flex-1 overflow-y-auto border border-green-500/30 rounded-lg">
             {searchTerm.length < 2 ? (
-              <div className="p-8 text-center text-[#777777]">
-                <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Digite pelo menos 2 caracteres para buscar</p>
+              <div className="p-4">
+                {/* Sugestões Inteligentes */}
+                {suggestions.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-3 px-2">
+                      <Sparkles className="w-4 h-4 text-[#00C98A]" />
+                      <span className="text-sm font-semibold text-[#222222]">Sugestões Inteligentes</span>
+                    </div>
+                    {loadingSuggestions ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="w-5 h-5 mx-auto animate-spin text-[#00C98A]" />
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {suggestions.map((suggestion, index) => {
+                          const food = foodDatabase.find(f => f.name.toLowerCase() === suggestion.food_name.toLowerCase());
+                          if (!food) return null;
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => handleSelectFood(food)}
+                              className="w-full text-left px-3 py-2.5 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none rounded-md"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-[#222222] flex items-center gap-2">
+                                    {food.name}
+                                    <span className="text-xs font-normal text-[#00C98A] bg-green-500/10 px-2 py-0.5 rounded">
+                                      {suggestion.match_score}% match
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-[#777777] mt-1">
+                                    {Math.round(food.calories_per_100g)} kcal • P: {Math.round(food.protein_per_100g * 10) / 10}g • C: {Math.round(food.carbs_per_100g * 10) / 10}g • G: {Math.round(food.fats_per_100g * 10) / 10}g
+                                  </div>
+                                  {suggestion.reason && (
+                                    <div className="text-xs text-[#00C98A] mt-1 italic">
+                                      {suggestion.reason}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="p-4 text-center text-[#777777] border-t border-green-500/10">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Digite pelo menos 2 caracteres para buscar</p>
+                </div>
               </div>
             ) : filteredFoods.length === 0 && !showSaveOption ? (
               <div className="p-8 text-center text-[#777777]">

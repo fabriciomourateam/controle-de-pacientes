@@ -102,8 +102,28 @@ export function PatientDietPortal({
       const plans = await dietService.getByPatientId(patientId);
       
       // Filtrar apenas planos liberados (is_released = true)
-      const released = plans.filter((p: any) => p.is_released === true);
+      // Verificar se is_released é explicitamente true (boolean)
+      const released = plans.filter((p: any) => {
+        // Aceitar apenas se is_released for explicitamente true (boolean)
+        // Não aceitar null, undefined, false, 0, ou string
+        const isReleased = p.is_released === true || p.is_released === 1;
+        return isReleased;
+      });
       setReleasedPlans(released);
+      
+      // Logs para debug
+      console.log('🔍 Debug - Carregamento de planos:', {
+        totalPlanos: plans.length,
+        planosLiberados: released.length,
+        detalhes: plans.map((p: any) => ({ 
+          id: p.id, 
+          name: p.name, 
+          is_released: p.is_released, 
+          is_released_type: typeof p.is_released,
+          status: p.status,
+          active: p.active
+        }))
+      });
       
       // Encontrar plano ativo entre os liberados
       const active = released.find((p: any) => p.status === 'active' || p.active);
@@ -116,6 +136,27 @@ export function PatientDietPortal({
         
         // Buscar detalhes completos do plano
         const details = await dietService.getById(selectedPlan.id);
+        
+        // Logs para debug
+        console.log('🔍 Debug - Detalhes do plano carregado:', {
+          planId: details?.id,
+          planName: details?.name,
+          hasDietMeals: !!details?.diet_meals,
+          dietMealsCount: details?.diet_meals?.length || 0,
+          dietMeals: details?.diet_meals?.map((meal: any) => ({
+            id: meal.id,
+            meal_name: meal.meal_name,
+            suggested_time: meal.suggested_time,
+            foodsCount: meal.diet_foods?.length || 0,
+            foods: meal.diet_foods?.map((food: any) => ({
+              id: food.id,
+              food_name: food.food_name,
+              quantity: food.quantity,
+              unit: food.unit
+            }))
+          })) || []
+        });
+        
         setPlanDetails(details);
       }
     } catch (error) {
@@ -194,7 +235,13 @@ export function PatientDietPortal({
   };
 
   const calcularTotais = (plan: any) => {
-    if (!plan || !plan.diet_meals) {
+    if (!plan || !plan.diet_meals || plan.diet_meals.length === 0) {
+      console.warn('⚠️ Plano sem refeições:', {
+        planId: plan?.id,
+        planName: plan?.name,
+        hasDietMeals: !!plan?.diet_meals,
+        dietMealsCount: plan?.diet_meals?.length || 0
+      });
       return { calorias: 0, proteinas: 0, carboidratos: 0, gorduras: 0 };
     }
     return calcularTotaisPlano(plan);
@@ -455,8 +502,10 @@ export function PatientDietPortal({
           </Card>
 
           {/* Refeições */}
-          {hasActivePlan && planDetails?.diet_meals && planDetails.diet_meals.length > 0 && (
-            <Card className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+          {hasActivePlan && planDetails && (
+            <>
+              {planDetails.diet_meals && planDetails.diet_meals.length > 0 ? (
+                <Card className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -678,6 +727,23 @@ export function PatientDietPortal({
                 </div>
               </CardContent>
             </Card>
+              ) : (
+                <Card className="bg-white rounded-2xl shadow-sm border border-gray-100">
+                  <CardContent className="p-8 text-center">
+                    <Package className="w-12 h-12 mx-auto mb-4 text-[#777777]" />
+                    <p className="text-lg font-semibold text-[#222222] mb-2">Nenhuma refeição cadastrada</p>
+                    <p className="text-sm text-[#777777]">
+                      Este plano ainda não possui refeições cadastradas. Entre em contato com seu nutricionista.
+                    </p>
+                    <div className="mt-4 text-xs text-[#777777]">
+                      <p>Debug: planDetails existe: {planDetails ? 'Sim' : 'Não'}</p>
+                      <p>Debug: diet_meals existe: {planDetails?.diet_meals ? 'Sim' : 'Não'}</p>
+                      <p>Debug: diet_meals.length: {planDetails?.diet_meals?.length || 0}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Orientações */}

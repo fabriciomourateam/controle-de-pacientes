@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import FoodCacheService from '@/lib/food-cache-service';
 
 interface Food {
   name: string;
@@ -66,9 +67,19 @@ export function FoodSearchInput({
     if (searchTerm.length >= 2 && isFocused && userWantsSearch) {
       searchTimeoutRef.current = setTimeout(() => {
         setIsSearching(true);
-        const filtered = foodDatabase.filter((food) =>
-          food.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ).slice(0, 10);
+        // Verificar cache de busca primeiro
+        const cached = FoodCacheService.getCachedSearch(searchTerm);
+        let filtered;
+        if (cached && cached.length > 0) {
+          filtered = cached.slice(0, 10);
+        } else {
+          // Buscar no banco de dados
+          filtered = foodDatabase.filter((food) =>
+            food.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ).slice(0, 10);
+          // Salvar no cache
+          FoodCacheService.cacheSearch(searchTerm, filtered);
+        }
         setFilteredFoods(filtered);
         setIsSearching(false);
         

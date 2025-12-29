@@ -27,21 +27,94 @@ export const dietService = {
 
   // Buscar plano por ID
   async getById(planId: string) {
-    const { data, error } = await supabase
+    // Primeiro, buscar o plano básico
+    const { data: planData, error: planError } = await supabase
       .from('diet_plans')
-      .select(`
-        *,
-        diet_meals (
-          *,
-          diet_foods (*)
-        ),
-        diet_guidelines (*)
-      `)
+      .select('*')
       .eq('id', planId)
       .single();
 
-    if (error) throw error;
-    return data;
+    if (planError) {
+      console.error('Erro ao buscar plano por ID:', planError);
+      throw planError;
+    }
+
+    // Depois, buscar as refeições
+    const { data: mealsData, error: mealsError } = await supabase
+      .from('diet_meals')
+      .select('*')
+      .eq('diet_plan_id', planId)
+      .order('meal_order', { ascending: true });
+
+    if (mealsError) {
+      console.error('Erro ao buscar refeições:', mealsError);
+      // Não lançar erro, apenas logar - pode não ter refeições ainda
+    }
+
+    // Buscar alimentos para cada refeição
+    let mealsWithFoods: any[] = [];
+    if (mealsData && mealsData.length > 0) {
+      const mealIds = mealsData.map((meal: any) => meal.id);
+      
+      const { data: foodsData, error: foodsError } = await supabase
+        .from('diet_foods')
+        .select('*')
+        .in('meal_id', mealIds)
+        .order('food_order', { ascending: true });
+
+      if (foodsError) {
+        console.error('Erro ao buscar alimentos:', foodsError);
+      }
+
+      // Combinar refeições com seus alimentos
+      mealsWithFoods = mealsData.map((meal: any) => ({
+        ...meal,
+        diet_foods: (foodsData || []).filter((food: any) => food.meal_id === meal.id)
+      }));
+    } else {
+      mealsWithFoods = [];
+    }
+
+    // Buscar orientações
+    const { data: guidelinesData, error: guidelinesError } = await supabase
+      .from('diet_guidelines')
+      .select('*')
+      .eq('diet_plan_id', planId)
+      .order('priority', { ascending: true });
+
+    if (guidelinesError) {
+      console.error('Erro ao buscar orientações:', guidelinesError);
+      // Não lançar erro, apenas logar
+    }
+
+    // Combinar os dados
+    const combinedData = {
+      ...planData,
+      diet_meals: mealsWithFoods,
+      diet_guidelines: guidelinesData || []
+    };
+    
+    // Log para debug
+    console.log('📦 Plano retornado do banco (método combinado):', {
+      planId: combinedData?.id,
+      planName: combinedData?.name,
+      hasDietMeals: !!combinedData?.diet_meals,
+      dietMealsCount: combinedData?.diet_meals?.length || 0,
+      dietMeals: combinedData?.diet_meals?.map((meal: any) => ({
+        id: meal.id,
+        meal_name: meal.meal_name,
+        hasFoods: !!meal.diet_foods,
+        foodsCount: meal.diet_foods?.length || 0,
+        foods: meal.diet_foods?.map((food: any) => ({
+          id: food.id,
+          food_name: food.food_name,
+          quantity: food.quantity,
+          unit: food.unit
+        })) || []
+      })) || []
+    });
+    
+    return combinedData;
   },
 
   // Criar novo plano
@@ -76,6 +149,7 @@ export const dietService = {
       .update({ 
         status: 'active',
         is_released: true,
+        active: true,
         released_at: new Date().toISOString()
       })
       .eq('id', planId)

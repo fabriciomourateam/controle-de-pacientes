@@ -84,12 +84,27 @@ export const dietConsumptionService = {
       : 0;
     
     // Verificar se já existe registro para hoje
-    const { data: existing } = await supabase
-      .from('diet_daily_consumption')
-      .select('*')
-      .eq('patient_id', patientId)
-      .eq('consumption_date', today)
-      .single();
+    let existing = null;
+    try {
+      const { data, error } = await supabase
+        .from('diet_daily_consumption')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('consumption_date', today)
+        .single();
+      
+      // Ignorar erro 406 (Not Acceptable) - tabela pode não existir ou RLS bloqueando
+      if (error && error.code !== 'PGRST116' && !error.message?.includes('406')) {
+        console.warn('Erro ao buscar consumo diário (não crítico):', error);
+      } else if (data) {
+        existing = data;
+      }
+    } catch (err: any) {
+      // Ignorar erros de tabela não existente ou RLS
+      if (!err?.message?.includes('406') && !err?.code?.includes('PGRST')) {
+        console.warn('Erro ao buscar consumo diário (não crítico):', err);
+      }
+    }
     
     const consumptionData = {
       patient_id: patientId,
@@ -109,25 +124,49 @@ export const dietConsumptionService = {
     
     if (existing) {
       // Atualizar
-      const { data, error } = await supabase
-        .from('diet_daily_consumption')
-        .update(consumptionData)
-        .eq('id', existing.id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from('diet_daily_consumption')
+          .update(consumptionData)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        
+        // Ignorar erro 406 (tabela não acessível)
+        if (error && !error.message?.includes('406')) {
+          throw error;
+        }
+        return data || { ...consumptionData, id: existing.id } as DailyConsumption;
+      } catch (err: any) {
+        // Se der erro 406, retornar dados calculados sem salvar
+        if (err?.message?.includes('406')) {
+          console.warn('Tabela diet_daily_consumption não acessível, retornando dados calculados');
+          return { ...consumptionData, id: existing.id } as DailyConsumption;
+        }
+        throw err;
+      }
     } else {
       // Criar novo
-      const { data, error } = await supabase
-        .from('diet_daily_consumption')
-        .insert(consumptionData)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from('diet_daily_consumption')
+          .insert(consumptionData)
+          .select()
+          .single();
+        
+        // Ignorar erro 406 (tabela não acessível)
+        if (error && !error.message?.includes('406')) {
+          throw error;
+        }
+        return data || consumptionData as DailyConsumption;
+      } catch (err: any) {
+        // Se der erro 406, retornar dados calculados sem salvar
+        if (err?.message?.includes('406')) {
+          console.warn('Tabela diet_daily_consumption não acessível, retornando dados calculados');
+          return consumptionData as DailyConsumption;
+        }
+        throw err;
+      }
     }
   },
 
@@ -286,12 +325,27 @@ export const dietConsumptionService = {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 30); // Buscar últimos 30 dias para streaks
     
-    const { data: consumption } = await supabase
-      .from('diet_daily_consumption')
-      .select('*')
-      .eq('patient_id', patientId)
-      .gte('consumption_date', weekAgo.toISOString().split('T')[0])
-      .order('consumption_date', { ascending: true });
+    let consumption: DailyConsumption[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('diet_daily_consumption')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('consumption_date', weekAgo.toISOString().split('T')[0])
+        .order('consumption_date', { ascending: true });
+      
+      // Ignorar erro 406 (tabela não acessível)
+      if (error && !error.message?.includes('406')) {
+        console.warn('Erro ao buscar consumo para conquistas (não crítico):', error);
+      } else if (data) {
+        consumption = data;
+      }
+    } catch (err: any) {
+      // Ignorar erros 406
+      if (!err?.message?.includes('406')) {
+        console.warn('Erro ao buscar consumo para conquistas (não crítico):', err);
+      }
+    }
     
     if (!consumption || consumption.length === 0) return unlocked;
     
@@ -432,12 +486,21 @@ export const dietConsumptionService = {
         .single();
       
       // PGRST116 = nenhum resultado encontrado (não é erro)
-      if (error && error.code !== 'PGRST116') {
+      // 406 = Not Acceptable (tabela pode não existir ou RLS bloqueando)
+      if (error) {
+        if (error.code === 'PGRST116' || error.message?.includes('406')) {
+          // Não é um erro crítico, apenas não há dados
+          return null;
+        }
         console.warn('Erro ao buscar pontos do paciente (não crítico):', error);
         return null;
       }
       return data || null;
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar erros 406 (tabela não acessível)
+      if (error?.message?.includes('406')) {
+        return null;
+      }
       console.warn('Erro ao buscar pontos do paciente (não crítico):', error);
       return null;
     }

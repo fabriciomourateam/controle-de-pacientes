@@ -69,7 +69,7 @@ function DietPlanEditor() {
   };
 
   const handleCancel = () => {
-    navigate(`/patients/${patientId}`);
+    navigate(`/patients/${patientId}?tab=diets`);
   };
 
   if (loading) {

@@ -2,7 +2,9 @@ import { useDietPlans } from '@/hooks/use-diet-plans';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Utensils, Calendar, Eye, Edit, X, CheckCircle, History, Star, Copy, Trash2, BookOpen, Save, Package, Upload, MoreVertical, ChevronDown, Sparkles, TrendingUp, Clock, AlertTriangle, Check, ChevronRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Loader2, Plus, Utensils, Calendar, Eye, Edit, X, CheckCircle, History, Star, Copy, Trash2, BookOpen, Save, Package, Upload, MoreVertical, ChevronDown, Sparkles, TrendingUp, Clock, AlertTriangle, Check, ChevronRight, Power, PowerOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
@@ -22,7 +24,6 @@ import { calcularTotaisPlano } from '@/utils/diet-calculations';
 import { DietPlanImportModal } from '@/components/import/DietPlanImportModal';
 import { SaveAsTemplateModal } from './SaveAsTemplateModal';
 import { TemplateLibraryModal } from './TemplateLibraryModal';
-import { FoodGroupsManager } from './FoodGroupsManager';
 import { WeeklyProgressChart } from './WeeklyProgressChart';
 import { GamificationWidget } from './GamificationWidget';
 import { DailyChallengesWidget } from './DailyChallengesWidget';
@@ -42,7 +43,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
   const [patientUserId, setPatientUserId] = useState<string | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [templatePlanId, setTemplatePlanId] = useState<string | null>(null);
-  const [foodGroupsManagerOpen, setFoodGroupsManagerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("active");
   const [activePlan, setActivePlan] = useState<any>(null);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
@@ -200,6 +200,79 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
       toast({
         title: 'Erro ao liberar plano',
         description: err instanceof Error ? err.message : 'Ocorreu um erro ao liberar o plano.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleToggleReleased = async (planId: string, planName: string, currentValue: boolean) => {
+    const newValue = !currentValue;
+    
+    try {
+      const { data, error } = await supabase
+        .from('diet_plans')
+        .update({ 
+          is_released: newValue,
+          released_at: newValue ? new Date().toISOString() : null
+        })
+        .eq('id', planId)
+        .select('id, name, is_released, released_at, status')
+        .single();
+      
+      if (error) {
+        console.error('Erro ao atualizar is_released:', error);
+        throw error;
+      }
+      
+      toast({
+        title: newValue ? 'Plano liberado!' : 'Plano ocultado',
+        description: newValue 
+          ? `O plano "${planName}" está visível no portal do paciente.`
+          : `O plano "${planName}" foi ocultado do portal do paciente.`,
+      });
+      refetch();
+    } catch (err) {
+      console.error('Erro ao atualizar is_released:', err);
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Ocorreu um erro ao atualizar o plano.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleToggleStatus = async (planId: string, planName: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+    const newActive = newStatus === 'active';
+    
+    try {
+      const { data, error } = await supabase
+        .from('diet_plans')
+        .update({ 
+          status: newStatus,
+          active: newActive
+        })
+        .eq('id', planId)
+        .select('id, name, status, active')
+        .single();
+      
+      if (error) {
+        console.error('Erro ao atualizar status:', error);
+        throw error;
+      }
+      
+      toast({
+        title: newStatus === 'active' ? 'Plano ativado!' : 'Plano desativado!',
+        description: newStatus === 'active'
+          ? `O plano "${planName}" foi ativado e movido para "Plano Ativo".`
+          : `O plano "${planName}" foi desativado e movido para "Histórico".`,
+      });
+      refetch();
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Ocorreu um erro ao atualizar o plano.',
         variant: 'destructive',
       });
     }
@@ -424,14 +497,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
           <BookOpen className="w-4 h-4 mr-2" />
           Biblioteca
         </Button>
-        <Button
-          onClick={() => setFoodGroupsManagerOpen(true)}
-          variant="outline"
-          className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400 transition-all duration-300"
-        >
-          <Package className="w-4 h-4 mr-2" />
-          Grupos
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 shadow-lg text-white">
@@ -483,7 +548,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
         <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
           <TabsTrigger 
             value="active"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:text-green-300 data-[state=active]:border-green-500/50 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/20 transition-all duration-300"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00C98A] data-[state=active]:to-[#00A875] data-[state=active]:text-white data-[state=active]:border-transparent data-[state=active]:shadow-lg data-[state=active]:shadow-[#00C98A]/30 transition-all duration-300"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Plano Ativo {showFavoritesOnly && activePlans.length > 0 && `(${activePlans.length})`}
@@ -660,117 +725,154 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             };
 
             return (
-        <Card key={plan.id} className="bg-white border-gray-200 hover:shadow-lg transition-all duration-300">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="flex items-center gap-2 mb-2 text-[#222222]">
-                  {plan.name}
-                  <Badge 
-                    variant={
-                      plan.status === 'active' ? 'default' :
-                      plan.status === 'draft' ? 'secondary' : 'outline'
-                    }
-                    className="bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30"
-                  >
-                    {plan.status === 'active' ? 'Ativo' : plan.status === 'draft' ? 'Rascunho' : plan.status}
-                  </Badge>
+        <Card key={plan.id} className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-[#00C98A]/5 to-[#00A875]/5 border-b border-gray-200 pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <CardTitle className="text-xl font-bold text-[#222222] flex items-center gap-2">
+                    <Utensils className="w-5 h-5 text-[#00C98A]" />
+                    {plan.name}
+                  </CardTitle>
+                  {plan.is_released && (
+                    <Badge className="bg-green-500/20 text-green-700 border-green-500/30 text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Liberado
+                    </Badge>
+                  )}
                   {plan.favorite && (
-                    <Badge variant="outline" className="border-yellow-500/50 text-yellow-600 bg-yellow-50">
+                    <Badge variant="outline" className="border-yellow-500/50 text-yellow-600 bg-yellow-50 text-xs">
                       <Star className="w-3 h-3 mr-1 fill-yellow-500" />
                       Favorito
                     </Badge>
                   )}
-                </CardTitle>
-                <CardDescription className="text-[#777777]">
-                  {plan.notes || 'Sem observações'}
-                </CardDescription>
+                </div>
+                {plan.notes && (
+                  <CardDescription className="text-sm text-[#777777] line-clamp-2">
+                    {plan.notes}
+                  </CardDescription>
+                )}
+                <div className="flex items-center gap-4 mt-2 text-xs text-[#777777]">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Criado em {new Date(plan.created_at).toLocaleDateString('pt-BR')}
+                  </div>
+                  {plan.released_at && (
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Liberado em {new Date(plan.released_at).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Totais do plano */}
+              {/* Totais do plano - Layout melhorado */}
               {(() => {
                 const totais = calcularTotais(plan);
                 return (
-                  <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="text-xs text-[#777777]">Calorias</p>
-                      <p className="text-lg font-semibold text-[#222222]">
-                        {totais.calorias.toLocaleString('pt-BR')} kcal
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                    <div className="bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/10 rounded-lg p-4 hover:from-orange-500/10 hover:to-red-500/10 transition-all duration-300">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-orange-400" />
+                        <p className="text-xs font-medium text-[#777777]">Calorias</p>
+                      </div>
+                      <p className="text-xl font-bold text-[#222222]">
+                        {totais.calorias.toLocaleString('pt-BR')}
                       </p>
+                      <p className="text-xs text-[#777777] mt-1">kcal</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-[#777777]">Proteína</p>
-                      <p className="text-lg font-semibold text-[#222222]">
-                        {totais.proteinas.toFixed(1)}g
+                    <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 rounded-lg p-4 hover:from-blue-500/10 hover:to-indigo-500/10 transition-all duration-300">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-400" />
+                        <p className="text-xs font-medium text-[#777777]">Proteína</p>
+                      </div>
+                      <p className="text-xl font-bold text-[#222222]">
+                        {totais.proteinas.toFixed(1)}
                       </p>
+                      <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-[#777777]">Carboidratos</p>
-                      <p className="text-lg font-semibold text-[#222222]">
-                        {totais.carboidratos.toFixed(1)}g
+                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-lg p-4 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-purple-400" />
+                        <p className="text-xs font-medium text-[#777777]">Carboidratos</p>
+                      </div>
+                      <p className="text-xl font-bold text-[#222222]">
+                        {totais.carboidratos.toFixed(1)}
                       </p>
+                      <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-[#777777]">Gorduras</p>
-                      <p className="text-lg font-semibold text-[#222222]">
-                        {totais.gorduras.toFixed(1)}g
+                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-lg p-4 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <p className="text-xs font-medium text-[#777777]">Gorduras</p>
+                      </div>
+                      <p className="text-xl font-bold text-[#222222]">
+                        {totais.gorduras.toFixed(1)}
                       </p>
+                      <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
                   </div>
                 );
               })()}
 
-              {/* Botões de ação - Design moderno */}
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700/30">
-              {plan.status !== 'active' && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleRelease(plan.id, plan.name)}
-                  className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/50 text-green-300 hover:from-green-500/20 hover:to-emerald-500/20 hover:border-green-400/70 hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Liberar Plano
-                </Button>
-              )}
-              {plan.status === 'active' && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await supabase
-                        .from('diet_plans')
-                        .update({ status: 'draft', active: false })
-                        .eq('id', plan.id);
-                      toast({
-                        title: 'Plano desativado!',
-                        description: 'O plano foi movido para rascunho.',
-                      });
-                      refetch();
-                    } catch (err) {
-                      toast({
-                        title: 'Erro',
-                        description: 'Erro ao desativar plano',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all duration-300"
-                ><X className="w-4 h-4 mr-2" />Desativar
-                </Button>
-              )}
-              <Button 
-                size="sm" 
-                onClick={() => handleEdit(plan)}
-                className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
+              {/* Controles com Toggles - Design moderno */}
+              <div className="space-y-3 pt-4 border-t border-gray-200">
+                {/* Toggles de Controle */}
+                <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg">
+                  {/* Toggle: Status (Ativo/Inativo) */}
+                  <div className="flex items-center justify-between sm:justify-start gap-3 flex-1">
+                    <div className="flex items-center gap-2">
+                      {plan.status === 'active' ? (
+                        <Power className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <PowerOff className="w-4 h-4 text-gray-400" />
+                      )}
+                      <Label htmlFor={`status-${plan.id}`} className="text-sm font-medium text-[#222222] cursor-pointer">
+                        Plano Ativo
+                      </Label>
+                    </div>
+                    <Switch
+                      id={`status-${plan.id}`}
+                      checked={plan.status === 'active' || plan.active}
+                      onCheckedChange={() => handleToggleStatus(plan.id, plan.name, plan.status || 'draft')}
+                      className="data-[state=checked]:bg-[#00C98A] [&_span]:bg-white"
+                    />
+                  </div>
+
+                  {/* Toggle: Liberar para Paciente */}
+                  <div className="flex items-center justify-between sm:justify-start gap-3 flex-1 border-l border-gray-200 pl-4">
+                    <div className="flex items-center gap-2">
+                      {plan.is_released ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <X className="w-4 h-4 text-gray-400" />
+                      )}
+                      <Label htmlFor={`released-${plan.id}`} className="text-sm font-medium text-[#222222] cursor-pointer">
+                        Visível no Portal
+                      </Label>
+                    </div>
+                    <Switch
+                      id={`released-${plan.id}`}
+                      checked={plan.is_released === true}
+                      onCheckedChange={() => handleToggleReleased(plan.id, plan.name, plan.is_released === true)}
+                      className="data-[state=checked]:bg-[#00C98A] [&_span]:bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleEdit(plan)}
+                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -975,7 +1077,8 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1143,87 +1246,92 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             return (
         <Card 
           key={plan.id}
-          className="bg-white border-gray-200 hover:shadow-lg transition-all duration-300 opacity-75 hover:opacity-100"
+          className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden opacity-90 hover:opacity-100"
         >
-
-          
-          <CardHeader>
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 pb-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <CardTitle className="text-[#222222]">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <CardTitle className="text-xl font-bold text-[#222222] flex items-center gap-2">
+                    <Utensils className="w-5 h-5 text-gray-500" />
                     {plan.name}
                   </CardTitle>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge 
-                      variant="secondary"
-                      className="bg-gradient-to-r from-slate-700/50 to-slate-600/50 border-slate-600/50 text-slate-300"
-                    >
-                      {plan.status === 'draft' ? (
-                        <>
-                          <Edit className="w-3 h-3 mr-1" />
-                          Rascunho
-                        </>
-                      ) : (
-                        plan.status
-                      )}
+                  {plan.is_released && (
+                    <Badge className="bg-green-500/20 text-green-700 border-green-500/30 text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Liberado
                     </Badge>
-                    {plan.favorite && (
-                      <Badge className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/50 text-yellow-300 shadow-lg shadow-yellow-500/20">
-                        <Star className="w-3 h-3 mr-1 fill-yellow-400" />
-                        Favorito
-                      </Badge>
-                    )}
-                  </div>
+                  )}
+                  {plan.favorite && (
+                    <Badge variant="outline" className="border-yellow-500/50 text-yellow-600 bg-yellow-50 text-xs">
+                      <Star className="w-3 h-3 mr-1 fill-yellow-500" />
+                      Favorito
+                    </Badge>
+                  )}
                 </div>
                 {plan.notes && (
-                  <CardDescription className="text-[#777777]">
+                  <CardDescription className="text-sm text-[#777777] line-clamp-2">
                     {plan.notes}
                   </CardDescription>
                 )}
+                <div className="flex items-center gap-4 mt-2 text-xs text-[#777777]">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Criado em {new Date(plan.created_at).toLocaleDateString('pt-BR')}
+                  </div>
+                  {plan.released_at && (
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Liberado em {new Date(plan.released_at).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="space-y-5">
-              {/* Totais do plano - Design moderno */}
+              {/* Totais do plano - Layout melhorado */}
               {(() => {
                 const totais = calcularTotais(plan);
                 return (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                    <div className="bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/10 rounded-lg p-4 hover:from-orange-500/10 hover:to-red-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-xs text-[#777777]">Calorias</p>
+                        <div className="w-2 h-2 rounded-full bg-orange-400" />
+                        <p className="text-xs font-medium text-[#777777]">Calorias</p>
                       </div>
-                      <p className="text-lg font-semibold text-[#222222]">
+                      <p className="text-xl font-bold text-[#222222]">
                         {totais.calorias.toLocaleString('pt-BR')}
                       </p>
                       <p className="text-xs text-[#777777] mt-1">kcal</p>
                     </div>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 rounded-lg p-4 hover:from-blue-500/10 hover:to-indigo-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-xs text-[#777777]">Proteína</p>
+                        <div className="w-2 h-2 rounded-full bg-blue-400" />
+                        <p className="text-xs font-medium text-[#777777]">Proteína</p>
                       </div>
-                      <p className="text-lg font-semibold text-[#222222]">
+                      <p className="text-xl font-bold text-[#222222]">
                         {totais.proteinas.toFixed(1)}
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-lg p-4 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-xs text-[#777777]">Carboidratos</p>
+                        <div className="w-2 h-2 rounded-full bg-purple-400" />
+                        <p className="text-xs font-medium text-[#777777]">Carboidratos</p>
                       </div>
-                      <p className="text-lg font-semibold text-[#222222]">
+                      <p className="text-xl font-bold text-[#222222]">
                         {totais.carboidratos.toFixed(1)}
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-lg p-4 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300 group/nutrient">
+                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-lg p-4 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400/50 group-hover/nutrient:scale-125 transition-transform" />
-                        <p className="text-xs text-[#777777]">Gorduras</p>
+                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <p className="text-xs font-medium text-[#777777]">Gorduras</p>
                       </div>
-                      <p className="text-2xl font-bold text-emerald-300/80 group-hover/nutrient:text-emerald-300 transition-colors">
+                      <p className="text-xl font-bold text-[#222222]">
                         {totais.gorduras.toFixed(1)}
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
@@ -1232,47 +1340,62 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                 );
               })()}
 
-              {/* Botões de ação - Design moderno */}
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700/20">
-              {plan.status !== 'active' && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleRelease(plan.id, plan.name)}
-                  className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/50 text-green-300 hover:from-green-500/20 hover:to-emerald-500/20 hover:border-green-400/70 hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Liberar Plano
-                </Button>
-              )}
-              {plan.status === 'active' && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await supabase
-                        .from('diet_plans')
-                        .update({ status: 'draft', active: false })
-                        .eq('id', plan.id);
-                      toast({
-                        title: 'Plano desativado!',
-                        description: 'O plano foi movido para rascunho.',
-                      });
-                      refetch();
-                    } catch (err) {
-                      toast({
-                        title: 'Erro',
-                        description: 'Erro ao desativar plano',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all duration-300"
-                ><X className="w-4 h-4 mr-2" />Desativar
-                </Button>
-              )}
-              <DropdownMenu>
+              {/* Controles com Toggles - Design moderno */}
+              <div className="space-y-3 pt-4 border-t border-gray-200">
+                {/* Toggles de Controle */}
+                <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg">
+                  {/* Toggle: Status (Ativo/Inativo) */}
+                  <div className="flex items-center justify-between sm:justify-start gap-3 flex-1">
+                    <div className="flex items-center gap-2">
+                      {plan.status === 'active' ? (
+                        <Power className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <PowerOff className="w-4 h-4 text-gray-400" />
+                      )}
+                      <Label htmlFor={`status-inactive-${plan.id}`} className="text-sm font-medium text-[#222222] cursor-pointer">
+                        Plano Ativo
+                      </Label>
+                    </div>
+                    <Switch
+                      id={`status-inactive-${plan.id}`}
+                      checked={plan.status === 'active' || plan.active}
+                      onCheckedChange={() => handleToggleStatus(plan.id, plan.name, plan.status || 'draft')}
+                      className="data-[state=checked]:bg-[#00C98A] [&_span]:bg-white"
+                    />
+                  </div>
+
+                  {/* Toggle: Liberar para Paciente */}
+                  <div className="flex items-center justify-between sm:justify-start gap-3 flex-1 border-l border-gray-200 pl-4">
+                    <div className="flex items-center gap-2">
+                      {plan.is_released ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <X className="w-4 h-4 text-gray-400" />
+                      )}
+                      <Label htmlFor={`released-inactive-${plan.id}`} className="text-sm font-medium text-[#222222] cursor-pointer">
+                        Visível no Portal
+                      </Label>
+                    </div>
+                    <Switch
+                      id={`released-inactive-${plan.id}`}
+                      checked={plan.is_released === true}
+                      onCheckedChange={() => handleToggleReleased(plan.id, plan.name, plan.is_released === true)}
+                      className="data-[state=checked]:bg-[#00C98A] [&_span]:bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleEdit(plan)}
+                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     size="sm" 
@@ -1344,7 +1467,8 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1371,10 +1495,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
       )}
 
       {/* Modal de Grupos de Alimentos */}
-      <FoodGroupsManager
-        open={foodGroupsManagerOpen}
-        onOpenChange={setFoodGroupsManagerOpen}
-      />
 
       {/* Modal de detalhes */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
