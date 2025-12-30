@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { X, ChevronLeft, ChevronRight, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Upload, Loader2, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import { getMediaType } from '@/lib/media-utils';
 import { convertGoogleDriveUrl, isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { GoogleDriveImage } from '../ui/google-drive-image';
@@ -56,6 +56,7 @@ export function PhotoComparisonModal({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePositions, setFilePositions] = useState<{ [key: number]: PhotoAngle }>({});
   const [uploadingMultiple, setUploadingMultiple] = useState(false);
+  const [hidePreviousColumn, setHidePreviousColumn] = useState(false);
   
   // Refs para inputs de arquivo
   const fileInputRef = useRef<HTMLInputElement>(null); // Para upload simples (uma foto)
@@ -666,14 +667,45 @@ export function PhotoComparisonModal({
             <DialogTitle className="text-slate-200 flex items-center gap-2">
               Comparação de Fotos
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="text-slate-400 hover:text-white h-6 w-6 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {previousDate && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHidePreviousColumn(!hidePreviousColumn)}
+                        className="text-slate-400 hover:text-white h-8 px-2"
+                      >
+                        {hidePreviousColumn ? (
+                          <>
+                            <Eye className="w-4 h-4 mr-1" />
+                            <span className="text-xs">Mostrar Anterior</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-4 h-4 mr-1" />
+                            <span className="text-xs">Ocultar Anterior</span>
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{hidePreviousColumn ? 'Mostrar coluna do check-in anterior' : 'Ocultar coluna do check-in anterior'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="text-slate-400 hover:text-white h-6 w-6 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -692,7 +724,11 @@ export function PhotoComparisonModal({
               onChange={handleFileInputChange}
             />
             {/* Grid de comparação */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 overflow-auto min-h-0">
+            <div className={`flex-1 grid gap-4 p-4 overflow-auto min-h-0 ${
+              hidePreviousColumn 
+                ? 'grid-cols-1 md:grid-cols-2' 
+                : 'grid-cols-1 md:grid-cols-3'
+            }`}>
               {/* Coluna 1: Inicial */}
               <div className="flex flex-col">
                 <div className="mb-2 text-center">
@@ -773,6 +809,7 @@ export function PhotoComparisonModal({
               </div>
 
               {/* Coluna 2: Check-in Anterior */}
+              {!hidePreviousColumn && (
               <div className="flex flex-col">
                 <div className="mb-2 text-center">
                   <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -856,6 +893,7 @@ export function PhotoComparisonModal({
                   )}
                 </div>
               </div>
+              )}
 
               {/* Coluna 3: Check-in Atual */}
               <div className="flex flex-col">
