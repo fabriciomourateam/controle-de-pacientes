@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useDebounce } from "@/hooks/use-auto-save";
 import { 
   Search, 
@@ -507,17 +507,19 @@ export function CheckinsList() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => navigate(`/checkins/evolution/${checkin.telefone}`)}
-                                className="hover:bg-blue-500/20 hover:text-blue-300 h-6 w-6 p-0"
+                              <Link
+                                to={`/checkins/evolution/${checkin.telefone}`}
+                                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-6 w-6 p-0"
+                                onContextMenu={(e) => {
+                                  // Permite o menu de contexto padrão do navegador
+                                  // O navegador já oferece "Abrir em nova aba" no menu de contexto
+                                }}
                               >
                                 <FileText className="w-4 h-4" />
-                              </Button>
+                              </Link>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Ver dossiê de evolução</p>
+                              <p>Ver dossiê de evolução (clique direito para abrir em nova aba)</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
