@@ -22,6 +22,30 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
   let cintura: number | null = null;
   let quadril: number | null = null;
   
+  // Padrão 0: Formato numerado "1- 76 cintura, 2- 93 quadril" ou "1- 76 cintura 2- 93 quadril"
+  // Captura padrões como: "1- 76 cintura, 2- 93 quadril", "1 - 76 cintura 2 - 93 quadril", etc.
+  // Usar matchAll para encontrar todos os padrões numerados no texto
+  const numberedPattern = /(\d+)\s*-\s*(\d+(?:\.\d+)?)\s+(cintura|quadril)/gi;
+  const numberedMatches = Array.from(textStr.matchAll(numberedPattern));
+  
+  if (numberedMatches.length > 0) {
+    for (const match of numberedMatches) {
+      const num = parseFloat(match[2]);
+      const label = match[3].toLowerCase();
+      
+      if (label === 'cintura' && isValidMeasurement(num, 'cintura') && cintura === null) {
+        cintura = num;
+      } else if (label === 'quadril' && isValidMeasurement(num, 'quadril') && quadril === null) {
+        quadril = num;
+      }
+    }
+    
+    // Se encontrou pelo menos uma medida no formato numerado, retornar
+    if (cintura !== null || quadril !== null) {
+      return { cintura, quadril };
+    }
+  }
+  
   // Padrão 1: Procurar por palavras-chave específicas com mais precisão
   // Buscar por "Cintura" seguido de dois pontos e número (incluindo texto complexo)
   // Padrões mais específicos primeiro (com palavras-chave explícitas)
