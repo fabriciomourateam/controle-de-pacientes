@@ -1596,16 +1596,16 @@ export function DietPlanForm({
                 {activeTab === "meals" && (
                   <div className="bg-white flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
                     <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
-                            <Utensils className="w-5 h-5 text-[#00C98A]" />
-                            Refeições
-                          </h3>
-                          <p className="text-sm text-[#777777] mt-1">
-                            Adicione as refeições do plano alimentar
-                          </p>
-                        </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
+                          <Utensils className="w-5 h-5 text-[#00C98A]" />
+                          Refeições
+                        </h3>
+                        <p className="text-sm text-[#777777] mt-1">
+                          Adicione as refeições do plano alimentar
+                        </p>
+                      </div>
                         <div className="flex gap-2">
                           <Button 
                             type="button" 
@@ -1633,18 +1633,18 @@ export function DietPlanForm({
                             <Star className="w-4 h-4 mr-2" />
                             Adicionar Favoritos
                           </Button>
-                          <Button 
-                            type="button" 
-                            onClick={addMeal} 
-                            size="sm"
-                            className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adicionar Refeição
-                          </Button>
+                      <Button 
+                        type="button" 
+                        onClick={addMeal} 
+                        size="sm"
+                        className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Refeição
+                      </Button>
                         </div>
-                      </div>
-                      
+                    </div>
+
                       {/* Controles: Expandir/Colapsar Todas e Ordenação */}
                       <div className="flex items-center gap-2">
                         <Button
@@ -1691,7 +1691,7 @@ export function DietPlanForm({
                     </div>
                     
                     <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pb-24">
-                      {mealFields.length === 0 ? (
+                    {mealFields.length === 0 ? (
                       <Card className="bg-green-500/10 border-green-500/30">
                         <CardContent className="p-12 text-center">
                           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border border-[#00C98A]/50 mb-4">
@@ -2017,24 +2017,24 @@ export function DietPlanForm({
                                         }
                                         setExpandedObservations(newExpanded);
                                       }}
-                                    >
+                                  >
                                       <CardHeader className="pb-2 pt-3 px-4">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-3 flex-1">
-                                            <div
-                                              {...attributes}
-                                              {...listeners}
-                                              className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity"
-                                            >
-                                              <GripVertical className="w-4 h-4 text-[#777777]" />
-                                            </div>
-                                            <CardTitle className="text-base font-semibold text-[#222222]">
-                                              Observação {index + 1}
-                                            </CardTitle>
-                                            <Badge className="bg-green-500/10 border-green-500/50 text-[#00A875] text-xs">
-                                              Ordem: {observation.order || index + 1}
-                                            </Badge>
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 flex-1">
+                                          <div
+                                            {...attributes}
+                                            {...listeners}
+                                            className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity"
+                                          >
+                                            <GripVertical className="w-4 h-4 text-[#777777]" />
                                           </div>
+                                          <CardTitle className="text-base font-semibold text-[#222222]">
+                                            Observação {index + 1}
+                                          </CardTitle>
+                                            <Badge className="bg-green-500/10 border-green-500/50 text-[#00A875] text-xs">
+                                            Ordem: {observation.order || index + 1}
+                                          </Badge>
+                                        </div>
                                           <div className="flex items-center gap-1">
                                             <CollapsibleTrigger asChild>
                                               <Button
@@ -2050,18 +2050,18 @@ export function DietPlanForm({
                                                 )}
                                               </Button>
                                             </CollapsibleTrigger>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => removeObservation(index)}
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeObservation(index)}
                                               className="h-7 w-7 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
                                           </div>
-                                        </div>
-                                      </CardHeader>
+                                      </div>
+                                    </CardHeader>
                                       <CollapsibleContent>
                                         <CardContent className="space-y-4 pt-0">
                                       <FormField
@@ -2127,7 +2127,7 @@ export function DietPlanForm({
                                           )}
                                         />
                                       </div>
-                                        </CardContent>
+                                    </CardContent>
                                       </CollapsibleContent>
                                     </Collapsible>
                                   </Card>
@@ -2947,7 +2947,7 @@ export function DietPlanForm({
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0">
-            {formContent}
+          {formContent}
           </div>
         </DialogContent>
       </Dialog>
@@ -3378,18 +3378,18 @@ const MealItemComponent = memo(function MealItemComponent({
                                       {/* Lado esquerdo: Drag handle, horário editável, nome editável, macros compactados */}
                                       <div className="flex items-center gap-3 flex-1 min-w-0">
                                         {/* Drag handle */}
-                                        <div
-                                          {...attributes}
-                                          {...listeners}
+                                          <div
+                                            {...attributes}
+                                            {...listeners}
                                           className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity flex-shrink-0"
                                           onClick={(e) => e.stopPropagation()}
                                           title="Arrastar para reordenar"
                                           role="button"
                                           aria-label={`Arrastar para reordenar ${mealName}`}
                                           tabIndex={0}
-                                        >
+                                          >
                                           <GripVertical className="w-4 h-4 text-[#555555]" aria-hidden="true" />
-                                        </div>
+                                          </div>
 
                                         {/* Horário editável */}
                                         <FormField
@@ -3446,7 +3446,7 @@ const MealItemComponent = memo(function MealItemComponent({
                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-600" aria-hidden="true"></div>
                                                 <span className="text-sm text-[#111111] font-medium">{mealFats.toFixed(1)}g</span>
                                                 <span className="text-sm font-semibold text-[#111111] ml-1">{mealCalories} Kcal</span>
-                                              </div>
+                                          </div>
                                             </TooltipTrigger>
                                             <TooltipContent className="bg-gray-900 text-white text-xs p-3 rounded-md shadow-lg">
                                               <div className="space-y-1">
@@ -3455,11 +3455,11 @@ const MealItemComponent = memo(function MealItemComponent({
                                                 <p className="text-xs">Carboidratos: {mealCarbs.toFixed(1)}g</p>
                                                 <p className="text-xs">Gorduras: {mealFats.toFixed(1)}g</p>
                                                 <p className="text-xs">Calorias: {mealCalories} Kcal</p>
-                                              </div>
+                                          </div>
                                             </TooltipContent>
                                           </Tooltip>
                                         </TooltipProvider>
-                                      </div>
+                                          </div>
 
                                       {/* Lado direito: Botões de ação */}
                                       <div className="flex items-center gap-1 flex-shrink-0">
@@ -3472,22 +3472,22 @@ const MealItemComponent = memo(function MealItemComponent({
                                             className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            {isExpanded ? (
+                                    {isExpanded ? (
                                               <ChevronUp className="w-4 h-4" />
-                                            ) : (
+                                    ) : (
                                               <ChevronDown className="w-4 h-4" />
-                                            )}
+                                    )}
                                           </Button>
-                                        </CollapsibleTrigger>
+                                </CollapsibleTrigger>
 
                                         {/* Botão ver alimentos (verde) */}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
                                           className="h-7 px-2 bg-[#00C98A] hover:bg-[#00A875] text-white text-xs"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                             const newExpanded = new Set(expandedMeals);
                                             if (!isExpanded) {
                                               newExpanded.add(mealIndex);
@@ -3526,30 +3526,30 @@ const MealItemComponent = memo(function MealItemComponent({
                                           className="h-7 w-7 p-0 text-[#777777] hover:text-blue-600 hover:bg-blue-50"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            const meals = form.getValues("meals") || [];
-                                            const mealToDuplicate = meals[mealIndex];
-                                            const newMeal = {
-                                              ...mealToDuplicate,
-                                              meal_name: `${mealToDuplicate.meal_name} (Cópia)`,
-                                              meal_order: meals.length + 1,
-                                              foods: mealToDuplicate.foods?.map((food: any) => ({ ...food })) || [],
-                                            };
-                                            appendMeal(newMeal);
-                                            toast({
-                                              title: "Refeição duplicada!",
-                                              description: "A refeição foi duplicada com sucesso.",
-                                            });
-                                          }}
+                                      const meals = form.getValues("meals") || [];
+                                      const mealToDuplicate = meals[mealIndex];
+                                      const newMeal = {
+                                        ...mealToDuplicate,
+                                        meal_name: `${mealToDuplicate.meal_name} (Cópia)`,
+                                        meal_order: meals.length + 1,
+                                        foods: mealToDuplicate.foods?.map((food: any) => ({ ...food })) || [],
+                                      };
+                                      appendMeal(newMeal);
+                                      toast({
+                                        title: "Refeição duplicada!",
+                                        description: "A refeição foi duplicada com sucesso.",
+                                      });
+                                    }}
                                           title="Duplicar refeição"
-                                        >
+                                  >
                                           <Layers className="w-4 h-4" />
-                                        </Button>
+                                  </Button>
 
                                         {/* Botão favoritar/star */}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
                                           className="h-7 w-7 p-0 text-[#777777] hover:text-yellow-500 hover:bg-yellow-50"
                                           title="Adicionar aos favoritos"
                                           onClick={async (e) => {
@@ -3604,12 +3604,12 @@ const MealItemComponent = memo(function MealItemComponent({
                                           }}
                                           aria-label={`Remover ${mealName}`}
                                           title="Remover refeição"
-                                        >
+                                  >
                                           <Trash2 className="w-4 h-4" aria-hidden="true" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </CardHeader>
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
                             <CollapsibleContent>
                               <CardContent className="space-y-2 p-4">
                             {/* Campos ocultos mas mantidos no formulário (para estrutura n8n) */}
@@ -3726,22 +3726,22 @@ const MealItemComponent = memo(function MealItemComponent({
                                     </Button>
                                   </CollapsibleTrigger>
                                   <CollapsibleContent>
-                                    <FormField
-                                      control={form.control}
-                                      name={`meals.${mealIndex}.instructions`}
-                                      render={({ field }) => (
+                                <FormField
+                                  control={form.control}
+                                  name={`meals.${mealIndex}.instructions`}
+                                  render={({ field }) => (
                                         <FormItem className="pt-2">
-                                          <FormControl>
-                                            <Textarea
-                                              placeholder="Instruções específicas para esta refeição..."
-                                              className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[60px]"
-                                              {...field}
-                                            />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
+                                      <FormControl>
+                                        <Textarea
+                                          placeholder="Instruções específicas para esta refeição..."
+                                          className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[60px]"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
                                   </CollapsibleContent>
                                 </Collapsible>
                               )}

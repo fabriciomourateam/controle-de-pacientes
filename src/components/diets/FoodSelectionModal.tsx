@@ -109,13 +109,13 @@ export function FoodSelectionModal({
           setIsSearching(false);
         } else {
           // Buscar no banco de dados
-          const filtered = foodDatabase.filter((food) =>
-            food.name.toLowerCase().includes(searchTerm.toLowerCase())
-          ).slice(0, 20); // Mostrar até 20 resultados
-          setFilteredFoods(filtered);
+        const filtered = foodDatabase.filter((food) =>
+          food.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ).slice(0, 20); // Mostrar até 20 resultados
+        setFilteredFoods(filtered);
           // Salvar no cache
           FoodCacheService.cacheSearch(searchTerm, filtered);
-          setIsSearching(false);
+        setIsSearching(false);
         }
       }, 200);
     } else {

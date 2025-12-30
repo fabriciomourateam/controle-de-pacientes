@@ -87,11 +87,11 @@ export const dietConsumptionService = {
     let existing = null;
     try {
       const { data, error } = await supabase
-        .from('diet_daily_consumption')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('consumption_date', today)
-        .single();
+      .from('diet_daily_consumption')
+      .select('*')
+      .eq('patient_id', patientId)
+      .eq('consumption_date', today)
+      .single();
       
       // Ignorar erro 406 (Not Acceptable) - tabela pode não existir ou RLS bloqueando
       if (error && error.code !== 'PGRST116' && !error.message?.includes('406')) {
@@ -125,13 +125,13 @@ export const dietConsumptionService = {
     if (existing) {
       // Atualizar
       try {
-        const { data, error } = await supabase
-          .from('diet_daily_consumption')
-          .update(consumptionData)
-          .eq('id', existing.id)
-          .select()
-          .single();
-        
+      const { data, error } = await supabase
+        .from('diet_daily_consumption')
+        .update(consumptionData)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      
         // Ignorar erro 406 (tabela não acessível)
         if (error && !error.message?.includes('406')) {
           throw error;
@@ -148,12 +148,12 @@ export const dietConsumptionService = {
     } else {
       // Criar novo
       try {
-        const { data, error } = await supabase
-          .from('diet_daily_consumption')
-          .insert(consumptionData)
-          .select()
-          .single();
-        
+      const { data, error } = await supabase
+        .from('diet_daily_consumption')
+        .insert(consumptionData)
+        .select()
+        .single();
+      
         // Ignorar erro 406 (tabela não acessível)
         if (error && !error.message?.includes('406')) {
           throw error;
@@ -328,11 +328,11 @@ export const dietConsumptionService = {
     let consumption: DailyConsumption[] = [];
     try {
       const { data, error } = await supabase
-        .from('diet_daily_consumption')
-        .select('*')
-        .eq('patient_id', patientId)
-        .gte('consumption_date', weekAgo.toISOString().split('T')[0])
-        .order('consumption_date', { ascending: true });
+      .from('diet_daily_consumption')
+      .select('*')
+      .eq('patient_id', patientId)
+      .gte('consumption_date', weekAgo.toISOString().split('T')[0])
+      .order('consumption_date', { ascending: true });
       
       // Ignorar erro 406 (tabela não acessível)
       if (error && !error.message?.includes('406')) {

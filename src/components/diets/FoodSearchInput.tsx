@@ -75,8 +75,8 @@ export function FoodSearchInput({
         } else {
           // Buscar no banco de dados
           filtered = foodDatabase.filter((food) =>
-            food.name.toLowerCase().includes(searchTerm.toLowerCase())
-          ).slice(0, 10);
+          food.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ).slice(0, 10);
           // Salvar no cache
           FoodCacheService.cacheSearch(searchTerm, filtered);
         }

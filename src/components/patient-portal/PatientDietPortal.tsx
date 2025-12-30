@@ -505,7 +505,7 @@ export function PatientDietPortal({
           {hasActivePlan && planDetails && (
             <>
               {planDetails.diet_meals && planDetails.diet_meals.length > 0 ? (
-                <Card className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+            <Card className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -739,9 +739,9 @@ export function PatientDietPortal({
                       <p>Debug: planDetails existe: {planDetails ? 'Sim' : 'Não'}</p>
                       <p>Debug: diet_meals existe: {planDetails?.diet_meals ? 'Sim' : 'Não'}</p>
                       <p>Debug: diet_meals.length: {planDetails?.diet_meals?.length || 0}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                </div>
+              </CardContent>
+            </Card>
               )}
             </>
           )}

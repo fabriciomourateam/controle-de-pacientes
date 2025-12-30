@@ -732,13 +732,13 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <CardTitle className="text-xl font-bold text-[#222222] flex items-center gap-2">
                     <Utensils className="w-5 h-5 text-[#00C98A]" />
-                    {plan.name}
+                  {plan.name}
                   </CardTitle>
                   {plan.is_released && (
                     <Badge className="bg-green-500/20 text-green-700 border-green-500/30 text-xs">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Liberado
-                    </Badge>
+                  </Badge>
                   )}
                   {plan.favorite && (
                     <Badge variant="outline" className="border-yellow-500/50 text-yellow-600 bg-yellow-50 text-xs">
@@ -750,7 +750,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                 {plan.notes && (
                   <CardDescription className="text-sm text-[#777777] line-clamp-2">
                     {plan.notes}
-                  </CardDescription>
+                </CardDescription>
                 )}
                 <div className="flex items-center gap-4 mt-2 text-xs text-[#777777]">
                   <div className="flex items-center gap-1">
@@ -865,14 +865,14 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
 
                 {/* Botões de Ação */}
                 <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleEdit(plan)}
-                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar
-                  </Button>
+              <Button 
+                size="sm" 
+                onClick={() => handleEdit(plan)}
+                className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -1078,7 +1078,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
                 </div>
-              </div>
+            </div>
             </div>
           </CardContent>
         </Card>
@@ -1262,12 +1262,12 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       Liberado
                     </Badge>
                   )}
-                  {plan.favorite && (
+                    {plan.favorite && (
                     <Badge variant="outline" className="border-yellow-500/50 text-yellow-600 bg-yellow-50 text-xs">
                       <Star className="w-3 h-3 mr-1 fill-yellow-500" />
-                      Favorito
-                    </Badge>
-                  )}
+                        Favorito
+                      </Badge>
+                    )}
                 </div>
                 {plan.notes && (
                   <CardDescription className="text-sm text-[#777777] line-clamp-2">
@@ -1387,15 +1387,15 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
 
                 {/* Botões de Ação */}
                 <div className="flex flex-wrap gap-2">
-                  <Button 
-                    size="sm" 
+                <Button 
+                  size="sm" 
                     onClick={() => handleEdit(plan)}
                     className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                  >
+                >
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
-                  </Button>
-                  <DropdownMenu>
+                </Button>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     size="sm" 
@@ -1468,7 +1468,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
                 </div>
-              </div>
+            </div>
             </div>
           </CardContent>
         </Card>

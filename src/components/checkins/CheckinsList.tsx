@@ -478,22 +478,22 @@ export function CheckinsList() {
                 : 0;
               
               return (
-                <div key={checkin.id} className="px-3 py-1.5 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-300 ease-out">
-                  <div className="flex items-center justify-between gap-2.5">
+                <div key={checkin.id} className="px-2.5 py-1 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-300 ease-out">
+                  <div className="flex items-center justify-between gap-2">
                     {/* Informações do Paciente */}
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <Avatar className="w-8 h-8 flex-shrink-0">
                         <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
                           {checkin.patient?.nome?.charAt(0) || 'P'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <h4 className="font-semibold text-white text-base truncate leading-none">{checkin.patient?.nome || 'Paciente não informado'}</h4>
+                        <h4 className="font-semibold text-white text-lg truncate leading-tight">{checkin.patient?.nome || 'Paciente não informado'}</h4>
                       </div>
                     </div>
                     
                     {/* Controles e Botões */}
-                    <div className="flex items-center gap-1 flex-shrink-0 flex-wrap">
+                    <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap">
                       {/* Status, Responsável, Notas e Lock - integrados na linha */}
                       <CheckinQuickControls
                         checkin={checkin}
@@ -513,7 +513,7 @@ export function CheckinsList() {
                                 onClick={() => navigate(`/checkins/evolution/${checkin.telefone}`)}
                                 className="hover:bg-blue-500/20 hover:text-blue-300 h-6 w-6 p-0"
                               >
-                                <FileText className="w-3.5 h-3.5" />
+                                <FileText className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -530,7 +530,7 @@ export function CheckinsList() {
                                 onClick={() => handleViewCheckin(checkin)}
                                 className="h-6 w-6 p-0"
                               >
-                                <Eye className="w-3.5 h-3.5" />
+                                <Eye className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -547,7 +547,7 @@ export function CheckinsList() {
                                 onClick={() => handleEditCheckin(checkin)}
                                 className="h-6 w-6 p-0"
                               >
-                                <Edit className="w-3.5 h-3.5" />
+                                <Edit className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -560,7 +560,7 @@ export function CheckinsList() {
                   </div>
 
                    {/* Feedback */}
-                   <div className="mt-1">
+                   <div className="mt-0.5">
                      <CheckinFeedbackCard
                        checkin={checkin}
                        totalCheckins={totalPatientCheckins}

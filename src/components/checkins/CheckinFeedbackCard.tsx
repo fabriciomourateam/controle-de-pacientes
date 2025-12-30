@@ -515,19 +515,21 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   return (
     <div>
       {/* Botão de Expandir/Colapsar */}
-      <div className="flex items-center justify-between mb-1">
+      <div className={`flex items-center justify-between ${isExpanded ? 'mb-1' : 'mb-0'}`}>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/50"
+          className={`flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700/50 w-full justify-start ${isExpanded ? 'h-8' : 'h-5'}`}
         >
-          <Bot className="w-4 h-4 text-blue-400" />
-          <span className="text-sm font-medium">Feedback</span>
+          <Bot className={`text-blue-400 ${isExpanded ? 'w-4 h-4' : 'w-3 h-3'}`} />
+          {isExpanded && (
+            <span className="font-medium flex-1 text-left text-sm">Feedback</span>
+          )}
           {isExpanded ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-3 h-3 ml-auto" />
           )}
         </Button>
         
@@ -535,8 +537,11 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowPromptEditor(!showPromptEditor)}
-            className="text-slate-400 hover:text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPromptEditor(!showPromptEditor);
+            }}
+            className="text-slate-400 hover:text-white h-8 ml-2"
           >
             <Settings className="w-4 h-4" />
           </Button>
