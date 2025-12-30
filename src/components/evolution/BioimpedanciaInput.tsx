@@ -16,6 +16,20 @@ import {
   classificarIMC 
 } from '@/lib/body-calculations';
 
+interface Bioimpedancia {
+  id: string;
+  telefone: string;
+  data_avaliacao: string;
+  percentual_gordura: number;
+  peso: number;
+  massa_gorda: number;
+  massa_magra: number;
+  imc: number;
+  tmb: number;
+  classificacao: string | null;
+  observacoes: string | null;
+}
+
 interface BioimpedanciaInputProps {
   telefone: string;
   nome: string;
@@ -24,6 +38,8 @@ interface BioimpedanciaInputProps {
   pesoInicial?: number | null; // peso inicial do paciente
   sexo: string | null; // 'M' ou 'F'
   onSuccess: () => void;
+  editingBio?: Bioimpedancia | null; // Bioimpedância sendo editada
+  onCancel?: () => void; // Callback para cancelar edição
 }
 
 export function BioimpedanciaInput({ 
@@ -33,10 +49,12 @@ export function BioimpedanciaInput({
   altura,
   pesoInicial, 
   sexo, 
-  onSuccess 
+  onSuccess,
+  editingBio,
+  onCancel
 }: BioimpedanciaInputProps) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!editingBio);
   const [loading, setLoading] = useState(false);
   const [loadingLastBio, setLoadingLastBio] = useState(false);
   const [hasLastBio, setHasLastBio] = useState(false);
@@ -50,20 +68,44 @@ export function BioimpedanciaInput({
     return `${year}-${month}-${day}`;
   };
   
-  const [formData, setFormData] = useState({
-    data: getLocalDateString(),
-    textoGPT: '',
-    peso: '',
-    altura: altura?.toString() || '',
-    idade: idade?.toString() || '',
-    sexo: sexo || ''
-  });
+  // Inicializar formData com dados da bioimpedância sendo editada
+  const getInitialFormData = () => {
+    if (editingBio) {
+      const dataAvaliacao = editingBio.data_avaliacao.split('T')[0]; // Remove hora se houver
+      return {
+        data: dataAvaliacao,
+        textoGPT: editingBio.observacoes || '',
+        peso: editingBio.peso.toString(),
+        altura: altura?.toString() || '',
+        idade: idade?.toString() || '',
+        sexo: sexo || ''
+      };
+    }
+    return {
+      data: getLocalDateString(),
+      textoGPT: '',
+      peso: '',
+      altura: altura?.toString() || '',
+      idade: idade?.toString() || '',
+      sexo: sexo || ''
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData());
   const [calculosPreview, setCalculosPreview] = useState<any>(null);
 
-  // Buscar última bioimpedância quando abrir o dialog
+  // Atualizar formData quando editingBio mudar
+  useEffect(() => {
+    if (editingBio) {
+      setFormData(getInitialFormData());
+      setOpen(true);
+    }
+  }, [editingBio]);
+
+  // Buscar última bioimpedância quando abrir o dialog (apenas se não estiver editando)
   useEffect(() => {
     async function loadLastBioimpedancia() {
-      if (!open) return;
+      if (!open || editingBio) return; // Não carregar se estiver editando
       
       try {
         setLoadingLastBio(true);
@@ -118,7 +160,7 @@ export function BioimpedanciaInput({
     }
 
     loadLastBioimpedancia();
-  }, [open, telefone, toast]);
+  }, [open, telefone, toast, editingBio]);
 
   const parseGPTText = (texto: string) => {
     const dataMatch = texto.match(/📆\s*Data:\s*(\d{2}\/\d{2}\/\d{4})/i);
@@ -211,21 +253,41 @@ export function BioimpedanciaInput({
       const massaMagra = calcularMassaMagra(peso, massaGorda);
       const tmb = calcularTMB(peso, alturaNum, idadeNum, formData.sexo as 'M' | 'F');
 
-      // Inserir no Supabase
-      const { error } = await supabase
-        .from('body_composition')
-        .insert({
-          telefone,
-          ...parsedData,
-          peso,
-          massa_gorda: massaGorda,
-          massa_magra: massaMagra,
-          imc,
-          tmb,
-          observacoes: formData.textoGPT
-        });
+      // Inserir ou atualizar no Supabase
+      if (editingBio) {
+        // Modo edição: atualizar
+        const { error } = await supabase
+          .from('body_composition')
+          .update({
+            telefone,
+            ...parsedData,
+            peso,
+            massa_gorda: massaGorda,
+            massa_magra: massaMagra,
+            imc,
+            tmb,
+            observacoes: formData.textoGPT
+          })
+          .eq('id', editingBio.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Modo criação: inserir
+        const { error } = await supabase
+          .from('body_composition')
+          .insert({
+            telefone,
+            ...parsedData,
+            peso,
+            massa_gorda: massaGorda,
+            massa_magra: massaMagra,
+            imc,
+            tmb,
+            observacoes: formData.textoGPT
+          });
+
+        if (error) throw error;
+      }
 
       // Se o paciente não tem altura cadastrada, atualizar com a altura da bioimpedância
       if (!altura && alturaNum) {
@@ -240,7 +302,7 @@ export function BioimpedanciaInput({
       }
 
       toast({
-        title: 'Bioimpedância adicionada! ✅',
+        title: editingBio ? 'Bioimpedância atualizada! ✅' : 'Bioimpedância adicionada! ✅',
         description: `${parsedData.percentual_gordura}% BF | IMC: ${imc} | TMB: ${tmb} kcal`,
       });
 
@@ -278,19 +340,29 @@ export function BioimpedanciaInput({
         Abrir InShape GPT
       </Button>
 
-      {/* DIALOG PARA ADICIONAR BIOIMPEDÂNCIA */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
-            <Plus className="w-4 h-4" />
-            Adicionar Bioimpedância
-          </Button>
-        </DialogTrigger>
+      {/* DIALOG PARA ADICIONAR/EDITAR BIOIMPEDÂNCIA */}
+      <Dialog 
+        open={open} 
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen && editingBio && onCancel) {
+            onCancel();
+          }
+        }}
+      >
+        {!editingBio && (
+          <DialogTrigger asChild>
+            <Button className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
+              <Plus className="w-4 h-4" />
+              Adicionar Bioimpedância
+            </Button>
+          </DialogTrigger>
+        )}
         <DialogContent className="bg-slate-900 border-slate-700 max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Activity className="w-5 h-5 text-emerald-400" />
-              Adicionar Análise de Bioimpedância
+              {editingBio ? 'Editar Análise de Bioimpedância' : 'Adicionar Análise de Bioimpedância'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -446,7 +518,12 @@ export function BioimpedanciaInput({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  if (editingBio && onCancel) {
+                    onCancel();
+                  }
+                }}
                 className="border-slate-600 text-slate-300"
               >
                 Cancelar
@@ -456,7 +533,7 @@ export function BioimpedanciaInput({
                 disabled={loading || !formData.textoGPT || !formData.peso || !formData.altura}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
-                {loading ? 'Salvando...' : 'Salvar Bioimpedância'}
+                {loading ? 'Salvando...' : editingBio ? 'Atualizar Bioimpedância' : 'Salvar Bioimpedância'}
               </Button>
             </div>
           </form>

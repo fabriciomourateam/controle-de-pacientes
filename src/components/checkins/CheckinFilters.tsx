@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, X, ArrowUp, ArrowDown, Activity } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckinStatus, TeamMember } from '@/hooks/use-checkin-management';
 
@@ -20,6 +20,8 @@ interface CheckinFiltersProps {
   onSortByChange: (sortBy: 'date' | 'name' | 'status' | 'score') => void;
   sortOrder: 'asc' | 'desc';
   onSortOrderChange: (sortOrder: 'asc' | 'desc') => void;
+  filterWithBioimpedance: boolean;
+  onFilterWithBioimpedanceChange: (value: boolean) => void;
 }
 
 const statusOptions: Array<{ value: CheckinStatus; label: string; color: string }> = [
@@ -40,20 +42,23 @@ export function CheckinFilters({
   sortBy,
   onSortByChange,
   sortOrder,
-  onSortOrderChange
+  onSortOrderChange,
+  filterWithBioimpedance,
+  onFilterWithBioimpedanceChange
 }: CheckinFiltersProps) {
   
   const clearAllFilters = () => {
     onSearchChange('');
     onStatusChange([]); // Limpar status ao limpar filtros
     onResponsibleChange([]);
+    onFilterWithBioimpedanceChange(false);
   };
 
   // Verificar se "Pendente" está ativo (inclui pendente e em_analise)
   const isPendenteActive = selectedStatuses.includes('pendente') || selectedStatuses.includes('em_analise');
   const isEnviadoActive = selectedStatuses.includes('enviado');
 
-  const hasActiveFilters = searchTerm || selectedStatuses.length > 0 || selectedResponsibles.length > 0;
+  const hasActiveFilters = searchTerm || selectedStatuses.length > 0 || selectedResponsibles.length > 0 || filterWithBioimpedance;
 
   return (
     <Card className="bg-slate-800/40 border-slate-700/50">
@@ -143,6 +148,24 @@ export function CheckinFilters({
                 Enviado
               </Badge>
             </div>
+          </div>
+
+          {/* Filtro de Bioimpedância */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400">Filtros</label>
+            <Badge
+              onClick={() => onFilterWithBioimpedanceChange(!filterWithBioimpedance)}
+              className={`
+                cursor-pointer transition-all px-3 py-1.5 text-sm flex items-center gap-1.5
+                ${filterWithBioimpedance
+                  ? 'bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30'
+                  : 'bg-slate-700/50 text-slate-400 border-slate-600/50 hover:bg-slate-600/50'
+                }
+              `}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Com Bioimpedância
+            </Badge>
           </div>
 
           {/* Ordenação */}

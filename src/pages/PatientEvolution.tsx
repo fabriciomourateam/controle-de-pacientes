@@ -23,6 +23,7 @@ import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
 import { AIInsights } from '@/components/evolution/AIInsights';
 import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
+import { BioimpedanciaList } from '@/components/evolution/BioimpedanciaList';
 import { InitialDataInput } from '@/components/evolution/InitialDataInput';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
@@ -1008,13 +1009,6 @@ export default function PatientEvolution() {
                     sexo={patient?.genero || null}
                     onSuccess={handleBioSuccess}
                   />
-                  <Button
-                    onClick={() => navigate('/checkins')}
-                    className="gap-2"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Voltar
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1341,7 +1335,22 @@ export default function PatientEvolution() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15 }}
             >
-              <BodyFatChart data={bodyCompositions} />
+              <BodyFatChart 
+                data={bodyCompositions}
+                headerAction={
+                  telefone ? (
+                    <BioimpedanciaList
+                      telefone={telefone}
+                      nome={patient?.nome || 'Paciente'}
+                      idade={patient?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
+                      altura={(patient as any)?.altura_inicial || null}
+                      pesoInicial={(patient as any)?.peso_inicial || null}
+                      sexo={patient?.genero || null}
+                      onUpdate={handleBioSuccess}
+                    />
+                  ) : null
+                }
+              />
             </motion.div>
           )}
 

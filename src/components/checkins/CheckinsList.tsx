@@ -40,6 +40,7 @@ import { CheckinFilters } from "@/components/checkins/CheckinFilters";
 import { CheckinQuickControls } from "@/components/checkins/CheckinQuickControls";
 import { useCheckinManagement, CheckinStatus } from "@/hooks/use-checkin-management";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LineChart,
   Line,
@@ -67,9 +68,32 @@ export function CheckinsList() {
   const [displayLimit, setDisplayLimit] = useState(10); // Mostrar 10 por padrão
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'status' | 'score'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Padrão: mais recente primeiro
+  const [filterWithBioimpedance, setFilterWithBioimpedance] = useState(false);
+  const [patientsWithBioimpedance, setPatientsWithBioimpedance] = useState<Set<string>>(new Set());
 
   const { data: recentCheckins = [], isLoading: checkinsLoading, refetch } = useCheckinsWithPatient();
   const { teamMembers } = useCheckinManagement();
+
+  // Carregar lista de telefones que têm bioimpedância
+  useEffect(() => {
+    const loadPatientsWithBioimpedance = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('body_composition')
+          .select('telefone')
+          .not('telefone', 'is', null);
+
+        if (error) throw error;
+
+        const telefones = new Set(data?.map(bio => bio.telefone).filter(Boolean) || []);
+        setPatientsWithBioimpedance(telefones);
+      } catch (error) {
+        console.error('Erro ao carregar pacientes com bioimpedância:', error);
+      }
+    };
+
+    loadPatientsWithBioimpedance();
+  }, []);
 
   // Debounce na busca para melhorar performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -184,9 +208,14 @@ export function CheckinsList() {
       const matchesResponsible = selectedResponsibles.length === 0 || 
         selectedResponsibles.includes(checkin.assigned_to || 'unassigned');
       
-      return matchesSearch && matchesStatus && matchesResponsible;
+      // Filtro de bioimpedância
+      const telefoneCheckin = checkin.telefone || checkin.patient?.telefone;
+      const matchesBioimpedance = !filterWithBioimpedance || 
+        (telefoneCheckin && patientsWithBioimpedance.has(telefoneCheckin));
+      
+      return matchesSearch && matchesStatus && matchesResponsible && matchesBioimpedance;
     });
-  }, [recentCheckins, debouncedSearchTerm, selectedStatuses, selectedResponsibles]);
+  }, [recentCheckins, debouncedSearchTerm, selectedStatuses, selectedResponsibles, filterWithBioimpedance, patientsWithBioimpedance]);
 
   // Ordenar check-ins filtrados
   const sortedCheckins = useMemo(() => {
@@ -390,6 +419,8 @@ export function CheckinsList() {
         onSortByChange={setSortBy}
         sortOrder={sortOrder}
         onSortOrderChange={setSortOrder}
+        filterWithBioimpedance={filterWithBioimpedance}
+        onFilterWithBioimpedanceChange={setFilterWithBioimpedance}
       />
 
       {/* Lista de Checkins */}

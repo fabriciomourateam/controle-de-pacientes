@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingDown, TrendingUp, Minus, Activity } from 'lucide-react';
@@ -10,20 +11,30 @@ interface BodyComposition {
 
 interface BodyFatChartProps {
   data: BodyComposition[];
+  headerAction?: React.ReactNode;
 }
 
-export function BodyFatChart({ data }: BodyFatChartProps) {
+export function BodyFatChart({ data, headerAction }: BodyFatChartProps) {
   if (data.length === 0) {
     return (
       <Card className="bg-slate-800/40 border-slate-700/50">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-blue-400" />
-            Evolução do % de Gordura Corporal
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Nenhuma bioimpedância registrada ainda
-          </CardDescription>
+        <CardHeader className="relative">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-400" />
+                Evolução do % de Gordura Corporal
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Nenhuma bioimpedância registrada ainda
+              </CardDescription>
+            </div>
+            {headerAction && (
+              <div className="flex-shrink-0">
+                {headerAction}
+              </div>
+            )}
+          </div>
         </CardHeader>
       </Card>
     );
@@ -45,12 +56,14 @@ export function BodyFatChart({ data }: BodyFatChartProps) {
 
   return (
     <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Activity className="w-5 h-5 text-blue-400" />
-          Evolução do % de Gordura Corporal
-        </CardTitle>
-        <CardDescription className="text-slate-400 flex items-center gap-2">
+      <CardHeader className="relative">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-400" />
+              Evolução do % de Gordura Corporal
+            </CardTitle>
+            <CardDescription className="text-slate-400 flex items-center gap-2">
           {diferenca < -0.5 ? (
             <span className="flex items-center gap-1 text-emerald-400 font-semibold">
               <TrendingDown className="w-4 h-4" />
@@ -68,6 +81,13 @@ export function BodyFatChart({ data }: BodyFatChartProps) {
             </span>
           )}
         </CardDescription>
+          </div>
+          {headerAction && (
+            <div className="flex-shrink-0">
+              {headerAction}
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>

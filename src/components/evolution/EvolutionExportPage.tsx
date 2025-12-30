@@ -40,6 +40,7 @@ interface BodyCompositionData {
   massa_muscular?: number | null;
   visceralFat?: number | null;
   gordura_visceral?: number | null;
+  peso?: number | null;
 }
 
 interface EvolutionExportPageProps {
@@ -116,6 +117,7 @@ export function EvolutionExportPage({
   const isNegative = variacao !== null && variacao < 0;
   const isNeutral = variacao !== null && Math.abs(variacao) < 0.1;
   const lastBodyComp = bodyCompositions[0];
+  const previousBodyComp = bodyCompositions.length > 1 ? bodyCompositions[1] : null;
 
   // Altura em metros para cálculos
   const alturaMetros = patient.altura_inicial ? parseFloat(patient.altura_inicial.toString()) : null;
@@ -139,20 +141,98 @@ export function EvolutionExportPage({
   const massaMagra = pesoParaCalculo && percentualGordura ? (pesoParaCalculo * (100 - percentualGordura) / 100) : null;
   
   // Calcular TMB (Taxa Metabólica Basal) - Fórmula de Mifflin-St Jeor
-  const calcularTMB = () => {
-    if (!pesoParaCalculo || !alturaMetros || !idade) return null;
+  const calcularTMB = (peso: number) => {
+    if (!peso || !alturaMetros || !idade) return null;
     const alturaCm = alturaMetros * 100;
     const sexo = patient.sexo?.toLowerCase();
     
     if (sexo === 'masculino' || sexo === 'm') {
       // Homens: TMB = 10 × peso(kg) + 6.25 × altura(cm) - 5 × idade + 5
-      return Math.round(10 * pesoParaCalculo + 6.25 * alturaCm - 5 * idade + 5);
+      return Math.round(10 * peso + 6.25 * alturaCm - 5 * idade + 5);
     } else {
       // Mulheres: TMB = 10 × peso(kg) + 6.25 × altura(cm) - 5 × idade - 161
-      return Math.round(10 * pesoParaCalculo + 6.25 * alturaCm - 5 * idade - 161);
+      return Math.round(10 * peso + 6.25 * alturaCm - 5 * idade - 161);
     }
   };
-  const tmb = calcularTMB();
+  const tmb = calcularTMB(pesoParaCalculo || 0);
+
+  // Calcular diferenças comparando com avaliação anterior
+  const calcularDiferencas = () => {
+    if (!previousBodyComp || !lastBodyComp || bodyCompositions.length < 2) return null;
+
+    // Buscar dados da avaliação anterior e atual
+    const gorduraAnterior = previousBodyComp.bodyFat || previousBodyComp.percentual_gordura || null;
+    const gorduraAtual = lastBodyComp.bodyFat || lastBodyComp.percentual_gordura || null;
+    
+    // Buscar peso da avaliação anterior e atual (da bioimpedância)
+    const pesoAnterior = previousBodyComp.peso ? parseFloat(previousBodyComp.peso.toString()) : null;
+    const pesoAtualBio = lastBodyComp.peso ? parseFloat(lastBodyComp.peso.toString()) : null;
+    
+    // Usar peso da bioimpedância se disponível, senão usar do checkin ou inicial
+    const pesoParaCalcAnterior = pesoAnterior || pesoInicial;
+    const pesoParaCalcAtual = pesoAtualBio || pesoParaCalculo;
+    
+    // Calcular valores anteriores
+    const massaGordaAnterior = pesoParaCalcAnterior && gorduraAnterior 
+      ? (pesoParaCalcAnterior * gorduraAnterior / 100) 
+      : null;
+    const massaMagraAnterior = pesoParaCalcAnterior && gorduraAnterior 
+      ? (pesoParaCalcAnterior * (100 - gorduraAnterior) / 100) 
+      : null;
+    const imcAnterior = pesoParaCalcAnterior && alturaMetros 
+      ? pesoParaCalcAnterior / (alturaMetros * alturaMetros) 
+      : null;
+    const tmbAnterior = calcularTMB(pesoParaCalcAnterior || 0);
+
+    return {
+      gordura: gorduraAnterior && gorduraAtual ? (gorduraAtual - gorduraAnterior) : null,
+      imc: imcAnterior && imc ? (imc - imcAnterior) : null,
+      massaGorda: massaGordaAnterior && massaGorda ? (massaGorda - massaGordaAnterior) : null,
+      massaMagra: massaMagraAnterior && massaMagra ? (massaMagra - massaMagraAnterior) : null,
+      tmb: tmbAnterior && tmb ? (tmb - tmbAnterior) : null,
+      gorduraVisceral: previousBodyComp.visceralFat && lastBodyComp.visceralFat 
+        ? (parseFloat((lastBodyComp.visceralFat || 0).toString()) - parseFloat((previousBodyComp.visceralFat || 0).toString()))
+        : previousBodyComp.gordura_visceral && lastBodyComp.gordura_visceral
+        ? (parseFloat((lastBodyComp.gordura_visceral || 0).toString()) - parseFloat((previousBodyComp.gordura_visceral || 0).toString()))
+        : null
+    };
+  };
+
+  const diferencas = calcularDiferencas();
+
+  // Função para formatar diferença com cor apropriada
+  const formatarDiferenca = (valor: number | null, tipo: 'gordura' | 'imc' | 'massaGorda' | 'massaMagra' | 'tmb' | 'gorduraVisceral') => {
+    if (valor === null || Math.abs(valor) < 0.01) return null;
+    
+    const isPositive = valor > 0;
+    const isNegative = valor < 0;
+    
+    // Para gordura e massa gorda: negativo é bom (redução)
+    // Para massa magra e TMB: positivo é bom (aumento)
+    // Para IMC: depende do contexto, mas geralmente negativo é bom
+    // Para gordura visceral: negativo é bom (redução)
+    
+    let cor = '';
+    let simbolo = '';
+    
+    if (tipo === 'gordura' || tipo === 'massaGorda' || tipo === 'gorduraVisceral') {
+      cor = isNegative ? 'text-emerald-400' : 'text-red-400';
+      simbolo = isNegative ? '↓' : '↑';
+    } else if (tipo === 'massaMagra' || tipo === 'tmb') {
+      cor = isPositive ? 'text-emerald-400' : 'text-red-400';
+      simbolo = isPositive ? '↑' : '↓';
+    } else if (tipo === 'imc') {
+      // Para IMC, negativo geralmente é bom (redução)
+      cor = isNegative ? 'text-emerald-400' : 'text-amber-400';
+      simbolo = isNegative ? '↓' : '↑';
+    }
+    
+    const valorFormatado = Math.abs(valor).toFixed(1);
+    const sinal = valor > 0 ? '+' : '-';
+    const unidade = tipo === 'gordura' ? '%' : tipo === 'imc' ? '' : tipo === 'tmb' ? ' kcal' : ' kg';
+    
+    return { texto: `${sinal}${valorFormatado}${unidade}`, cor };
+  };
 
   // Dados de peso para o gráfico
   const weightData: { date: string; peso: number }[] = [];
@@ -539,11 +619,18 @@ export function EvolutionExportPage({
                 {/* % Gordura Corporal - PRIMEIRO CARD */}
                 {percentualGordura && (
                   <div className="rounded-xl p-4 border border-orange-500/30" style={{ backgroundColor: 'rgba(249, 115, 22, 0.2)' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-lg bg-orange-500/30">
-                        <span>🔥</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-orange-500/30">
+                          <span>🔥</span>
+                        </div>
+                        <p className="text-orange-200 text-sm font-medium">% Gordura</p>
                       </div>
-                      <p className="text-orange-200 text-sm font-medium">% Gordura</p>
+                      {diferencas?.gordura !== null && diferencas.gordura !== undefined && (
+                        <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.gordura, 'gordura')?.cor || 'text-slate-300'}`}>
+                          {formatarDiferenca(diferencas.gordura, 'gordura')?.texto}
+                        </span>
+                      )}
                     </div>
                     <p className="text-3xl font-bold text-white">{percentualGordura.toFixed(1)}<span className="text-lg">%</span></p>
                     <p className="text-xs text-orange-300 mt-1">Gordura corporal</p>
@@ -553,11 +640,18 @@ export function EvolutionExportPage({
                 {/* IMC */}
                 {imc && (
                   <div className="rounded-xl p-4 border border-blue-500/30" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-lg bg-blue-500/30">
-                        <span>📊</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-blue-500/30">
+                          <span>📊</span>
+                        </div>
+                        <p className="text-blue-200 text-sm font-medium">IMC</p>
                       </div>
-                      <p className="text-blue-200 text-sm font-medium">IMC</p>
+                      {diferencas?.imc !== null && diferencas.imc !== undefined && (
+                        <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.imc, 'imc')?.cor || 'text-slate-300'}`}>
+                          {formatarDiferenca(diferencas.imc, 'imc')?.texto}
+                        </span>
+                      )}
                     </div>
                     <p className="text-3xl font-bold text-white">{imc.toFixed(1)}</p>
                     <p className={`text-xs mt-1 ${getIMCClassificacao(imc).cor}`}>{getIMCClassificacao(imc).texto}</p>
@@ -567,11 +661,18 @@ export function EvolutionExportPage({
                 {/* Massa Gorda */}
                 {massaGorda && (
                   <div className="rounded-xl p-4 border border-amber-500/30" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-lg bg-amber-500/30">
-                        <span>⚖️</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-500/30">
+                          <span>⚖️</span>
+                        </div>
+                        <p className="text-amber-200 text-sm font-medium">Massa Gorda</p>
                       </div>
-                      <p className="text-amber-200 text-sm font-medium">Massa Gorda</p>
+                      {diferencas?.massaGorda !== null && diferencas.massaGorda !== undefined && (
+                        <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.massaGorda, 'massaGorda')?.cor || 'text-slate-300'}`}>
+                          {formatarDiferenca(diferencas.massaGorda, 'massaGorda')?.texto}
+                        </span>
+                      )}
                     </div>
                     <p className="text-3xl font-bold text-white">{massaGorda.toFixed(1)}<span className="text-lg">kg</span></p>
                   </div>
@@ -580,11 +681,18 @@ export function EvolutionExportPage({
                 {/* Massa Magra */}
                 {massaMagra && (
                   <div className="rounded-xl p-4 border border-green-500/30" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-lg bg-green-500/30">
-                        <span>💪</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-green-500/30">
+                          <span>💪</span>
+                        </div>
+                        <p className="text-green-200 text-sm font-medium">Massa Magra</p>
                       </div>
-                      <p className="text-green-200 text-sm font-medium">Massa Magra</p>
+                      {diferencas?.massaMagra !== null && diferencas.massaMagra !== undefined && (
+                        <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.massaMagra, 'massaMagra')?.cor || 'text-slate-300'}`}>
+                          {formatarDiferenca(diferencas.massaMagra, 'massaMagra')?.texto}
+                        </span>
+                      )}
                     </div>
                     <p className="text-3xl font-bold text-white">{massaMagra.toFixed(1)}<span className="text-lg">kg</span></p>
                     {percentualGordura && <p className="text-xs text-green-300 mt-1">{(100 - percentualGordura).toFixed(1)}% do peso</p>}
@@ -594,11 +702,18 @@ export function EvolutionExportPage({
                 {/* TMB */}
                 {tmb && (
                   <div className="rounded-xl p-4 border border-purple-500/30" style={{ backgroundColor: 'rgba(139, 92, 246, 0.2)' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-lg bg-purple-500/30">
-                        <span>⚡</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-purple-500/30">
+                          <span>⚡</span>
+                        </div>
+                        <p className="text-purple-200 text-sm font-medium">TMB</p>
                       </div>
-                      <p className="text-purple-200 text-sm font-medium">TMB</p>
+                      {diferencas?.tmb !== null && diferencas.tmb !== undefined && (
+                        <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.tmb, 'tmb')?.cor || 'text-slate-300'}`}>
+                          {formatarDiferenca(diferencas.tmb, 'tmb')?.texto}
+                        </span>
+                      )}
                     </div>
                     <p className="text-3xl font-bold text-white">{tmb}<span className="text-lg">kcal</span></p>
                     <p className="text-xs text-purple-300 mt-1">Gasto em repouso/dia</p>
@@ -608,11 +723,18 @@ export function EvolutionExportPage({
                 {/* Gordura Visceral (se tiver da avaliação) */}
                 {lastBodyComp && (lastBodyComp.visceralFat || lastBodyComp.gordura_visceral) && (
                   <div className="rounded-xl p-4 border border-red-500/30" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 rounded-lg bg-red-500/30">
-                        <span>⚠️</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-red-500/30">
+                          <span>⚠️</span>
+                        </div>
+                        <p className="text-red-200 text-sm font-medium">Gordura Visceral</p>
                       </div>
-                      <p className="text-red-200 text-sm font-medium">Gordura Visceral</p>
+                      {diferencas?.gorduraVisceral !== null && diferencas.gorduraVisceral !== undefined && (
+                        <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.gorduraVisceral, 'gorduraVisceral')?.cor || 'text-slate-300'}`}>
+                          {formatarDiferenca(diferencas.gorduraVisceral, 'gorduraVisceral')?.texto}
+                        </span>
+                      )}
                     </div>
                     <p className="text-3xl font-bold text-white">{lastBodyComp.visceralFat || lastBodyComp.gordura_visceral}</p>
                   </div>

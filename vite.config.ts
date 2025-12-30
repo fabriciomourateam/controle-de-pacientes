@@ -23,7 +23,7 @@ export default defineConfig({
     exclude: ['@supabase/node-fetch'],
   },
   server: {
-    port: 5173,
+    port: 5160,
     host: true,
     proxy: {
       '/api/notion-proxy': {

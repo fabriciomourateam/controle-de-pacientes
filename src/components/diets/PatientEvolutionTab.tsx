@@ -12,6 +12,7 @@ import { PhotoComparison } from '@/components/evolution/PhotoComparison';
 import { Timeline } from '@/components/evolution/Timeline';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
+import { BioimpedanciaList } from '@/components/evolution/BioimpedanciaList';
 import { AIInsights } from '@/components/evolution/AIInsights';
 import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
 import { detectAchievements } from '@/lib/achievement-system';
@@ -383,7 +384,25 @@ export function PatientEvolutionTab({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <BodyFatChart data={bodyCompositions} />
+          <BodyFatChart 
+            data={bodyCompositions}
+            headerAction={
+              patient?.telefone ? (
+                <BioimpedanciaList
+                  telefone={patient.telefone}
+                  nome={patient.nome || 'Paciente'}
+                  idade={patient.idade || (patient.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
+                  altura={(patient as any)?.altura_inicial || null}
+                  pesoInicial={(patient as any)?.peso_inicial || null}
+                  sexo={patient.genero || null}
+                  onUpdate={() => {
+                    loadPortalData();
+                    setLocalRefreshTrigger(prev => prev + 1);
+                  }}
+                />
+              ) : null
+            }
+          />
         </motion.div>
       )}
 
