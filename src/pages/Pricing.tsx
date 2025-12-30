@@ -159,17 +159,53 @@ export default function Pricing() {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold text-white">Escolha seu Plano</h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Planos flexíveis para nutricionistas de todos os tamanhos. 
+            Planos flexíveis para nutricionistas de todos os tamanhos.
+            <br />
             Comece grátis e faça upgrade quando precisar.
           </p>
         </div>
 
         {/* Planos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {plans.map((plan) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {plans
+            .filter(plan => plan.name !== 'start' && plan.name !== 'basic') // Ocultar plano Start/Basic
+            .map((plan) => {
             const isCurrent = isCurrentPlan(plan);
             const isFree = plan.name === 'free';
             const yearlyPrice = plan.price_yearly ? plan.price_yearly / 10 : null; // Preço mensal no anual
+            
+            // Definir features customizadas para Silver e Black
+            let customFeatures = plan.features;
+            if (plan.name === 'silver' || plan.name === 'intermediate') {
+              customFeatures = [
+                'Até 99 pacientes',
+                'Check-ins Ilimitados',
+                'Automação que gera resultado do Check-in',
+                'Bioimpedância dos Pacientes',
+                'Dashboard de Pacientes',
+                'Cadastro de Fotos e Dados Antropométricos',
+                'Comparativos de Fotos Antes e Depois',
+                'Relatórios exportáveis (PDF/Excel)',
+                'Templates de Mensagens',
+                'Automações Básicas'
+              ];
+            } else if (plan.name === 'black' || plan.name === 'advanced') {
+              customFeatures = [
+                'Pacientes Ilimitados',
+                'Check-ins Ilimitados',
+                'Automação que gera resultado do Check-in',
+                'Bioimpedância dos Pacientes',
+                'Dashboard de Pacientes',
+                'Cadastro de Fotos e Dados Antropométricos',
+                'Comparativos de Fotos Antes e Depois',
+                'Dashboard de Métricas Comerciais',
+                'Dashboard de Métricas Operacionais',
+                'Relatórios exportáveis (PDF/Excel)',
+                'Templates de Mensagens',
+                'Automações Avançadas',
+                'API Personalizado'
+              ];
+            }
 
             return (
               <Card
@@ -227,25 +263,16 @@ export default function Pricing() {
                         {plan.max_patients === null ? 'Ilimitado' : `Até ${plan.max_patients}`}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-400">Storage:</span>
-                      <span className="text-white font-semibold">{plan.max_storage_gb} GB</span>
-                    </div>
                   </div>
 
                   {/* Features */}
                   <div className="space-y-2">
-                    {plan.features.slice(0, 5).map((feature, index) => (
+                    {customFeatures.map((feature, index) => (
                       <div key={index} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-slate-300">{feature}</span>
                       </div>
                     ))}
-                    {plan.features.length > 5 && (
-                      <p className="text-xs text-slate-500 text-center">
-                        +{plan.features.length - 5} recursos adicionais
-                      </p>
-                    )}
                   </div>
 
                   {/* Botão */}
