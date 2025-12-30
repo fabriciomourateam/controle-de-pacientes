@@ -64,14 +64,23 @@ export function EvolutionExportPage({
   const exportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [ready, setReady] = useState(false);
+  const hasExportedRef = useRef<string | null>(null);
 
   useEffect(() => {
     setTimeout(() => setReady(true), 500);
   }, []);
 
-  // Se for export direto, executar quando estiver pronto
+  // Resetar flag quando o modo de exportação mudar
   useEffect(() => {
-    if (ready && directExportMode && onDirectExport && exportRef.current) {
+    if (directExportMode) {
+      hasExportedRef.current = null;
+    }
+  }, [directExportMode]);
+
+  // Se for export direto, executar quando estiver pronto (apenas uma vez por modo)
+  useEffect(() => {
+    if (ready && directExportMode && onDirectExport && exportRef.current && hasExportedRef.current !== directExportMode) {
+      hasExportedRef.current = directExportMode;
       onDirectExport(exportRef.current, directExportMode);
     }
   }, [ready, directExportMode, onDirectExport]);
@@ -626,7 +635,7 @@ export function EvolutionExportPage({
                         </div>
                         <p className="text-orange-200 text-sm font-medium">% Gordura</p>
                       </div>
-                      {diferencas?.gordura !== null && diferencas.gordura !== undefined && (
+                      {diferencas && diferencas.gordura !== null && diferencas.gordura !== undefined && (
                         <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.gordura, 'gordura')?.cor || 'text-slate-300'}`}>
                           {formatarDiferenca(diferencas.gordura, 'gordura')?.texto}
                         </span>
@@ -647,7 +656,7 @@ export function EvolutionExportPage({
                         </div>
                         <p className="text-blue-200 text-sm font-medium">IMC</p>
                       </div>
-                      {diferencas?.imc !== null && diferencas.imc !== undefined && (
+                      {diferencas && diferencas.imc !== null && diferencas.imc !== undefined && (
                         <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.imc, 'imc')?.cor || 'text-slate-300'}`}>
                           {formatarDiferenca(diferencas.imc, 'imc')?.texto}
                         </span>
@@ -668,7 +677,7 @@ export function EvolutionExportPage({
                         </div>
                         <p className="text-amber-200 text-sm font-medium">Massa Gorda</p>
                       </div>
-                      {diferencas?.massaGorda !== null && diferencas.massaGorda !== undefined && (
+                      {diferencas && diferencas.massaGorda !== null && diferencas.massaGorda !== undefined && (
                         <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.massaGorda, 'massaGorda')?.cor || 'text-slate-300'}`}>
                           {formatarDiferenca(diferencas.massaGorda, 'massaGorda')?.texto}
                         </span>
@@ -688,7 +697,7 @@ export function EvolutionExportPage({
                         </div>
                         <p className="text-green-200 text-sm font-medium">Massa Magra</p>
                       </div>
-                      {diferencas?.massaMagra !== null && diferencas.massaMagra !== undefined && (
+                      {diferencas && diferencas.massaMagra !== null && diferencas.massaMagra !== undefined && (
                         <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.massaMagra, 'massaMagra')?.cor || 'text-slate-300'}`}>
                           {formatarDiferenca(diferencas.massaMagra, 'massaMagra')?.texto}
                         </span>
@@ -709,7 +718,7 @@ export function EvolutionExportPage({
                         </div>
                         <p className="text-purple-200 text-sm font-medium">TMB</p>
                       </div>
-                      {diferencas?.tmb !== null && diferencas.tmb !== undefined && (
+                      {diferencas && diferencas.tmb !== null && diferencas.tmb !== undefined && (
                         <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.tmb, 'tmb')?.cor || 'text-slate-300'}`}>
                           {formatarDiferenca(diferencas.tmb, 'tmb')?.texto}
                         </span>
@@ -730,7 +739,7 @@ export function EvolutionExportPage({
                         </div>
                         <p className="text-red-200 text-sm font-medium">Gordura Visceral</p>
                       </div>
-                      {diferencas?.gorduraVisceral !== null && diferencas.gorduraVisceral !== undefined && (
+                      {diferencas && diferencas.gorduraVisceral !== null && diferencas.gorduraVisceral !== undefined && (
                         <span className={`text-xs font-semibold ${formatarDiferenca(diferencas.gorduraVisceral, 'gorduraVisceral')?.cor || 'text-slate-300'}`}>
                           {formatarDiferenca(diferencas.gorduraVisceral, 'gorduraVisceral')?.texto}
                         </span>

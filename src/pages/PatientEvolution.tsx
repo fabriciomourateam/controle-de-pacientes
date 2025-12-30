@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -387,9 +387,18 @@ export default function PatientEvolution() {
     setShowEvolutionExport(true);
   };
 
+  // Ref para evitar múltiplas execuções do download
+  const isExportingRef = useRef(false);
+
   // Callback quando a exportação direta é concluída
   const handleDirectEvolutionExport = async (exportRef: HTMLDivElement, format: 'png' | 'pdf') => {
+    // Prevenir execução múltipla
+    if (isExportingRef.current) {
+      return;
+    }
+    
     try {
+      isExportingRef.current = true;
       setGeneratingPDF(true);
       toast({
         title: format === 'png' ? '📸 Gerando PNG...' : '📄 Gerando PDF...',
@@ -409,7 +418,9 @@ export default function PatientEvolution() {
         const link = document.createElement('a');
         link.download = `evolucao-${patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.png`;
         link.href = dataURL;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         toast({ title: 'PNG gerado! 🎉', description: 'Evolução exportada com sucesso' });
       } else {
         const { jsPDF } = await import('jspdf');
@@ -428,6 +439,10 @@ export default function PatientEvolution() {
       toast({ title: 'Erro', description: 'Não foi possível gerar o arquivo', variant: 'destructive' });
     } finally {
       setGeneratingPDF(false);
+      // Resetar flag após um pequeno delay para permitir que o download seja processado
+      setTimeout(() => {
+        isExportingRef.current = false;
+      }, 1000);
     }
   };
 
