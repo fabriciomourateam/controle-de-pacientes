@@ -117,6 +117,21 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
     };
     weightData.push(dataInicialPoint);
   }
+
+  // Adicionar peso atual se existir (quando não há check-ins mas há dados atuais)
+  if (patientWithInitialData?.peso_atual && checkins.length === 0) {
+    const dataAtual = patientWithInitialData.data_fotos_atuais || new Date().toISOString();
+    const dataAtualPoint = {
+      id: 'atual',
+      data: new Date(dataAtual).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      dataCompleta: new Date(dataAtual).toISOString(),
+      peso: parseFloat(patientWithInitialData.peso_atual.toString()),
+      tipo: 'Atual',
+      tipoVisual: 'atual', // Para estilização no gráfico
+      aproveitamento: null
+    };
+    weightData.push(dataAtualPoint);
+  }
   
   // Adicionar pesos diários (weight_tracking)
   dailyWeights.forEach((weight) => {
@@ -302,11 +317,17 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
             <CardDescription className="text-slate-400">
               Acompanhamento do peso ao longo do tempo
             </CardDescription>
-            <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+            <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
                 <span>Peso Inicial</span>
               </div>
+              {allWeightData.some(d => d.tipoVisual === 'atual') && (
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></div>
+                  <span>Peso Atual</span>
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-slate-500"></div>
                 <span>Pesos Diários</span>
@@ -347,6 +368,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
                       const data = payload[0].payload;
                       let tipoLabel = 'Peso';
                       if (data.tipoVisual === 'inicial') tipoLabel = 'Peso Inicial';
+                      else if (data.tipoVisual === 'atual') tipoLabel = 'Peso Atual';
                       else if (data.tipoVisual === 'checkin') tipoLabel = 'Peso Check-in';
                       else if (data.tipoVisual === 'diario') tipoLabel = `Peso Diário (${data.tipo.includes('Jejum') ? 'Jejum' : 'Dia'})`;
                       else tipoLabel = data.tipo || 'Peso';
@@ -384,6 +406,21 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
                           cy={cy}
                           r={6}
                           fill="#22c55e"
+                          stroke="#fff"
+                          strokeWidth={2}
+                        />
+                      );
+                    }
+                    
+                    // Peso Atual: ponto grande verde esmeralda
+                    if (tipoVisual === 'atual') {
+                      return (
+                        <circle
+                          key={key}
+                          cx={cx}
+                          cy={cy}
+                          r={6}
+                          fill="#10b981"
                           stroke="#fff"
                           strokeWidth={2}
                         />
@@ -434,7 +471,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
                     if (!cx || !cy) return null;
                     
                     const tipoVisual = payload?.tipoVisual || 'checkin';
-                    const radius = tipoVisual === 'inicial' ? 8 : tipoVisual === 'checkin' ? 7 : 5;
+                    const radius = tipoVisual === 'inicial' || tipoVisual === 'atual' ? 8 : tipoVisual === 'checkin' ? 7 : 5;
                     const key = `active-${payload?.id || index || cx}-${cy}-${tipoVisual}`;
                     
                     return (
@@ -443,7 +480,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger }: Evolution
                         cx={cx}
                         cy={cy}
                         r={radius}
-                        fill={tipoVisual === 'inicial' ? '#22c55e' : tipoVisual === 'checkin' ? '#3b82f6' : '#64748b'}
+                        fill={tipoVisual === 'inicial' ? '#22c55e' : tipoVisual === 'atual' ? '#10b981' : tipoVisual === 'checkin' ? '#3b82f6' : '#64748b'}
                         stroke="#fff"
                         strokeWidth={2}
                       />

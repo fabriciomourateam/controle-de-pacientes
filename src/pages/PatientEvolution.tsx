@@ -25,6 +25,8 @@ import { AIInsights } from '@/components/evolution/AIInsights';
 import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
 import { BioimpedanciaList } from '@/components/evolution/BioimpedanciaList';
 import { InitialDataInput } from '@/components/evolution/InitialDataInput';
+import { CurrentDataInput } from '@/components/evolution/CurrentDataInput';
+import { InitialCurrentPhotoComparison } from '@/components/evolution/InitialCurrentPhotoComparison';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { AchievementBadges } from '@/components/evolution/AchievementBadges';
@@ -90,6 +92,7 @@ export default function PatientEvolution() {
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ field: string; label: string } | null>(null);
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
+  const [showPhotoComparison, setShowPhotoComparison] = useState(false);
   
   // Estados para controlar visibilidade dos cards opcionais
   const [showDailyWeights, setShowDailyWeights] = useState(false);
@@ -325,11 +328,19 @@ export default function PatientEvolution() {
       
       // Buscar check-ins do paciente
       const checkinsData = await checkinService.getByPhone(telefone);
-      setCheckins(checkinsData);
+      
+      // Migrar dados atuais para check-in separado se necessário (antes de setCheckins)
+      if (checkinsData.length > 0) {
+        await migrateCurrentDataToCheckin(telefone, checkinsData);
+      }
+      
+      // Buscar check-ins novamente após possível migração
+      const updatedCheckinsData = await checkinService.getByPhone(telefone);
+      setCheckins(updatedCheckinsData);
 
       // Verificar e migrar fotos do Typebot automaticamente
-      if (checkinsData.length > 0) {
-        checkAndMigratePhotos(checkinsData);
+      if (updatedCheckinsData.length > 0) {
+        checkAndMigratePhotos(updatedCheckinsData);
       }
 
       // Buscar dados do paciente
@@ -479,6 +490,126 @@ export default function PatientEvolution() {
       title: 'Dados atualizados',
       description: 'Os dados iniciais foram carregados'
     });
+  };
+
+  const handleCurrentDataSuccess = async () => {
+    // Recarregar dados do paciente após adicionar dados atuais
+    if (!telefone) return;
+    
+    const { data: patientData } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('telefone', telefone)
+      .single();
+    
+    if (patientData) {
+      setPatient(patientData);
+    }
+    
+    toast({
+      title: 'Dados atualizados',
+      description: 'Os dados atuais foram carregados'
+    });
+  };
+
+  // Migrar dados atuais para um check-in separado
+  const migrateCurrentDataToCheckin = async (telefone: string, checkins: Checkin[]) => {
+    try {
+      // Buscar dados do paciente
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('telefone', telefone)
+        .single();
+
+      if (!patientData) return;
+
+      const patient = patientData as any;
+
+      // Verificar se há dados atuais para migrar
+      const hasCurrentData = 
+        patient.foto_atual_frente || 
+        patient.foto_atual_lado || 
+        patient.foto_atual_lado_2 || 
+        patient.foto_atual_costas || 
+        patient.peso_atual;
+
+      if (!hasCurrentData) return;
+
+      // Verificar se já existe um check-in com a data dos dados atuais
+      const dataFotosAtuais = patient.data_fotos_atuais;
+      if (!dataFotosAtuais) return;
+
+      // Verificar se já existe um check-in nessa data exata
+      const existingCheckinWithDate = checkins.find(
+        c => c.data_checkin === dataFotosAtuais
+      );
+
+      // Se já existe um check-in nessa data E já tem fotos, apenas limpar dados atuais
+      if (existingCheckinWithDate) {
+        const hasPhotos = existingCheckinWithDate.foto_1 || existingCheckinWithDate.foto_2 || 
+                         existingCheckinWithDate.foto_3 || existingCheckinWithDate.foto_4;
+        if (hasPhotos) {
+          // Já foi migrado ou já tem fotos, limpar dados atuais
+          await supabase
+            .from('patients')
+            .update({
+              foto_atual_frente: null,
+              foto_atual_lado: null,
+              foto_atual_lado_2: null,
+              foto_atual_costas: null,
+              peso_atual: null,
+              altura_atual: null,
+              medida_cintura_atual: null,
+              medida_quadril_atual: null,
+              data_fotos_atuais: null
+            } as any)
+            .eq('telefone', telefone);
+          return;
+        }
+        // Se existe check-in mas não tem fotos, adicionar as fotos
+        await checkinService.update(existingCheckinWithDate.id, {
+          foto_1: patient.foto_atual_frente || null,
+          foto_2: patient.foto_atual_lado || null,
+          foto_3: patient.foto_atual_lado_2 || null,
+          foto_4: patient.foto_atual_costas || null,
+          peso: patient.peso_atual || existingCheckinWithDate.peso || null
+        });
+      } else {
+        // Criar novo check-in com os dados atuais usando a data original
+        const checkinData: any = {
+          telefone,
+          data_checkin: dataFotosAtuais,
+          foto_1: patient.foto_atual_frente || null,
+          foto_2: patient.foto_atual_lado || null,
+          foto_3: patient.foto_atual_lado_2 || null,
+          foto_4: patient.foto_atual_costas || null,
+          peso: patient.peso_atual || null
+        };
+        await checkinService.create(checkinData);
+      }
+
+      // Limpar dados atuais do paciente após migração
+      await supabase
+        .from('patients')
+        .update({
+          foto_atual_frente: null,
+          foto_atual_lado: null,
+          foto_atual_lado_2: null,
+          foto_atual_costas: null,
+          peso_atual: null,
+          altura_atual: null,
+          medida_cintura_atual: null,
+          medida_quadril_atual: null,
+          data_fotos_atuais: null
+        } as any)
+        .eq('telefone', telefone);
+
+      console.log('✅ Dados atuais migrados para check-in com sucesso');
+    } catch (error) {
+      console.error('Erro ao migrar dados atuais:', error);
+      // Não mostrar erro ao usuário, é uma migração silenciosa
+    }
   };
 
   // Migrar fotos do Typebot para Supabase automaticamente
@@ -666,31 +797,41 @@ export default function PatientEvolution() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {patient?.id && (
-                <Button
-                  onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
-                >
-                  <Utensils className="w-4 h-4 mr-2" />
-                  Plano Alimentar
-                </Button>
-              )}
-              
-              <Button
-                onClick={() => setExamRequestModalOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
-              >
-                <FlaskConical className="w-4 h-4 mr-2" />
-                Solicitar Exame
-              </Button>
-              
-              <Button
-                onClick={() => setWeightInputOpen(true)}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all"
-              >
-                <Scale className="w-4 h-4 mr-2" />
-                Registrar Peso
-              </Button>
+              {/* Menu agrupado para ações rápidas */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
+                    <Activity className="w-4 h-4 mr-2" />
+                    Ações Rápidas
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                  {patient?.id && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
+                      className="text-white hover:bg-slate-700 cursor-pointer"
+                    >
+                      <Utensils className="w-4 h-4 mr-2" />
+                      Plano Alimentar
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => setExamRequestModalOpen(true)}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <FlaskConical className="w-4 h-4 mr-2" />
+                    Solicitar Exame
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setWeightInputOpen(true)}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <Scale className="w-4 h-4 mr-2" />
+                    Registrar Peso
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               <PortalLinkButton 
                 telefone={telefone!} 
@@ -1015,14 +1156,10 @@ export default function PatientEvolution() {
                     nome={patient?.nome || 'Paciente'}
                     onSuccess={handleInitialDataSuccess}
                   />
-                  <BioimpedanciaInput
+                  <CurrentDataInput
                     telefone={telefone!}
                     nome={patient?.nome || 'Paciente'}
-                    idade={patient?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
-                    altura={(patient as any)?.altura_inicial || null}
-                    pesoInicial={(patient as any)?.peso_inicial || null}
-                    sexo={patient?.genero || null}
-                    onSuccess={handleBioSuccess}
+                    onSuccess={handleCurrentDataSuccess}
                   />
                 </div>
               </CardContent>
@@ -1330,6 +1467,243 @@ export default function PatientEvolution() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Dados Atuais e Evolução (quando não há check-ins mas há dados atuais) */}
+          {(() => {
+            const hasCurrentData = patient && checkins.length === 0 && (
+              (patient as any).foto_atual_frente || 
+              (patient as any).foto_atual_lado || 
+              (patient as any).foto_atual_lado_2 || 
+              (patient as any).foto_atual_costas || 
+              (patient as any).peso_atual || 
+              (patient as any).altura_atual
+            );
+            return hasCurrentData;
+          })() && (
+            <>
+              {/* Card de Dados Atuais */}
+              <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 backdrop-blur-sm border-green-700/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Camera className="w-5 h-5 text-green-400" />
+                    Dados Cadastrados
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Dados do paciente - {(patient as any)?.data_fotos_atuais ? new Date((patient as any).data_fotos_atuais).toLocaleDateString('pt-BR') : 'Data não informada'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Medidas Atuais */}
+                  {((patient as any)?.data_nascimento || (patient as any)?.peso_atual || (patient as any)?.altura_atual || (patient as any)?.medida_cintura_atual || (patient as any)?.medida_quadril_atual) && (
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      {(patient as any)?.data_nascimento && (
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-green-500/30">
+                          <p className="text-xs text-slate-400 mb-1">Idade</p>
+                          <p className="text-2xl font-bold text-white">{calcularIdade((patient as any).data_nascimento)} anos</p>
+                        </div>
+                      )}
+                      {(patient as any)?.peso_atual && (
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-green-500/30">
+                          <p className="text-xs text-slate-400 mb-1">Peso Atual</p>
+                          <p className="text-2xl font-bold text-white">{(patient as any).peso_atual} kg</p>
+                        </div>
+                      )}
+                      {(patient as any)?.altura_atual && (
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-green-500/30">
+                          <p className="text-xs text-slate-400 mb-1">Altura</p>
+                          <p className="text-2xl font-bold text-white">{(patient as any).altura_atual} m</p>
+                        </div>
+                      )}
+                      {(patient as any)?.medida_cintura_atual && (
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-green-500/30">
+                          <p className="text-xs text-slate-400 mb-1">Cintura</p>
+                          <p className="text-2xl font-bold text-white">{(patient as any).medida_cintura_atual} cm</p>
+                        </div>
+                      )}
+                      {(patient as any)?.medida_quadril_atual && (
+                        <div className="bg-slate-800/50 p-4 rounded-lg border border-green-500/30">
+                          <p className="text-xs text-slate-400 mb-1">Quadril</p>
+                          <p className="text-2xl font-bold text-white">{(patient as any).medida_quadril_atual} cm</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Fotos Atuais */}
+                  {((patient as any)?.foto_atual_frente || (patient as any)?.foto_atual_lado || (patient as any)?.foto_atual_lado_2 || (patient as any)?.foto_atual_costas) && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Camera className="w-5 h-5 text-green-400" />
+                        Fotos Atuais
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {(patient as any)?.foto_atual_frente && (
+                          <div className="space-y-2">
+                            <div className="relative group" style={{ height: '384px' }}>
+                              {isGoogleDriveUrl((patient as any).foto_atual_frente) ? (
+                                <GoogleDriveImage
+                                  src={(patient as any).foto_atual_frente}
+                                  alt="Foto Frontal Atual"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto((patient as any).foto_atual_frente!, 'Foto Frontal Atual')}
+                                />
+                              ) : (
+                                <img 
+                                  src={convertGoogleDriveUrl((patient as any).foto_atual_frente) || (patient as any).foto_atual_frente} 
+                                  alt="Foto Frontal Atual"
+                                  loading="lazy"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto(convertGoogleDriveUrl((patient as any).foto_atual_frente) || (patient as any).foto_atual_frente!, 'Foto Frontal Atual')}
+                                />
+                              )}
+                            </div>
+                            <p className="text-center text-sm text-green-300 font-semibold">📷 Frontal</p>
+                          </div>
+                        )}
+                        {(patient as any)?.foto_atual_lado && (
+                          <div className="space-y-2">
+                            <div className="relative group" style={{ height: '384px' }}>
+                              {isGoogleDriveUrl((patient as any).foto_atual_lado) ? (
+                                <GoogleDriveImage
+                                  src={(patient as any).foto_atual_lado}
+                                  alt="Foto Lateral Esquerda Atual"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto((patient as any).foto_atual_lado!, 'Foto Lateral Esquerda Atual')}
+                                />
+                              ) : (
+                                <img 
+                                  src={convertGoogleDriveUrl((patient as any).foto_atual_lado) || (patient as any).foto_atual_lado} 
+                                  alt="Foto Lateral Esquerda Atual"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto(convertGoogleDriveUrl((patient as any).foto_atual_lado) || (patient as any).foto_atual_lado!, 'Foto Lateral Esquerda Atual')}
+                                />
+                              )}
+                            </div>
+                            <p className="text-center text-sm text-green-300 font-semibold">📷 Lateral Esquerda</p>
+                          </div>
+                        )}
+                        {(patient as any)?.foto_atual_lado_2 && (
+                          <div className="space-y-2">
+                            <div className="relative group" style={{ height: '384px' }}>
+                              {isGoogleDriveUrl((patient as any).foto_atual_lado_2) ? (
+                                <GoogleDriveImage
+                                  src={(patient as any).foto_atual_lado_2}
+                                  alt="Foto Lateral Direita Atual"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto((patient as any).foto_atual_lado_2!, 'Foto Lateral Direita Atual')}
+                                />
+                              ) : (
+                                <img 
+                                  src={convertGoogleDriveUrl((patient as any).foto_atual_lado_2) || (patient as any).foto_atual_lado_2} 
+                                  alt="Foto Lateral Direita Atual"
+                                  loading="lazy"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto(convertGoogleDriveUrl((patient as any).foto_atual_lado_2) || (patient as any).foto_atual_lado_2!, 'Foto Lateral Direita Atual')}
+                                />
+                              )}
+                            </div>
+                            <p className="text-center text-sm text-green-300 font-semibold">📷 Lateral Direita</p>
+                          </div>
+                        )}
+                        {(patient as any)?.foto_atual_costas && (
+                          <div className="space-y-2">
+                            <div className="relative group" style={{ height: '384px' }}>
+                              {isGoogleDriveUrl((patient as any).foto_atual_costas) ? (
+                                <GoogleDriveImage
+                                  src={(patient as any).foto_atual_costas}
+                                  alt="Foto Costas Atual"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto((patient as any).foto_atual_costas!, 'Foto de Costas Atual')}
+                                />
+                              ) : (
+                                <img 
+                                  src={convertGoogleDriveUrl((patient as any).foto_atual_costas) || (patient as any).foto_atual_costas} 
+                                  alt="Foto Costas Atual"
+                                  loading="lazy"
+                                  className="w-full h-96 object-cover rounded-lg border-2 border-green-500/50 hover:border-green-500 transition-all cursor-pointer"
+                                  onClick={() => handleZoomPhoto(convertGoogleDriveUrl((patient as any).foto_atual_costas) || (patient as any).foto_atual_costas!, 'Foto de Costas Atual')}
+                                />
+                              )}
+                            </div>
+                            <p className="text-center text-sm text-green-300 font-semibold">📷 Costas</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botão para editar */}
+                  <div className="flex justify-center pt-4">
+                    <CurrentDataInput
+                      telefone={telefone!}
+                      nome={patient?.nome || 'Paciente'}
+                      onSuccess={handleCurrentDataSuccess}
+                      editMode={true}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card de Comparar Fotos */}
+              {((patient as any)?.foto_inicial_frente || (patient as any)?.foto_inicial_lado || (patient as any)?.foto_inicial_lado_2 || (patient as any)?.foto_inicial_costas) && 
+               ((patient as any)?.foto_atual_frente || (patient as any)?.foto_atual_lado || (patient as any)?.foto_atual_lado_2 || (patient as any)?.foto_atual_costas) && (
+                <Card className="bg-gradient-to-br from-blue-900/40 to-cyan-900/40 backdrop-blur-sm border-blue-700/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Camera className="w-5 h-5 text-blue-400" />
+                      Comparar Fotos
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Compare as fotos iniciais com as fotos atuais lado a lado
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => setShowPhotoComparison(true)}
+                      className="w-full gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Comparar Fotos Inicial vs Atual
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Gráfico de Evolução do Peso (Inicial vs Atual) */}
+              {((patient as any)?.peso_inicial && (patient as any)?.peso_atual) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <Card className="bg-gradient-to-br from-slate-900/40 to-slate-800/40 backdrop-blur-sm border-slate-700/50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-white">
+                        <TrendingUp className="w-5 h-5 text-blue-400" />
+                        Evolução do Peso
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Comparação entre peso inicial e peso atual
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <EvolutionCharts 
+                        checkins={[]} 
+                        patient={{
+                          ...patient,
+                          peso_inicial: (patient as any).peso_inicial,
+                          peso_atual: (patient as any).peso_atual,
+                          data_fotos_iniciais: (patient as any).data_fotos_iniciais,
+                          data_fotos_atuais: (patient as any).data_fotos_atuais
+                        } as any}
+                        refreshTrigger={chartsRefreshTrigger}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </>
           )}
 
           {/* Métricas de Composição Corporal - Aparece independente de check-ins */}
@@ -1719,6 +2093,13 @@ export default function PatientEvolution() {
             onDirectExport={handleDirectEvolutionExport}
           />
         )}
+
+        {/* Modal de Comparação de Fotos Inicial vs Atual */}
+        <InitialCurrentPhotoComparison
+          patient={patient}
+          open={showPhotoComparison}
+          onOpenChange={setShowPhotoComparison}
+        />
       </DashboardLayout>
     );
   }

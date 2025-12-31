@@ -371,6 +371,33 @@ function RetentionDashboard() {
   
   const handleRemovePatient = async (patientId: string, patientName: string) => {
     try {
+      // Atualizar a data de último contato para reiniciar a contagem
+      // Isso garante que o paciente só volte a aparecer após 20 ou 30 dias
+      const hoje = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('patients')
+        .update({
+          ultimo_contato: hoje,
+          ultimo_contato_nutricionista: hoje
+        } as any)
+        .eq('id', patientId);
+
+      if (updateError) {
+        console.error('Erro ao atualizar último contato ao remover:', updateError);
+        // Continuar mesmo se houver erro na atualização
+      }
+
+      // Registrar no histórico de contatos
+      const patient = patients.find(p => p.id === patientId);
+      if (patient) {
+        await ContactHistoryService.registerContact(
+          patient.telefone,
+          patientName,
+          'manual',
+          'Paciente removido da lista de retenção - contagem reiniciada'
+        );
+      }
+
       const success = await retentionService.excludePatient(patientId, 'Removido da lista de retenção');
       
       if (success) {
@@ -386,8 +413,11 @@ function RetentionDashboard() {
         
         toast({
           title: "Paciente removido",
-          description: `${patientName} foi removido da lista de retenção e não aparecerá mais aqui.`,
+          description: `${patientName} foi removido da lista de retenção. A contagem foi reiniciada e ele só voltará a aparecer após 20 ou 30 dias sem contato.`,
         });
+
+        // Recarregar pacientes para refletir as mudanças
+        await loadPatients();
       } else {
         throw new Error('Falha ao remover paciente');
       }

@@ -13,6 +13,8 @@ import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl, isGoogleDriveUrl } from "@/lib/google-drive-utils";
 import { GoogleDriveImage } from "@/components/ui/google-drive-image";
 import type { Database } from "@/integrations/supabase/types";
+import { AddCheckinPhotos } from "./AddCheckinPhotos";
+import { CheckinPhotoComparison } from "./CheckinPhotoComparison";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -46,6 +48,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   const [photoToDelete, setPhotoToDelete] = useState<PhotoData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
   const { toast } = useToast();
 
   // Função para baixar foto do Google Drive (versão melhorada para download direto)
@@ -581,17 +584,28 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                 Comparação visual da evolução - {allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'} disponíveis
               </CardDescription>
             </div>
-            <button
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
-              aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
-            >
-              {isMinimized ? (
-                <ChevronDown className="w-5 h-5 text-slate-300" />
-              ) : (
-                <ChevronUp className="w-5 h-5 text-slate-300" />
+            <div className="flex items-center gap-2">
+              {patient && (
+                <AddCheckinPhotos
+                  telefone={patient.telefone}
+                  nome={patient.nome || 'Paciente'}
+                  onSuccess={() => {
+                    if (onPhotoDeleted) onPhotoDeleted();
+                  }}
+                />
               )}
-            </button>
+              <button
+                onClick={() => setIsMinimized(!isMinimized)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+              >
+                {isMinimized ? (
+                  <ChevronDown className="w-5 h-5 text-slate-300" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 text-slate-300" />
+                )}
+              </button>
+            </div>
           </div>
         </CardHeader>
         <AnimatePresence>
@@ -603,8 +617,27 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
               transition={{ duration: 0.3 }}
             >
               <CardContent className="space-y-6">
-          {/* Comparação Antes/Depois */}
-          {allPhotos.length >= 2 && firstPhoto && lastPhoto && (
+          {/* Comparação Antes/Depois - Substituído por botão */}
+          {patient && checkins.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <ChevronRight className="w-5 h-5 text-emerald-400" />
+                  Comparação de Fotos
+                </h3>
+                <Button
+                  onClick={() => setShowComparisonModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Comparar Fotos
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Seção antiga de comparação removida - mantida apenas para referência */}
+          {false && allPhotos.length >= 2 && firstPhoto && lastPhoto && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -1040,6 +1073,16 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Modal de Comparação de Fotos */}
+      {patient && (
+        <CheckinPhotoComparison
+          patient={patient}
+          checkins={checkins}
+          open={showComparisonModal}
+          onOpenChange={setShowComparisonModal}
+        />
+      )}
     </>
   );
 }
