@@ -13,7 +13,9 @@ import {
   FileText,
   Edit,
   ChevronDown,
-  Inbox
+  Inbox,
+  RefreshCw,
+  Clock
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
+import { useCheckinsWithScheduledRefetch } from "@/hooks/use-checkin-data";
+import { getNextScheduledUpdate } from "@/hooks/use-scheduled-refetch";
 import { CheckinItemSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import { CheckinForm } from "@/components/forms/CheckinForm";
@@ -157,8 +160,12 @@ export function CheckinsList() {
   const [patientsWithBioimpedance, setPatientsWithBioimpedance] = useState<Set<string>>(new Set());
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
 
-  const { data: recentCheckins = [], isLoading: checkinsLoading, refetch } = useCheckinsWithPatient();
+  const { data: recentCheckins = [], isLoading: checkinsLoading, refetch, isFetching } = useCheckinsWithScheduledRefetch();
   const { teamMembers } = useCheckinManagement();
+  
+  // Estado para última atualização e próxima atualização programada
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const nextUpdate = getNextScheduledUpdate();
 
   // Carregar preferências do banco de dados ao montar o componente
   useEffect(() => {
@@ -175,6 +182,12 @@ export function CheckinsList() {
     }
     loadPreferences();
   }, []);
+
+  // Função para atualização manual
+  const handleManualRefresh = useCallback(async () => {
+    await refetch();
+    setLastUpdate(new Date());
+  }, [refetch]);
 
   // Carregar lista de telefones que têm bioimpedância
   useEffect(() => {
@@ -540,17 +553,44 @@ export function CheckinsList() {
       {/* Lista de Checkins */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
         <CardHeader>
-          <CardTitle className="text-white">
-            Checkins Recentes ({filteredCheckins.length})
-            {displayedCheckins.length < sortedCheckins.length && (
-              <span className="text-slate-400 text-sm font-normal ml-2">
-                (mostrando {displayedCheckins.length} de {sortedCheckins.length})
-              </span>
-            )}
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Histórico detalhado dos checkins dos pacientes
-          </CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="text-white">
+                Checkins Recentes ({filteredCheckins.length})
+                {displayedCheckins.length < sortedCheckins.length && (
+                  <span className="text-slate-400 text-sm font-normal ml-2">
+                    (mostrando {displayedCheckins.length} de {sortedCheckins.length})
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Histórico detalhado dos checkins dos pacientes
+              </CardDescription>
+            </div>
+            
+            {/* Botão de atualização e informações */}
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={isFetching}
+                className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white"
+              >
+                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                {isFetching ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+              <div className="flex flex-col items-end text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Atualizado: {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span>
+                  Próxima: {nextUpdate.time}{!nextUpdate.isToday && ' (amanhã)'}
+                </span>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {checkinsLoading ? (

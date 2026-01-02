@@ -5,6 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { userPreferencesService } from "@/lib/user-preferences-service";
 import { 
   AlertTriangle, 
   TrendingDown, 
@@ -26,7 +38,12 @@ import {
   Clock,
   Loader2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Send,
+  Save,
+  Plus,
+  FileText,
+  Volume2
 } from "lucide-react";
 import {
   LineChart,
@@ -66,6 +83,14 @@ interface PatientWithRisk {
 
 type SortOption = 'dias' | 'nome' | 'score';
 type ViewMode = 'cards' | 'compact';
+type ContactType = 'audio' | 'message';
+
+// Interface para templates de mensagem de retenção
+interface RetentionMessageTemplate {
+  id: string;
+  title: string;
+  message: string;
+}
 
 function RetentionDashboard() {
   const { toast } = useToast();
@@ -86,13 +111,275 @@ function RetentionDashboard() {
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
   const [isCriticalExpanded, setIsCriticalExpanded] = useState(false);
   const [isAttentionExpanded, setIsAttentionExpanded] = useState(false);
+  
+  // Estados para modal de contato
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [selectedContactPatient, setSelectedContactPatient] = useState<PatientWithRisk | null>(null);
+  const [contactType, setContactType] = useState<ContactType>('audio');
+  const [contactMessage, setContactMessage] = useState("");
+  const [isSendingContact, setIsSendingContact] = useState(false);
+  
+  // Estados para templates de mensagem de retenção
+  const [retentionTemplates, setRetentionTemplates] = useState<RetentionMessageTemplate[]>([]);
+  const [selectedRetentionTemplateId, setSelectedRetentionTemplateId] = useState<string>("");
+  const [showSaveRetentionTemplate, setShowSaveRetentionTemplate] = useState(false);
+  const [newRetentionTemplateTitle, setNewRetentionTemplateTitle] = useState("");
 
   useEffect(() => {
     loadPatients();
     loadExcludedPatients();
     loadContactedPatients();
     loadContactStats();
+    loadRetentionTemplates();
   }, []);
+
+  // Carregar templates de mensagem de retenção
+  const loadRetentionTemplates = async () => {
+    try {
+      const preferences = await userPreferencesService.getUserPreferences();
+      if (preferences?.filters?.retention_message_templates) {
+        const templates = Array.isArray(preferences.filters.retention_message_templates)
+          ? preferences.filters.retention_message_templates
+          : [];
+        setRetentionTemplates(templates);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar templates de retenção:', error);
+    }
+  };
+
+  // Salvar templates de retenção no banco
+  const saveRetentionTemplates = async (templates: RetentionMessageTemplate[]) => {
+    try {
+      const preferences = await userPreferencesService.getUserPreferences();
+      const currentFilters = preferences?.filters || {};
+      
+      await userPreferencesService.upsertUserPreferences({
+        filters: {
+          ...currentFilters,
+          retention_message_templates: templates
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao salvar templates de retenção:', error);
+    }
+  };
+
+  // Função para obter mensagem padrão de retenção
+  const getDefaultRetentionMessage = (patientName: string): string => {
+    const firstName = patientName?.split(' ')[0] || 'amigo';
+    return `Oi ${firstName}! Tudo bem? 😊
+
+Faz um tempinho que não conversamos e queria saber como você está.
+
+Como estão as coisas por aí? Tá conseguindo seguir com a rotina?
+
+Se precisar de algum ajuste ou tiver qualquer dúvida, pode me chamar!
+
+Estou aqui pra te ajudar! 💪`;
+  };
+
+  // Abrir modal de contato
+  const handleOpenContactModal = (patient: PatientWithRisk) => {
+    setSelectedContactPatient(patient);
+    setContactType('audio'); // Padrão: áudio
+    setContactMessage(getDefaultRetentionMessage(patient.nome));
+    setSelectedRetentionTemplateId("");
+    setShowSaveRetentionTemplate(false);
+    setNewRetentionTemplateTitle("");
+    setContactModalOpen(true);
+  };
+
+  // Salvar novo template de retenção
+  const handleSaveRetentionTemplate = async () => {
+    if (!contactMessage.trim()) {
+      toast({
+        title: "Erro",
+        description: "A mensagem não pode estar vazia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newRetentionTemplateTitle.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite um título para o template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const firstName = selectedContactPatient?.nome?.split(' ')[0] || '{nome}';
+      const template = contactMessage.replace(new RegExp(firstName, 'gi'), '{nome}');
+      
+      const newTemplate: RetentionMessageTemplate = {
+        id: crypto.randomUUID(),
+        title: newRetentionTemplateTitle.trim(),
+        message: template
+      };
+      
+      const updatedTemplates = [...retentionTemplates, newTemplate];
+      setRetentionTemplates(updatedTemplates);
+      await saveRetentionTemplates(updatedTemplates);
+      
+      setNewRetentionTemplateTitle("");
+      setShowSaveRetentionTemplate(false);
+      setSelectedRetentionTemplateId(newTemplate.id);
+      
+      toast({
+        title: "Sucesso",
+        description: `Template "${newTemplate.title}" salvo com sucesso!`,
+      });
+    } catch (error) {
+      console.error('Erro ao salvar template:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o template.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Deletar template de retenção
+  const handleDeleteRetentionTemplate = async (templateId: string) => {
+    try {
+      const updatedTemplates = retentionTemplates.filter(t => t.id !== templateId);
+      setRetentionTemplates(updatedTemplates);
+      await saveRetentionTemplates(updatedTemplates);
+      
+      if (selectedRetentionTemplateId === templateId) {
+        setSelectedRetentionTemplateId("");
+      }
+      
+      toast({
+        title: "Sucesso",
+        description: "Template excluído com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao excluir template:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o template.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Selecionar template de retenção
+  const handleSelectRetentionTemplate = (templateId: string) => {
+    setSelectedRetentionTemplateId(templateId);
+    
+    if (templateId === "new") {
+      setContactMessage(getDefaultRetentionMessage(selectedContactPatient?.nome || ''));
+      return;
+    }
+    
+    const template = retentionTemplates.find(t => t.id === templateId);
+    if (template) {
+      const firstName = selectedContactPatient?.nome?.split(' ')[0] || 'amigo';
+      const message = template.message.replace(/\{nome\}/g, firstName);
+      setContactMessage(message);
+    }
+  };
+
+  // Enviar contato (áudio ou mensagem)
+  const handleSendContactFromModal = async () => {
+    if (!selectedContactPatient) return;
+    
+    const { telefone, nome, id: patientId } = selectedContactPatient;
+    
+    setIsSendingContact(true);
+    
+    try {
+      let success = false;
+      
+      if (contactType === 'audio') {
+        // Usar webhook de áudio (existente)
+        success = await contactWebhookService.sendContactMessage(telefone, nome);
+      } else {
+        // Usar webhook de mensagem personalizada (mesmo da renovação)
+        if (!contactMessage.trim()) {
+          toast({
+            title: "Erro",
+            description: "Por favor, preencha a mensagem.",
+            variant: "destructive",
+          });
+          setIsSendingContact(false);
+          return;
+        }
+        
+        const response = await fetch('https://n8n.shapepro.shop/webhook/renovar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nome: nome || '',
+            telefone: telefone || '',
+            mensagem: contactMessage,
+          }),
+        });
+        
+        success = response.ok;
+      }
+      
+      if (success) {
+        // Registrar contato no histórico
+        const result = await ContactHistoryService.registerContact(
+          telefone,
+          nome,
+          'webhook',
+          contactType === 'audio' 
+            ? 'Áudio enviado via Dashboard de Retenção' 
+            : 'Mensagem personalizada enviada via Dashboard de Retenção'
+        );
+        
+        if (!result.success) {
+          console.error('Erro ao registrar contato:', result.error);
+        }
+        
+        // Atualizar último contato do paciente
+        const hoje = new Date().toISOString();
+        await supabase
+          .from('patients')
+          .update({
+            ultimo_contato: hoje,
+            ultimo_contato_nutricionista: hoje
+          } as any)
+          .eq('id', patientId);
+        
+        // Recarregar dados
+        await loadContactedPatients();
+        await loadPatients();
+        loadContactStats();
+        
+        toast({
+          title: "✅ Mensagem enviada!",
+          description: contactType === 'audio' 
+            ? `Áudio enviado para ${nome}. A contagem foi reiniciada.`
+            : `Mensagem enviada para ${nome}. A contagem foi reiniciada.`,
+        });
+        
+        // Fechar modal
+        setContactModalOpen(false);
+        setSelectedContactPatient(null);
+        setContactMessage("");
+      } else {
+        throw new Error('Falha ao enviar mensagem');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a mensagem. Verifique se o webhook está configurado.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingContact(false);
+    }
+  };
 
   // Carregar pacientes que foram contatados (para mostrar como "Contatado")
   // Inclui contatos de toda a equipe (owner + membros)
@@ -996,7 +1283,7 @@ function RetentionDashboard() {
                         <div className="flex flex-wrap gap-2 flex-shrink-0">
                           <Button
                             size="sm"
-                            onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
+                            onClick={() => handleOpenContactModal(patient)}
                             disabled={isContacting || isMarking}
                             className={`
                               ${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} 
@@ -1113,7 +1400,7 @@ function RetentionDashboard() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
+                                  onClick={() => handleOpenContactModal(patient)}
                                   className={`${isContacted ? 'bg-blue-600/20 hover:bg-blue-600/30' : ''} text-white h-8 px-2`}
                                   title={isContacted ? 'Contatado' : 'Contatar'}
                                 >
@@ -1288,7 +1575,7 @@ function RetentionDashboard() {
                         <div className="flex flex-wrap gap-2 flex-shrink-0">
                           <Button
                             size="sm"
-                            onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
+                            onClick={() => handleOpenContactModal(patient)}
                             disabled={isContacting || isMarking}
                             className={`
                               ${isContacted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} 
@@ -1405,7 +1692,7 @@ function RetentionDashboard() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleContact(patient.telefone, patient.nome, patient.id)}
+                                  onClick={() => handleOpenContactModal(patient)}
                                   className={`${isContacted ? 'bg-blue-600/20 hover:bg-blue-600/30' : ''} text-white h-8 px-2`}
                                   title={isContacted ? 'Contatado' : 'Contatar'}
                                 >
@@ -1499,6 +1786,215 @@ function RetentionDashboard() {
           <RecentCancellationsAndFreezes />
         </div>
       </div>
+
+      {/* Modal de Contato */}
+      <Dialog open={contactModalOpen} onOpenChange={setContactModalOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Contatar - {selectedContactPatient?.nome || 'Paciente'}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Escolha como deseja entrar em contato com o paciente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Seletor de tipo de contato */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Tipo de Contato</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant={contactType === 'audio' ? 'default' : 'outline'}
+                  onClick={() => setContactType('audio')}
+                  className={`flex-1 ${contactType === 'audio' 
+                    ? 'bg-cyan-600 hover:bg-cyan-700 text-white' 
+                    : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+                >
+                  <Volume2 className="w-4 h-4 mr-2" />
+                  Enviar Áudio
+                </Button>
+                <Button
+                  variant={contactType === 'message' ? 'default' : 'outline'}
+                  onClick={() => setContactType('message')}
+                  className={`flex-1 ${contactType === 'message' 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Enviar Mensagem
+                </Button>
+              </div>
+            </div>
+
+            {/* Conteúdo baseado no tipo de contato */}
+            {contactType === 'audio' ? (
+              <div className="bg-cyan-500/10 rounded-lg p-4 border border-cyan-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-cyan-500/20">
+                    <Volume2 className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-medium">Áudio Automático</h4>
+                    <p className="text-sm text-slate-400">
+                      Um áudio pré-gravado será enviado automaticamente para o paciente via webhook.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Seletor de Templates */}
+                <div className="space-y-2">
+                  <Label className="text-slate-300 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Template de Mensagem
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={selectedRetentionTemplateId}
+                      onValueChange={handleSelectRetentionTemplate}
+                    >
+                      <SelectTrigger className="flex-1 bg-slate-900 border-slate-600 text-white">
+                        <SelectValue placeholder="Selecione um template..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectItem value="new" className="text-white hover:bg-slate-700">
+                          <span className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            Nova mensagem
+                          </span>
+                        </SelectItem>
+                        {retentionTemplates.map((template) => (
+                          <SelectItem 
+                            key={template.id} 
+                            value={template.id}
+                            className="text-white hover:bg-slate-700"
+                          >
+                            {template.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedRetentionTemplateId && selectedRetentionTemplateId !== "new" && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDeleteRetentionTemplate(selectedRetentionTemplateId)}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                        title="Excluir template"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Área de Mensagem */}
+                <div className="space-y-2">
+                  <Label htmlFor="contact-message" className="text-slate-300">
+                    Mensagem
+                  </Label>
+                  <Textarea
+                    id="contact-message"
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    className="min-h-[200px] bg-slate-900 border-slate-600 text-white placeholder:text-slate-500 resize-none"
+                    placeholder="Digite a mensagem..."
+                  />
+                </div>
+
+                {/* Seção de Salvar Template */}
+                {!showSaveRetentionTemplate ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSaveRetentionTemplate(true)}
+                    className="text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 w-full justify-start"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Salvar como novo template
+                  </Button>
+                ) : (
+                  <div className="bg-slate-900/50 rounded-lg p-3 space-y-3 border border-slate-700">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-slate-300 text-sm">Salvar como Template</Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowSaveRetentionTemplate(false);
+                          setNewRetentionTemplateTitle("");
+                        }}
+                        className="text-slate-400 hover:text-slate-200 h-6 w-6 p-0"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newRetentionTemplateTitle}
+                        onChange={(e) => setNewRetentionTemplateTitle(e.target.value)}
+                        placeholder="Título do template (ex: Retenção VIP)"
+                        className="flex-1 bg-slate-900 border-slate-600 text-white placeholder:text-slate-500"
+                      />
+                      <Button
+                        onClick={handleSaveRetentionTemplate}
+                        disabled={!contactMessage.trim() || !newRetentionTemplateTitle.trim()}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Info do Paciente */}
+            <div className="text-xs text-slate-400 space-y-1 pt-2 border-t border-slate-700">
+              <p><strong>Paciente:</strong> {selectedContactPatient?.nome || 'N/A'}</p>
+              <p><strong>Telefone:</strong> {selectedContactPatient?.telefone || 'N/A'}</p>
+              <p><strong>Dias sem contato:</strong> {selectedContactPatient?.diasSemContato || 0} dias</p>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setContactModalOpen(false);
+                setSelectedContactPatient(null);
+                setContactMessage("");
+                setSelectedRetentionTemplateId("");
+                setShowSaveRetentionTemplate(false);
+                setNewRetentionTemplateTitle("");
+              }}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSendContactFromModal}
+              disabled={isSendingContact || (contactType === 'message' && !contactMessage.trim())}
+              className={contactType === 'audio' 
+                ? "bg-cyan-600 hover:bg-cyan-700 text-white"
+                : "bg-blue-600 hover:bg-blue-700 text-white"}
+            >
+              {isSendingContact ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  {contactType === 'audio' ? 'Enviar Áudio' : 'Enviar Mensagem'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
     </TooltipProvider>
   );

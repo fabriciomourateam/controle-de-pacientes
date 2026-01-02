@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { usePatients } from './use-supabase-data';
-import { useCheckins } from './use-checkin-data';
+import { useRecentCheckins, useLastCheckinPerPatient } from './use-checkin-data';
 import { userPreferencesService } from '@/lib/user-preferences-service';
 
 export interface Notification {
@@ -19,7 +19,12 @@ export function useNotifications() {
   const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { patients } = usePatients();
-  const { checkins } = useCheckins();
+  
+  // OTIMIZADO: Usar hooks específicos em vez de carregar todos os checkins
+  // useRecentCheckins: Busca apenas checkins das últimas 48h para notificações
+  // useLastCheckinPerPatient: Busca apenas o último checkin de cada paciente para alertas
+  const { data: recentCheckins = [] } = useRecentCheckins(48); // últimas 48 horas
+  const { data: lastCheckinPerPatient = [] } = useLastCheckinPerPatient();
 
   // Carregar notificações lidas do Supabase na inicialização
   useEffect(() => {
@@ -40,11 +45,11 @@ export function useNotifications() {
   const notifications = useMemo(() => {
     const notifs: Notification[] = [];
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     // Notificações de checkins recentes (últimas 24h)
-    checkins?.forEach(checkin => {
+    // Usa recentCheckins que já vem filtrado do banco (últimas 48h)
+    recentCheckins?.forEach(checkin => {
       const checkinDate = new Date(checkin.created_at);
       if (checkinDate >= yesterday) {
         notifs.push({
@@ -60,9 +65,19 @@ export function useNotifications() {
       }
     });
 
+    // Criar mapa de último checkin por telefone para busca rápida
+    const lastCheckinByPhone = new Map<string, typeof lastCheckinPerPatient[0]>();
+    lastCheckinPerPatient?.forEach(checkin => {
+      if (checkin.telefone) {
+        lastCheckinByPhone.set(checkin.telefone, checkin);
+      }
+    });
+
     // Alertas de pacientes sem checkin há muito tempo
     patients?.forEach(patient => {
-      const lastCheckin = checkins?.find(c => c.telefone === patient.telefone);
+      if (!patient.telefone) return;
+      
+      const lastCheckin = lastCheckinByPhone.get(patient.telefone);
       if (lastCheckin) {
         const lastCheckinDate = new Date(lastCheckin.created_at);
         const daysSinceLastCheckin = Math.floor((now.getTime() - lastCheckinDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -95,7 +110,7 @@ export function useNotifications() {
 
     // Ordenar por timestamp (mais recente primeiro)
     return notifs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }, [checkins, patients, readNotifications]);
+  }, [recentCheckins, lastCheckinPerPatient, patients, readNotifications]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;

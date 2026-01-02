@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { usePatients } from './use-supabase-data';
 import { usePlans } from './use-supabase-data';
-import { useCheckins } from './use-checkin-data';
+import { useCheckinSearch } from './use-checkin-data';
 
 export interface SearchResult {
   id: string;
@@ -17,7 +17,10 @@ export function useGlobalSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const { patients } = usePatients();
   const { plans } = usePlans();
-  const { checkins } = useCheckins();
+  
+  // OTIMIZADO: Busca de checkins agora é server-side
+  // Só faz a chamada quando o usuário digita 2+ caracteres
+  const { data: searchedCheckins = [], isLoading: isSearchingCheckins } = useCheckinSearch(searchTerm);
 
   const searchResults = useMemo(() => {
     if (!searchTerm.trim() || searchTerm.length < 2) return [];
@@ -25,7 +28,7 @@ export function useGlobalSearch() {
     const results: SearchResult[] = [];
     const term = searchTerm.toLowerCase();
 
-    // Buscar pacientes
+    // Buscar pacientes (client-side - dados já carregados)
     patients?.forEach(patient => {
       const nome = patient.nome?.toLowerCase() || '';
       const apelido = patient.apelido?.toLowerCase() || '';
@@ -46,7 +49,7 @@ export function useGlobalSearch() {
       }
     });
 
-    // Buscar planos
+    // Buscar planos (client-side - dados já carregados)
     plans?.forEach(plan => {
       const nome = plan.nome?.toLowerCase() || '';
       const descricao = plan.descricao?.toLowerCase() || '';
@@ -63,32 +66,30 @@ export function useGlobalSearch() {
       }
     });
 
-    // Buscar checkins
-    checkins?.forEach(checkin => {
-      const telefone = checkin.telefone?.toLowerCase() || '';
-      const objetivo = checkin.objetivo?.toLowerCase() || '';
-      const dificuldades = checkin.dificuldades?.toLowerCase() || '';
-      
-      if (telefone.includes(term) || objetivo.includes(term) || dificuldades.includes(term)) {
-        results.push({
-          id: checkin.id,
-          type: 'checkin',
-          title: `Check-in de ${checkin.telefone || 'Paciente'}`,
-          subtitle: checkin.objetivo?.substring(0, 50) + '...' || checkin.dificuldades?.substring(0, 50) + '...' || '',
-          url: `/checkins?highlight=${checkin.id}`,
-          data: checkin
-        });
-      }
+    // Buscar checkins (server-side - dados buscados sob demanda)
+    // Os resultados vêm do hook useCheckinSearch que faz a busca no banco
+    searchedCheckins?.forEach(checkin => {
+      results.push({
+        id: checkin.id,
+        type: 'checkin',
+        title: `Check-in de ${checkin.telefone || 'Paciente'}`,
+        subtitle: checkin.objetivo?.substring(0, 50) + (checkin.objetivo && checkin.objetivo.length > 50 ? '...' : '') || 
+                  checkin.dificuldades?.substring(0, 50) + (checkin.dificuldades && checkin.dificuldades.length > 50 ? '...' : '') || 
+                  '',
+        url: `/checkins?highlight=${checkin.id}`,
+        data: checkin
+      });
     });
 
-    return results.slice(0, 10); // Limitar a 10 resultados
-  }, [searchTerm, patients, plans, checkins]);
+    return results.slice(0, 15); // Limitar a 15 resultados
+  }, [searchTerm, patients, plans, searchedCheckins]);
 
   return {
     searchTerm,
     setSearchTerm,
     searchResults,
     isOpen,
-    setIsOpen
+    setIsOpen,
+    isSearching: isSearchingCheckins // Indicador de busca em andamento
   };
 }

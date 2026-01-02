@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { X, ChevronLeft, ChevronRight, Upload, Loader2, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Upload, Loader2, Image as ImageIcon, Eye, EyeOff, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Slider } from '../ui/slider';
 import { getMediaType } from '@/lib/media-utils';
 import { convertGoogleDriveUrl, isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { GoogleDriveImage } from '../ui/google-drive-image';
@@ -57,6 +58,21 @@ export function PhotoComparisonModal({
   const [filePositions, setFilePositions] = useState<{ [key: number]: PhotoAngle }>({});
   const [uploadingMultiple, setUploadingMultiple] = useState(false);
   const [hidePreviousColumn, setHidePreviousColumn] = useState(false);
+  
+  // Estados para zoom individual de cada coluna
+  const [zoomInitial, setZoomInitial] = useState(100);
+  const [zoomPrevious, setZoomPrevious] = useState(100);
+  const [zoomCurrent, setZoomCurrent] = useState(100);
+  
+  // Estados para posição (pan) de cada coluna
+  const [posInitial, setPosInitial] = useState({ x: 0, y: 0 });
+  const [posPrevious, setPosPrevious] = useState({ x: 0, y: 0 });
+  const [posCurrent, setPosCurrent] = useState({ x: 0, y: 0 });
+  
+  // Estados para controle de drag
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [activeColumn, setActiveColumn] = useState<'initial' | 'previous' | 'current' | null>(null);
   
   // Refs para inputs de arquivo
   const fileInputRef = useRef<HTMLInputElement>(null); // Para upload simples (uma foto)
@@ -201,6 +217,13 @@ export function PhotoComparisonModal({
       setFilePositions({});
       setUploadType(null);
       setShowUploadModal(false);
+      // Resetar zoom e posição
+      setZoomInitial(100);
+      setZoomPrevious(100);
+      setZoomCurrent(100);
+      setPosInitial({ x: 0, y: 0 });
+      setPosPrevious({ x: 0, y: 0 });
+      setPosCurrent({ x: 0, y: 0 });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, checkinId, telefone, checkinDate, previousCheckinId]);
@@ -597,7 +620,71 @@ export function PhotoComparisonModal({
     }
   };
 
-  const renderPhoto = (photoUrl: string | undefined, date: string, source: string, type: 'initial' | 'previous' | 'current', angle: PhotoAngle) => {
+  // Handlers para drag (arrastar imagem)
+  const handleMouseDown = (e: React.MouseEvent, column: 'initial' | 'previous' | 'current') => {
+    // Só permite arrastar se o zoom for maior que 100%
+    const zoom = column === 'initial' ? zoomInitial : column === 'previous' ? zoomPrevious : zoomCurrent;
+    if (zoom <= 100) return;
+    
+    e.preventDefault();
+    setIsDragging(true);
+    setActiveColumn(column);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !activeColumn) return;
+    
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    
+    const setPos = activeColumn === 'initial' ? setPosInitial : 
+                   activeColumn === 'previous' ? setPosPrevious : setPosCurrent;
+    const currentPos = activeColumn === 'initial' ? posInitial : 
+                       activeColumn === 'previous' ? posPrevious : posCurrent;
+    
+    setPos({ x: currentPos.x + dx, y: currentPos.y + dy });
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setActiveColumn(null);
+  };
+
+  // Handlers para touch (mobile)
+  const handleTouchStart = (e: React.TouchEvent, column: 'initial' | 'previous' | 'current') => {
+    const zoom = column === 'initial' ? zoomInitial : column === 'previous' ? zoomPrevious : zoomCurrent;
+    if (zoom <= 100) return;
+    
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setActiveColumn(column);
+    setDragStart({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !activeColumn) return;
+    
+    const touch = e.touches[0];
+    const dx = touch.clientX - dragStart.x;
+    const dy = touch.clientY - dragStart.y;
+    
+    const setPos = activeColumn === 'initial' ? setPosInitial : 
+                   activeColumn === 'previous' ? setPosPrevious : setPosCurrent;
+    const currentPos = activeColumn === 'initial' ? posInitial : 
+                       activeColumn === 'previous' ? posPrevious : posCurrent;
+    
+    setPos({ x: currentPos.x + dx, y: currentPos.y + dy });
+    setDragStart({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setActiveColumn(null);
+  };
+
+  const renderPhoto = (photoUrl: string | undefined, date: string, source: string, type: 'initial' | 'previous' | 'current', angle: PhotoAngle, zoom: number, pos: { x: number, y: number }) => {
     const uploadKey = `${type}_${angle}`;
     const isUploading = uploading[uploadKey];
 
@@ -607,7 +694,7 @@ export function PhotoComparisonModal({
       const hasAnyEmpty = availablePositions.length > 0;
 
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800/50 rounded border border-slate-700 min-h-[300px] gap-3 p-4">
+        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800/50 rounded border border-slate-700 min-h-[150px] md:min-h-[200px] gap-2 p-2 md:p-4">
           <span className="text-xs text-slate-500">Sem foto</span>
           {hasAnyEmpty && (
             <TooltipProvider>
@@ -638,21 +725,111 @@ export function PhotoComparisonModal({
 
     const isVideo = getMediaType(photoUrl) === 'video';
     const url = getPhotoUrl(photoUrl, isVideo);
+    const canDrag = zoom > 100;
 
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden min-h-[300px]">
-        {isVideo ? (
-          <video
-            src={url || photoUrl}
-            controls
-            className="w-full h-full object-contain"
+      <div 
+        className={`w-full h-full flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden min-h-[150px] md:min-h-[200px] ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        onMouseDown={(e) => handleMouseDown(e, type)}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={(e) => handleTouchStart(e, type)}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div 
+          className={`w-full h-full flex items-center justify-center ${isDragging && activeColumn === type ? '' : 'transition-transform duration-150'}`}
+          style={{ 
+            transform: `scale(${zoom / 100}) translate(${pos.x / (zoom / 100)}px, ${pos.y / (zoom / 100)}px)` 
+          }}
+        >
+          {isVideo ? (
+            <video
+              src={url || photoUrl}
+              controls
+              className="w-full h-full object-contain pointer-events-none"
+            />
+          ) : (
+            <GoogleDriveImage
+              src={photoUrl}
+              alt={`${source} - ${date}`}
+              className="w-full h-full object-contain pointer-events-none"
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Componente para controles de zoom e posição
+  const ZoomControls = ({ 
+    zoom, 
+    setZoom, 
+    pos, 
+    setPos, 
+    color 
+  }: { 
+    zoom: number, 
+    setZoom: (z: number) => void, 
+    pos: { x: number, y: number },
+    setPos: (p: { x: number, y: number }) => void,
+    color: string 
+  }) => {
+    const hasChanges = zoom !== 100 || pos.x !== 0 || pos.y !== 0;
+    
+    return (
+      <div className="flex items-center gap-1 mt-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setZoom(Math.max(50, zoom - 10))}
+          className={`h-5 w-5 p-0 text-${color}-400 hover:text-${color}-300`}
+          disabled={zoom <= 50}
+        >
+          <ZoomOut className="w-3 h-3" />
+        </Button>
+        <div className="w-14 md:w-16 px-1">
+          <Slider
+            value={[zoom]}
+            onValueChange={(v) => setZoom(v[0])}
+            min={50}
+            max={200}
+            step={5}
+            className="h-1"
           />
-        ) : (
-          <GoogleDriveImage
-            src={photoUrl}
-            alt={`${source} - ${date}`}
-            className="w-full h-full object-contain"
-          />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setZoom(Math.min(200, zoom + 10))}
+          className={`h-5 w-5 p-0 text-${color}-400 hover:text-${color}-300`}
+          disabled={zoom >= 200}
+        >
+          <ZoomIn className="w-3 h-3" />
+        </Button>
+        <span className="text-[9px] text-slate-500 w-7">{zoom}%</span>
+        {hasChanges && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setZoom(100);
+                    setPos({ x: 0, y: 0 });
+                  }}
+                  className="h-5 w-5 p-0 text-slate-400 hover:text-white"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Resetar zoom e posição</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     );
@@ -661,7 +838,7 @@ export function PhotoComparisonModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full max-h-[90vh] p-0 bg-slate-900 border-slate-700 flex flex-col">
+      <DialogContent className="max-w-5xl w-[90vw] max-h-[75vh] p-0 bg-slate-900 border-slate-700 flex flex-col">
         <DialogHeader className="p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-slate-200 flex items-center gap-2">
@@ -723,11 +900,11 @@ export function PhotoComparisonModal({
               className="hidden"
               onChange={handleFileInputChange}
             />
-            {/* Grid de comparação */}
-            <div className={`flex-1 grid gap-4 p-4 overflow-auto min-h-0 ${
+            {/* Grid de comparação - lado a lado em mobile também */}
+            <div className={`flex-1 grid gap-2 md:gap-4 p-2 md:p-4 overflow-auto min-h-0 ${
               hidePreviousColumn 
-                ? 'grid-cols-1 md:grid-cols-2' 
-                : 'grid-cols-1 md:grid-cols-3'
+                ? 'grid-cols-2' 
+                : 'grid-cols-2 md:grid-cols-3'
             }`}>
               {/* Coluna 1: Inicial */}
               <div className="flex flex-col">
@@ -803,9 +980,18 @@ export function PhotoComparisonModal({
                     </Button>
                   </div>
                 )}
-                <div className="flex-1 min-h-[300px]">
-                  {renderPhoto(initialPhotos[selectedAngleInitial], initialDate, 'Inicial', 'initial', selectedAngleInitial)}
+                <div className="flex-1 min-h-[150px] md:min-h-[200px]">
+                  {renderPhoto(initialPhotos[selectedAngleInitial], initialDate, 'Inicial', 'initial', selectedAngleInitial, zoomInitial, posInitial)}
                 </div>
+                {/* Controles de zoom e posição */}
+                {initialPhotos[selectedAngleInitial] && (
+                  <div className="flex justify-center">
+                    <ZoomControls zoom={zoomInitial} setZoom={setZoomInitial} pos={posInitial} setPos={setPosInitial} color="green" />
+                  </div>
+                )}
+                {zoomInitial > 100 && initialPhotos[selectedAngleInitial] && (
+                  <div className="text-[8px] text-slate-500 text-center mt-0.5">Arraste para mover</div>
+                )}
               </div>
 
               {/* Coluna 2: Check-in Anterior */}
@@ -883,15 +1069,24 @@ export function PhotoComparisonModal({
                     </Button>
                   </div>
                 )}
-                <div className="flex-1 min-h-[300px]">
+                <div className="flex-1 min-h-[150px] md:min-h-[200px]">
                   {previousDate ? (
-                    renderPhoto(previousPhotos[selectedAnglePrevious], previousDate, 'Anterior', 'previous', selectedAnglePrevious)
+                    renderPhoto(previousPhotos[selectedAnglePrevious], previousDate, 'Anterior', 'previous', selectedAnglePrevious, zoomPrevious, posPrevious)
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-800/50 rounded border border-slate-700 min-h-[300px]">
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800/50 rounded border border-slate-700 min-h-[150px] md:min-h-[200px]">
                       <span className="text-xs text-slate-500">Sem check-in anterior</span>
                     </div>
                   )}
                 </div>
+                {/* Controles de zoom e posição */}
+                {previousDate && previousPhotos[selectedAnglePrevious] && (
+                  <div className="flex justify-center">
+                    <ZoomControls zoom={zoomPrevious} setZoom={setZoomPrevious} pos={posPrevious} setPos={setPosPrevious} color="purple" />
+                  </div>
+                )}
+                {zoomPrevious > 100 && previousDate && previousPhotos[selectedAnglePrevious] && (
+                  <div className="text-[8px] text-slate-500 text-center mt-0.5">Arraste para mover</div>
+                )}
               </div>
               )}
 
@@ -969,9 +1164,18 @@ export function PhotoComparisonModal({
                     </Button>
                   </div>
                 )}
-                <div className="flex-1 min-h-[300px]">
-                  {renderPhoto(currentPhotos[selectedAngleCurrent], currentDate, 'Atual', 'current', selectedAngleCurrent)}
+                <div className="flex-1 min-h-[150px] md:min-h-[200px]">
+                  {renderPhoto(currentPhotos[selectedAngleCurrent], currentDate, 'Atual', 'current', selectedAngleCurrent, zoomCurrent, posCurrent)}
                 </div>
+                {/* Controles de zoom e posição */}
+                {currentPhotos[selectedAngleCurrent] && (
+                  <div className="flex justify-center">
+                    <ZoomControls zoom={zoomCurrent} setZoom={setZoomCurrent} pos={posCurrent} setPos={setPosCurrent} color="blue" />
+                  </div>
+                )}
+                {zoomCurrent > 100 && currentPhotos[selectedAngleCurrent] && (
+                  <div className="text-[8px] text-slate-500 text-center mt-0.5">Arraste para mover</div>
+                )}
               </div>
             </div>
           </div>

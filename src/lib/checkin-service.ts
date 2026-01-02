@@ -267,5 +267,76 @@ export const checkinService = {
     
     if (error) throw error;
     return data || [];
+  },
+
+  // ==========================================
+  // FUNÇÕES OTIMIZADAS PARA REDUZIR EGRESS
+  // ==========================================
+
+  /**
+   * Busca checkins recentes (para notificações)
+   * Otimizado: filtra por data no banco para reduzir tráfego
+   * @param hours - Número de horas para buscar (padrão: 48h)
+   */
+  async getRecent(hours: number = 48): Promise<Checkin[]> {
+    const cutoffDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+    
+    const { data, error } = await supabase
+      .from('checkin')
+      .select('*')
+      .gte('created_at', cutoffDate.toISOString())
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Busca checkins por termo (busca server-side)
+   * Otimizado: busca no banco em vez de carregar todos os dados
+   * @param term - Termo de busca (telefone, objetivo ou dificuldades)
+   * @param limit - Limite de resultados (padrão: 50)
+   */
+  async search(term: string, limit: number = 50): Promise<Checkin[]> {
+    if (!term || term.trim().length < 2) {
+      return [];
+    }
+
+    const searchTerm = term.trim();
+    
+    const { data, error } = await supabase
+      .from('checkin')
+      .select('*')
+      .or(`telefone.ilike.%${searchTerm}%,objetivo.ilike.%${searchTerm}%,dificuldades.ilike.%${searchTerm}%`)
+      .order('data_checkin', { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Busca o último checkin de cada paciente (para alertas de inatividade)
+   * Otimizado: usa distinct on para pegar apenas o mais recente de cada telefone
+   */
+  async getLastCheckinPerPatient(): Promise<Checkin[]> {
+    // Usar RPC ou query otimizada - por enquanto, buscar últimos 200 e agrupar no client
+    const { data, error } = await supabase
+      .from('checkin')
+      .select('*')
+      .order('data_checkin', { ascending: false })
+      .limit(500); // Pegar mais registros para ter cobertura de mais pacientes
+    
+    if (error) throw error;
+    
+    // Agrupar por telefone e pegar apenas o mais recente de cada
+    const latestByPhone = new Map<string, Checkin>();
+    for (const checkin of data || []) {
+      if (checkin.telefone && !latestByPhone.has(checkin.telefone)) {
+        latestByPhone.set(checkin.telefone, checkin);
+      }
+    }
+    
+    return Array.from(latestByPhone.values());
   }
 };

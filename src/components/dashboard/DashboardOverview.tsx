@@ -5,6 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PatientForm } from "@/components/forms/PatientForm";
 import { AutoSyncManager } from "@/components/auto-sync/AutoSyncManager";
 import { InteractiveChart } from "./InteractiveChart";
@@ -27,7 +35,10 @@ import {
   BarChart3,
   Send,
   RefreshCw,
-  Save
+  Save,
+  Plus,
+  FileText,
+  Trash2
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
@@ -35,6 +46,13 @@ import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import { userPreferencesService } from "@/lib/user-preferences-service";
+
+// Interface para templates de renovação
+interface RenewalTemplate {
+  id: string;
+  title: string;
+  message: string;
+}
 
 export function DashboardOverview() {
   const { toast } = useToast();
@@ -64,6 +82,12 @@ export function DashboardOverview() {
   const [isSendingRenewal, setIsSendingRenewal] = useState(false);
   const [sentRenewals, setSentRenewals] = useState<Set<string>>(new Set());
   const [isLoadingRenewals, setIsLoadingRenewals] = useState(true);
+  
+  // Estados para múltiplos templates de renovação
+  const [renewalTemplates, setRenewalTemplates] = useState<RenewalTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [newTemplateTitle, setNewTemplateTitle] = useState("");
 
   const { monthlyData, planDistribution } = chartData || { monthlyData: [], planDistribution: [] };
 
@@ -85,6 +109,27 @@ export function DashboardOverview() {
               ? preferences.filters.sent_renewals 
               : [];
             setSentRenewals(new Set(renewalsArray));
+          }
+          
+          // Carregar templates de renovação
+          if (preferences.filters.renewal_templates) {
+            const templates = Array.isArray(preferences.filters.renewal_templates)
+              ? preferences.filters.renewal_templates
+              : [];
+            setRenewalTemplates(templates);
+          }
+          
+          // Migrar template antigo para novo formato se existir
+          if (preferences.filters.renewal_message_template && 
+              (!preferences.filters.renewal_templates || preferences.filters.renewal_templates.length === 0)) {
+            const legacyTemplate: RenewalTemplate = {
+              id: crypto.randomUUID(),
+              title: "Mensagem Padrão",
+              message: preferences.filters.renewal_message_template
+            };
+            setRenewalTemplates([legacyTemplate]);
+            // Salvar migração
+            await saveRenewalTemplates([legacyTemplate]);
           }
         }
       } catch (error) {
@@ -111,6 +156,120 @@ export function DashboardOverview() {
       });
     } catch (error) {
       console.error('Erro ao salvar renovações enviadas:', error);
+    }
+  };
+
+  // Salvar templates de renovação no banco
+  const saveRenewalTemplates = async (templates: RenewalTemplate[]) => {
+    try {
+      const preferences = await userPreferencesService.getUserPreferences();
+      const currentFilters = preferences?.filters || {};
+      
+      await userPreferencesService.upsertUserPreferences({
+        filters: {
+          ...currentFilters,
+          renewal_templates: templates
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao salvar templates de renovação:', error);
+    }
+  };
+
+  // Salvar nova mensagem como template
+  const handleSaveNewTemplate = async () => {
+    if (!renewalMessage.trim()) {
+      toast({
+        title: "Erro",
+        description: "A mensagem não pode estar vazia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newTemplateTitle.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite um título para o template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Salvar template no banco (usando placeholder {nome} para o primeiro nome)
+      const firstName = selectedPatient?.nome?.split(' ')[0] || '{nome}';
+      const template = renewalMessage.replace(new RegExp(firstName, 'gi'), '{nome}');
+      
+      const newTemplate: RenewalTemplate = {
+        id: crypto.randomUUID(),
+        title: newTemplateTitle.trim(),
+        message: template
+      };
+      
+      const updatedTemplates = [...renewalTemplates, newTemplate];
+      setRenewalTemplates(updatedTemplates);
+      await saveRenewalTemplates(updatedTemplates);
+      
+      // Limpar campos e fechar seção
+      setNewTemplateTitle("");
+      setShowSaveTemplate(false);
+      setSelectedTemplateId(newTemplate.id);
+      
+      toast({
+        title: "Sucesso",
+        description: `Template "${newTemplate.title}" salvo com sucesso!`,
+      });
+    } catch (error) {
+      console.error('Erro ao salvar template:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o template. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Deletar template
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      const updatedTemplates = renewalTemplates.filter(t => t.id !== templateId);
+      setRenewalTemplates(updatedTemplates);
+      await saveRenewalTemplates(updatedTemplates);
+      
+      if (selectedTemplateId === templateId) {
+        setSelectedTemplateId("");
+      }
+      
+      toast({
+        title: "Sucesso",
+        description: "Template excluído com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao excluir template:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o template.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Selecionar template
+  const handleSelectTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    
+    if (templateId === "new") {
+      // Carregar mensagem padrão para novo template
+      getDefaultRenewalMessage(selectedPatient?.nome || '').then(setRenewalMessage);
+      return;
+    }
+    
+    const template = renewalTemplates.find(t => t.id === templateId);
+    if (template) {
+      const firstName = selectedPatient?.nome?.split(' ')[0] || 'amigo';
+      const message = template.message.replace(/\{nome\}/g, firstName);
+      setRenewalMessage(message);
     }
   };
 
@@ -152,45 +311,6 @@ https://chat.shapepro.shop/feedback-
 Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
   };
 
-  // Função para salvar mensagem como padrão no banco
-  const saveRenewalMessageAsDefault = async () => {
-    if (!renewalMessage.trim()) {
-      toast({
-        title: "Erro",
-        description: "A mensagem não pode estar vazia.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Salvar template no banco (usando placeholder {nome} para o primeiro nome)
-      const firstName = selectedPatient?.nome?.split(' ')[0] || '{nome}';
-      const template = renewalMessage.replace(new RegExp(firstName, 'gi'), '{nome}');
-      
-      const preferences = await userPreferencesService.getUserPreferences();
-      const currentFilters = preferences?.filters || {};
-      
-      await userPreferencesService.upsertUserPreferences({
-        filters: {
-          ...currentFilters,
-          renewal_message_template: template
-        }
-      });
-      
-      toast({
-        title: "Sucesso",
-        description: "Mensagem salva como padrão no banco de dados! Ela será usada para todos os próximos pacientes.",
-      });
-    } catch (error) {
-      console.error('Erro ao salvar template:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar a mensagem. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Função para abrir modal de renovação
   const handleOpenRenewalModal = async (patient: any, e: React.MouseEvent) => {
@@ -681,10 +801,57 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
               Mensagem de Renovação - {selectedPatient?.nome || 'Paciente'}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Edite a mensagem abaixo antes de enviar. A mensagem será enviada via WhatsApp.
+              Escolha um template ou edite a mensagem antes de enviar via WhatsApp.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Seletor de Templates */}
+            <div className="space-y-2">
+              <Label className="text-slate-300 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Template de Mensagem
+              </Label>
+              <div className="flex gap-2">
+                <Select
+                  value={selectedTemplateId}
+                  onValueChange={handleSelectTemplate}
+                >
+                  <SelectTrigger className="flex-1 bg-slate-900 border-slate-600 text-white">
+                    <SelectValue placeholder="Selecione um template..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="new" className="text-white hover:bg-slate-700">
+                      <span className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Nova mensagem
+                      </span>
+                    </SelectItem>
+                    {renewalTemplates.map((template) => (
+                      <SelectItem 
+                        key={template.id} 
+                        value={template.id}
+                        className="text-white hover:bg-slate-700"
+                      >
+                        {template.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedTemplateId && selectedTemplateId !== "new" && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                    title="Excluir template"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Área de Mensagem */}
             <div className="space-y-2">
               <Label htmlFor="renewal-message" className="text-slate-300">
                 Mensagem de Renovação
@@ -693,57 +860,95 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                 id="renewal-message"
                 value={renewalMessage}
                 onChange={(e) => setRenewalMessage(e.target.value)}
-                className="min-h-[300px] bg-slate-900 border-slate-600 text-white placeholder:text-slate-500 resize-none"
+                className="min-h-[250px] bg-slate-900 border-slate-600 text-white placeholder:text-slate-500 resize-none"
                 placeholder="Digite a mensagem de renovação..."
               />
             </div>
-            <div className="text-xs text-slate-400 space-y-1">
+
+            {/* Seção de Salvar Template (colapsável) */}
+            {!showSaveTemplate ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSaveTemplate(true)}
+                className="text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 w-full justify-start"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Salvar como novo template
+              </Button>
+            ) : (
+              <div className="bg-slate-900/50 rounded-lg p-3 space-y-3 border border-slate-700">
+                <div className="flex items-center justify-between">
+                  <Label className="text-slate-300 text-sm">Salvar como Template</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowSaveTemplate(false);
+                      setNewTemplateTitle("");
+                    }}
+                    className="text-slate-400 hover:text-slate-200 h-6 w-6 p-0"
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTemplateTitle}
+                    onChange={(e) => setNewTemplateTitle(e.target.value)}
+                    placeholder="Título do template (ex: Renovação VIP)"
+                    className="flex-1 bg-slate-900 border-slate-600 text-white placeholder:text-slate-500"
+                  />
+                  <Button
+                    onClick={handleSaveNewTemplate}
+                    disabled={!renewalMessage.trim() || !newTemplateTitle.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Info do Paciente */}
+            <div className="text-xs text-slate-400 space-y-1 pt-2 border-t border-slate-700">
               <p><strong>Paciente:</strong> {selectedPatient?.nome || 'N/A'}</p>
               <p><strong>Telefone:</strong> {selectedPatient?.telefone || 'N/A'}</p>
             </div>
           </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <div className="flex gap-2 flex-1">
-              <Button
-                variant="outline"
-                onClick={saveRenewalMessageAsDefault}
-                disabled={!renewalMessage.trim()}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 flex-1 sm:flex-none"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Salvar como Padrão
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setRenewalModalOpen(false);
-                  setSelectedPatient(null);
-                  setRenewalMessage("");
-                }}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSendRenewal}
-                disabled={isSendingRenewal || !renewalMessage.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isSendingRenewal ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Enviar
-                  </>
-                )}
-              </Button>
-            </div>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenewalModalOpen(false);
+                setSelectedPatient(null);
+                setRenewalMessage("");
+                setSelectedTemplateId("");
+                setShowSaveTemplate(false);
+                setNewTemplateTitle("");
+              }}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSendRenewal}
+              disabled={isSendingRenewal || !renewalMessage.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSendingRenewal ? (
+                <>
+                  <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Enviar
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
