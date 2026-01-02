@@ -1,12 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
 import { commercialMetricsService, metricsCalculations } from '@/lib/commercial-metrics-service';
 
+// Função helper para refetch condicional baseado em visibilidade da página
+// Retorna uma função que o React Query reavalia dinamicamente
+const getRefetchInterval = (baseInterval: number) => {
+  return () => {
+    // Se a página não está visível, não refetch
+    if (typeof document !== 'undefined' && document.hidden) {
+      return false;
+    }
+    return baseInterval;
+  };
+};
+
 // Hook para buscar leads que entraram (dados diários)
 export function useLeadsQueEntraram() {
   return useQuery({
     queryKey: ['leads-que-entraram'],
     queryFn: () => commercialMetricsService.getLeadsQueEntraram(),
-    refetchInterval: 30000, // Atualizar a cada 30 segundos
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (métricas atualizadas pelo N8N)
+    staleTime: 3 * 60 * 1000, // 3 minutos - dados ficam "frescos" por mais tempo
   });
 }
 
@@ -15,7 +28,8 @@ export function useAllTotalDeLeads() {
   return useQuery({
     queryKey: ['all-total-de-leads'],
     queryFn: () => commercialMetricsService.getAllTotalDeLeads(),
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -25,7 +39,8 @@ export function useTotalDeLeadsByMonth(month: string | null) {
     queryKey: ['total-de-leads', month],
     queryFn: () => month ? commercialMetricsService.getTotalDeLeadsByMonth(month) : null,
     enabled: !!month,
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -34,7 +49,8 @@ export function useAllTotalDeCallsAgendadas() {
   return useQuery({
     queryKey: ['all-total-de-calls-agendadas'],
     queryFn: () => commercialMetricsService.getAllTotalDeCallsAgendadas(),
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -44,7 +60,8 @@ export function useTotalDeCallsAgendadasByMonth(month: string | null) {
     queryKey: ['total-de-calls-agendadas', month],
     queryFn: () => month ? commercialMetricsService.getTotalDeCallsAgendadasByMonth(month) : null,
     enabled: !!month,
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -53,7 +70,8 @@ export function useTotalDeLeadsPorFunil() {
   return useQuery({
     queryKey: ['total-de-leads-por-funil'],
     queryFn: () => commercialMetricsService.getTotalDeLeadsPorFunil(),
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -62,7 +80,8 @@ export function useTotalDeAgendamentosPorFunil() {
   return useQuery({
     queryKey: ['total-de-agendamentos-por-funil'],
     queryFn: () => commercialMetricsService.getTotalDeAgendamentosPorFunil(),
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -71,7 +90,8 @@ export function useTotalDeVendas() {
   return useQuery({
     queryKey: ['total-de-vendas'],
     queryFn: () => commercialMetricsService.getTotalDeVendas(),
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -81,7 +101,8 @@ export function useVendasByMonth(month: string | null) {
     queryKey: ['vendas', month],
     queryFn: () => month ? commercialMetricsService.getVendasByMonth(month) : [],
     enabled: !!month,
-    refetchInterval: 30000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -262,12 +283,31 @@ export function useCommercialMetrics(selectedMonth?: string) {
   };
 }
 
+// Função auxiliar para extrair ano do campo DATA
+const extractYearFromData = (dataStr: string | null | undefined): number | null => {
+  if (!dataStr) return null;
+  
+  // Tentar parsear como data
+  const date = new Date(dataStr);
+  if (!isNaN(date.getTime())) {
+    return date.getFullYear();
+  }
+  
+  // Tentar extrair ano de string (formato YYYY)
+  const yearMatch = dataStr.match(/\b(20\d{2})\b/);
+  if (yearMatch) {
+    return parseInt(yearMatch[1], 10);
+  }
+  
+  return null;
+};
+
 // Hook para processar métricas de vendas
-export function useSalesMetrics(selectedMonth?: string) {
+export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
   const vendasQuery = useTotalDeVendas();
   
   if (vendasQuery.isLoading || !vendasQuery.data) {
-    return {
+      return {
       isLoading: true,
       isError: false,
       monthlyMetrics: [],
@@ -277,12 +317,22 @@ export function useSalesMetrics(selectedMonth?: string) {
         closer: { total: 0, comprou: 0, naoComprou: 0, noShow: 0, conversionRate: 0 }
       },
       availableMonths: [],
+      availableYears: [],
+      monthsByYear: {},
+      totals: {
+        totalCalls: 0,
+        comprou: 0,
+        naoComprou: 0,
+        noShow: 0,
+        desmarcados: 0,
+        pixCompromisso: 0
+      },
       refetch: vendasQuery.refetch,
     };
   }
 
   if (vendasQuery.isError) {
-    return {
+      return {
       isLoading: false,
       isError: true,
       monthlyMetrics: [],
@@ -292,6 +342,16 @@ export function useSalesMetrics(selectedMonth?: string) {
         closer: { total: 0, comprou: 0, naoComprou: 0, noShow: 0, conversionRate: 0 }
       },
       availableMonths: [],
+      availableYears: [],
+      monthsByYear: {},
+      totals: {
+        totalCalls: 0,
+        comprou: 0,
+        naoComprou: 0,
+        noShow: 0,
+        desmarcados: 0,
+        pixCompromisso: 0
+      },
       refetch: vendasQuery.refetch,
     };
   }
@@ -346,53 +406,145 @@ export function useSalesMetrics(selectedMonth?: string) {
     return true;
   });
 
-  // Obter meses únicos das vendas válidas e ordenar
+  // Extrair ano de cada venda e criar estrutura de meses por ano
   const monthOrder = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   
-  const uniqueMonths = Array.from(new Set(vendasValidas.map(v => v.MÊS).filter(Boolean))) as string[];
+  // Criar mapa de meses por ano
+  const monthsByYearMap = new Map<number, Set<string>>();
+  const monthYearMap = new Map<string, { mes: string; ano: number }>();
   
-  // Ordenar meses por ordem cronológica (mais recente primeiro)
-  const availableMonths = uniqueMonths.sort((a, b) => {
-    const indexA = monthOrder.findIndex(m => a && a.toLowerCase().includes(m.toLowerCase()));
-    const indexB = monthOrder.findIndex(m => b && b.toLowerCase().includes(m.toLowerCase()));
+  vendasValidas.forEach(venda => {
+    const mes = venda.MÊS;
+    if (!mes) return;
     
-    // Se encontrou ambos, ordenar do mais recente para o mais antigo
-    if (indexA !== -1 && indexB !== -1) {
-      return indexB - indexA; // Invertido para ordem decrescente (mais recente primeiro)
+    // Tentar extrair ano do campo DATA
+    let ano = extractYearFromData(venda.DATA);
+    
+    // Se não conseguiu extrair do DATA, assumir 2025 para meses de junho a dezembro
+    // e 2026 para meses de janeiro a maio (assumindo que estamos em 2025)
+    if (!ano) {
+      const mesLower = mes.toLowerCase();
+      const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
+      
+      // Se for junho a dezembro, assumir 2025
+      if (mesIndex >= 5 && mesIndex <= 11) {
+        ano = 2025;
+      } else {
+        // Para outros meses, usar ano atual ou 2026
+        ano = new Date().getFullYear();
+      }
     }
     
-    // Se não encontrou, manter ordem original
-    return 0;
+    if (!monthsByYearMap.has(ano)) {
+      monthsByYearMap.set(ano, new Set());
+    }
+    monthsByYearMap.get(ano)!.add(mes);
+    
+    // Criar chave única mes-ano
+    const key = `${mes}-${ano}`;
+    monthYearMap.set(key, { mes, ano });
+  });
+  
+  // Converter para estrutura de meses por ano
+  const monthsByYear: Record<number, string[]> = {};
+  const availableYears: number[] = [];
+  
+  monthsByYearMap.forEach((months, year) => {
+    const sortedMonths = Array.from(months).sort((a, b) => {
+      const indexA = monthOrder.findIndex(m => a && a.toLowerCase().includes(m.toLowerCase()));
+      const indexB = monthOrder.findIndex(m => b && b.toLowerCase().includes(m.toLowerCase()));
+      return indexB - indexA; // Mais recente primeiro
+    });
+    monthsByYear[year] = sortedMonths;
+    availableYears.push(year);
+  });
+  
+  // Ordenar anos (mais recente primeiro)
+  availableYears.sort((a, b) => b - a);
+  
+  // Criar lista de meses disponíveis com ano (formato: "Mês - Ano")
+  const availableMonths: string[] = [];
+  availableYears.forEach(year => {
+    monthsByYear[year].forEach(mes => {
+      availableMonths.push(`${mes} - ${year}`);
+    });
+  });
+  
+  // Filtrar por mês e ano se especificado
+  const filteredVendas = vendasValidas.filter(venda => {
+    const mes = venda.MÊS;
+    if (!mes) return false;
+    
+    // Se não há filtro, retornar todas
+    if (!selectedMonth && !selectedYear) return true;
+    
+    // Extrair ano da venda
+    let ano = extractYearFromData(venda.DATA);
+    if (!ano) {
+      const mesLower = mes.toLowerCase();
+      const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
+      if (mesIndex >= 5 && mesIndex <= 11) {
+        ano = 2025;
+      } else {
+        ano = new Date().getFullYear();
+      }
+    }
+    
+    // Se há filtro de ano, verificar se o ano corresponde
+    if (selectedYear && ano !== selectedYear) return false;
+    
+    // Se há filtro de mês, verificar se o mês corresponde
+    if (selectedMonth) {
+      // Se selectedMonth contém ano (formato "Mês - Ano"), extrair apenas o mês
+      const monthOnly = selectedMonth.includes(' - ') 
+        ? selectedMonth.split(' - ')[0].trim()
+        : selectedMonth;
+      
+      if (mes !== monthOnly) return false;
+    }
+    
+    return true;
   });
 
-  // console.log('🔍 useSalesMetrics - Meses únicos encontrados:', uniqueMonths);
-  // console.log('🔍 useSalesMetrics - Meses ordenados:', availableMonths);
-  
-  // Filtrar por mês se especificado
-  const filteredVendas = selectedMonth 
-    ? vendasValidas.filter(v => v.MÊS === selectedMonth)
-    : vendasValidas;
-
-  // 1. Métricas por mês
+  // 1. Métricas por mês (agora com ano)
   const monthlyMetricsMap = new Map<string, any>();
   
   filteredVendas.forEach(venda => {
     const mes = venda.MÊS || 'Sem mês';
     
-    if (!monthlyMetricsMap.has(mes)) {
-      monthlyMetricsMap.set(mes, {
+    // Extrair ano
+    let ano = extractYearFromData(venda.DATA);
+    if (!ano) {
+      const mesLower = mes.toLowerCase();
+      const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
+      if (mesIndex >= 5 && mesIndex <= 11) {
+        ano = 2025;
+      } else {
+        ano = new Date().getFullYear();
+      }
+    }
+    
+    // Criar chave única mes-ano
+    const key = `${mes} - ${ano}`;
+    
+    if (!monthlyMetricsMap.has(key)) {
+      monthlyMetricsMap.set(key, {
         mes,
+        ano,
+        mesAno: key,
         totalCalls: 0,
         comprou: 0,
         naoComprou: 0,
         noShow: 0,
+        desmarcados: 0,
+        pixCompromisso: 0,
         funnels: new Map<string, any>(),
         closers: new Map<string, any>()
       });
     }
     
-    const monthData = monthlyMetricsMap.get(mes);
+    const monthData = monthlyMetricsMap.get(key);
     monthData.totalCalls++;
     
     // LÓGICA SIMPLES: Contar exatamente como está marcado no Excel
@@ -400,6 +552,8 @@ export function useSalesMetrics(selectedMonth?: string) {
     const comprou = isYes(venda.COMPROU);
     const naoComprou = isYes(venda['NÃO COMPROU']);
     const noShow = isYes(venda['NO SHOW']);
+    const desmarcados = isYes(venda['DESMARCADOS']);
+    const pixCompromisso = isYes(venda['PIX COMPROMISSO']);
     
     if (comprou) {
       monthData.comprou++;
@@ -411,6 +565,14 @@ export function useSalesMetrics(selectedMonth?: string) {
     
     if (noShow) {
       monthData.noShow++;
+    }
+    
+    if (desmarcados) {
+      monthData.desmarcados++;
+    }
+    
+    if (pixCompromisso) {
+      monthData.pixCompromisso++;
     }
     
     // Por funil dentro do mês
@@ -618,6 +780,23 @@ export function useSalesMetrics(selectedMonth?: string) {
     return { total: 0, comprou: 0, naoComprou: 0, noShow: 0, conversionRate: 0 };
   };
 
+  // Calcular totais gerais
+  const totals = monthlyMetrics.reduce((acc, month) => ({
+    totalCalls: acc.totalCalls + month.totalCalls,
+    comprou: acc.comprou + month.comprou,
+    naoComprou: acc.naoComprou + month.naoComprou,
+    noShow: acc.noShow + month.noShow,
+    desmarcados: acc.desmarcados + (month.desmarcados || 0),
+    pixCompromisso: acc.pixCompromisso + (month.pixCompromisso || 0),
+  }), { 
+    totalCalls: 0, 
+    comprou: 0, 
+    naoComprou: 0, 
+    noShow: 0,
+    desmarcados: 0,
+    pixCompromisso: 0
+  });
+
   return {
     isLoading: false,
     isError: false,
@@ -637,6 +816,9 @@ export function useSalesMetrics(selectedMonth?: string) {
       })
     },
     availableMonths,
+    availableYears,
+    monthsByYear,
+    totals,
     refetch: vendasQuery.refetch,
   };
 }

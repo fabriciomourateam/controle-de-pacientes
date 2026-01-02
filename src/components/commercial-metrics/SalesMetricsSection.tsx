@@ -12,7 +12,11 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
-  Calendar
+  Calendar,
+  Phone,
+  PhoneCall,
+  X,
+  CreditCard
 } from "lucide-react";
 import { useSalesMetrics } from "@/hooks/use-commercial-metrics";
 
@@ -32,32 +36,62 @@ const getCurrentMonthName = () => {
 
 export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
   const [isFunnelExpanded, setIsFunnelExpanded] = useState(true);
   const [isCloserExpanded, setIsCloserExpanded] = useState(true);
 
   // Inicializar com o mês atual quando os dados chegarem (apenas uma vez)
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Buscar dados com o mês selecionado (passar undefined se for 'all')
+  // Buscar dados com o mês e ano selecionados
   const monthFilter = selectedMonth === 'all' ? undefined : selectedMonth;
-  const { isLoading, isError, monthlyMetrics, funnelMetrics, closerMetrics, availableMonths } = 
-    useSalesMetrics(monthFilter);
+  const { isLoading, isError, monthlyMetrics, funnelMetrics, closerMetrics, availableMonths, availableYears, monthsByYear, totals: hookTotals } = 
+    useSalesMetrics(monthFilter, selectedYear);
 
   useEffect(() => {
-    if (availableMonths && availableMonths.length > 0 && !hasInitialized) {
-      // Sempre tentar selecionar o mês atual primeiro (ignorar initialMonth se vier errado)
-      const currentMonth = getCurrentMonthName();
+    if (availableYears && availableYears.length > 0 && !hasInitialized) {
+      // Inicializar com o ano mais recente (2025 se disponível, senão o primeiro)
+      const defaultYear = availableYears.find(y => y === 2025) || availableYears[0];
+      setSelectedYear(defaultYear);
       
-      const found = availableMonths.find(m => 
-        m && m.toLowerCase().includes(currentMonth.toLowerCase())
-      );
+      // Se há meses disponíveis para o ano selecionado, selecionar o mês atual ou o mais recente
+      if (monthsByYear[defaultYear] && monthsByYear[defaultYear].length > 0) {
+        const currentMonth = getCurrentMonthName();
+        const monthsForYear = monthsByYear[defaultYear];
+        
+        const found = monthsForYear.find(m => 
+          m && m.toLowerCase().includes(currentMonth.toLowerCase())
+        );
+        
+        // Se encontrou o mês atual, usar formato "Mês - Ano", senão usar o mais recente
+        const defaultMonth = found 
+          ? `${found} - ${defaultYear}`
+          : `${monthsForYear[0]} - ${defaultYear}`;
+        
+        setSelectedMonth(defaultMonth);
+      }
       
-      // Se não encontrou o mês atual, usar o mais recente (primeiro da lista)
-      const defaultMonth = found || availableMonths[0];
-      setSelectedMonth(defaultMonth);
       setHasInitialized(true);
     }
-  }, [availableMonths, hasInitialized]);
+  }, [availableYears, monthsByYear, hasInitialized]);
+  
+  // Quando o ano muda, atualizar o mês selecionado para o primeiro mês disponível do ano
+  useEffect(() => {
+    if (selectedYear === undefined) {
+      // Se "Todos os anos" foi selecionado, manter o mês atual ou resetar para "all"
+      return;
+    }
+    
+    if (selectedYear && monthsByYear[selectedYear] && monthsByYear[selectedYear].length > 0) {
+      const currentMonthValue = selectedMonth === 'all' ? null : selectedMonth;
+      
+      // Se o mês atual não pertence ao ano selecionado, atualizar para o primeiro mês do ano
+      if (!currentMonthValue || !currentMonthValue.includes(`- ${selectedYear}`)) {
+        const firstMonth = monthsByYear[selectedYear][0];
+        setSelectedMonth(`${firstMonth} - ${selectedYear}`);
+      }
+    }
+  }, [selectedYear, monthsByYear]);
 
   if (isLoading) {
     return (
@@ -93,13 +127,22 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
     );
   }
 
-  // Calcular totais gerais
-  const totals = monthlyMetrics.reduce((acc, month) => ({
+  // Usar totais do hook ou calcular localmente se não disponível
+  const totals = hookTotals || monthlyMetrics.reduce((acc, month) => ({
     totalCalls: acc.totalCalls + month.totalCalls,
     comprou: acc.comprou + month.comprou,
     naoComprou: acc.naoComprou + month.naoComprou,
     noShow: acc.noShow + month.noShow,
-  }), { totalCalls: 0, comprou: 0, naoComprou: 0, noShow: 0 });
+    desmarcados: acc.desmarcados + (month.desmarcados || 0),
+    pixCompromisso: acc.pixCompromisso + (month.pixCompromisso || 0),
+  }), { 
+    totalCalls: 0, 
+    comprou: 0, 
+    naoComprou: 0, 
+    noShow: 0,
+    desmarcados: 0,
+    pixCompromisso: 0
+  });
 
   // Taxa de conversão geral = (Comprou / Calls Realizadas) × 100
   // Calls Realizadas = comprou + não comprou (exclui no show)
@@ -132,7 +175,9 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
               </CardTitle>
               <CardDescription className="text-slate-400 mt-1">
                 {selectedMonth === 'all'
-                  ? 'Análise detalhada de conversões e resultados das calls de vendas - Todos os meses'
+                  ? selectedYear 
+                    ? `Análise detalhada de conversões e resultados das calls de vendas - Ano ${selectedYear}`
+                    : 'Análise detalhada de conversões e resultados das calls de vendas - Todos os períodos'
                   : `Análise detalhada de conversões e resultados das calls de vendas - ${selectedMonth}`
                 }
               </CardDescription>
@@ -143,36 +188,91 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
                   Filtrado: {selectedMonth}
                 </Badge>
               )}
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px] bg-slate-700/50 border-slate-600/50 text-white">
-                  <SelectValue placeholder="Selecione o mês" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="all" className="text-white hover:bg-slate-700">
-                    📊 Todos os meses
-                  </SelectItem>
-                  {availableMonths.map((month) => (
-                    <SelectItem key={month} value={month} className="text-white hover:bg-slate-700">
-                      {month.toLowerCase().includes(getCurrentMonthName().toLowerCase()) && '⭐ '}
-                      {month}
+              <div className="flex gap-2">
+                {/* Filtro de Ano */}
+                <Select 
+                  value={selectedYear?.toString() || 'all'} 
+                  onValueChange={(value) => {
+                    if (value === 'all') {
+                      setSelectedYear(undefined);
+                    } else {
+                      setSelectedYear(parseInt(value, 10));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[120px] bg-slate-700/50 border-slate-600/50 text-white">
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="all" className="text-white hover:bg-slate-700">
+                      📅 Todos os anos
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {availableYears.map((year) => (
+                      <SelectItem key={year} value={year.toString()} className="text-white hover:bg-slate-700">
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Filtro de Mês */}
+                <Select 
+                  value={selectedMonth} 
+                  onValueChange={setSelectedMonth}
+                >
+                  <SelectTrigger className="w-[200px] bg-slate-700/50 border-slate-600/50 text-white">
+                    <SelectValue placeholder="Selecione o mês" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="all" className="text-white hover:bg-slate-700">
+                      📊 Todos os meses
+                    </SelectItem>
+                    {selectedYear && monthsByYear[selectedYear] ? (
+                      // Se há ano selecionado, mostrar apenas meses desse ano
+                      monthsByYear[selectedYear].map((month) => {
+                        const monthValue = `${month} - ${selectedYear}`;
+                        return (
+                          <SelectItem key={monthValue} value={monthValue} className="text-white hover:bg-slate-700">
+                            {month.toLowerCase().includes(getCurrentMonthName().toLowerCase()) && '⭐ '}
+                            {month}
+                          </SelectItem>
+                        );
+                      })
+                    ) : (
+                      // Se não há ano selecionado, mostrar todos os meses de todos os anos
+                      availableMonths.map((month) => (
+                        <SelectItem key={month} value={month} className="text-white hover:bg-slate-700">
+                          {month.toLowerCase().includes(getCurrentMonthName().toLowerCase()) && '⭐ '}
+                          {month}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
 
         {/* KPI Cards */}
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-blue-400 font-semibold uppercase">Total Calls</p>
+                <p className="text-xs text-blue-400 font-semibold uppercase">Total de Calls Agendadas</p>
                 <Calendar className="w-4 h-4 text-blue-400" />
               </div>
               <p className="text-2xl font-bold text-white">{totals.totalCalls}</p>
               <p className="text-xs text-slate-400 mt-1">Calls agendadas</p>
+            </div>
+
+            <div className="bg-cyan-500/10 rounded-lg p-4 border border-cyan-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-cyan-400 font-semibold uppercase">Total de Calls Realizadas</p>
+                <PhoneCall className="w-4 h-4 text-cyan-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{callsRealizadas}</p>
+              <p className="text-xs text-slate-400 mt-1">Calls que ocorreram</p>
             </div>
 
             <div className="bg-green-500/10 rounded-lg p-4 border border-green-500/30">
@@ -200,6 +300,24 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
               </div>
               <p className="text-2xl font-bold text-white">{totals.noShow}</p>
               <p className="text-xs text-slate-400 mt-1">Não compareceram</p>
+            </div>
+
+            <div className="bg-yellow-500/10 rounded-lg p-4 border border-yellow-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-yellow-400 font-semibold uppercase">Desmarcados</p>
+                <X className="w-4 h-4 text-yellow-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{totals.desmarcados || 0}</p>
+              <p className="text-xs text-slate-400 mt-1">Calls desmarcadas</p>
+            </div>
+
+            <div className="bg-indigo-500/10 rounded-lg p-4 border border-indigo-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-indigo-400 font-semibold uppercase">Pix Compromisso</p>
+                <CreditCard className="w-4 h-4 text-indigo-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{totals.pixCompromisso || 0}</p>
+              <p className="text-xs text-slate-400 mt-1">Pix com compromisso</p>
             </div>
 
             <div className="bg-purple-500/10 rounded-lg p-4 border border-purple-500/30">

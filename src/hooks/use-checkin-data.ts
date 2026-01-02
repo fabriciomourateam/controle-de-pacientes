@@ -12,12 +12,24 @@ export const checkinQueryKeys = {
   stats: () => [...checkinQueryKeys.all, 'stats'] as const,
 };
 
+// Função helper para refetch condicional baseado em visibilidade da página
+// Retorna uma função que o React Query reavalia dinamicamente
+const getRefetchInterval = (baseInterval: number) => {
+  return () => {
+    // Se a página não está visível, não refetch
+    if (typeof document !== 'undefined' && document.hidden) {
+      return false;
+    }
+    return baseInterval;
+  };
+};
+
 export function useCheckins() {
   return useQuery({
     queryKey: checkinQueryKeys.lists(),
     queryFn: () => checkinService.getAll(),
-    refetchInterval: 30 * 1000, // Refetch a cada 30 segundos
-    staleTime: 20 * 1000, // Dados ficam "frescos" por 20 segundos
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos (checkins podem mudar mais frequentemente)
+    staleTime: 90 * 1000, // 1.5 minutos - dados ficam "frescos" por mais tempo
   });
 }
 
@@ -25,8 +37,8 @@ export function useCheckinsWithPatient() {
   return useQuery({
     queryKey: [...checkinQueryKeys.lists(), 'with-patient'],
     queryFn: () => checkinService.getAllWithPatient(),
-    refetchInterval: 30 * 1000, // Refetch a cada 30 segundos para dados atualizados
-    staleTime: 20 * 1000, // Dados ficam "frescos" por 20 segundos
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos para dados atualizados
+    staleTime: 90 * 1000, // 1.5 minutos - dados ficam "frescos" por mais tempo
   });
 }
 
@@ -44,8 +56,8 @@ export function usePatientCheckins(telefone: string) {
     queryKey: checkinQueryKeys.byPhone(telefone),
     queryFn: () => checkinService.getByPhone(telefone),
     enabled: !!telefone, // Só executa se telefone estiver definido
-    refetchInterval: 30 * 1000, // Refetch a cada 30 segundos
-    staleTime: 20 * 1000,
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
+    staleTime: 90 * 1000, // 1.5 minutos
   });
 }
 
@@ -53,8 +65,8 @@ export function useCurrentMonthCheckins() {
   return useQuery({
     queryKey: [...checkinQueryKeys.lists(), 'current-month'],
     queryFn: () => checkinService.getCurrentMonth(),
-    refetchInterval: 30 * 1000,
-    staleTime: 20 * 1000,
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
+    staleTime: 90 * 1000, // 1.5 minutos
   });
 }
 
@@ -62,8 +74,8 @@ export function useCheckinStats() {
   return useQuery({
     queryKey: checkinQueryKeys.stats(),
     queryFn: () => checkinService.getStats(),
-    refetchInterval: 30 * 1000,
-    staleTime: 20 * 1000,
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
+    staleTime: 90 * 1000, // 1.5 minutos
   });
 }
 
@@ -72,7 +84,7 @@ export function usePatientEvolution(telefone: string, months: number = 12) {
     queryKey: [...checkinQueryKeys.byPhone(telefone), 'evolution', months],
     queryFn: () => checkinService.getPatientEvolution(telefone, months),
     enabled: !!telefone,
-    staleTime: 60 * 1000, // Evolução pode ter cache maior (1 minuto)
+    staleTime: 5 * 60 * 1000, // Evolução pode ter cache maior (5 minutos) - dados históricos mudam pouco
   });
 }
 
@@ -81,7 +93,7 @@ export function useCheckinsByFillDate(startDate: string, endDate: string) {
     queryKey: [...checkinQueryKeys.lists(), 'by-date', startDate, endDate],
     queryFn: () => checkinService.getByFillDate(startDate, endDate),
     enabled: !!startDate && !!endDate,
-    staleTime: 30 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
 
@@ -89,8 +101,8 @@ export function useFilledTodayCheckins() {
   return useQuery({
     queryKey: [...checkinQueryKeys.lists(), 'filled-today'],
     queryFn: () => checkinService.getFilledToday(),
-    refetchInterval: 30 * 1000, // Refetch a cada 30 segundos
-    staleTime: 20 * 1000,
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
+    staleTime: 90 * 1000, // 1.5 minutos
   });
 }
 
@@ -98,7 +110,7 @@ export function useFilledLastWeekCheckins() {
   return useQuery({
     queryKey: [...checkinQueryKeys.lists(), 'filled-last-week'],
     queryFn: () => checkinService.getFilledLastWeek(),
-    refetchInterval: 60 * 1000, // Refetch a cada 1 minuto (menos frequente)
-    staleTime: 30 * 1000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (dados históricos)
+    staleTime: 3 * 60 * 1000, // 3 minutos
   });
 }

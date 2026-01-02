@@ -26,6 +26,7 @@ export const checkinService = {
   },
 
   // Buscar checkins com dados do paciente (usando telefone)
+  // Otimizado: limita a 200 registros mais recentes para reduzir tráfego
   async getAllWithPatient(): Promise<CheckinWithPatient[]> {
     const { data, error } = await supabase
       .from('checkin')
@@ -39,7 +40,8 @@ export const checkinService = {
           plano
         )
       `)
-      .order('data_checkin', { ascending: false });
+      .order('data_checkin', { ascending: false })
+      .limit(200); // Limitar a 200 registros mais recentes
     
     if (error) throw error;
     return data || [];

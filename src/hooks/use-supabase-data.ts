@@ -5,6 +5,18 @@ import type { Patient, Plan, Feedback } from '@/lib/supabase-services';
 import { getCurrentUserId } from '@/lib/auth-helpers';
 import { supabase } from '@/integrations/supabase/client';
 
+// Função helper para refetch condicional baseado em visibilidade da página
+// Retorna uma função que o React Query reavalia dinamicamente
+const getRefetchInterval = (baseInterval: number) => {
+  return () => {
+    // Se a página não está visível, não refetch
+    if (typeof document !== 'undefined' && document.hidden) {
+      return false;
+    }
+    return baseInterval;
+  };
+};
+
 // Chaves de query para invalidação de cache
 export const patientQueryKeys = {
   all: ['patients'] as const,
@@ -21,8 +33,8 @@ export function usePatients() {
   const query = useQuery({
     queryKey: patientQueryKeys.lists(),
     queryFn: () => patientService.getAll(),
-    refetchInterval: 60 * 1000, // Refetch a cada 1 minuto
-    staleTime: 30 * 1000, // Dados ficam "frescos" por 30 segundos
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (pacientes mudam pouco durante o dia)
+    staleTime: 3 * 60 * 1000, // 3 minutos - dados ficam "frescos" por mais tempo
   });
 
   const createMutation = useMutation({
@@ -108,8 +120,8 @@ export function useFeedbacks() {
   const query = useQuery({
     queryKey: ['feedbacks'],
     queryFn: () => feedbackService.getAll(),
-    refetchInterval: 60 * 1000, // Refetch a cada 1 minuto
-    staleTime: 30 * 1000,
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
+    staleTime: 90 * 1000, // 1.5 minutos
   });
 
   const createMutation = useMutation({
@@ -150,8 +162,8 @@ export function useDashboardMetrics(filterThisMonth: boolean = false) {
   return useQuery({
     queryKey: ['dashboard-metrics', filterThisMonth],
     queryFn: () => dashboardService.getMetrics(filterThisMonth),
-    refetchInterval: 30 * 1000, // Refetch a cada 30 segundos
-    staleTime: 20 * 1000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (dados mensais mudam pouco)
+    staleTime: 3 * 60 * 1000, // 3 minutos
   });
 }
 
@@ -160,8 +172,8 @@ export function useChartData(filterThisMonth: boolean = false) {
   return useQuery({
     queryKey: ['chart-data', filterThisMonth],
     queryFn: () => dashboardService.getChartData(filterThisMonth),
-    refetchInterval: 60 * 1000, // Refetch a cada 1 minuto
-    staleTime: 30 * 1000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000, // 3 minutos
   });
 }
 
@@ -170,8 +182,8 @@ export function useExpiringPatients(days: number = 7) {
   return useQuery({
     queryKey: patientQueryKeys.expiring(days),
     queryFn: () => patientService.getExpiring(days),
-    refetchInterval: 60 * 1000, // Refetch a cada 1 minuto
-    staleTime: 30 * 1000,
+    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
+    staleTime: 3 * 60 * 1000, // 3 minutos
   });
 }
 
@@ -180,8 +192,8 @@ export function useRecentFeedbacks(limit: number = 5) {
   return useQuery({
     queryKey: ['feedbacks', 'recent', limit],
     queryFn: () => feedbackService.getRecent(limit),
-    refetchInterval: 60 * 1000, // Refetch a cada 1 minuto
-    staleTime: 30 * 1000,
+    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
+    staleTime: 90 * 1000, // 1.5 minutos
   });
 }
 

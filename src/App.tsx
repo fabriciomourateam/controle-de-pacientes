@@ -56,15 +56,16 @@ const PageLoader = () => (
 );
 
 // Configurar React Query com cache otimizado e refetch automático
+// Otimizado para reduzir tráfego do Supabase mantendo funcionalidade
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000, // 30 segundos - dados considerados "frescos" (reduzido para atualizações mais rápidas)
-      gcTime: 5 * 60 * 1000, // 5 minutos - cache mantido (cacheTime foi renomeado para gcTime no React Query v5)
-      refetchOnWindowFocus: true, // Refetch ao focar na janela para dados atualizados
+      staleTime: 2 * 60 * 1000, // 2 minutos - dados considerados "frescos" por mais tempo (reduz refetch desnecessário)
+      gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido por mais tempo
+      refetchOnWindowFocus: true, // Refetch ao focar na janela (mantém dados atualizados quando você volta)
       refetchOnReconnect: true, // Refetch ao reconectar
       retry: 1, // Tentar apenas 1 vez em caso de erro
-      refetchInterval: false, // Desabilitado por padrão, pode ser habilitado por query específica
+      refetchInterval: false, // Desabilitado por padrão, habilitado apenas em queries específicas com intervalos maiores
     },
   },
 });

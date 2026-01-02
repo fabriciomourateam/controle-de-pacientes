@@ -759,6 +759,8 @@ export type Database = {
           COMPROU: string | null
           "NÃO COMPROU": string | null
           "NO SHOW": string | null
+          "DESMARCADOS": string | null
+          "PIX COMPROMISSO": string | null
           "QUEM FEZ A CALL": string | null
           created_at: string | null
           updated_at: string | null
@@ -771,6 +773,8 @@ export type Database = {
           COMPROU?: string | null
           "NÃO COMPROU"?: string | null
           "NO SHOW"?: string | null
+          "DESMARCADOS"?: string | null
+          "PIX COMPROMISSO"?: string | null
           "QUEM FEZ A CALL"?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -783,6 +787,8 @@ export type Database = {
           COMPROU?: string | null
           "NÃO COMPROU"?: string | null
           "NO SHOW"?: string | null
+          "DESMARCADOS"?: string | null
+          "PIX COMPROMISSO"?: string | null
           "QUEM FEZ A CALL"?: string | null
           created_at?: string | null
           updated_at?: string | null

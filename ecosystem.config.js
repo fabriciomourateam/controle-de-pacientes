@@ -1,18 +1,35 @@
 export default {
-  apps: [{
-    name: 'notion-proxy',
-    script: 'proxy-server.js',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3001
+  apps: [
+    {
+      name: 'notion-proxy',
+      script: 'proxy-server.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3001
+      },
+      error_file: './logs/err.log',
+      out_file: './logs/out.log',
+      log_file: './logs/combined.log',
+      time: true
     },
-    error_file: './logs/err.log',
-    out_file: './logs/out.log',
-    log_file: './logs/combined.log',
-    time: true
-  }]
+    {
+      name: 'vite-dev',
+      script: 'start-dev.cjs',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+      env: {
+        NODE_ENV: 'development'
+      },
+      error_file: './logs/vite-err.log',
+      out_file: './logs/vite-out.log',
+      log_file: './logs/vite-combined.log',
+      time: true
+    }
+  ]
 }

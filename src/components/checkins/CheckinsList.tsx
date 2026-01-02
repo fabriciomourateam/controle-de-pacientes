@@ -41,6 +41,7 @@ import { CheckinQuickControls } from "@/components/checkins/CheckinQuickControls
 import { useCheckinManagement, CheckinStatus } from "@/hooks/use-checkin-management";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 import {
   LineChart,
   Line,
@@ -55,24 +56,125 @@ import {
   Radar
 } from "recharts";
 
+// Interface para preferências
+interface CheckinPreferences {
+  searchTerm: string;
+  selectedStatuses: CheckinStatus[];
+  selectedResponsibles: string[];
+  sortBy: 'date' | 'name' | 'status' | 'score';
+  sortOrder: 'asc' | 'desc';
+  filterWithBioimpedance: boolean;
+  displayLimit: number;
+}
+
+// Função para carregar preferências do banco de dados por usuário
+const loadCheckinPreferences = async (): Promise<Partial<CheckinPreferences>> => {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return {}; // Se não há usuário autenticado, retorna vazio
+    }
+
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .select('filters')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      return {};
+    }
+
+    // Verificar se há preferências de checkins no campo filters
+    const filters = data.filters as any;
+    if (filters && filters.checkinPreferences) {
+      return filters.checkinPreferences;
+    }
+  } catch (error) {
+    console.warn('Erro ao carregar preferências de checkins:', error);
+  }
+  return {};
+};
+
+// Função para salvar preferências no banco de dados por usuário
+const saveCheckinPreferences = async (prefs: Partial<CheckinPreferences>) => {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return; // Se não há usuário autenticado, não salva
+    }
+
+    // Buscar preferências existentes
+    const { data: existing } = await supabase
+      .from('user_preferences')
+      .select('filters')
+      .eq('user_id', userId)
+      .single();
+
+    const currentFilters = (existing?.filters as any) || {};
+    
+    // Atualizar apenas as preferências de checkins
+    const updatedFilters = {
+      ...currentFilters,
+      checkinPreferences: prefs
+    };
+
+    // Salvar no banco
+    const { error } = await supabase
+      .from('user_preferences')
+      .upsert({
+        user_id: userId,
+        filters: updatedFilters,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      console.warn('Erro ao salvar preferências de checkins:', error);
+    }
+  } catch (error) {
+    console.warn('Erro ao salvar preferências de checkins:', error);
+  }
+};
+
 export function CheckinsList() {
   const navigate = useNavigate();
+  
+  // Estados iniciais (serão atualizados quando as preferências carregarem)
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatuses, setSelectedStatuses] = useState<CheckinStatus[]>(['pendente', 'em_analise']); // Padrão: pendentes (inclui em_analise)
+  const [selectedStatuses, setSelectedStatuses] = useState<CheckinStatus[]>(['pendente', 'em_analise']);
   const [selectedResponsibles, setSelectedResponsibles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinWithPatient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCheckin, setEditingCheckin] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [displayLimit, setDisplayLimit] = useState(10); // Mostrar 10 por padrão
+  const [displayLimit, setDisplayLimit] = useState(10);
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'status' | 'score'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Padrão: mais recente primeiro
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // Padrão: mais antigo primeiro (enviados primeiro no topo)
   const [filterWithBioimpedance, setFilterWithBioimpedance] = useState(false);
   const [patientsWithBioimpedance, setPatientsWithBioimpedance] = useState<Set<string>>(new Set());
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
 
   const { data: recentCheckins = [], isLoading: checkinsLoading, refetch } = useCheckinsWithPatient();
   const { teamMembers } = useCheckinManagement();
+
+  // Carregar preferências do banco de dados ao montar o componente
+  useEffect(() => {
+    async function loadPreferences() {
+      const savedPrefs = await loadCheckinPreferences();
+      if (savedPrefs.searchTerm !== undefined) setSearchTerm(savedPrefs.searchTerm);
+      if (savedPrefs.selectedStatuses) setSelectedStatuses(savedPrefs.selectedStatuses);
+      if (savedPrefs.selectedResponsibles) setSelectedResponsibles(savedPrefs.selectedResponsibles);
+      if (savedPrefs.displayLimit) setDisplayLimit(savedPrefs.displayLimit);
+      if (savedPrefs.sortBy) setSortBy(savedPrefs.sortBy);
+      if (savedPrefs.sortOrder) setSortOrder(savedPrefs.sortOrder);
+      if (savedPrefs.filterWithBioimpedance !== undefined) setFilterWithBioimpedance(savedPrefs.filterWithBioimpedance);
+      setPreferencesLoaded(true);
+    }
+    loadPreferences();
+  }, []);
 
   // Carregar lista de telefones que têm bioimpedância
   useEffect(() => {
@@ -254,10 +356,22 @@ export function CheckinsList() {
   // Verificar se há mais check-ins para carregar
   const hasMore = sortedCheckins.length > displayLimit;
 
-  // Resetar limite quando os filtros mudarem
+  // Salvar preferências quando mudarem (apenas após carregar as preferências iniciais)
   useEffect(() => {
-    setDisplayLimit(10);
-  }, [selectedStatuses, selectedResponsibles, searchTerm]);
+    if (!preferencesLoaded) return; // Não salvar antes de carregar as preferências iniciais
+    
+    saveCheckinPreferences({
+      searchTerm,
+      selectedStatuses,
+      selectedResponsibles,
+      sortBy,
+      sortOrder,
+      filterWithBioimpedance,
+      displayLimit
+    });
+  }, [searchTerm, selectedStatuses, selectedResponsibles, sortBy, sortOrder, filterWithBioimpedance, displayLimit, preferencesLoaded]);
+
+  // Não resetar displayLimit automaticamente - manter o valor salvo
 
 
   const getScoreColor = (score: number) => {
