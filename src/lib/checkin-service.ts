@@ -15,20 +15,45 @@ export interface CheckinWithPatient extends Checkin {
 
 export const checkinService = {
   // Buscar todos os checkins
-  async getAll(): Promise<Checkin[]> {
+  // Otimizado: limita a 500 registros mais recentes e usa campos específicos
+  async getAll(limit: number = 500): Promise<Checkin[]> {
     const { data, error } = await supabase
       .from('checkin')
-      .select('*')
-      .order('data_checkin', { ascending: false });
+      .select(`
+        id,
+        telefone,
+        data_checkin,
+        data_preenchimento,
+        peso,
+        medida,
+        objetivo,
+        dificuldades,
+        treino,
+        cardio,
+        agua,
+        sono,
+        melhora_visual,
+        foto_1,
+        foto_2,
+        foto_3,
+        foto_4,
+        mes_ano,
+        total_pontuacao,
+        percentual_aproveitamento,
+        created_at,
+        updated_at
+      `)
+      .order('data_checkin', { ascending: false })
+      .limit(limit);
     
     if (error) throw error;
     return data || [];
   },
 
   // Buscar checkins com dados do paciente (usando telefone)
-  // Otimizado: limita a 200 registros mais recentes para reduzir tráfego
-  async getAllWithPatient(): Promise<CheckinWithPatient[]> {
-    const { data, error } = await supabase
+  // Otimizado: aceita limite customizado para reduzir tráfego
+  async getAllWithPatient(limit: number | null = 200): Promise<CheckinWithPatient[]> {
+    let query = supabase
       .from('checkin')
       .select(`
         *,
@@ -40,8 +65,14 @@ export const checkinService = {
           plano
         )
       `)
-      .order('data_checkin', { ascending: false })
-      .limit(200); // Limitar a 200 registros mais recentes
+      .order('data_checkin', { ascending: false });
+    
+    // Aplicar limite apenas se fornecido e for um número válido
+    if (limit !== null && limit !== undefined && limit > 0) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
     
     if (error) throw error;
     return data || [];
@@ -140,14 +171,85 @@ export const checkinService = {
   },
 
   // Buscar checkins por período
-  async getByPeriod(startDate: string, endDate: string): Promise<Checkin[]> {
-    const { data, error } = await supabase
+  // Otimizado: usa campos específicos e permite limite opcional
+  async getByPeriod(startDate: string, endDate: string, limit?: number): Promise<Checkin[]> {
+    let query = supabase
       .from('checkin')
-      .select('*')
+      .select(`
+        id,
+        telefone,
+        data_checkin,
+        data_preenchimento,
+        peso,
+        medida,
+        objetivo,
+        dificuldades,
+        treino,
+        cardio,
+        agua,
+        sono,
+        melhora_visual,
+        foto_1,
+        foto_2,
+        foto_3,
+        foto_4,
+        mes_ano,
+        total_pontuacao,
+        percentual_aproveitamento,
+        created_at,
+        updated_at
+      `)
       .gte('data_checkin', startDate)
       .lte('data_checkin', endDate)
       .order('data_checkin', { ascending: false });
     
+    // Aplicar limite apenas se especificado (permite buscar todos os registros do período)
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  
+  // Buscar checkins antigos (sem limite, para consultas históricas)
+  // Use esta função quando precisar acessar registros antigos sem restrições
+  async getOldCheckins(beforeDate: string, limit?: number): Promise<Checkin[]> {
+    let query = supabase
+      .from('checkin')
+      .select(`
+        id,
+        telefone,
+        data_checkin,
+        data_preenchimento,
+        peso,
+        medida,
+        objetivo,
+        dificuldades,
+        treino,
+        cardio,
+        agua,
+        sono,
+        melhora_visual,
+        foto_1,
+        foto_2,
+        foto_3,
+        foto_4,
+        mes_ano,
+        total_pontuacao,
+        percentual_aproveitamento,
+        created_at,
+        updated_at
+      `)
+      .lt('data_checkin', beforeDate)
+      .order('data_checkin', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
@@ -284,6 +386,29 @@ export const checkinService = {
     const { data, error } = await supabase
       .from('checkin')
       .select('*')
+      .gte('created_at', cutoffDate.toISOString())
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  // Buscar checkins recentes COM dados do paciente (para merge inteligente)
+  async getRecentWithPatient(hours: number = 48): Promise<CheckinWithPatient[]> {
+    const cutoffDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+    
+    const { data, error } = await supabase
+      .from('checkin')
+      .select(`
+        *,
+        patient:patients!inner(
+          id,
+          nome,
+          apelido,
+          telefone,
+          plano
+        )
+      `)
       .gte('created_at', cutoffDate.toISOString())
       .order('created_at', { ascending: false });
     

@@ -4,6 +4,7 @@ import { patientService, planService, feedbackService, dashboardService } from '
 import type { Patient, Plan, Feedback } from '@/lib/supabase-services';
 import { getCurrentUserId } from '@/lib/auth-helpers';
 import { supabase } from '@/integrations/supabase/client';
+import { useScheduledDataRefetch } from '@/hooks/use-scheduled-refetch';
 
 // Função helper para refetch condicional baseado em visibilidade da página
 // Retorna uma função que o React Query reavalia dinamicamente
@@ -27,14 +28,19 @@ export const patientQueryKeys = {
 };
 
 // Hook para pacientes com React Query
-export function usePatients() {
+// @param limit - Limite opcional (null = todos os pacientes)
+export function usePatients(limit?: number | null) {
   const queryClient = useQueryClient();
   
+  // Usar atualização agendada (4x ao dia) em vez de refetchInterval
+  useScheduledDataRefetch();
+  
   const query = useQuery({
-    queryKey: patientQueryKeys.lists(),
-    queryFn: () => patientService.getAll(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (pacientes mudam pouco durante o dia)
-    staleTime: 3 * 60 * 1000, // 3 minutos - dados ficam "frescos" por mais tempo
+    queryKey: [...patientQueryKeys.lists(), 'limit', limit],
+    queryFn: () => patientService.getAll(limit ?? undefined),
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos - dados ficam "frescos" por mais tempo
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 
   const createMutation = useMutation({
@@ -114,14 +120,20 @@ export function usePlans() {
 }
 
 // Hook para feedbacks
-export function useFeedbacks() {
+// Hook para feedbacks
+// @param limit - Limite opcional (padrão: 1000, null = todos)
+export function useFeedbacks(limit?: number | null) {
   const queryClient = useQueryClient();
   
+  // Usar atualização agendada (4x ao dia) em vez de refetchInterval
+  useScheduledDataRefetch();
+  
   const query = useQuery({
-    queryKey: ['feedbacks'],
-    queryFn: () => feedbackService.getAll(),
-    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
-    staleTime: 90 * 1000, // 1.5 minutos
+    queryKey: ['feedbacks', 'limit', limit],
+    queryFn: () => feedbackService.getAll(limit ?? undefined),
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 
   const createMutation = useMutation({
@@ -158,32 +170,47 @@ export function useFeedbacks() {
 }
 
 // Hook para métricas do dashboard
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useDashboardMetrics(filterThisMonth: boolean = false) {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['dashboard-metrics', filterThisMonth],
     queryFn: () => dashboardService.getMetrics(filterThisMonth),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (dados mensais mudam pouco)
-    staleTime: 3 * 60 * 1000, // 3 minutos
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 }
 
 // Hook para dados dos gráficos
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useChartData(filterThisMonth: boolean = false) {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['chart-data', filterThisMonth],
     queryFn: () => dashboardService.getChartData(filterThisMonth),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000, // 3 minutos
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 }
 
 // Hook para pacientes expirando
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useExpiringPatients(days: number = 7) {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: patientQueryKeys.expiring(days),
     queryFn: () => patientService.getExpiring(days),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000, // 3 minutos
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 }
 
@@ -192,8 +219,9 @@ export function useRecentFeedbacks(limit: number = 5) {
   return useQuery({
     queryKey: ['feedbacks', 'recent', limit],
     queryFn: () => feedbackService.getRecent(limit),
-    refetchInterval: getRefetchInterval(2 * 60 * 1000), // 2 minutos
-    staleTime: 90 * 1000, // 1.5 minutos
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 }
 

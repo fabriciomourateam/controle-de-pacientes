@@ -34,8 +34,10 @@ export const patientService = {
   },
 
   // Buscar todos os pacientes
-  async getAll() {
-    const { data, error } = await supabase
+  // Otimizado: aceita limite opcional para reduzir egress
+  // Para buscar todos os pacientes sem limite, passe undefined ou null
+  async getAll(limit?: number | null) {
+    let query = supabase
       .from('patients')
       .select(`
         id,
@@ -79,7 +81,15 @@ export const patientService = {
         data_congelamento
       `)
       .order('created_at', { ascending: false });
+    
+    // Aplicar limite apenas se fornecido e for um número válido
+    // Se limit for null ou undefined, busca todos os registros
+    if (limit !== null && limit !== undefined && limit > 0) {
+      query = query.limit(limit);
+    }
 
+    const { data, error } = await query;
+    
     if (error) throw error;
     
     // Atualizar days_to_expiration para todos os pacientes
@@ -92,6 +102,73 @@ export const patientService = {
       };
     });
 
+    return updatedData;
+  },
+
+  // Buscar pacientes recentes (últimas X horas) - para merge inteligente
+  async getRecent(hours: number = 48) {
+    const cutoffDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+    
+    let query = supabase
+      .from('patients')
+      .select(`
+        id,
+        nome,
+        apelido,
+        cpf,
+        email,
+        telefone,
+        genero,
+        data_nascimento,
+        inicio_acompanhamento,
+        plano,
+        tempo_acompanhamento,
+        vencimento,
+        dias_para_vencer,
+        valor,
+        ticket_medio,
+        rescisao_30_percent,
+        pagamento,
+        observacao,
+        indicacoes,
+        lembrete,
+        telefone_filtro,
+        antes_depois,
+        janeiro,
+        fevereiro,
+        marco,
+        abril,
+        maio,
+        junho,
+        julho,
+        agosto,
+        setembro,
+        outubro,
+        novembro,
+        dezembro,
+        created_at,
+        updated_at,
+        ultimo_contato,
+        data_cancelamento,
+        data_congelamento
+      `)
+      .gte('updated_at', cutoffDate.toISOString()) // Pacientes atualizados ou criados recentemente
+      .order('updated_at', { ascending: false });
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    // Atualizar days_to_expiration para todos os pacientes
+    const updatedData = data?.map(patient => {
+      const diasParaVencer = this.calculateDaysToExpiration(patient.vencimento);
+      
+      return {
+        ...patient,
+        dias_para_vencer: diasParaVencer
+      };
+    }) || [];
+    
     return updatedData;
   },
 
@@ -534,11 +611,28 @@ export const planService = {
 // ===== FEEDBACKS (usando dados da tabela patients) =====
 export const feedbackService = {
   // Buscar todos os pacientes (sem filtro de pontuação)
-  async getAll() {
-    const { data, error } = await supabase
+  // Otimizado: usa campos específicos e limite para reduzir egress
+  // Para buscar todos os pacientes sem limite, passe null ou undefined
+  async getAll(limit: number | null = 1000) {
+    let query = supabase
       .from('patients')
-      .select('*')
+      .select(`
+        id,
+        nome,
+        apelido,
+        telefone,
+        plano,
+        created_at,
+        updated_at
+      `)
       .order('created_at', { ascending: false });
+    
+    // Aplicar limite apenas se fornecido e for um número válido
+    if (limit !== null && limit !== undefined && limit > 0) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
 
     if (error) throw error;
     return data;

@@ -36,6 +36,9 @@ interface CheckinQuickControlsProps {
   teamMembers: TeamMember[];
   onUpdate?: () => void;
   notesCount?: number;
+  showOnlyStatus?: boolean;
+  showOnlyResponsible?: boolean;
+  showOnlyActions?: boolean;
 }
 
 const statusOptions: Array<{ value: CheckinStatus; label: string; color: string }> = [
@@ -48,7 +51,10 @@ function CheckinQuickControlsComponent({
   checkin,
   teamMembers,
   onUpdate,
-  notesCount = 0
+  notesCount = 0,
+  showOnlyStatus = false,
+  showOnlyResponsible = false,
+  showOnlyActions = false
 }: CheckinQuickControlsProps) {
   const [currentStatus, setCurrentStatus] = useState<CheckinStatus>(
     (checkin.status as CheckinStatus) || 'pendente'
@@ -209,6 +215,169 @@ function CheckinQuickControlsComponent({
     return '';
   };
 
+  // Renderizar apenas Status
+  if (showOnlyStatus) {
+    return (
+      <Select
+        value={currentStatus}
+        onValueChange={handleStatusChange}
+        disabled={isUpdating || lockInfo.is_locked}
+      >
+        <SelectTrigger className={getTriggerClassName(currentStatus)}>
+          <SelectValue>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${statusBadge.color.split(' ')[0]}`} />
+              <span className="text-sm">{statusBadge.label}</span>
+            </div>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {statusOptions.map((status) => (
+            <SelectItem key={status.value} value={status.value} className={getItemClassName(status.value)}>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${status.color.split(' ')[0]}`} />
+                <span>{status.label}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  // Renderizar apenas Responsável
+  if (showOnlyResponsible) {
+    return (
+      <Select
+        value={currentAssignee || 'unassigned'}
+        onValueChange={handleAssigneeChange}
+        disabled={isUpdating || lockInfo.is_locked}
+      >
+        <SelectTrigger className="h-8 bg-slate-800/50 border-slate-600/50 text-white w-full">
+          <SelectValue>
+            <div className="flex items-center gap-2">
+              <User className="w-3 h-3 text-slate-400" />
+              <span className="text-sm truncate">
+                {getAssigneeName(currentAssignee)}
+              </span>
+            </div>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="unassigned">
+            <div className="flex items-center gap-2">
+              <User className="w-3 h-3 text-slate-400" />
+              <span>Não atribuído</span>
+            </div>
+          </SelectItem>
+          {teamMembers.map((member) => (
+            <SelectItem key={member.user_id} value={member.user_id}>
+              <div className="flex items-center gap-2">
+                <User className="w-3 h-3 text-slate-400" />
+                <span>
+                  {member.name}
+                </span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  // Renderizar apenas Ações
+  if (showOnlyActions) {
+    return (
+      <div className="flex items-center gap-1">
+        {/* Botão de Anotações */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  // Atualizar contador antes de abrir o modal
+                  try {
+                    const notes = await loadCheckinNotes(checkin.id);
+                    setLocalNotesCount(notes.length);
+                  } catch (error) {
+                    // Silenciar erro
+                  }
+                  setNotesModalOpen(true);
+                }}
+                className={`h-8 px-2 ${
+                  localNotesCount > 0 
+                    ? 'bg-blue-500/20 text-blue-400 hover:text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 shadow-sm' 
+                    : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                {localNotesCount > 0 && (
+                  <Badge 
+                    variant="outline" 
+                    className="ml-1 h-4 px-1 text-xs bg-blue-600/20 text-blue-300 border-blue-500/30"
+                  >
+                    {localNotesCount}
+                  </Badge>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {localNotesCount > 0 
+                  ? `${localNotesCount} anotaç${localNotesCount !== 1 ? 'ões' : 'ão'}` 
+                  : 'Adicionar anotação'
+                }
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Botão de Lock */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLockToggle}
+                disabled={lockInfo.is_locked && lockInfo.locked_by_name !== 'Você'}
+                className={`h-8 px-2 ${
+                  lockInfo.is_locked 
+                    ? 'text-orange-400 hover:text-orange-300 hover:bg-orange-900/20' 
+                    : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
+                }`}
+              >
+                {lockInfo.is_locked ? (
+                  <Lock className="w-4 h-4" />
+                ) : (
+                  <Unlock className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {lockInfo.is_locked 
+                  ? 'Liberar edição' 
+                  : 'Bloquear para edição'
+                }
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Indicador de Atualização */}
+        {isUpdating && (
+          <div className="flex items-center justify-center h-8 w-8">
+            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Renderização completa (modo padrão)
   return (
     <div className="space-y-3">
       {/* Indicador de Lock */}

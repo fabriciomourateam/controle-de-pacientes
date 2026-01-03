@@ -27,11 +27,12 @@ export const checkinQueryKeys = {
 /**
  * Hook para buscar todos os checkins
  * OTIMIZADO: Sem refetch automático - usa atualização programada
+ * @param limit - Limite de registros (padrão: 500, null = todos)
  */
-export function useCheckins() {
+export function useCheckins(limit?: number | null) {
   return useQuery({
-    queryKey: checkinQueryKeys.lists(),
-    queryFn: () => checkinService.getAll(),
+    queryKey: [...checkinQueryKeys.lists(), 'limit', limit],
+    queryFn: () => checkinService.getAll(limit ?? undefined),
     staleTime: Infinity, // Dados nunca ficam "stale" automaticamente
     gcTime: 24 * 60 * 60 * 1000, // Cache mantido por 24h
     refetchOnWindowFocus: false, // Não recarrega ao focar na janela
@@ -42,11 +43,12 @@ export function useCheckins() {
 /**
  * Hook para buscar checkins com dados do paciente
  * OTIMIZADO: Sem refetch automático - usa atualização programada
+ * @param limit - Limite de registros (padrão: 200, null = todos)
  */
-export function useCheckinsWithPatient() {
+export function useCheckinsWithPatient(limit?: number | null) {
   return useQuery({
-    queryKey: [...checkinQueryKeys.lists(), 'with-patient'],
-    queryFn: () => checkinService.getAllWithPatient(),
+    queryKey: [...checkinQueryKeys.lists(), 'with-patient', 'limit', limit],
+    queryFn: () => checkinService.getAllWithPatient(limit ?? undefined),
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -57,9 +59,10 @@ export function useCheckinsWithPatient() {
 /**
  * Hook combinado: checkins com paciente + atualização programada
  * Usa atualização automática às 6h, 12h, 15h, 18h
+ * @param limit - Limite de registros (padrão: 200, null = todos)
  */
-export function useCheckinsWithScheduledRefetch() {
-  const query = useCheckinsWithPatient();
+export function useCheckinsWithScheduledRefetch(limit?: number | null) {
+  const query = useCheckinsWithPatient(limit);
   
   // Wrapper do refetch que retorna void
   const refetchWrapper = useCallback(async () => {
@@ -125,15 +128,19 @@ export function useInvalidateCheckins() {
 
 /**
  * Hook para buscar checkins de um paciente específico
- * Mantém refetch limitado pois é para página de detalhes
+ * Otimizado: usa cache compartilhado entre páginas
+ * staleTime de 2 minutos garante dados atualizados ao navegar entre páginas
  */
 export function usePatientCheckins(telefone: string) {
   return useQuery({
     queryKey: checkinQueryKeys.byPhone(telefone),
     queryFn: () => checkinService.getByPhone(telefone),
     enabled: !!telefone,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchOnWindowFocus: false,
+    staleTime: 2 * 60 * 1000, // 2 minutos - garante dados atualizados ao navegar
+    gcTime: 10 * 60 * 1000, // Cache mantido por 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar (usa Realtime)
+    // ✅ Cache compartilhado: se outra página já buscou, usa cache
+    // ✅ Invalidação automática: quando há mudanças, cache é invalidado
   });
 }
 
@@ -170,6 +177,43 @@ export function useCheckinsByFillDate(startDate: string, endDate: string) {
     queryFn: () => checkinService.getByFillDate(startDate, endDate),
     enabled: !!startDate && !!endDate,
     staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
+/**
+ * Hook para buscar checkins por período com limite customizado
+ * @param startDate - Data inicial (YYYY-MM-DD)
+ * @param endDate - Data final (YYYY-MM-DD)
+ * @param limit - Limite opcional (null = todos do período)
+ */
+export function useCheckinsByPeriod(
+  startDate: string,
+  endDate: string,
+  limit?: number | null
+) {
+  return useQuery({
+    queryKey: [...checkinQueryKeys.lists(), 'period', startDate, endDate, limit],
+    queryFn: () => checkinService.getByPeriod(startDate, endDate, limit ?? undefined),
+    enabled: !!startDate && !!endDate,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * Hook para buscar checkins antigos (antes de uma data)
+ * @param beforeDate - Data limite (YYYY-MM-DD)
+ * @param limit - Limite opcional (null = todos)
+ */
+export function useOldCheckins(beforeDate: string, limit?: number | null) {
+  return useQuery({
+    queryKey: [...checkinQueryKeys.lists(), 'old', beforeDate, limit],
+    queryFn: () => checkinService.getOldCheckins(beforeDate, limit ?? undefined),
+    enabled: !!beforeDate,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

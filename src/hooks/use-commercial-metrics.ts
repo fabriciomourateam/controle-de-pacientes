@@ -1,108 +1,142 @@
 import { useQuery } from '@tanstack/react-query';
 import { commercialMetricsService, metricsCalculations } from '@/lib/commercial-metrics-service';
-
-// Função helper para refetch condicional baseado em visibilidade da página
-// Retorna uma função que o React Query reavalia dinamicamente
-const getRefetchInterval = (baseInterval: number) => {
-  return () => {
-    // Se a página não está visível, não refetch
-    if (typeof document !== 'undefined' && document.hidden) {
-      return false;
-    }
-    return baseInterval;
-  };
-};
+import { useScheduledDataRefetch } from '@/hooks/use-scheduled-refetch';
 
 // Hook para buscar leads que entraram (dados diários)
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useLeadsQueEntraram() {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['leads-que-entraram'],
     queryFn: () => commercialMetricsService.getLeadsQueEntraram(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos (métricas atualizadas pelo N8N)
-    staleTime: 3 * 60 * 1000, // 3 minutos - dados ficam "frescos" por mais tempo
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // Não recarrega ao focar na janela
   });
 }
 
 // Hook para buscar todos os meses de leads
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useAllTotalDeLeads() {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['all-total-de-leads'],
     queryFn: () => commercialMetricsService.getAllTotalDeLeads(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar total de leads de um mês específico
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useTotalDeLeadsByMonth(month: string | null) {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['total-de-leads', month],
     queryFn: () => month ? commercialMetricsService.getTotalDeLeadsByMonth(month) : null,
     enabled: !!month,
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar todos os meses de calls agendadas
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useAllTotalDeCallsAgendadas() {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['all-total-de-calls-agendadas'],
     queryFn: () => commercialMetricsService.getAllTotalDeCallsAgendadas(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar total de calls agendadas de um mês específico
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useTotalDeCallsAgendadasByMonth(month: string | null) {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['total-de-calls-agendadas', month],
     queryFn: () => month ? commercialMetricsService.getTotalDeCallsAgendadasByMonth(month) : null,
     enabled: !!month,
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar total de leads por funil
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useTotalDeLeadsPorFunil() {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['total-de-leads-por-funil'],
     queryFn: () => commercialMetricsService.getTotalDeLeadsPorFunil(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar total de agendamentos por funil
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useTotalDeAgendamentosPorFunil() {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['total-de-agendamentos-por-funil'],
     queryFn: () => commercialMetricsService.getTotalDeAgendamentosPorFunil(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar dados de vendas
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useTotalDeVendas() {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['total-de-vendas'],
     queryFn: () => commercialMetricsService.getTotalDeVendas(),
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 
 // Hook para buscar vendas de um mês específico
+// Otimizado: usa atualização agendada em vez de refetchInterval
 export function useVendasByMonth(month: string | null) {
+  // Usar atualização agendada (4x ao dia)
+  useScheduledDataRefetch();
+  
   return useQuery({
     queryKey: ['vendas', month],
     queryFn: () => month ? commercialMetricsService.getVendasByMonth(month) : [],
     enabled: !!month,
-    refetchInterval: getRefetchInterval(5 * 60 * 1000), // 5 minutos
-    staleTime: 3 * 60 * 1000,
+    // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 }
 

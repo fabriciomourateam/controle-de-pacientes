@@ -20,9 +20,25 @@ export const dashboardMetricsService = {
       }
 
       // Aplicar filtros na query
+      // Otimizado: usa campos específicos em vez de select('*')
       let query = supabase
         .from('dashboard_metricas')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          mes_numero,
+          mes,
+          ano,
+          data_referencia,
+          ativos_total_inicio_mes,
+          entraram,
+          cancelamentos,
+          recisoes,
+          percentual_renovacao,
+          percentual_churn,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
@@ -120,9 +136,25 @@ export const dashboardMetricsService = {
       }
 
       // Aplicar filtros na query
+      // Otimizado: usa campos específicos em vez de select('*')
       let query = supabase
         .from('dashboard_metricas')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          mes_numero,
+          mes,
+          ano,
+          data_referencia,
+          ativos_total_inicio_mes,
+          entraram,
+          cancelamentos,
+          recisoes,
+          percentual_renovacao,
+          percentual_churn,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
@@ -211,9 +243,25 @@ export const dashboardMetricsService = {
       }
 
       // Aplicar filtros na query
+      // Otimizado: usa campos específicos em vez de select('*')
       let query = supabase
         .from('dashboard_metricas')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          mes_numero,
+          mes,
+          ano,
+          data_referencia,
+          ativos_total_inicio_mes,
+          entraram,
+          cancelamentos,
+          recisoes,
+          percentual_renovacao,
+          percentual_churn,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 
@@ -370,9 +418,25 @@ export const dashboardMetricsService = {
       }
 
       // Aplicar filtros na query
+      // Otimizado: usa campos específicos em vez de select('*')
       let query = supabase
         .from('dashboard_metricas')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          mes_numero,
+          mes,
+          ano,
+          data_referencia,
+          ativos_total_inicio_mes,
+          entraram,
+          cancelamentos,
+          recisoes,
+          percentual_renovacao,
+          percentual_churn,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', userId) // FILTRAR POR USER_ID
         .order('mes_numero', { ascending: true });
 

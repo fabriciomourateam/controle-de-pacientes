@@ -520,16 +520,19 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700/50 w-full justify-start ${isExpanded ? 'h-8' : 'h-5'}`}
+          className={`flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700/50 w-full ${isExpanded ? 'justify-start h-8' : 'justify-between h-5'}`}
         >
-          <Bot className={`text-blue-400 ${isExpanded ? 'w-4 h-4' : 'w-3 h-3'}`} />
-          {isExpanded && (
-            <span className="font-medium flex-1 text-left text-sm">Feedback</span>
-          )}
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4" />
+            <>
+              <Bot className="text-blue-400 w-4 h-4" />
+              <span className="font-medium flex-1 text-left text-sm">Feedback</span>
+              <ChevronUp className="w-4 h-4" />
+            </>
           ) : (
-            <ChevronDown className="w-3 h-3 ml-auto" />
+            <>
+              <ChevronDown className="w-3 h-3" />
+              <Bot className="text-blue-400 w-3 h-3" />
+            </>
           )}
         </Button>
         

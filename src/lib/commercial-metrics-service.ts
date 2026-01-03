@@ -12,11 +12,13 @@ type TotalDeVendas = Database['public']['Tables']['Total de Vendas']['Row'];
 // Serviço de métricas comerciais
 export const commercialMetricsService = {
   // Buscar dados diários de leads que entraram
-  async getLeadsQueEntraram() {
+  // Otimizado: adiciona limite para reduzir egress
+  async getLeadsQueEntraram(limit: number = 365) {
     const { data, error } = await supabase
       .from('leads_que_entraram')
       .select('*')
-      .order('DATA', { ascending: true });
+      .order('DATA', { ascending: true })
+      .limit(limit); // Limitar a 365 dias (1 ano)
 
     if (error) {
       console.error('Erro ao buscar leads que entraram:', error);
@@ -27,11 +29,13 @@ export const commercialMetricsService = {
   },
 
   // Buscar todos os meses de leads
-  async getAllTotalDeLeads() {
+  // Otimizado: adiciona limite para reduzir egress
+  async getAllTotalDeLeads(limit: number = 24) {
     const { data, error } = await supabase
       .from('Total de Leads')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit); // Limitar a 24 meses (2 anos)
 
     if (error) {
       console.error('Erro ao buscar total de leads:', error);
@@ -58,11 +62,13 @@ export const commercialMetricsService = {
   },
 
   // Buscar todos os meses de calls agendadas
-  async getAllTotalDeCallsAgendadas() {
+  // Otimizado: adiciona limite para reduzir egress
+  async getAllTotalDeCallsAgendadas(limit: number = 24) {
     const { data, error } = await supabase
       .from('Total de Calls Agendadas')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit); // Limitar a 24 meses (2 anos)
 
     if (error) {
       console.error('Erro ao buscar total de calls agendadas:', error);
@@ -89,10 +95,12 @@ export const commercialMetricsService = {
   },
 
   // Buscar total de leads por funil
-  async getTotalDeLeadsPorFunil() {
+  // Otimizado: adiciona limite para reduzir egress
+  async getTotalDeLeadsPorFunil(limit: number = 50) {
     const { data, error } = await supabase
       .from('Total de Leads por Funil')
-      .select('*');
+      .select('*')
+      .limit(limit); // Limitar a 50 registros
 
     if (error) {
       console.error('Erro ao buscar total de leads por funil:', error);
@@ -103,10 +111,12 @@ export const commercialMetricsService = {
   },
 
   // Buscar total de agendamentos por funil
-  async getTotalDeAgendamentosPorFunil() {
+  // Otimizado: adiciona limite para reduzir egress
+  async getTotalDeAgendamentosPorFunil(limit: number = 50) {
     const { data, error } = await supabase
       .from('Total de Agendamentos por Funil')
-      .select('*');
+      .select('*')
+      .limit(limit); // Limitar a 50 registros
 
     if (error) {
       console.error('Erro ao buscar total de agendamentos por funil:', error);
@@ -117,13 +127,15 @@ export const commercialMetricsService = {
   },
 
   // Buscar dados de vendas
-  async getTotalDeVendas() {
+  // Otimizado: adiciona limite para reduzir egress
+  async getTotalDeVendas(limit: number = 1000) {
     console.log('🔍 Buscando dados DIRETO do Supabase...');
     
     const { data, error } = await supabase
       .from('Total de Vendas')
       .select('*')
-      .order('DATA', { ascending: false });
+      .order('DATA', { ascending: false })
+      .limit(limit); // Limitar a 1000 registros mais recentes
 
     if (error) {
       console.error('Erro ao buscar total de vendas:', error);
@@ -147,12 +159,14 @@ export const commercialMetricsService = {
   },
 
   // Buscar vendas por mês específico
-  async getVendasByMonth(month: string) {
+  // Otimizado: adiciona limite para reduzir egress
+  async getVendasByMonth(month: string, limit: number = 500) {
     const { data, error } = await supabase
       .from('Total de Vendas')
       .select('*')
       .eq('MES', month)
-      .order('DATA', { ascending: false });
+      .order('DATA', { ascending: false })
+      .limit(limit); // Limitar a 500 registros por mês
 
     if (error) {
       console.error('Erro ao buscar vendas do mês:', error);

@@ -30,8 +30,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useCheckinsWithScheduledRefetch } from "@/hooks/use-checkin-data";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCheckinsWithScheduledRefetch, useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { getNextScheduledUpdate } from "@/hooks/use-scheduled-refetch";
+import { usePatientsWithBioimpedance } from "@/hooks/use-patients-with-bioimpedance";
 import { CheckinItemSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import { CheckinForm } from "@/components/forms/CheckinForm";
@@ -143,6 +145,7 @@ const saveCheckinPreferences = async (prefs: Partial<CheckinPreferences>) => {
 
 export function CheckinsList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   // Estados iniciais (serão atualizados quando as preferências carregarem)
   const [searchTerm, setSearchTerm] = useState("");
@@ -159,13 +162,34 @@ export function CheckinsList() {
   const [filterWithBioimpedance, setFilterWithBioimpedance] = useState(false);
   const [patientsWithBioimpedance, setPatientsWithBioimpedance] = useState<Set<string>>(new Set());
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  
+  // Estado para controlar o limite de checkins carregados
+  const [checkinLimit, setCheckinLimit] = useState<number | null>(200); // Padrão: 200 checkins
+  const [showLimitControl, setShowLimitControl] = useState(false);
 
-  const { data: recentCheckins = [], isLoading: checkinsLoading, refetch, isFetching } = useCheckinsWithScheduledRefetch();
+  // Hook para buscar checkins com dados do paciente e limite customizado
+  // Usa o hook com atualização programada, mas com limite customizado
+  const { data: recentCheckins = [], isLoading: checkinsLoading, refetch, isFetching } = useCheckinsWithScheduledRefetch(checkinLimit);
   const { teamMembers } = useCheckinManagement();
   
   // Estado para última atualização e próxima atualização programada
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const nextUpdate = getNextScheduledUpdate();
+
+  // Fechar menu de limite ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showLimitControl && !target.closest('.limit-control-menu')) {
+        setShowLimitControl(false);
+      }
+    };
+    
+    if (showLimitControl) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showLimitControl]);
 
   // Carregar preferências do banco de dados ao montar o componente
   useEffect(() => {
@@ -183,32 +207,34 @@ export function CheckinsList() {
     loadPreferences();
   }, []);
 
-  // Função para atualização manual
+  // Função para atualização manual (inteligente)
   const handleManualRefresh = useCallback(async () => {
     await refetch();
     setLastUpdate(new Date());
   }, [refetch]);
 
+  // Função para atualização completa (forçar busca de tudo)
+  const handleFullRefresh = useCallback(async () => {
+    console.log('🔄 Atualização completa: invalidando todas as queries...');
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['checkins'] }),
+      queryClient.invalidateQueries({ queryKey: ['checkin'] }),
+      queryClient.invalidateQueries({ queryKey: ['patients'] }),
+      queryClient.invalidateQueries({ queryKey: ['feedbacks'] }),
+    ]);
+    await refetch();
+    setLastUpdate(new Date());
+  }, [refetch, queryClient]);
+
   // Carregar lista de telefones que têm bioimpedância
+  // Otimizado: usa React Query com cache
+  const { data: patientsWithBioimpedanceData } = usePatientsWithBioimpedance();
+  
   useEffect(() => {
-    const loadPatientsWithBioimpedance = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('body_composition')
-          .select('telefone')
-          .not('telefone', 'is', null);
-
-        if (error) throw error;
-
-        const telefones = new Set(data?.map(bio => bio.telefone).filter(Boolean) || []);
-        setPatientsWithBioimpedance(telefones);
-      } catch (error) {
-        console.error('Erro ao carregar pacientes com bioimpedância:', error);
-      }
-    };
-
-    loadPatientsWithBioimpedance();
-  }, []);
+    if (patientsWithBioimpedanceData) {
+      setPatientsWithBioimpedance(patientsWithBioimpedanceData);
+    }
+  }, [patientsWithBioimpedanceData]);
 
   // Debounce na busca para melhorar performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -552,7 +578,7 @@ export function CheckinsList() {
 
       {/* Lista de Checkins */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-        <CardHeader>
+        <CardHeader className="relative">
           <div className="flex items-start justify-between">
             <div>
               <CardTitle className="text-white">
@@ -569,17 +595,134 @@ export function CheckinsList() {
             </div>
             
             {/* Botão de atualização e informações */}
-            <div className="flex flex-col items-end gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualRefresh}
-                disabled={isFetching}
-                className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white"
-              >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                {isFetching ? 'Atualizando...' : 'Atualizar'}
-              </Button>
+            <div className="flex flex-col items-end gap-2 relative">
+              <div className="flex gap-2">
+                {/* Botão para controlar limite - Apenas ícone */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowLimitControl(!showLimitControl)}
+                        className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white h-9 w-9 p-0"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Limite: {checkinLimit ? `${checkinLimit} checkins` : 'Sem limite'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          if (e.shiftKey) {
+                            e.preventDefault();
+                            handleFullRefresh();
+                          } else {
+                            handleManualRefresh();
+                          }
+                        }}
+                        disabled={isFetching}
+                        className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                        {isFetching ? 'Atualizando...' : 'Atualizar'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Clique normal: atualização inteligente</p>
+                      <p>Shift+Clique: atualização completa</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              
+              {/* Menu de controle de limite */}
+              {showLimitControl && (
+                <Card className="limit-control-menu absolute z-50 mt-10 bg-slate-800 border-slate-600 shadow-lg min-w-[200px]">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium text-white mb-2">
+                        Quantos checkins carregar?
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          variant={checkinLimit === 200 ? "default" : "outline"}
+                          onClick={() => {
+                            setCheckinLimit(200);
+                            setShowLimitControl(false);
+                            refetch();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          200 checkins (padrão)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={checkinLimit === 500 ? "default" : "outline"}
+                          onClick={() => {
+                            setCheckinLimit(500);
+                            setShowLimitControl(false);
+                            refetch();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          500 checkins
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={checkinLimit === 1000 ? "default" : "outline"}
+                          onClick={() => {
+                            setCheckinLimit(1000);
+                            setShowLimitControl(false);
+                            refetch();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          1.000 checkins
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={checkinLimit === 2000 ? "default" : "outline"}
+                          onClick={() => {
+                            setCheckinLimit(2000);
+                            setShowLimitControl(false);
+                            refetch();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          2.000 checkins
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={checkinLimit === null ? "default" : "outline"}
+                          onClick={() => {
+                            setCheckinLimit(null);
+                            setShowLimitControl(false);
+                            refetch();
+                          }}
+                          className="w-full justify-start text-orange-400 hover:text-orange-300"
+                        >
+                          Todos os checkins (sem limite)
+                        </Button>
+                      </div>
+                      <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+                        <p>⚠️ Limites maiores aumentam o tempo de carregamento</p>
+                        <p>💡 Use "Todos" apenas quando necessário</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
               <div className="flex flex-col items-end text-xs text-slate-500">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -632,10 +775,10 @@ export function CheckinsList() {
                 : 0;
               
               return (
-                <div key={checkin.id} className="px-2.5 py-1 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-300 ease-out">
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Informações do Paciente */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div key={checkin.id} className="px-2.5 pt-3 pb-1 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-300 ease-out">
+                  <div className="grid grid-cols-[1fr_140px_160px_auto] gap-3 items-center">
+                    {/* Informações do Paciente - Coluna flexível */}
+                    <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="w-8 h-8 flex-shrink-0">
                         <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
                           {checkin.patient?.nome?.charAt(0) || 'P'}
@@ -646,72 +789,90 @@ export function CheckinsList() {
                       </div>
                     </div>
                     
-                    {/* Controles e Botões */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap">
-                      {/* Status, Responsável, Notas e Lock - integrados na linha */}
+                    {/* Status - Coluna fixa */}
+                    <div className="flex-shrink-0">
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}
                         onUpdate={refetch}
                         notesCount={checkin.notes_count || 0}
-                        compact={true}
+                        showOnlyStatus={true}
                       />
-                      
-                      <div className="flex items-center gap-0.5">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                to={`/checkins/evolution/${checkin.telefone}`}
-                                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-6 w-6 p-0"
-                                onContextMenu={(e) => {
-                                  // Permite o menu de contexto padrão do navegador
-                                  // O navegador já oferece "Abrir em nova aba" no menu de contexto
-                                }}
-                              >
-                                <FileText className="w-4 h-4" />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Ver dossiê de evolução (clique direito para abrir em nova aba)</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => handleViewCheckin(checkin)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Ver detalhes</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => handleEditCheckin(checkin)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Editar checkin</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                    </div>
+                    
+                    {/* Responsável - Coluna fixa */}
+                    <div className="flex-shrink-0">
+                      <CheckinQuickControls
+                        checkin={checkin}
+                        teamMembers={teamMembers}
+                        onUpdate={refetch}
+                        notesCount={checkin.notes_count || 0}
+                        showOnlyResponsible={true}
+                      />
+                    </div>
+                    
+                    {/* Ações - Coluna fixa */}
+                    <div className="flex items-center gap-0.5 flex-shrink-0 justify-end">
+                      <CheckinQuickControls
+                        checkin={checkin}
+                        teamMembers={teamMembers}
+                        onUpdate={refetch}
+                        notesCount={checkin.notes_count || 0}
+                        showOnlyActions={true}
+                      />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              to={`/checkins/evolution/${checkin.telefone}`}
+                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-6 w-6 p-0"
+                              onContextMenu={(e) => {
+                                // Permite o menu de contexto padrão do navegador
+                                // O navegador já oferece "Abrir em nova aba" no menu de contexto
+                              }}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ver dossiê de evolução (clique direito para abrir em nova aba)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleViewCheckin(checkin)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ver detalhes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleEditCheckin(checkin)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Editar checkin</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
 

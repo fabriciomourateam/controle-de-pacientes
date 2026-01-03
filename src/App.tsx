@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UpdateNotification } from "@/components/UpdateNotification";
+import { ChangeNotification } from "@/components/ui/change-notification";
 import "./test-theme.css";
 
 // Componentes leves - import direto
@@ -55,17 +56,17 @@ const PageLoader = () => (
   </div>
 );
 
-// Configurar React Query com cache otimizado e refetch automático
-// Otimizado para reduzir tráfego do Supabase mantendo funcionalidade
+// Configurar React Query com cache otimizado
+// Otimizado para reduzir tráfego do Supabase: sem refetch automático, usa Realtime + atualização agendada
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutos - dados considerados "frescos" por mais tempo (reduz refetch desnecessário)
+      staleTime: 2 * 60 * 1000, // 2 minutos - dados considerados "frescos" por mais tempo
       gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido por mais tempo
-      refetchOnWindowFocus: true, // Refetch ao focar na janela (mantém dados atualizados quando você volta)
-      refetchOnReconnect: true, // Refetch ao reconectar
+      refetchOnWindowFocus: false, // ❌ Desabilitado - usa Realtime para detectar mudanças
+      refetchOnReconnect: false, // ❌ Desabilitado - usa Realtime para detectar mudanças
       retry: 1, // Tentar apenas 1 vez em caso de erro
-      refetchInterval: false, // Desabilitado por padrão, habilitado apenas em queries específicas com intervalos maiores
+      refetchInterval: false, // Desabilitado por padrão - usa atualização agendada (4x ao dia)
     },
   },
 });
@@ -78,6 +79,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <UpdateNotification />
+          <ChangeNotification />
           <BrowserRouter>
         <Routes>
           {/* Rotas públicas - não requerem autenticação */}

@@ -66,8 +66,10 @@ import {
   Image,
   ChevronDown,
   Scale,
-  FlaskConical
+  FlaskConical,
+  BarChart3
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -98,6 +100,10 @@ export default function PatientEvolution() {
   const [showDailyWeights, setShowDailyWeights] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showExams, setShowExams] = useState(false);
+  
+  // Estado para controlar o limite de bioimpedâncias carregadas
+  const [bioLimit, setBioLimit] = useState<number | null>(50); // Padrão: 50 avaliações
+  const [showBioLimitControl, setShowBioLimitControl] = useState(false);
   
   // Calcular dados para as novas features
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
@@ -330,17 +336,23 @@ export default function PatientEvolution() {
       const checkinsData = await checkinService.getByPhone(telefone);
       
       // Migrar dados atuais para check-in separado se necessário (antes de setCheckins)
+      let needsRefetch = false;
       if (checkinsData.length > 0) {
-        await migrateCurrentDataToCheckin(telefone, checkinsData);
+        needsRefetch = await migrateCurrentDataToCheckin(telefone, checkinsData);
       }
       
-      // Buscar check-ins novamente após possível migração
-      const updatedCheckinsData = await checkinService.getByPhone(telefone);
-      setCheckins(updatedCheckinsData);
+      // ✅ Só buscar novamente se houve migração (otimização: evita query duplicada)
+      let finalCheckinsData = checkinsData;
+      if (needsRefetch) {
+        finalCheckinsData = await checkinService.getByPhone(telefone);
+        setCheckins(finalCheckinsData);
+      } else {
+        setCheckins(checkinsData);
+      }
 
       // Verificar e migrar fotos do Typebot automaticamente
-      if (updatedCheckinsData.length > 0) {
-        checkAndMigratePhotos(updatedCheckinsData);
+      if (finalCheckinsData.length > 0) {
+        checkAndMigratePhotos(finalCheckinsData);
       }
 
       // Buscar dados do paciente
@@ -364,12 +376,20 @@ export default function PatientEvolution() {
         setPatient(patientData);
       }
 
-      // Buscar bioimpedâncias
-      const { data: bioData } = await supabase
+      // ✅ OTIMIZAÇÃO BÁSICA: Adicionar limite para reduzir egress
+      // Buscar bioimpedâncias (mantém select('*') para compatibilidade total)
+      let bioQuery = supabase
         .from('body_composition')
         .select('*')
         .eq('telefone', telefone)
         .order('data_avaliacao', { ascending: false });
+      
+      // Aplicar limite apenas se fornecido
+      if (bioLimit !== null && bioLimit !== undefined) {
+        bioQuery = bioQuery.limit(bioLimit);
+      }
+      
+      const { data: bioData } = await bioQuery;
       
       if (bioData) {
         setBodyCompositions(bioData);
@@ -385,6 +405,21 @@ export default function PatientEvolution() {
       setLoading(false);
     }
   };
+
+  // Fechar menu de limite ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showBioLimitControl && !target.closest('.bio-limit-control-menu')) {
+        setShowBioLimitControl(false);
+      }
+    };
+    
+    if (showBioLimitControl) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showBioLimitControl]);
 
   useEffect(() => {
     loadEvolution();
@@ -458,14 +493,22 @@ export default function PatientEvolution() {
   };
 
   const handleBioSuccess = async () => {
+    // ✅ OTIMIZAÇÃO BÁSICA: Adicionar limite ao recarregar
     // Recarregar bioimpedâncias após adicionar nova
     if (!telefone) return;
     
-    const { data } = await supabase
+    let bioQuery = supabase
       .from('body_composition')
       .select('*')
       .eq('telefone', telefone)
       .order('data_avaliacao', { ascending: false });
+    
+    // Aplicar limite apenas se fornecido
+    if (bioLimit !== null && bioLimit !== undefined) {
+      bioQuery = bioQuery.limit(bioLimit);
+    }
+    
+    const { data } = await bioQuery;
     
     if (data) {
       setBodyCompositions(data);
@@ -513,7 +556,8 @@ export default function PatientEvolution() {
   };
 
   // Migrar dados atuais para um check-in separado
-  const migrateCurrentDataToCheckin = async (telefone: string, checkins: Checkin[]) => {
+  // Retorna true se houve migração, false caso contrário
+  const migrateCurrentDataToCheckin = async (telefone: string, checkins: Checkin[]): Promise<boolean> => {
     try {
       // Buscar dados do paciente
       const { data: patientData } = await supabase
@@ -522,7 +566,7 @@ export default function PatientEvolution() {
         .eq('telefone', telefone)
         .single();
 
-      if (!patientData) return;
+      if (!patientData) return false;
 
       const patient = patientData as any;
 
@@ -534,16 +578,18 @@ export default function PatientEvolution() {
         patient.foto_atual_costas || 
         patient.peso_atual;
 
-      if (!hasCurrentData) return;
+      if (!hasCurrentData) return false;
 
       // Verificar se já existe um check-in com a data dos dados atuais
       const dataFotosAtuais = patient.data_fotos_atuais;
-      if (!dataFotosAtuais) return;
+      if (!dataFotosAtuais) return false;
 
       // Verificar se já existe um check-in nessa data exata
       const existingCheckinWithDate = checkins.find(
         c => c.data_checkin === dataFotosAtuais
       );
+
+      let migrationHappened = false;
 
       // Se já existe um check-in nessa data E já tem fotos, apenas limpar dados atuais
       if (existingCheckinWithDate) {
@@ -565,7 +611,7 @@ export default function PatientEvolution() {
               data_fotos_atuais: null
             } as any)
             .eq('telefone', telefone);
-          return;
+          return false; // Não houve migração, apenas limpeza
         }
         // Se existe check-in mas não tem fotos, adicionar as fotos
         await checkinService.update(existingCheckinWithDate.id, {
@@ -575,6 +621,7 @@ export default function PatientEvolution() {
           foto_4: patient.foto_atual_costas || null,
           peso: patient.peso_atual || existingCheckinWithDate.peso || null
         });
+        migrationHappened = true;
       } else {
         // Criar novo check-in com os dados atuais usando a data original
         const checkinData: any = {
@@ -587,6 +634,7 @@ export default function PatientEvolution() {
           peso: patient.peso_atual || null
         };
         await checkinService.create(checkinData);
+        migrationHappened = true;
       }
 
       // Limpar dados atuais do paciente após migração
@@ -605,10 +653,14 @@ export default function PatientEvolution() {
         } as any)
         .eq('telefone', telefone);
 
-      console.log('✅ Dados atuais migrados para check-in com sucesso');
+      if (migrationHappened) {
+        console.log('✅ Dados atuais migrados para check-in com sucesso');
+      }
+      return migrationHappened;
     } catch (error) {
       console.error('Erro ao migrar dados atuais:', error);
       // Não mostrar erro ao usuário, é uma migração silenciosa
+      return false;
     }
   };
 
@@ -1712,7 +1764,96 @@ export default function PatientEvolution() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
+              className="relative"
             >
+              <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                {/* Botão para controlar limite de bioimpedância - Apenas ícone */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowBioLimitControl(!showBioLimitControl)}
+                        className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white h-9 w-9 p-0"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Limite: {bioLimit ? `${bioLimit} avaliações` : 'Sem limite'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              
+              {/* Menu de controle de limite */}
+              {showBioLimitControl && (
+                <Card className="bio-limit-control-menu absolute top-16 right-4 z-50 bg-slate-800 border-slate-600 shadow-lg min-w-[200px]">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium text-white mb-2">
+                        Quantas avaliações carregar?
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          variant={bioLimit === 50 ? "default" : "outline"}
+                          onClick={async () => {
+                            setBioLimit(50);
+                            setShowBioLimitControl(false);
+                            await loadEvolution();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          50 avaliações (padrão)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={bioLimit === 100 ? "default" : "outline"}
+                          onClick={async () => {
+                            setBioLimit(100);
+                            setShowBioLimitControl(false);
+                            await loadEvolution();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          100 avaliações
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={bioLimit === 200 ? "default" : "outline"}
+                          onClick={async () => {
+                            setBioLimit(200);
+                            setShowBioLimitControl(false);
+                            await loadEvolution();
+                          }}
+                          className="w-full justify-start"
+                        >
+                          200 avaliações
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={bioLimit === null ? "default" : "outline"}
+                          onClick={async () => {
+                            setBioLimit(null);
+                            setShowBioLimitControl(false);
+                            await loadEvolution();
+                          }}
+                          className="w-full justify-start text-orange-400 hover:text-orange-300"
+                        >
+                          Todas as avaliações (sem limite)
+                        </Button>
+                      </div>
+                      <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+                        <p>⚠️ Limites maiores aumentam o tempo de carregamento</p>
+                        <p>💡 Use "Todas" apenas quando necessário</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
               <BodyCompositionMetrics data={bodyCompositions} />
             </motion.div>
           )}

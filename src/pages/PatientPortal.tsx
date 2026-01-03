@@ -42,7 +42,8 @@ import {
   Scale,
   MoreVertical,
   Eye,
-  FileImage
+  FileImage,
+  BarChart3
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,6 +51,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WeightInput } from '@/components/evolution/WeightInput';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -106,6 +108,10 @@ export default function PatientPortal() {
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
+  
+  // Estado para controlar o limite de bioimpedâncias carregadas
+  const [bioLimit, setBioLimit] = useState<number | null>(50); // Padrão: 50 avaliações
+  const [showBioLimitControl, setShowBioLimitControl] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -133,9 +139,24 @@ export default function PatientPortal() {
     return idade;
   };
 
+  // Fechar menu de limite ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showBioLimitControl && !target.closest('.bio-limit-control-menu')) {
+        setShowBioLimitControl(false);
+      }
+    };
+    
+    if (showBioLimitControl) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showBioLimitControl]);
+
   useEffect(() => {
     loadPortalData();
-  }, [token]);
+  }, [token, bioLimit]);
 
   // Salvar token no localStorage para PWA (permite abrir direto no portal)
   useEffect(() => {
@@ -239,6 +260,7 @@ export default function PatientPortal() {
         }
       }
 
+      // ✅ OTIMIZAÇÃO BÁSICA: Adicionar limite em body_composition
       // Buscar todos os dados em paralelo para melhor performance
       const [checkinsData, patientResult, bioResult] = await Promise.all([
         checkinService.getByPhone(telefone),
@@ -247,11 +269,20 @@ export default function PatientPortal() {
           .select('*')
           .eq('telefone', telefone)
           .single(),
-        (supabase as any)
-          .from('body_composition')
-          .select('*')
-          .eq('telefone', telefone)
-          .order('data_avaliacao', { ascending: false })
+        (async () => {
+          let bioQuery = (supabase as any)
+            .from('body_composition')
+            .select('*')
+            .eq('telefone', telefone)
+            .order('data_avaliacao', { ascending: false });
+          
+          // Aplicar limite apenas se fornecido
+          if (bioLimit !== null && bioLimit !== undefined) {
+            bioQuery = bioQuery.limit(bioLimit);
+          }
+          
+          return await bioQuery;
+        })()
       ]);
       
       if (checkinsData.length === 0) {
@@ -895,6 +926,104 @@ export default function PatientPortal() {
           </Card>
         </motion.div>
 
+
+        {/* Controle de Limite de Bioimpedância - Se houver dados */}
+        {bodyCompositions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.12 }}
+            className="relative"
+          >
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+              {/* Botão para controlar limite de bioimpedância - Apenas ícone */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowBioLimitControl(!showBioLimitControl)}
+                      className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white h-9 w-9 p-0"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Limite: {bioLimit ? `${bioLimit} avaliações` : 'Sem limite'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            {/* Menu de controle de limite */}
+            {showBioLimitControl && (
+              <Card className="bio-limit-control-menu absolute top-16 right-4 z-50 bg-slate-800 border-slate-600 shadow-lg min-w-[200px]">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-white mb-2">
+                      Quantas avaliações carregar?
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant={bioLimit === 50 ? "default" : "outline"}
+                        onClick={async () => {
+                          setBioLimit(50);
+                          setShowBioLimitControl(false);
+                          await loadPortalData();
+                        }}
+                        className="w-full justify-start"
+                      >
+                        50 avaliações (padrão)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={bioLimit === 100 ? "default" : "outline"}
+                        onClick={async () => {
+                          setBioLimit(100);
+                          setShowBioLimitControl(false);
+                          await loadPortalData();
+                        }}
+                        className="w-full justify-start"
+                      >
+                        100 avaliações
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={bioLimit === 200 ? "default" : "outline"}
+                        onClick={async () => {
+                          setBioLimit(200);
+                          setShowBioLimitControl(false);
+                          await loadPortalData();
+                        }}
+                        className="w-full justify-start"
+                      >
+                        200 avaliações
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={bioLimit === null ? "default" : "outline"}
+                        onClick={async () => {
+                          setBioLimit(null);
+                          setShowBioLimitControl(false);
+                          await loadPortalData();
+                        }}
+                        className="w-full justify-start text-orange-400 hover:text-orange-300"
+                      >
+                        Todas as avaliações (sem limite)
+                      </Button>
+                    </div>
+                    <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+                      <p>⚠️ Limites maiores aumentam o tempo de carregamento</p>
+                      <p>💡 Use "Todas" apenas quando necessário</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
+        )}
 
         {/* Plano Alimentar, Metas e Progresso */}
         {patientId && (

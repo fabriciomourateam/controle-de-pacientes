@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Horários de atualização automática (em horas, formato 24h)
 const SCHEDULED_HOURS = [6, 12, 15, 18];
@@ -99,3 +100,22 @@ export function getScheduledHours(): number[] {
   return [...SCHEDULED_HOURS];
 }
 
+/**
+ * Hook específico para atualizar pacientes, feedbacks e checkins em horários agendados
+ * Usa invalidateQueries para forçar refetch apenas quando necessário
+ */
+export function useScheduledDataRefetch() {
+  const queryClient = useQueryClient();
+
+  const refetchAll = useCallback(async () => {
+    console.log('🔄 Atualização programada: invalidando queries de pacientes, feedbacks e checkins');
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['patients'] }),
+      queryClient.invalidateQueries({ queryKey: ['feedbacks'] }),
+      queryClient.invalidateQueries({ queryKey: ['checkins'] }),
+      queryClient.invalidateQueries({ queryKey: ['checkin'] }),
+    ]);
+  }, [queryClient]);
+
+  useScheduledRefetch(refetchAll);
+}
