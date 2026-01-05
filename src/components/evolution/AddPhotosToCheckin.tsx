@@ -15,15 +15,23 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { checkinService } from '@/lib/checkin-service';
 
-interface AddCheckinPhotosProps {
-  telefone: string;
-  nome: string;
+interface AddPhotosToCheckinProps {
+  checkinId: string;
+  checkinDate: string;
+  pacienteNome?: string;
   onSuccess: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange }: AddCheckinPhotosProps) {
+export function AddPhotosToCheckin({ 
+  checkinId, 
+  checkinDate,
+  pacienteNome = 'Paciente',
+  onSuccess, 
+  open: externalOpen, 
+  onOpenChange: externalOnOpenChange 
+}: AddPhotosToCheckinProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = externalOnOpenChange || setInternalOpen;
@@ -42,22 +50,36 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
   const [previewLado2, setPreviewLado2] = useState<string>('');
   const [previewCostas, setPreviewCostas] = useState<string>('');
 
-  // Função para obter data local sem problema de timezone
-  const getLocalDateString = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-  
-  const [dataFotos, setDataFotos] = useState(getLocalDateString());
-
   // Refs para inputs de arquivo
   const frenteInputRef = useRef<HTMLInputElement>(null);
   const ladoInputRef = useRef<HTMLInputElement>(null);
   const lado2InputRef = useRef<HTMLInputElement>(null);
   const costasInputRef = useRef<HTMLInputElement>(null);
+
+  // Buscar telefone do paciente através do check-in
+  const [telefone, setTelefone] = useState<string>('');
+
+  useEffect(() => {
+    if (open && checkinId) {
+      // Buscar telefone do check-in
+      const fetchCheckin = async () => {
+        try {
+          const { data } = await supabase
+            .from('checkin')
+            .select('telefone')
+            .eq('id', checkinId)
+            .single();
+          
+          if (data?.telefone) {
+            setTelefone(data.telefone);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar telefone do check-in:', error);
+        }
+      };
+      fetchCheckin();
+    }
+  }, [open, checkinId]);
 
   // Limpar formulário quando fechar
   useEffect(() => {
@@ -70,7 +92,6 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
       setPreviewLado('');
       setPreviewLado2('');
       setPreviewCostas('');
-      setDataFotos(getLocalDateString());
     }
   }, [open]);
 
@@ -121,11 +142,20 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
       return;
     }
 
+    if (!telefone) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar o paciente',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const photoUrls: { foto_1?: string; foto_2?: string; foto_3?: string; foto_4?: string } = {};
 
-      // Upload das fotos
+      // Upload das fotos (apenas as que foram selecionadas)
       if (fotoFrente) {
         const timestamp = Date.now();
         const fileName = `${telefone}/checkin-fotos/${timestamp}-frente.jpg`;
@@ -154,30 +184,13 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
         if (url) photoUrls.foto_4 = url;
       }
 
-      // Buscar check-ins existentes do paciente para verificar se já existe um na mesma data
-      const existingCheckins = await checkinService.getByPhone(telefone);
-      const existingCheckin = existingCheckins.find(
-        c => c.data_checkin === dataFotos
-      );
-
-      if (existingCheckin) {
-        // Atualizar check-in existente com as fotos
-        await checkinService.update(existingCheckin.id, {
-          ...photoUrls
-        });
-      } else {
-        // Criar novo check-in apenas com fotos
-        // Não incluir mes_ano se a coluna não existir no banco
-        await checkinService.create({
-          telefone,
-          data_checkin: dataFotos,
-          ...photoUrls
-        } as any);
-      }
+      // Atualizar check-in existente apenas com as fotos selecionadas
+      // As fotos existentes que não foram substituídas serão preservadas automaticamente
+      await checkinService.update(checkinId, photoUrls);
 
       toast({
         title: 'Sucesso!',
-        description: 'Fotos adicionadas à evolução fotográfica com sucesso'
+        description: 'Fotos adicionadas ao check-in com sucesso'
       });
 
       setOpen(false);
@@ -197,7 +210,7 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="ghost" size="sm" className="gap-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20">
           <Camera className="w-4 h-4" />
           Adicionar Fotos
         </Button>
@@ -206,28 +219,14 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <Camera className="w-5 h-5" />
-            Adicionar Fotos à Evolução Fotográfica
+            Adicionar Fotos ao Check-in
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            Adicione fotos que aparecerão no card de evolução fotográfica
+            Adicione fotos ao check-in de <strong className="text-white">{new Date(checkinDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</strong> de {pacienteNome}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Data das fotos */}
-          <div className="space-y-2">
-            <Label htmlFor="data-fotos" className="text-slate-300">
-              Data das Fotos
-            </Label>
-            <Input
-              id="data-fotos"
-              type="date"
-              value={dataFotos}
-              onChange={(e) => setDataFotos(e.target.value)}
-              className="bg-slate-800 border-slate-600 text-white"
-            />
-          </div>
-
           {/* Foto Frente */}
           <div className="space-y-2">
             <Label className="text-slate-300">Foto 1 - Frente</Label>
@@ -273,7 +272,7 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
 
           {/* Foto Lado */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Foto 2 - Lado D</Label>
+            <Label className="text-slate-300">Foto 2 - Lado</Label>
             <div className="flex gap-4">
               <div className="flex-1">
                 <Input

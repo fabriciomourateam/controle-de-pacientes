@@ -2,12 +2,25 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp, Trash2, Loader2, Camera } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
+import { AddPhotosToCheckin } from "./AddPhotosToCheckin";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { extractMeasurements } from "@/lib/measurement-utils";
+import { checkinService } from "@/lib/checkin-service";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -23,6 +36,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isMinimized, setIsMinimized] = useState(true);
+  const [checkinToDelete, setCheckinToDelete] = useState<Checkin | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
   const checkinsOrdenados = [...checkins].reverse();
@@ -47,6 +62,29 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
   const handleEditSuccess = () => {
     if (onCheckinUpdated) {
       onCheckinUpdated();
+    }
+  };
+
+  const handleDeleteClick = (checkin: Checkin) => {
+    setCheckinToDelete(checkin);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!checkinToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await checkinService.delete(checkinToDelete.id);
+      toast.success('Check-in deletado com sucesso');
+      setCheckinToDelete(null);
+      if (onCheckinUpdated) {
+        onCheckinUpdated();
+      }
+    } catch (error) {
+      console.error('Erro ao deletar check-in:', error);
+      toast.error('Erro ao deletar check-in. Tente novamente.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -174,15 +212,30 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                         <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </Button>
                       {showEditButton && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditClick(checkin)}
-                          className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditClick(checkin)}
+                            className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                          <AddPhotosToCheckin
+                            checkinId={checkin.id}
+                            checkinDate={checkin.data_checkin}
+                            onSuccess={handleEditSuccess}
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteClick(checkin)}
+                            className="bg-red-900/30 border-red-700/50 hover:bg-red-900/50 text-red-300 hover:text-red-200 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
                       <div className="flex flex-col items-end flex-1 sm:flex-initial">
                         <div className="text-2xl font-bold text-white">
@@ -481,6 +534,60 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
         onOpenChange={setEditModalOpen}
         onSuccess={handleEditSuccess}
       />
+
+      {/* Modal de Confirmação de Exclusão */}
+      <AlertDialog open={!!checkinToDelete} onOpenChange={(open) => !open && setCheckinToDelete(null)}>
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              Confirmar Exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-300">
+              Tem certeza que deseja deletar o check-in de{' '}
+              <strong className="text-white">
+                {checkinToDelete 
+                  ? new Date(checkinToDelete.data_checkin).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    })
+                  : ''
+                }
+              </strong>?
+              <br />
+              <span className="text-red-400 mt-2 block">
+                ⚠️ Esta ação não pode ser desfeita e o check-in será removido de todos os locais onde aparece.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
+              disabled={isDeleting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Deletar
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

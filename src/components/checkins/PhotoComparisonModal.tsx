@@ -1266,8 +1266,8 @@ export function PhotoComparisonModal({
                             {availablePositions.map((pos) => (
                               <SelectItem key={pos} value={pos}>
                                 {pos === 'frente' ? '📷 Foto 1 (Frente)' :
-                                 pos === 'lado' ? '📷 Foto 2 (Lado)' :
-                                 pos === 'lado_2' ? '📷 Foto 3 (Lado 2)' :
+                                 pos === 'lado' ? '📷 Foto 2 (Lado D)' :
+                                 pos === 'lado_2' ? '📷 Foto 3 (Lado E)' :
                                  '📷 Foto 4 (Costas)'}
                               </SelectItem>
                             ))}

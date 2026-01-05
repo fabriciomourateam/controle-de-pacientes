@@ -65,6 +65,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   const [hasBioimpedancia, setHasBioimpedancia] = useState(false);
   const [isEvolutionExpanded, setIsEvolutionExpanded] = useState(true);
   const [isFeedbackInfoExpanded, setIsFeedbackInfoExpanded] = useState(true);
+  const [hasCurrentPhotos, setHasCurrentPhotos] = useState(false);
+  const [hasPreviousPhotos, setHasPreviousPhotos] = useState(false);
 
   const { activeTemplate } = useFeedbackTemplates();
   const { updateCheckinStatus } = useCheckinManagement();
@@ -196,6 +198,58 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       setPreviousCheckinId(null);
     }
   }, [evolutionData?.checkin_anterior_id, evolutionData?.tem_checkin_anterior, evolutionData?.checkin_anterior_data, checkin?.telefone]);
+
+  // Verificar se há fotos no check-in atual
+  React.useEffect(() => {
+    const hasPhotos = !!(
+      checkin?.foto_1 || 
+      checkin?.foto_2 || 
+      checkin?.foto_3 || 
+      checkin?.foto_4
+    );
+    setHasCurrentPhotos(hasPhotos);
+  }, [checkin?.foto_1, checkin?.foto_2, checkin?.foto_3, checkin?.foto_4]);
+
+  // Verificar se há fotos no check-in anterior
+  React.useEffect(() => {
+    const checkPreviousPhotos = async () => {
+      if (!previousCheckinId) {
+        setHasPreviousPhotos(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('checkin')
+          .select('foto_1, foto_2, foto_3, foto_4')
+          .eq('id', previousCheckinId)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Erro ao verificar fotos do check-in anterior:', error);
+          }
+          setHasPreviousPhotos(false);
+          return;
+        }
+
+        const hasPhotos = !!(
+          data?.foto_1 || 
+          data?.foto_2 || 
+          data?.foto_3 || 
+          data?.foto_4
+        );
+        setHasPreviousPhotos(hasPhotos);
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao verificar fotos do check-in anterior:', error);
+        }
+        setHasPreviousPhotos(false);
+      }
+    };
+
+    checkPreviousPhotos();
+  }, [previousCheckinId]);
 
   const handleGenerateFeedback = useCallback(async () => {
     if (!activeTemplate) {
@@ -1876,10 +1930,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   setPhotoViewerSource('previous');
                                   setShowPhotosViewer(true);
                                 }}
-                                className="text-xs h-6 px-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700/50"
-                                title="Ver fotos do check-in anterior"
+                                className={`text-xs h-6 px-2 ${
+                                  hasPreviousPhotos 
+                                    ? 'text-blue-400 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
+                                    : 'text-slate-400 hover:text-blue-400 hover:bg-slate-700/50'
+                                }`}
+                                title={hasPreviousPhotos ? "Ver fotos do check-in anterior (há fotos)" : "Ver fotos do check-in anterior"}
                               >
-                                <Camera className="w-3 h-3 mr-1" />
+                                <Camera className={`w-3 h-3 mr-1 ${hasPreviousPhotos ? 'text-blue-400' : ''}`} />
                                 {evolutionData.checkin_anterior_data 
                                   ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
                                   : 'Anterior'}
@@ -1893,10 +1951,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   setPhotoViewerSource('current');
                                   setShowPhotosViewer(true);
                                 }}
-                                className="text-xs h-6 px-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700/50"
-                                title="Ver fotos do check-in atual"
+                                className={`text-xs h-6 px-2 ${
+                                  hasCurrentPhotos 
+                                    ? 'text-blue-400 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
+                                    : 'text-slate-400 hover:text-blue-400 hover:bg-slate-700/50'
+                                }`}
+                                title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
                               >
-                                <Camera className="w-3 h-3 mr-1" />
+                                <Camera className={`w-3 h-3 mr-1 ${hasCurrentPhotos ? 'text-blue-400' : ''}`} />
                                 {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                               </Button>
                             </td>
@@ -1909,10 +1971,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                     setPhotoViewerSource('initial');
                                     setShowPhotosViewer(true);
                                   }}
-                                  className="text-xs h-6 px-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700/50"
-                                  title="Ver fotos iniciais"
+                                  className="text-xs h-6 px-2 text-blue-400 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30"
+                                  title="Ver fotos iniciais (há fotos)"
                                 >
-                                  <Camera className="w-3 h-3 mr-1" />
+                                  <Camera className="w-3 h-3 mr-1 text-blue-400" />
                                   Fotos Iniciais
                                 </Button>
                               ) : (
@@ -2657,10 +2719,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   setPhotoViewerSource('initial');
                                   setShowPhotosViewer(true);
                                 }}
-                                className="text-xs h-6 px-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700/50"
-                                title="Ver fotos dos dados iniciais"
+                                className={`text-xs h-6 px-2 ${
+                                  hasInitialPhotos 
+                                    ? 'text-blue-400 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
+                                    : 'text-slate-400 hover:text-blue-400 hover:bg-slate-700/50'
+                                }`}
+                                title={hasInitialPhotos ? "Ver fotos dos dados iniciais (há fotos)" : "Ver fotos dos dados iniciais"}
                               >
-                                <Camera className="w-3 h-3 mr-1" />
+                                <Camera className={`w-3 h-3 mr-1 ${hasInitialPhotos ? 'text-blue-400' : ''}`} />
                                 Dados Iniciais
                               </Button>
                             </td>
@@ -2672,10 +2738,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   setPhotoViewerSource('current');
                                   setShowPhotosViewer(true);
                                 }}
-                                className="text-xs h-6 px-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700/50"
-                                title="Ver fotos do check-in atual"
+                                className={`text-xs h-6 px-2 ${
+                                  hasCurrentPhotos 
+                                    ? 'text-blue-400 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
+                                    : 'text-slate-400 hover:text-blue-400 hover:bg-slate-700/50'
+                                }`}
+                                title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
                               >
-                                <Camera className="w-3 h-3 mr-1" />
+                                <Camera className={`w-3 h-3 mr-1 ${hasCurrentPhotos ? 'text-blue-400' : ''}`} />
                                 {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                               </Button>
                             </td>

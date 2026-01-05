@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Camera, ChevronRight, ChevronDown, ChevronUp, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -47,9 +48,61 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   const [selectedAfterIndex, setSelectedAfterIndex] = useState<number | null>(null);
   const [photoToDelete, setPhotoToDelete] = useState<PhotoData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(true);
+  
+  // Usar sessionStorage para preservar estado de minimização entre renderizações
+  // Chave única baseada no telefone do paciente
+  const storageKey = `photo-comparison-minimized-${patient?.telefone || 'default'}`;
+  
+  // Função helper para ler do sessionStorage
+  const getStoredMinimized = () => {
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      // stored === 'false' significa que NÃO está minimizado (card está aberto)
+      // stored === 'true' ou null significa que está minimizado (card está fechado)
+      return stored !== null ? stored === 'true' : true; // true = minimizado (padrão)
+    } catch {
+      return true;
+    }
+  };
+  
+  // Inicializar estado do sessionStorage (função lazy para garantir que seja lido apenas na primeira renderização)
+  const [isMinimized, setIsMinimized] = useState(() => getStoredMinimized());
   const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [isUpdatingAngle, setIsUpdatingAngle] = useState(false);
   const { toast } = useToast();
+
+  // Sincronizar estado do sessionStorage quando o telefone mudar (mudança de paciente)
+  const prevTelefoneRef = useRef(patient?.telefone);
+  const prevCheckinsLengthRef = useRef(checkins.length);
+  
+  useEffect(() => {
+    // Se o telefone mudou, ler o estado do novo paciente
+    if (prevTelefoneRef.current !== patient?.telefone) {
+      prevTelefoneRef.current = patient?.telefone;
+      const stored = getStoredMinimized();
+      setIsMinimized(stored);
+      prevCheckinsLengthRef.current = checkins.length;
+    } else if (prevCheckinsLengthRef.current !== checkins.length) {
+      // Se o telefone não mudou, mas os checkins mudaram (após atualização de dados)
+      // Garantir que o estado está sincronizado com o sessionStorage
+      prevCheckinsLengthRef.current = checkins.length;
+      const stored = getStoredMinimized();
+      // Só atualizar se for diferente para evitar loops
+      if (isMinimized !== stored) {
+        setIsMinimized(stored);
+      }
+    }
+  }, [patient?.telefone, checkins.length]); // Sincronizar quando telefone ou checkins mudarem
+
+  // Salvar estado no sessionStorage quando mudar
+  useEffect(() => {
+    try {
+      // Salvar 'true' se minimizado, 'false' se expandido
+      sessionStorage.setItem(storageKey, String(isMinimized));
+    } catch (error) {
+      console.warn('Erro ao salvar estado no sessionStorage:', error);
+    }
+  }, [isMinimized, storageKey]);
 
   // Função para baixar foto do Google Drive (versão melhorada para download direto)
   const handleDownloadPhoto = async (url: string, label: string) => {
@@ -381,6 +434,34 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   
   console.log('📸 allPhotos final:', allPhotos.length, allPhotos);
 
+  // Agrupar fotos por data (do mais recente para o mais antigo)
+  const photosByDate = allPhotos.reduce((acc, photo) => {
+    const dateKey = photo.date;
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(photo);
+    return acc;
+  }, {} as Record<string, PhotoData[]>);
+
+  // Ordenar datas (mais recente primeiro)
+  const sortedDates = Object.keys(photosByDate).sort((a, b) => {
+    // Converter data pt-BR para Date para ordenação
+    const parseDate = (dateStr: string): Date => {
+      // Formato: "22/01/2025"
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      }
+      // Fallback para "Data Inicial" ou outras strings
+      return new Date(0); // Retorna data muito antiga para fotos iniciais
+    };
+
+    const dateA = parseDate(a);
+    const dateB = parseDate(b);
+    return dateB.getTime() - dateA.getTime(); // Mais recente primeiro
+  });
+
   // Inicializar índice "Depois" quando allPhotos mudar
   if (selectedAfterIndex === null && allPhotos.length > 1) {
     setSelectedAfterIndex(allPhotos.length - 1);
@@ -403,6 +484,143 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                        photo.angle === 'costas' ? '📷 Costas' : '📷';
     const prefix = photo.isInitial ? '⭐ BASELINE' : `#${index + 1}`;
     return `${prefix} - ${angleLabel} - ${photo.date} (${photo.weight}kg)`;
+  };
+
+  // Função para atualizar o ângulo da foto
+  const handleUpdatePhotoAngle = async (photo: PhotoData, newAngle: 'frente' | 'lado' | 'lado_2' | 'costas') => {
+    if (!patient) return;
+    
+    // Salvar posição do scroll antes de atualizar
+    const scrollPosition = window.scrollY;
+    
+    setIsUpdatingAngle(true);
+    try {
+      if (photo.isInitial) {
+        // Atualizar foto inicial do paciente
+        if (!patient.id) {
+          throw new Error('ID do paciente não encontrado');
+        }
+
+        const fieldMap: Record<string, string> = {
+          'frente': 'foto_inicial_frente',
+          'lado': 'foto_inicial_lado',
+          'lado_2': 'foto_inicial_lado_2',
+          'costas': 'foto_inicial_costas'
+        };
+
+        const oldField = fieldMap[photo.angle || ''];
+        const newField = fieldMap[newAngle];
+
+        if (!oldField || !newField) {
+          throw new Error('Ângulo da foto não identificado');
+        }
+
+        // Se o novo campo é diferente do antigo, fazer a troca
+        if (oldField !== newField) {
+          // Buscar foto atual do novo campo (se existir)
+          const { data: currentPatient } = await supabase
+            .from('patients')
+            .select(`${oldField}, ${newField}`)
+            .eq('id', patient.id)
+            .single();
+
+          const photoUrl = (currentPatient as any)?.[oldField];
+          const existingPhotoUrl = (currentPatient as any)?.[newField];
+
+          // Fazer a troca
+          const updates: any = {
+            [oldField]: existingPhotoUrl || null,
+            [newField]: photoUrl
+          };
+
+          const { error } = await supabase
+            .from('patients')
+            .update(updates)
+            .eq('id', patient.id);
+
+          if (error) throw error;
+
+          toast({
+            title: "Ângulo atualizado com sucesso",
+            description: `Foto movida de ${photo.angle} para ${newAngle}`,
+          });
+        }
+      } else {
+        // Atualizar foto de check-in
+        const fieldMap: Record<number, string> = {
+          1: 'foto_1',
+          2: 'foto_2',
+          3: 'foto_3',
+          4: 'foto_4'
+        };
+
+        const angleToFieldMap: Record<string, number> = {
+          'frente': 1,
+          'lado': 2,
+          'lado_2': 3,
+          'costas': 4
+        };
+
+        const oldFieldNumber = photo.photoNumber;
+        const newFieldNumber = angleToFieldMap[newAngle];
+        const oldField = fieldMap[oldFieldNumber];
+        const newField = fieldMap[newFieldNumber];
+
+        if (!oldField || !newField) {
+          throw new Error('Campo da foto não identificado');
+        }
+
+        // Se o novo campo é diferente do antigo, fazer a troca
+        if (oldField !== newField) {
+          // Buscar check-in atual
+          const { data: currentCheckin } = await supabase
+            .from('checkin')
+            .select(`${oldField}, ${newField}`)
+            .eq('id', photo.checkinId)
+            .single();
+
+          const photoUrl = (currentCheckin as any)?.[oldField];
+          const existingPhotoUrl = (currentCheckin as any)?.[newField];
+
+          // Fazer a troca
+          const updates: any = {
+            [oldField]: existingPhotoUrl || null,
+            [newField]: photoUrl
+          };
+
+          const { error } = await supabase
+            .from('checkin')
+            .update(updates)
+            .eq('id', photo.checkinId);
+
+          if (error) throw error;
+
+          toast({
+            title: "Ângulo atualizado com sucesso",
+            description: `Foto movida de ${photo.angle} para ${newAngle}`,
+          });
+        }
+      }
+
+      // Recarregar dados
+      if (onPhotoDeleted) {
+        onPhotoDeleted();
+      }
+      
+      // Restaurar posição do scroll após um pequeno delay para garantir que o DOM foi atualizado
+      setTimeout(() => {
+        window.scrollTo(0, scrollPosition);
+      }, 100);
+    } catch (error) {
+      console.error('Erro ao atualizar ângulo da foto:', error);
+      toast({
+        title: "Erro ao atualizar ângulo",
+        description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingAngle(false);
+    }
   };
 
   // Função para deletar foto
@@ -542,12 +760,12 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                   )}
                   {patientWithData.foto_inicial_lado && (
                     <div>
-                      <strong>Lado:</strong> {patientWithData.foto_inicial_lado.substring(0, 80)}...
+                      <strong>Lado D:</strong> {patientWithData.foto_inicial_lado.substring(0, 80)}...
                     </div>
                   )}
                   {patientWithData.foto_inicial_lado_2 && (
                     <div>
-                      <strong>Lado 2:</strong> {patientWithData.foto_inicial_lado_2.substring(0, 80)}...
+                      <strong>Lado E:</strong> {patientWithData.foto_inicial_lado_2.substring(0, 80)}...
                     </div>
                   )}
                   {patientWithData.foto_inicial_costas && (
@@ -586,13 +804,24 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
             </div>
             <div className="flex items-center gap-2">
               {patient && (
-                <AddCheckinPhotos
-                  telefone={patient.telefone}
-                  nome={patient.nome || 'Paciente'}
-                  onSuccess={() => {
-                    if (onPhotoDeleted) onPhotoDeleted();
-                  }}
-                />
+                <>
+                  <AddCheckinPhotos
+                    telefone={patient.telefone}
+                    nome={patient.nome || 'Paciente'}
+                    onSuccess={() => {
+                      if (onPhotoDeleted) onPhotoDeleted();
+                    }}
+                  />
+                  {checkins.length > 0 && (
+                    <Button
+                      onClick={() => setShowComparisonModal(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Comparar Fotos
+                    </Button>
+                  )}
+                </>
               )}
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
@@ -617,25 +846,6 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
               transition={{ duration: 0.3 }}
             >
               <CardContent className="space-y-6">
-          {/* Comparação Antes/Depois - Substituído por botão */}
-          {patient && checkins.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <ChevronRight className="w-5 h-5 text-emerald-400" />
-                  Comparação de Fotos
-                </h3>
-                <Button
-                  onClick={() => setShowComparisonModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Comparar Fotos
-                </Button>
-              </div>
-            </div>
-          )}
-          
           {/* Seção antiga de comparação removida - mantida apenas para referência */}
           {false && allPhotos.length >= 2 && firstPhoto && lastPhoto && (
             <div className="space-y-4">
@@ -861,90 +1071,198 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
             </div>
           )}
 
-          {/* Galeria de Todas as Fotos */}
-          <div className="space-y-4">
+          {/* Galeria de Todas as Fotos Agrupadas por Data */}
+          <div className="space-y-6">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <Camera className="w-5 h-5 text-purple-400" />
-              Galeria Completa ({allPhotos.length})
+              Galeria Completa ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allPhotos.map((photo, index) => (
-                <div key={`${photo.checkinId}-${photo.photoNumber}`} className="space-y-2">
-                  <div className="relative group">
-                    {photo.isVideo ? (
-                      <video 
-                        src={photo.url} 
-                        controls
-                        className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
-                      />
-                    ) : isGoogleDriveUrl(photo.url) ? (
-                      <GoogleDriveImage
-                        src={photo.url}
-                        alt={`Foto ${index + 1}`}
-                        className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
-                        onClick={() => handleZoomPhoto(photo)}
-                        onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
-                      />
-                    ) : imageErrors.has(getPhotoId(photo)) ? (
-                      <div className="w-full h-48 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border border-slate-600">
-                        <ExternalLink className="h-8 w-8 text-slate-400 mb-2" />
-                        <p className="text-xs text-slate-300 mb-2 px-2 text-center">Foto não disponível</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => window.open(photo.url, '_blank')}
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          Abrir
-                        </Button>
-                      </div>
-                    ) : (
-                      <img
-                        src={getPhotoUrl(photo)}
-                        alt={`Foto ${index + 1}`}
-                        loading="lazy"
-                        className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
-                        onClick={() => handleZoomPhoto(photo)}
-                        onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
-                      />
-                    )}
-                    <Badge className={`absolute top-2 left-2 ${photo.isInitial ? 'bg-purple-600/90' : 'bg-slate-800/90'} text-white text-xs`}>
-                      {photo.isInitial ? '⭐' : `#${index + 1}`}
+            
+            {sortedDates.map((date, dateIndex) => {
+              const photosForDate = photosByDate[date];
+              const isInitialDate = photosForDate[0]?.isInitial;
+              
+              return (
+                <div key={date} className="space-y-3">
+                  {/* Cabeçalho da Data */}
+                  <div className="flex items-center gap-3 pb-2 border-b border-slate-700/50">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <h4 className="text-base font-semibold text-white">
+                        {date}
+                      </h4>
+                      {isInitialDate && (
+                        <Badge className="bg-purple-600/90 text-white text-xs">
+                          ⭐ Baseline
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex-1" />
+                    <Badge variant="outline" className="text-slate-400 border-slate-600">
+                      {photosForDate.length} {photosForDate.length === 1 ? 'foto' : 'fotos'}
                     </Badge>
-                    {/* Botão de download */}
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="absolute top-2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadPhoto(photo.url, `Foto-${photo.date}-${photo.weight}kg`);
-                      }}
-                      title="Baixar foto"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    {/* Botão de deletar */}
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPhotoToDelete(photo);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {photosForDate[0]?.weight && photosForDate[0].weight !== 'N/A' && (
+                      <Badge variant="outline" className="text-blue-400 border-blue-600/50">
+                        {photosForDate[0].weight} kg
+                      </Badge>
+                    )}
                   </div>
-                  <div className="text-xs text-center">
-                    <p className="text-slate-400">{photo.date}</p>
-                    <p className="text-white font-semibold">{photo.weight} kg</p>
+
+                  {/* Grid de Fotos para esta Data */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {photosForDate.map((photo, photoIndex) => {
+                      // Encontrar índice global para badge
+                      const globalIndex = allPhotos.findIndex(p => 
+                        p.checkinId === photo.checkinId && p.photoNumber === photo.photoNumber
+                      );
+                      
+                      return (
+                        <div key={`${photo.checkinId}-${photo.photoNumber}`} className="space-y-2">
+                          <div className="relative group">
+                            {photo.isVideo ? (
+                              <video 
+                                src={photo.url} 
+                                controls
+                                className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
+                              />
+                            ) : isGoogleDriveUrl(photo.url) ? (
+                              <GoogleDriveImage
+                                src={photo.url}
+                                alt={`Foto ${globalIndex + 1}`}
+                                className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                                onClick={() => handleZoomPhoto(photo)}
+                                onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
+                              />
+                            ) : imageErrors.has(getPhotoId(photo)) ? (
+                              <div className="w-full h-48 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border border-slate-600">
+                                <ExternalLink className="h-8 w-8 text-slate-400 mb-2" />
+                                <p className="text-xs text-slate-300 mb-2 px-2 text-center">Foto não disponível</p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() => window.open(photo.url, '_blank')}
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Abrir
+                                </Button>
+                              </div>
+                            ) : (
+                              <img
+                                src={getPhotoUrl(photo)}
+                                alt={`Foto ${globalIndex + 1}`}
+                                loading="lazy"
+                                className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                                onClick={() => handleZoomPhoto(photo)}
+                                onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
+                              />
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className={`absolute top-2 left-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${photo.isInitial ? 'bg-purple-600/90 border-transparent' : 'bg-blue-600/90 border-transparent'} text-white cursor-pointer hover:opacity-80 transition-opacity z-10`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  {photo.angle === 'frente' ? '📷 Frente' : 
+                                   photo.angle === 'lado' ? '📷 Lado D' : 
+                                   photo.angle === 'lado_2' ? '📷 Lado E' : 
+                                   photo.angle === 'costas' ? '📷 Costas' : 
+                                   photo.isInitial ? '⭐' : `#${globalIndex + 1}`}
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-slate-800 border-slate-600 z-50" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (photo.angle !== 'frente') {
+                                      handleUpdatePhotoAngle(photo, 'frente');
+                                    }
+                                  }}
+                                  disabled={isUpdatingAngle || photo.angle === 'frente'}
+                                  className="text-white hover:bg-slate-700 cursor-pointer"
+                                >
+                                  📷 Frente {photo.angle === 'frente' && '✓'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (photo.angle !== 'lado') {
+                                      handleUpdatePhotoAngle(photo, 'lado');
+                                    }
+                                  }}
+                                  disabled={isUpdatingAngle || photo.angle === 'lado'}
+                                  className="text-white hover:bg-slate-700 cursor-pointer"
+                                >
+                                  📷 Lado D {photo.angle === 'lado' && '✓'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (photo.angle !== 'lado_2') {
+                                      handleUpdatePhotoAngle(photo, 'lado_2');
+                                    }
+                                  }}
+                                  disabled={isUpdatingAngle || photo.angle === 'lado_2'}
+                                  className="text-white hover:bg-slate-700 cursor-pointer"
+                                >
+                                  📷 Lado E {photo.angle === 'lado_2' && '✓'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (photo.angle !== 'costas') {
+                                      handleUpdatePhotoAngle(photo, 'costas');
+                                    }
+                                  }}
+                                  disabled={isUpdatingAngle || photo.angle === 'costas'}
+                                  className="text-white hover:bg-slate-700 cursor-pointer"
+                                >
+                                  📷 Costas {photo.angle === 'costas' && '✓'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            {/* Botão de download */}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="absolute top-2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadPhoto(photo.url, `Foto-${photo.date}-${photo.weight}kg`);
+                              }}
+                              title="Baixar foto"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            {/* Botão de deletar */}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPhotoToDelete(photo);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="text-xs text-center">
+                            <p className="text-white font-semibold">{photo.weight} kg</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
               </CardContent>
             </motion.div>

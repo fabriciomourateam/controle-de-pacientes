@@ -138,8 +138,8 @@ export function CheckinPhotosViewer({
         
         const initialPhotos = [
           { url: patient.foto_inicial_frente, label: 'Frente' },
-          { url: patient.foto_inicial_lado, label: 'Lado' },
-          { url: patient.foto_inicial_lado_2, label: 'Lado 2' },
+          { url: patient.foto_inicial_lado, label: 'Lado D' },
+          { url: patient.foto_inicial_lado_2, label: 'Lado E' },
           { url: patient.foto_inicial_costas, label: 'Costas' }
         ];
 

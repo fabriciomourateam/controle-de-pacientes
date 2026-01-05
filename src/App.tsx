@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UpdateNotification } from "@/components/UpdateNotification";
-import { ChangeNotification } from "@/components/ui/change-notification";
+import { RealtimeUpdater } from "@/components/RealtimeUpdater";
 import "./test-theme.css";
 
 // Componentes leves - import direto
@@ -79,7 +79,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <UpdateNotification />
-          <ChangeNotification />
+          <RealtimeUpdater />
           <BrowserRouter>
         <Routes>
           {/* Rotas públicas - não requerem autenticação */}
