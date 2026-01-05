@@ -268,7 +268,7 @@ export default function PatientPortal() {
           .from('patients')
           .select('*')
           .eq('telefone', telefone)
-          .single(),
+          .maybeSingle(),
         (async () => {
           let bioQuery = (supabase as any)
             .from('body_composition')
@@ -294,11 +294,21 @@ export default function PatientPortal() {
       }
       
       setCheckins(checkinsData);
-      setPatient(patientResult.data);
       
-      // Salvar patient_id para usar nos componentes de dieta
-      if (patientResult.data?.id) {
-        setPatientId(patientResult.data.id);
+      // Tratar erro 406 (RLS) graciosamente
+      if (patientResult.error) {
+        if ((patientResult.error as any).status === 406 || (patientResult.error as any).code === 'PGRST200') {
+          console.warn('⚠️ Acesso negado ao paciente (RLS). Verifique as políticas RLS.');
+        } else {
+          console.error('Erro ao buscar paciente:', patientResult.error);
+        }
+      } else if (patientResult.data) {
+        setPatient(patientResult.data);
+        
+        // Salvar patient_id para usar nos componentes de dieta
+        if (patientResult.data.id) {
+          setPatientId(patientResult.data.id);
+        }
       }
 
       if (bioResult.data) {

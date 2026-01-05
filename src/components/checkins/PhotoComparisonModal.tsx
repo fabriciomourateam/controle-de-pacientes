@@ -289,13 +289,15 @@ export function PhotoComparisonModal({
       
       if (type === 'initial') {
         fileName = `${telefone}_inicial_${angle}_${Date.now()}.${fileExt}`;
-        filePath = `patient-photos/${fileName}`;
+        // Não incluir o nome do bucket no caminho, pois .from() já especifica o bucket
+        filePath = fileName;
       } else {
         const checkinIdForUpload = type === 'current' ? checkinId : previousCheckinIdState;
         if (!checkinIdForUpload) return null;
         const photoIndex = angle === 'frente' ? 1 : angle === 'lado' ? 2 : angle === 'lado_2' ? 3 : 4;
         fileName = `${telefone}_checkin_${checkinIdForUpload}_foto${photoIndex}_${Date.now()}.${fileExt}`;
-        filePath = `patient-photos/${fileName}`;
+        // Não incluir o nome do bucket no caminho, pois .from() já especifica o bucket
+        filePath = fileName;
       }
 
       const { error: uploadError } = await supabase.storage

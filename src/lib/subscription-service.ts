@@ -65,30 +65,42 @@ async function isAdminOrAdminTeamMember(userId: string): Promise<boolean> {
     console.log('🔍 Verificando se user_id', userId, 'é membro da equipe do admin');
 
     // 3. Verificar se é membro da equipe do admin
+    // Primeiro tentar buscar o próprio registro (membro sempre pode ver a si mesmo)
     const { data: teamMember, error: teamError } = await supabase
-      .from('team_members')
+      .from('team_members' as any)
       .select('id, email, is_active, owner_id')
       .eq('user_id', userId)
-      .eq('owner_id', ADMIN_USER_ID)
-      .single();
+      .eq('is_active', true)
+      .maybeSingle() as any;
 
     if (teamError) {
-      console.log('❌ Não é membro da equipe do admin:', teamError.message);
+      console.log('❌ Erro ao buscar registro do membro:', teamError.message, teamError.code);
+      // Se for erro de permissão (RLS), pode ser que a política não esteja funcionando
+      if (teamError.code === 'PGRST301' || teamError.code === '42501') {
+        console.warn('⚠️ Erro de permissão RLS - a política pode precisar ser ajustada');
+        console.warn('💡 Execute o SQL: sql/fix-team-members-rls-ensure-member-access.sql');
+      }
       return false;
     }
 
     if (teamMember) {
-      console.log('✅ É membro da equipe do admin:', teamMember);
-      // Verificar se está ativo
-      if (teamMember.is_active) {
-        console.log('✅ Membro ativo - liberando acesso');
-        return true;
+      // Verificar se o owner_id é do admin
+      if (teamMember.owner_id === ADMIN_USER_ID) {
+        console.log('✅ É membro da equipe do admin:', teamMember);
+        if (teamMember.is_active) {
+          console.log('✅ Membro ativo - liberando acesso');
+          return true;
+        } else {
+          console.log('⚠️ Membro inativo:', { is_active: teamMember.is_active });
+          return false;
+        }
       } else {
-        console.log('⚠️ Membro inativo:', { is_active: teamMember.is_active });
+        console.log('ℹ️ É membro de equipe, mas não do admin. Owner ID:', teamMember.owner_id);
         return false;
       }
     }
 
+    console.log('ℹ️ Não encontrado registro em team_members para user_id:', userId);
     return false;
   } catch (error) {
     console.error('❌ Erro ao verificar admin/team member:', error);

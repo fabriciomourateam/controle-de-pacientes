@@ -187,8 +187,6 @@ export default function PatientEvolution() {
             throw new Error('Fetch falhou');
           }
         } catch (fetchError) {
-          console.log('Fetch falhou, tentando método alternativo...', fetchError);
-          
           // Fallback: tentar converter URL para formato direto
           const directUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
           
@@ -215,8 +213,6 @@ export default function PatientEvolution() {
               throw new Error('Thumbnail fetch falhou');
             }
           } catch (thumbnailError) {
-            console.log('Thumbnail fetch falhou, abrindo em nova aba...', thumbnailError);
-            
             // Último recurso: abrir em nova aba
             const fallbackUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
             window.open(fallbackUrl, '_blank');
@@ -256,8 +252,6 @@ export default function PatientEvolution() {
             throw new Error('Fetch direto falhou');
           }
         } catch (directError) {
-          console.log('Fetch direto falhou, usando método tradicional...', directError);
-          
           // Fallback para método tradicional
           const link = document.createElement('a');
           link.href = url;
@@ -319,7 +313,10 @@ export default function PatientEvolution() {
   };
 
   const loadEvolution = async () => {
-    if (!telefone) {
+    // Usar telefone do paciente (do banco) se disponível, senão usar da URL
+    const telefoneToUse = patient?.telefone || telefone;
+    
+    if (!telefoneToUse) {
       toast({
         title: 'Erro',
         description: 'Telefone do paciente não informado',
@@ -332,19 +329,22 @@ export default function PatientEvolution() {
     try {
       setLoading(true);
       
+      // Limpar telefone antes de usar
+      const cleanTelefone = telefoneToUse?.trim().replace(/\s+/g, '') || telefoneToUse;
+      
       // Buscar check-ins do paciente
-      const checkinsData = await checkinService.getByPhone(telefone);
+      const checkinsData = await checkinService.getByPhone(cleanTelefone);
       
       // Migrar dados atuais para check-in separado se necessário (antes de setCheckins)
       let needsRefetch = false;
       if (checkinsData.length > 0) {
-        needsRefetch = await migrateCurrentDataToCheckin(telefone, checkinsData);
+        needsRefetch = await migrateCurrentDataToCheckin(cleanTelefone, checkinsData);
       }
       
       // ✅ Só buscar novamente se houve migração (otimização: evita query duplicada)
       let finalCheckinsData = checkinsData;
       if (needsRefetch) {
-        finalCheckinsData = await checkinService.getByPhone(telefone);
+        finalCheckinsData = await checkinService.getByPhone(cleanTelefone);
         setCheckins(finalCheckinsData);
       } else {
         setCheckins(checkinsData);
@@ -356,43 +356,67 @@ export default function PatientEvolution() {
       }
 
       // Buscar dados do paciente
+      // Usar o telefone limpo que já foi calculado acima
       const { data: patientData, error } = await supabase
         .from('patients')
         .select('*')
-        .eq('telefone', telefone)
-        .single();
+        .eq('telefone', cleanTelefone)
+        .maybeSingle();
 
       if (error) {
-        console.error('Erro ao buscar paciente:', error);
-      } else {
-        console.log('📋 Dados do paciente carregados:', patientData);
-        console.log('📸 Fotos iniciais:', {
-          frente: patientData?.foto_inicial_frente,
-          lado: patientData?.foto_inicial_lado,
-          costas: patientData?.foto_inicial_costas,
-          peso: patientData?.peso_inicial,
-          altura: patientData?.altura_inicial
-        });
+        // Erro 406 geralmente indica problema de RLS - não é crítico, apenas logar
+        if ((error as any).status === 406 || (error as any).code === 'PGRST200') {
+          console.warn('Acesso negado ao paciente (RLS). Execute o SQL fix-patients-rls-final.sql no Supabase.');
+        } else {
+          console.error('Erro ao buscar paciente:', error);
+        }
+        // Não definir patient como null para não quebrar a página
+        // Os check-ins já foram carregados, então a página pode funcionar sem dados do paciente
+      } else if (patientData) {
         setPatient(patientData);
+      } else {
+        // Tentar buscar com TRIM no banco (caso ainda tenha espaços)
+        const { data: altPatientData } = await supabase
+          .from('patients')
+          .select('*')
+          .ilike('telefone', `%${cleanTelefone}%`)
+          .limit(1)
+          .maybeSingle();
+        if (altPatientData) {
+          setPatient(altPatientData);
+        }
       }
 
       // ✅ OTIMIZAÇÃO BÁSICA: Adicionar limite para reduzir egress
       // Buscar bioimpedâncias (mantém select('*') para compatibilidade total)
-      let bioQuery = supabase
-        .from('body_composition')
-        .select('*')
-        .eq('telefone', telefone)
-        .order('data_avaliacao', { ascending: false });
-      
-      // Aplicar limite apenas se fornecido
-      if (bioLimit !== null && bioLimit !== undefined) {
-        bioQuery = bioQuery.limit(bioLimit);
-      }
-      
-      const { data: bioData } = await bioQuery;
-      
-      if (bioData) {
-        setBodyCompositions(bioData);
+      try {
+        let bioQuery = supabase
+          .from('body_composition')
+          .select('*')
+          .eq('telefone', cleanTelefone)
+          .order('data_avaliacao', { ascending: false });
+        
+        // Aplicar limite apenas se fornecido
+        if (bioLimit !== null && bioLimit !== undefined) {
+          bioQuery = bioQuery.limit(bioLimit);
+        }
+        
+        const { data: bioData, error: bioError } = await bioQuery;
+        
+        if (bioError) {
+          // Erro 406 geralmente indica problema de RLS - não é crítico
+          if ((bioError as any).status === 406 || (bioError as any).code === 'PGRST200') {
+            console.warn('⚠️ Acesso negado a body_composition (RLS). Verifique as políticas RLS.');
+          } else {
+            console.error('Erro ao buscar body_composition:', bioError);
+          }
+          // Continuar sem dados de bioimpedância
+        } else if (bioData) {
+          setBodyCompositions(bioData);
+        }
+      } catch (bioErr) {
+        // Ignorar erros de body_composition - não é crítico para a página funcionar
+        console.warn('Erro ao buscar body_composition:', bioErr);
       }
     } catch (error) {
       console.error('Erro ao carregar evolução:', error);
@@ -517,41 +541,74 @@ export default function PatientEvolution() {
 
   const handleInitialDataSuccess = async () => {
     // Recarregar dados do paciente após adicionar dados iniciais
-    if (!telefone) return;
+    // Usar o telefone do paciente (do banco) em vez do telefone da URL
+    const telefoneToUse = patient?.telefone || telefone;
+    if (!telefoneToUse) return;
     
-    const { data: patientData } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('telefone', telefone)
-      .single();
+    // Limpar telefone antes de buscar
+    const cleanTelefone = telefoneToUse?.trim().replace(/\s+/g, '') || telefoneToUse;
     
-    if (patientData) {
-      setPatient(patientData);
+    try {
+      // Aguardar um pouco para garantir que o banco foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Recarregar paciente diretamente primeiro
+      const { data: updatedPatient, error: patientError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('telefone', cleanTelefone)
+        .maybeSingle();
+      
+      if (patientError) {
+        console.error('Erro ao buscar paciente atualizado:', patientError);
+      } else if (updatedPatient) {
+        setPatient(updatedPatient);
+      }
+      
+      // Depois recarregar tudo com loadEvolution()
+      await loadEvolution();
+      
+      toast({
+        title: 'Dados atualizados',
+        description: 'Os dados iniciais foram salvos e carregados com sucesso'
+      });
+    } catch (error) {
+      console.error('❌ Erro ao recarregar evolução:', error);
+      toast({
+        title: 'Aviso',
+        description: 'Dados salvos, mas houve problema ao recarregar. Recarregue a página manualmente.',
+        variant: 'default'
+      });
     }
-    
-    toast({
-      title: 'Dados atualizados',
-      description: 'Os dados iniciais foram carregados'
-    });
   };
 
   const handleCurrentDataSuccess = async () => {
     // Recarregar dados do paciente após adicionar dados atuais
-    if (!telefone) return;
+    // Usar o telefone do paciente (do banco) em vez do telefone da URL
+    const telefoneToUse = patient?.telefone || telefone;
+    if (!telefoneToUse) return;
     
-    const { data: patientData } = await supabase
+    // Limpar telefone antes de buscar
+    const cleanTelefone = telefoneToUse?.trim().replace(/\s+/g, '') || telefoneToUse;
+    
+    const { data: patientData, error } = await supabase
       .from('patients')
       .select('*')
-      .eq('telefone', telefone)
-      .single();
+      .eq('telefone', cleanTelefone)
+      .maybeSingle();
     
-    if (patientData) {
+    if (error) {
+      console.error('Erro ao buscar paciente atualizado:', error);
+    } else if (patientData) {
       setPatient(patientData);
     }
     
+    // Recarregar tudo
+    await loadEvolution();
+    
     toast({
       title: 'Dados atualizados',
-      description: 'Os dados atuais foram carregados'
+      description: 'Os dados atuais foram salvos e carregados com sucesso'
     });
   };
 
@@ -653,9 +710,7 @@ export default function PatientEvolution() {
         } as any)
         .eq('telefone', telefone);
 
-      if (migrationHappened) {
-        console.log('✅ Dados atuais migrados para check-in com sucesso');
-      }
+      // Migração silenciosa
       return migrationHappened;
     } catch (error) {
       console.error('Erro ao migrar dados atuais:', error);
@@ -674,8 +729,6 @@ export default function PatientEvolution() {
     );
 
     if (checkinsWithTypebotPhotos.length > 0) {
-      console.log(`🔍 Detectadas ${checkinsWithTypebotPhotos.length} check-ins com fotos do Typebot`);
-      
       setMigrating(true);
       
       let migratedCount = 0;
@@ -886,7 +939,7 @@ export default function PatientEvolution() {
               </DropdownMenu>
               
               <PortalLinkButton 
-                telefone={telefone!} 
+                telefone={patient?.telefone || telefone!} 
                 patientName={patient?.nome || 'Paciente'} 
               />
               
@@ -908,7 +961,7 @@ export default function PatientEvolution() {
               )}
               
               <BioimpedanciaInput
-                telefone={telefone!}
+                telefone={patient?.telefone || telefone!}
                 nome={patient?.nome || 'Paciente'}
                 idade={patient?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
                 altura={(patient as any)?.altura_inicial || null}
@@ -1060,7 +1113,7 @@ export default function PatientEvolution() {
                           Peso Inicial
                         </div>
                         <InitialDataInput
-                          telefone={telefone!}
+                          telefone={patient?.telefone || telefone!}
                           nome={patient?.nome || 'Paciente'}
                           onSuccess={handleInitialDataSuccess}
                           editMode={true}
@@ -1204,12 +1257,12 @@ export default function PatientEvolution() {
                 </div>
                 <div className="flex flex-wrap gap-3 justify-center">
                   <InitialDataInput
-                    telefone={telefone!}
+                    telefone={patient?.telefone || telefone!}
                     nome={patient?.nome || 'Paciente'}
                     onSuccess={handleInitialDataSuccess}
                   />
                   <CurrentDataInput
-                    telefone={telefone!}
+                    telefone={patient?.telefone || telefone!}
                     nome={patient?.nome || 'Paciente'}
                     onSuccess={handleCurrentDataSuccess}
                   />
@@ -1222,14 +1275,18 @@ export default function PatientEvolution() {
 
           {/* Dados Iniciais (quando não há check-ins mas há fotos/medidas cadastradas) */}
           {(() => {
-            const hasInitialData = patient && (patient.foto_inicial_frente || patient.foto_inicial_lado || patient.foto_inicial_lado_2 || patient.foto_inicial_costas || patient.peso_inicial || patient.altura_inicial);
-            console.log('🔍 Verificando dados iniciais:', {
-              checkinsLength: checkins.length,
-              hasPatient: !!patient,
-              hasInitialData,
-              patient: patient
-            });
-            return checkins.length === 0 && hasInitialData;
+            const hasInitialData = patient && (
+              patient.foto_inicial_frente || 
+              patient.foto_inicial_lado || 
+              patient.foto_inicial_lado_2 || 
+              patient.foto_inicial_costas || 
+              patient.peso_inicial || 
+              patient.altura_inicial ||
+              patient.medida_cintura_inicial ||
+              patient.medida_quadril_inicial
+            );
+            const shouldShow = checkins.length === 0 && hasInitialData;
+            return shouldShow;
           })() && (
             <Card className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 backdrop-blur-sm border-purple-700/50">
               <CardHeader>
@@ -1511,11 +1568,11 @@ export default function PatientEvolution() {
 
                 {/* Botão para editar */}
                 <div className="flex justify-center pt-4">
-                  <InitialDataInput
-                    telefone={telefone!}
-                    nome={patient?.nome || 'Paciente'}
-                    onSuccess={handleInitialDataSuccess}
-                  />
+                        <InitialDataInput
+                          telefone={patient?.telefone || telefone!}
+                          nome={patient?.nome || 'Paciente'}
+                          onSuccess={handleInitialDataSuccess}
+                        />
                 </div>
               </CardContent>
             </Card>
@@ -1688,7 +1745,7 @@ export default function PatientEvolution() {
                   {/* Botão para editar */}
                   <div className="flex justify-center pt-4">
                     <CurrentDataInput
-                      telefone={telefone!}
+                      telefone={patient?.telefone || telefone!}
                       nome={patient?.nome || 'Paciente'}
                       onSuccess={handleCurrentDataSuccess}
                       editMode={true}
@@ -2181,12 +2238,7 @@ export default function PatientEvolution() {
             telefone={telefone}
             onSuccess={() => {
               // Forçar atualização do histórico de exames
-              console.log('🔄 PatientEvolution: onSuccess chamado, incrementando refreshTrigger');
-              setChartsRefreshTrigger(prev => {
-                const newValue = prev + 1;
-                console.log('🔄 PatientEvolution: refreshTrigger atualizado de', prev, 'para', newValue);
-                return newValue;
-              });
+              setChartsRefreshTrigger(prev => prev + 1);
             }}
           />
         )}

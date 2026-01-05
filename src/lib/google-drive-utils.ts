@@ -54,14 +54,12 @@ export function convertGoogleDriveUrl(url: string | null, isVideo: boolean = fal
 
     // Se encontrou o ID, retorna URL apropriada
     if (fileId) {
-      console.log('✅ ID extraído do Google Drive:', fileId);
       // Usar formato uc?export=view que funciona melhor para imagens e vídeos
       // Este formato requer que o arquivo esteja compartilhado publicamente
       return `https://drive.google.com/uc?export=view&id=${fileId}`;
     }
 
     // Se não conseguiu extrair, retorna a URL original
-    console.warn('⚠️ Não foi possível extrair ID da URL:', url);
     return url;
   } catch (error) {
     console.error('❌ Erro ao converter URL do Google Drive:', error);
@@ -74,10 +72,7 @@ export function convertGoogleDriveUrl(url: string | null, isVideo: boolean = fal
  */
 export function isGoogleDriveUrl(url: string | null): boolean {
   if (!url) {
-    console.log('⚠️ isGoogleDriveUrl: URL é null/undefined');
     return false;
   }
-  const result = url.includes('drive.google.com');
-  console.log('🔍 isGoogleDriveUrl:', { url: url.substring(0, 50) + '...', result });
-  return result;
+  return url.includes('drive.google.com');
 }

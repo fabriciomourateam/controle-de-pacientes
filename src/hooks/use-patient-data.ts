@@ -18,13 +18,21 @@ export function usePatientByTelefone(telefone: string | undefined) {
       if (!telefone) return null;
       
       // Query direta com select('*') - mantém compatibilidade total
+      // Usa maybeSingle() para não lançar erro quando não encontra ou RLS bloqueia
       const { data, error } = await supabase
         .from('patients')
         .select('*')
         .eq('telefone', telefone)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      // Erro 406 indica problema de RLS - retornar null sem lançar erro
+      if (error) {
+        if ((error as any).status === 406 || (error as any).code === 'PGRST200') {
+          console.warn('⚠️ Acesso negado ao paciente (RLS). Verifique as políticas RLS.');
+          return null;
+        }
+        throw error;
+      }
       return data;
     },
     enabled: !!telefone,

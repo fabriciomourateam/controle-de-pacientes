@@ -58,16 +58,47 @@ export function useCheckinManagement() {
     
     teamMembersPromise = (async () => {
       try {
-        // Buscar membros da equipe com nome
+        // Primeiro, determinar o owner_id correto
+        // Se o usuário é owner, usar user.id
+        // Se o usuário é membro, buscar o owner_id dele
+        let actualOwnerId = user.id;
+        
+        // Verificar se o usuário é membro (não owner)
+        const { data: userAsMember } = await supabase
+          .from("team_members")
+          .select("owner_id")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        // Se encontrou registro como membro, usar o owner_id dele
+        if (userAsMember?.owner_id) {
+          actualOwnerId = userAsMember.owner_id;
+        }
+        
+        // Buscar todos os membros da equipe
+        // Com a política RLS corrigida, membros podem ver outros membros do mesmo owner
         const { data: members, error } = await supabase
           .from("team_members")
           .select("user_id, name, email")
-          .eq("owner_id", user.id);
+          .eq("owner_id", actualOwnerId)
+          .eq("is_active", true)
+          .not("user_id", "is", null); // Apenas membros que já aceitaram o convite
 
-        if (error) throw error;
-
-        // Buscar informações do perfil do usuário atual (tentar user_profiles primeiro, depois profiles)
-        let ownerName = user.email || "Você";
+        if (error) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Erro ao buscar membros da equipe:', error);
+          }
+          throw error;
+        }
+        
+        // Determinar se o usuário atual é o owner (após a busca)
+        const isCurrentUserOwner = actualOwnerId === user.id;
+        
+        // Debug removido para reduzir logs no console
+        
+        // Buscar informações do perfil do usuário atual
+        let currentUserName = user.email || "Você";
         
         // Tentar buscar de user_profiles primeiro
         const { data: userProfile } = await supabase
@@ -76,72 +107,217 @@ export function useCheckinManagement() {
           .eq("id", user.id)
           .maybeSingle();
         
-        if (userProfile?.name) {
-          ownerName = userProfile.name;
+        if (userProfile?.name && !userProfile.name.includes('@')) {
+          // Só usar se não for email
+          currentUserName = userProfile.name;
         } else {
-          // Tentar buscar de profiles
+          // Tentar buscar de profiles (apenas full_name, não tem coluna name)
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name, name")
+            .select("full_name")
             .eq("id", user.id)
             .maybeSingle();
           
-          if (profile?.full_name || profile?.name) {
-            ownerName = profile.full_name || profile.name || ownerName;
+          if (profile?.full_name) {
+            // Só usar se não for email
+            if (!profile.full_name.includes('@')) {
+              currentUserName = profile.full_name;
+            }
+          }
+          
+          // Se ainda não encontrou nome válido, tentar buscar de team_members
+          if (currentUserName.includes('@')) {
+            const { data: teamMemberRecord } = await supabase
+              .from("team_members" as any)
+              .select("name")
+              .eq("user_id", user.id)
+              .eq("is_active", true)
+              .maybeSingle() as any;
+            
+            if (teamMemberRecord?.name && !teamMemberRecord.name.includes('@')) {
+              currentUserName = teamMemberRecord.name;
+            }
+          }
+        }
+        
+        // Buscar informações do owner (se o usuário atual não for o owner)
+        let ownerName = currentUserName;
+        let ownerEmail = "";
+        if (!isCurrentUserOwner) {
+          // Buscar nome do owner
+          const { data: ownerProfile } = await supabase
+            .from("user_profiles")
+            .select("name")
+            .eq("id", actualOwnerId)
+            .maybeSingle();
+          
+          if (ownerProfile?.name) {
+            ownerName = ownerProfile.name;
+          } else {
+            const { data: ownerProfileAlt } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("id", actualOwnerId)
+              .maybeSingle();
+            
+            if (ownerProfileAlt?.full_name) {
+              ownerName = ownerProfileAlt.full_name || "Owner";
+            } else {
+              ownerName = "Owner";
+            }
           }
         }
 
-        // Buscar nomes dos perfis em batch para membros que não têm nome em team_members
-        const membersWithoutNames = (members || []).filter(m => !m.name);
-        const userIdsToFetch = membersWithoutNames.map(m => m.user_id);
+        // Buscar nomes dos perfis em batch para TODOS os membros (incluindo o membro logado e owner)
+        // Isso garante que sempre usamos o nome mais atualizado dos perfis
+        const allMemberIds = (members || []).map(m => m.user_id);
+        
+        // Incluir o membro logado e o owner na busca de perfis
+        const allUserIdsToFetch = [...new Set([...allMemberIds, user.id, actualOwnerId])];
         
         // Buscar todos os perfis de uma vez (mais eficiente)
         let userProfilesMap = new Map<string, string>();
-        if (userIdsToFetch.length > 0) {
+        if (allUserIdsToFetch.length > 0) {
+          // Primeiro tentar buscar de user_profiles (incluindo usuário atual e owner)
           const { data: userProfiles } = await supabase
             .from("user_profiles")
             .select("id, name")
-            .in("id", userIdsToFetch);
+            .in("id", allUserIdsToFetch);
           
           userProfiles?.forEach(p => {
-            if (p.name) userProfilesMap.set(p.id, p.name);
+            // Só adicionar se o nome não for um email (validação básica)
+            if (p.name && !p.name.includes('@')) {
+              userProfilesMap.set(p.id, p.name);
+            }
           });
           
-          // Se ainda faltar, buscar de profiles
-          const missingIds = userIdsToFetch.filter(id => !userProfilesMap.has(id));
+          // Se ainda faltar, buscar de profiles (apenas full_name, não tem coluna name)
+          const missingIds = allUserIdsToFetch.filter(id => !userProfilesMap.has(id));
           if (missingIds.length > 0) {
-            const { data: profiles } = await supabase
-              .from("profiles")
-              .select("id, full_name, name")
-              .in("id", missingIds);
-            
-            profiles?.forEach(p => {
-              const name = p.full_name || p.name;
-              if (name) userProfilesMap.set(p.id, name);
-            });
+            try {
+              const { data: profiles } = await supabase
+                .from("profiles")
+                .select("id, full_name")
+                .in("id", missingIds);
+              
+              profiles?.forEach(p => {
+                // Só adicionar se não for email
+                if (p.full_name && !p.full_name.includes('@')) {
+                  userProfilesMap.set(p.id, p.full_name);
+                }
+              });
+            } catch (error) {
+              // Ignorar erros de profiles (pode não existir ou ter RLS restritivo)
+              // user_profiles já foi buscado acima, então não é crítico
+            }
+          }
+        }
+        
+        // Atualizar o nome do usuário atual usando o mapa de perfis (prioridade máxima)
+        // Mas só se o nome do mapa não for um email
+        const currentUserProfileName = userProfilesMap.get(user.id);
+        if (currentUserProfileName && !currentUserProfileName.includes('@')) {
+          // Só usar se não for email
+          currentUserName = currentUserProfileName;
+        }
+        // Se o nome atual ainda é email, manter o nome da busca inicial (que já foi feita acima)
+        // A busca inicial já tentou buscar de user_profiles e profiles antes
+        
+        if (!isCurrentUserOwner) {
+          const ownerProfileName = userProfilesMap.get(actualOwnerId);
+          if (ownerProfileName) {
+            ownerName = ownerProfileName;
           }
         }
 
-        // Mapear membros com nome
-        const membersWithNames = (members || []).map((member: any) => ({
-          user_id: member.user_id,
-          name: member.name || userProfilesMap.get(member.user_id) || member.email || "Sem nome",
-          email: member.email || "",
-          is_owner: false
-        }));
+        // Mapear membros com nome - priorizar nome do perfil sobre nome em team_members
+        const membersWithNames = (members || []).map((member: any) => {
+          // Prioridade: nome do perfil > nome em team_members > email
+          const profileName = userProfilesMap.get(member.user_id);
+          // Se profileName for email, não usar (já foi validado acima, mas garantir)
+          const validProfileName = profileName && !profileName.includes('@') ? profileName : null;
+          const finalName = validProfileName || member.name || member.email || "Sem nome";
+          
+          return {
+            user_id: member.user_id,
+            name: finalName,
+            email: member.email || "",
+            is_owner: false
+          };
+        });
 
-        // Adicionar o próprio usuário à lista (com nome do perfil se disponível)
-        const allMembers = [
-          { 
-            user_id: user.id, 
-            name: ownerName,
+        // Montar lista completa de membros
+        const allMembers: TeamMember[] = [];
+        
+        // Sempre adicionar o owner primeiro
+        if (isCurrentUserOwner) {
+          // Se o usuário atual é o owner
+          allMembers.push({
+            user_id: user.id,
+            name: currentUserName,
             email: user.email || "",
-            is_owner: true 
-          },
-          ...membersWithNames
-        ];
+            is_owner: true
+          });
+        } else {
+          // Se o usuário atual é membro, adicionar o owner
+          allMembers.push({
+            user_id: actualOwnerId,
+            name: ownerName,
+            email: ownerEmail,
+            is_owner: true
+          });
+        }
+        
+        // Adicionar TODOS os membros da equipe (a tabela team_members não inclui o owner)
+        // Não filtrar nada, incluir todos os membros retornados
+        allMembers.push(...membersWithNames);
+        
+        // Garantir que o usuário atual esteja na lista com o nome correto
+        const currentUserInList = allMembers.find(m => m.user_id === user.id);
+        if (!currentUserInList) {
+          // Se não está na lista, adicionar
+          // Usar nome do perfil se disponível e não for email, senão usar email
+          const finalName = currentUserName && !currentUserName.includes('@') 
+            ? currentUserName 
+            : (user.email || "Você");
+          allMembers.push({
+            user_id: user.id,
+            name: finalName,
+            email: user.email || "",
+            is_owner: isCurrentUserOwner
+          });
+        } else {
+          // Se já está na lista, verificar se o nome atual é válido (não email)
+          // Se o nome na lista não for email, manter; senão tentar atualizar
+          if (currentUserInList.name && !currentUserInList.name.includes('@')) {
+            // Nome válido na lista, manter
+          } else if (currentUserName && !currentUserName.includes('@')) {
+            // Nome válido da busca inicial, usar
+            currentUserInList.name = currentUserName;
+          }
+          // Se ambos forem email, manter o que está na lista (pode ser melhor formatado)
+          currentUserInList.is_owner = isCurrentUserOwner;
+        }
+        
+        // Remover duplicatas (caso o owner esteja na lista de members por algum motivo)
+        const uniqueMembers = new Map<string, TeamMember>();
+        allMembers.forEach(member => {
+          if (!uniqueMembers.has(member.user_id)) {
+            uniqueMembers.set(member.user_id, member);
+          } else {
+            // Se já existe, manter o que tem is_owner = true ou o mais recente
+            const existing = uniqueMembers.get(member.user_id)!;
+            if (member.is_owner && !existing.is_owner) {
+              uniqueMembers.set(member.user_id, member);
+            }
+          }
+        });
+        
+        const finalMembers = Array.from(uniqueMembers.values());
+        
+        // Debug removido para reduzir logs no console
 
-        setTeamMembers(allMembers);
+        setTeamMembers(finalMembers);
       } catch (error: any) {
         // Log mais detalhado apenas em desenvolvimento e apenas se não for erro esperado
         if (process.env.NODE_ENV === 'development' && error?.code !== 'PGRST116') {
@@ -261,12 +437,12 @@ export function useCheckinManagement() {
           // Tentar buscar de profiles
           const { data: lockedProfile } = await supabase
             .from("profiles")
-            .select("full_name, name")
+            .select("full_name")
             .eq("id", data.locked_by)
             .maybeSingle();
           
-          if (lockedProfile?.full_name || lockedProfile?.name) {
-            lockedByName = lockedProfile.full_name || lockedProfile.name || lockedByName;
+          if (lockedProfile?.full_name) {
+            lockedByName = lockedProfile.full_name || lockedByName;
           } else {
             // Último recurso: usar teamMembers se disponível
             const lockedUser = teamMembers.find(m => m.user_id === data.locked_by);
@@ -446,12 +622,12 @@ export function useCheckinManagement() {
             // Tentar buscar de profiles
             const { data: profile } = await supabase
               .from("profiles")
-              .select("full_name, name")
+              .select("full_name")
               .eq("id", note.user_id)
               .maybeSingle();
             
-            if (profile?.full_name || profile?.name) {
-              userName = profile.full_name || profile.name || userName;
+            if (profile?.full_name) {
+              userName = profile.full_name || userName;
             }
           }
         }

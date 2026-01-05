@@ -501,12 +501,6 @@ export function CheckinsList() {
                     // Verificar se a data é válida
                     if (isNaN(checkinDate.getTime())) return false;
                     
-                    // Debug: log para verificar as datas
-                    console.log('Checkin date:', dateToCheck, 'Parsed:', checkinDate);
-                    console.log('Current date:', now);
-                    console.log('Same month:', checkinDate.getMonth() === now.getMonth());
-                    console.log('Same year:', checkinDate.getFullYear() === now.getFullYear());
-                    
                     return checkinDate.getMonth() === now.getMonth() && 
                            checkinDate.getFullYear() === now.getFullYear();
                   }).length}

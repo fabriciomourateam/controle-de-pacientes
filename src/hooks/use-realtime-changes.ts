@@ -89,11 +89,6 @@ export function useRealtimeChanges() {
           }
         });
 
-        console.log('✅ Dados mesclados silenciosamente (checkins):', {
-          antigos: cachedCheckins.length,
-          novos: recentCheckins.length,
-          total: mergedCheckins.length,
-        });
       }
 
       // ✅ ATUALIZAÇÃO INTELIGENTE PARA PACIENTES: Buscar apenas pacientes recentes e mesclar com cache
@@ -162,12 +157,6 @@ export function useRealtimeChanges() {
             queryClient.setQueryData(key, keyMerged);
           }
         });
-
-        console.log('✅ Pacientes mesclados silenciosamente:', {
-          antigos: cachedPatients.length,
-          novos: recentPatients.length,
-          total: mergedPatients.length,
-        });
       }
 
       // Para feedbacks, invalidar normalmente (são menores e mudam menos)
@@ -208,7 +197,6 @@ export function useRealtimeChanges() {
           table: 'patients'
         },
         (payload) => {
-          console.log('🔄 Mudança detectada em patients:', payload);
           scheduleAutoUpdate(); // Agendar atualização automática silenciosa
         }
       )
@@ -225,7 +213,6 @@ export function useRealtimeChanges() {
           table: 'checkin'
         },
         (payload) => {
-          console.log('🔄 Mudança detectada em checkins:', payload);
           scheduleAutoUpdate(); // Agendar atualização automática silenciosa
         }
       )

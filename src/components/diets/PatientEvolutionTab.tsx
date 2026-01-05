@@ -102,12 +102,28 @@ export function PatientEvolutionTab({
         .from('patients')
         .select('*')
         .eq('id', patientId)
-        .single();
+        .maybeSingle();
 
-      if (patientError || !patientData) {
+      if (patientError) {
+        // Erro 406 indica problema de RLS - logar mas continuar
+        if ((patientError as any).status === 406 || (patientError as any).code === 'PGRST200') {
+          console.warn('⚠️ Acesso negado ao paciente (RLS). Verifique as políticas RLS.');
+        } else {
+          console.error('Erro ao buscar paciente:', patientError);
+        }
         toast({
           title: 'Erro',
           description: 'Não foi possível carregar os dados do paciente',
+          variant: 'destructive'
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!patientData) {
+        toast({
+          title: 'Erro',
+          description: 'Paciente não encontrado',
           variant: 'destructive'
         });
         setLoading(false);

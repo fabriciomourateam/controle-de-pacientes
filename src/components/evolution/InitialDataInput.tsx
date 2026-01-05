@@ -139,34 +139,27 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, 
 
   const uploadPhoto = async (file: File, type: string): Promise<string | null> => {
     try {
-      console.log('📤 Iniciando upload:', { type, fileName: file.name, size: file.size });
-      
       const fileExt = file.name.split('.').pop();
       const fileName = `${telefone}_inicial_${type}_${Date.now()}.${fileExt}`;
-      const filePath = `patient-photos/${fileName}`;
-
-      console.log('📁 Caminho do arquivo:', filePath);
+      // Não incluir o nome do bucket no caminho, pois .from() já especifica o bucket
+      const filePath = fileName;
 
       const { error: uploadError } = await supabase.storage
         .from('patient-photos')
         .upload(filePath, file);
 
       if (uploadError) {
-        console.error('❌ Erro no upload:', uploadError);
+        console.error('Erro no upload:', uploadError);
         throw uploadError;
       }
-
-      console.log('✅ Upload concluído!');
 
       const { data: { publicUrl } } = supabase.storage
         .from('patient-photos')
         .getPublicUrl(filePath);
 
-      console.log('🔗 URL gerada:', publicUrl);
-
       return publicUrl;
     } catch (error) {
-      console.error('💥 Erro ao fazer upload da foto:', error);
+      console.error('Erro ao fazer upload da foto:', error);
       return null;
     }
   };
@@ -174,19 +167,6 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, 
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      console.log('🚀 Iniciando salvamento dos dados iniciais...');
-
-      console.log('📋 Dados para salvar:', {
-        idade: idade,
-        peso: pesoInicial,
-        altura: alturaInicial,
-        cintura: cinturaInicial,
-        quadril: quadrilInicial,
-        temFotoFrente: !!fotoFrente,
-        temFotoLado: !!fotoLado,
-        temFotoLado2: !!fotoLado2,
-        temFotoCostas: !!fotoCostas
-      });
 
       // Upload das fotos
       let fotoFrenteUrl = null;
@@ -195,28 +175,17 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, 
       let fotoCostasUrl = null;
 
       if (fotoFrente) {
-        console.log('📸 Fazendo upload da foto frontal...');
         fotoFrenteUrl = await uploadPhoto(fotoFrente, 'frente');
       }
       if (fotoLado) {
-        console.log('📸 Fazendo upload da foto lateral 1...');
         fotoLadoUrl = await uploadPhoto(fotoLado, 'lado');
       }
       if (fotoLado2) {
-        console.log('📸 Fazendo upload da foto lateral 2...');
         fotoLado2Url = await uploadPhoto(fotoLado2, 'lado_2');
       }
       if (fotoCostas) {
-        console.log('📸 Fazendo upload da foto de costas...');
         fotoCostasUrl = await uploadPhoto(fotoCostas, 'costas');
       }
-
-      console.log('🔗 URLs geradas:', {
-        frente: fotoFrenteUrl,
-        lado: fotoLadoUrl,
-        lado2: fotoLado2Url,
-        costas: fotoCostasUrl
-      });
 
       // Atualizar o paciente com os dados iniciais
       const updateData: any = {
@@ -239,28 +208,48 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, 
       if (cinturaInicial) updateData.medida_cintura_inicial = parseFloat(cinturaInicial);
       if (quadrilInicial) updateData.medida_quadril_inicial = parseFloat(quadrilInicial);
 
-      console.log('💾 Salvando no banco de dados:', updateData);
-
-      const { error } = await supabase
+      // Limpar telefone antes de buscar/atualizar
+      const cleanTelefone = telefone?.trim().replace(/\s+/g, '') || telefone;
+      
+      // Verificar se o paciente existe antes de atualizar
+      const { data: existingPatient, error: checkError } = await supabase
+        .from('patients')
+        .select('id, nome, telefone')
+        .eq('telefone', cleanTelefone)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Erro ao verificar paciente:', checkError);
+        throw checkError;
+      }
+      
+      if (!existingPatient) {
+        console.error('Paciente não encontrado com telefone:', cleanTelefone);
+        throw new Error(`Paciente não encontrado com telefone: ${cleanTelefone}`);
+      }
+      
+      // Tentar atualizar pelo ID (mais confiável que telefone)
+      const { data: updatedData, error } = await supabase
         .from('patients')
         .update(updateData)
-        .eq('telefone', telefone);
+        .eq('id', existingPatient.id)
+        .select();
 
       if (error) {
-        console.error('❌ Erro ao salvar no banco:', error);
+        console.error('Erro ao salvar no banco:', error);
+        
+        // Se for erro 406, é problema de RLS
+        if ((error as any).status === 406) {
+          throw new Error('Erro de permissão (RLS). Execute o SQL fix-patients-update-rls.sql no Supabase.');
+        }
+        
         throw error;
       }
-
-      console.log('✅ Dados salvos com sucesso!');
-
-      toast({
-        title: 'Sucesso!',
-        description: editMode ? 'Dados atualizados com sucesso' : 'Dados iniciais cadastrados com sucesso'
-      });
-
-      setOpen(false);
-      onSuccess();
       
+      if (!updatedData || updatedData.length === 0) {
+        throw new Error('UPDATE executado mas nenhum registro foi atualizado');
+      }
+
       // Limpar formulário apenas se não estiver em modo de edição
       if (!editMode) {
         setFotoFrente(null);
@@ -277,15 +266,36 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, 
         setCinturaInicial('');
         setQuadrilInicial('');
       }
+
+      setOpen(false);
+      setLoading(false); // Parar loading antes de chamar callback
+      
+      toast({
+        title: 'Sucesso!',
+        description: editMode ? 'Dados atualizados com sucesso' : 'Dados iniciais cadastrados com sucesso'
+      });
+      
+      // Chamar onSuccess IMEDIATAMENTE (sem setTimeout) para garantir que seja executado
+      if (typeof onSuccess === 'function') {
+        try {
+          // Chamar de forma assíncrona para não bloquear
+          Promise.resolve().then(() => {
+            onSuccess();
+          }).catch((error) => {
+            console.error('Erro ao executar onSuccess:', error);
+          });
+        } catch (error) {
+          console.error('Erro ao executar onSuccess:', error);
+        }
+      }
     } catch (error: any) {
-      console.error('Erro ao salvar dados iniciais:', error);
+      console.error('❌ Erro ao salvar dados iniciais:', error);
+      setLoading(false);
       toast({
         title: 'Erro',
         description: error?.message || 'Não foi possível salvar os dados iniciais',
         variant: 'destructive'
       });
-    } finally {
-      setLoading(false);
     }
   };
 
