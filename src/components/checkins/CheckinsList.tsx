@@ -170,7 +170,7 @@ export function CheckinsList() {
   // Hook para buscar checkins com dados do paciente e limite customizado
   // Usa o hook com atualização programada, mas com limite customizado
   const { data: recentCheckins = [], isLoading: checkinsLoading, refetch, isFetching } = useCheckinsWithScheduledRefetch(checkinLimit);
-  const { teamMembers } = useCheckinManagement();
+  const { teamMembers, loading: teamMembersLoading } = useCheckinManagement();
   
   // Estado para última atualização e próxima atualização programada
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -193,18 +193,41 @@ export function CheckinsList() {
 
   // Carregar preferências do banco de dados ao montar o componente
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     async function loadPreferences() {
-      const savedPrefs = await loadCheckinPreferences();
-      if (savedPrefs.searchTerm !== undefined) setSearchTerm(savedPrefs.searchTerm);
-      if (savedPrefs.selectedStatuses) setSelectedStatuses(savedPrefs.selectedStatuses);
-      if (savedPrefs.selectedResponsibles) setSelectedResponsibles(savedPrefs.selectedResponsibles);
-      if (savedPrefs.displayLimit) setDisplayLimit(savedPrefs.displayLimit);
-      if (savedPrefs.sortBy) setSortBy(savedPrefs.sortBy);
-      if (savedPrefs.sortOrder) setSortOrder(savedPrefs.sortOrder);
-      if (savedPrefs.filterWithBioimpedance !== undefined) setFilterWithBioimpedance(savedPrefs.filterWithBioimpedance);
-      setPreferencesLoaded(true);
+      try {
+        // Timeout de segurança: se demorar mais de 5 segundos, marcar como carregado
+        timeoutId = setTimeout(() => {
+          console.warn('Timeout ao carregar preferências, continuando sem elas');
+          setPreferencesLoaded(true);
+        }, 5000);
+        
+        const savedPrefs = await loadCheckinPreferences();
+        clearTimeout(timeoutId);
+        
+        if (savedPrefs.searchTerm !== undefined) setSearchTerm(savedPrefs.searchTerm);
+        if (savedPrefs.selectedStatuses) setSelectedStatuses(savedPrefs.selectedStatuses);
+        if (savedPrefs.selectedResponsibles) setSelectedResponsibles(savedPrefs.selectedResponsibles);
+        if (savedPrefs.displayLimit) setDisplayLimit(savedPrefs.displayLimit);
+        if (savedPrefs.sortBy) setSortBy(savedPrefs.sortBy);
+        if (savedPrefs.sortOrder) setSortOrder(savedPrefs.sortOrder);
+        if (savedPrefs.filterWithBioimpedance !== undefined) setFilterWithBioimpedance(savedPrefs.filterWithBioimpedance);
+      } catch (error) {
+        console.error('Erro ao carregar preferências:', error);
+        clearTimeout(timeoutId);
+      } finally {
+        // Sempre marcar como carregado, mesmo em caso de erro
+        setPreferencesLoaded(true);
+      }
     }
+    
     loadPreferences();
+    
+    // Cleanup: limpar timeout se componente desmontar
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   // Função para atualização manual (inteligente)
