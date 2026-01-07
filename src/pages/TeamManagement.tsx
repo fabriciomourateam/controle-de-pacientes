@@ -16,6 +16,7 @@ import { Users, Plus, Search, MoreVertical, Edit, Trash2, Power, PowerOff, Shiel
 import { AddMemberModal } from '@/components/team/AddMemberModal';
 import { EditMemberModal } from '@/components/team/EditMemberModal';
 import { RolesModal } from '@/components/team/RolesModal';
+import { AssigneeColorPicker } from '@/components/team/AssigneeColorPicker';
 import { useToast } from '@/hooks/use-toast';
 import { TeamMember } from '@/lib/team-service';
 import { formatDistanceToNow } from 'date-fns';
@@ -238,12 +239,20 @@ export default function TeamManagement() {
                       </span>
                     </CardDescription>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="hover:bg-slate-700">
-                        <MoreVertical className="w-4 h-4 text-slate-400" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                  <div className="flex items-center gap-2">
+                    {member.user_id && (
+                      <AssigneeColorPicker
+                        userId={member.user_id}
+                        memberName={member.name}
+                        onColorChange={refetch}
+                      />
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="hover:bg-slate-700">
+                          <MoreVertical className="w-4 h-4 text-slate-400" />
+                        </Button>
+                      </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEdit(member)}>
                         <Edit className="w-4 h-4 mr-2" />
@@ -272,6 +281,7 @@ export default function TeamManagement() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
             </Card>

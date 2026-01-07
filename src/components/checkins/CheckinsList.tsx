@@ -42,7 +42,8 @@ import { EditCheckinModal } from "@/components/evolution/EditCheckinModal";
 import { RankingPanel } from "@/components/checkins/RankingPanel";
 import { CheckinFeedbackCard } from "@/components/checkins/CheckinFeedbackCard";
 import { CheckinFilters } from "@/components/checkins/CheckinFilters";
-import { CheckinQuickControls } from "@/components/checkins/CheckinQuickControls";
+import { CheckinQuickControls, getAssigneeCardColor } from "@/components/checkins/CheckinQuickControls";
+import { assigneeColorsService } from "@/lib/assignee-colors-service";
 import { useCheckinManagement, CheckinStatus } from "@/hooks/use-checkin-management";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import { supabase } from "@/integrations/supabase/client";
@@ -791,9 +792,16 @@ export function CheckinsList() {
                 ? (patientCheckinsCount.get(checkin.patient.id) || 0)
                 : 0;
               
+              // Obter cor do responsável (com suporte a cores personalizadas)
+              const assigneeColor = assigneeColorsService.getAssigneeCardColor(checkin.assigned_to, teamMembers);
+              
               return (
-                <div key={checkin.id} className="px-2.5 pt-3 pb-1 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-lg border border-slate-700/50 hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-300 ease-out">
-                  <div className="grid grid-cols-[1fr_140px_160px_auto] gap-3 items-center">
+                <div key={checkin.id} className={`px-2.5 pt-3 pb-1 backdrop-blur-sm rounded-lg border border-slate-700/50 transition-all duration-300 ease-out ${
+                  assigneeColor
+                    ? `${assigneeColor.border} ${assigneeColor.hoverBorder}`
+                    : 'hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60'
+                } bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:shadow-lg hover:shadow-slate-900/20`}>
+                  <div className="grid grid-cols-[1fr_140px_160px_120px] gap-3 items-center">
                     {/* Informações do Paciente - Coluna flexível */}
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="w-8 h-8 flex-shrink-0">
@@ -829,7 +837,7 @@ export function CheckinsList() {
                     </div>
                     
                     {/* Ações - Coluna fixa */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0 justify-end">
+                    <div className="flex items-center gap-0.5 flex-shrink-0 justify-end w-full">
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}

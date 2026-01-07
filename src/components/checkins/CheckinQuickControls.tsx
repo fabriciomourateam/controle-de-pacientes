@@ -30,6 +30,7 @@ import {
 } from '@/hooks/use-checkin-management';
 import { CheckinNotesModal } from './CheckinNotesModal';
 import type { CheckinWithPatient } from '@/lib/checkin-service';
+import { assigneeColorsService, availableColors } from '@/lib/assignee-colors-service';
 
 interface CheckinQuickControlsProps {
   checkin: CheckinWithPatient;
@@ -46,6 +47,16 @@ const statusOptions: Array<{ value: CheckinStatus; label: string; color: string 
   { value: 'em_analise', label: 'Aguardando', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   { value: 'enviado', label: 'Enviado', color: 'bg-green-500/20 text-green-400 border-green-500/30' }
 ];
+
+// Função para obter cor do responsável baseado no user_id (com suporte a cores personalizadas)
+export const getAssigneeColor = (userId: string | null | undefined, teamMembers: TeamMember[]): typeof availableColors[0] | null => {
+  return assigneeColorsService.getAssigneeColor(userId, teamMembers);
+};
+
+// Função para obter cor do card baseado no user_id (com suporte a cores personalizadas)
+export const getAssigneeCardColor = (userId: string | null | undefined, teamMembers: TeamMember[]) => {
+  return assigneeColorsService.getAssigneeCardColor(userId, teamMembers);
+};
 
 function CheckinQuickControlsComponent({
   checkin,
@@ -247,16 +258,22 @@ function CheckinQuickControlsComponent({
 
   // Renderizar apenas Responsável
   if (showOnlyResponsible) {
+    const assigneeColor = getAssigneeColor(currentAssignee, teamMembers);
+    
     return (
       <Select
         value={currentAssignee || 'unassigned'}
         onValueChange={handleAssigneeChange}
         disabled={isUpdating || lockInfo.is_locked}
       >
-        <SelectTrigger className="h-8 bg-slate-800/50 border-slate-600/50 text-white w-full">
+        <SelectTrigger className={`h-8 w-full text-white ${
+          assigneeColor
+            ? `${assigneeColor.bg} ${assigneeColor.border} ${assigneeColor.hover}`
+            : 'bg-slate-800/50 border-slate-600/50'
+        }`}>
           <SelectValue>
             <div className="flex items-center gap-2">
-              <User className="w-3 h-3 text-slate-400" />
+              <User className={`w-3 h-3 ${assigneeColor ? assigneeColor.icon : 'text-slate-400'}`} />
               <span className="text-sm truncate">
                 {getAssigneeName(currentAssignee)}
               </span>
@@ -270,16 +287,19 @@ function CheckinQuickControlsComponent({
               <span>Não atribuído</span>
             </div>
           </SelectItem>
-          {teamMembers.map((member) => (
-            <SelectItem key={member.user_id} value={member.user_id}>
-              <div className="flex items-center gap-2">
-                <User className="w-3 h-3 text-slate-400" />
-                <span>
-                  {member.name}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
+              {teamMembers.map((member, index) => {
+                const memberColor = assigneeColorsService.getAssigneeColor(member.user_id, teamMembers, index) || availableColors[index % availableColors.length];
+                return (
+                  <SelectItem key={member.user_id} value={member.user_id}>
+                    <div className="flex items-center gap-2">
+                      <User className={`w-3 h-3 ${memberColor.icon}`} />
+                      <span>
+                        {member.name}
+                      </span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
         </SelectContent>
       </Select>
     );
@@ -289,7 +309,7 @@ function CheckinQuickControlsComponent({
   if (showOnlyActions) {
     return (
       <>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 w-full justify-end">
           {/* Botão de Anotações */}
           <TooltipProvider>
             <Tooltip>
@@ -307,7 +327,7 @@ function CheckinQuickControlsComponent({
                     }
                     setNotesModalOpen(true);
                   }}
-                  className={`h-8 px-2 ${
+                  className={`h-8 w-8 p-0 flex items-center justify-center relative ${
                     localNotesCount > 0 
                       ? 'bg-blue-500/20 text-blue-400 hover:text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 shadow-sm' 
                       : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
@@ -317,7 +337,7 @@ function CheckinQuickControlsComponent({
                   {localNotesCount > 0 && (
                     <Badge 
                       variant="outline" 
-                      className="ml-1 h-4 px-1 text-xs bg-blue-600/20 text-blue-300 border-blue-500/30"
+                      className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[10px] bg-blue-600/20 text-blue-300 border-blue-500/30 flex items-center justify-center"
                     >
                       {localNotesCount}
                     </Badge>
@@ -451,16 +471,25 @@ function CheckinQuickControlsComponent({
             onValueChange={handleAssigneeChange}
             disabled={isUpdating || lockInfo.is_locked}
           >
-            <SelectTrigger className="h-8 bg-slate-800/50 border-slate-600/50 text-white">
-              <SelectValue>
-                <div className="flex items-center gap-2">
-                  <User className="w-3 h-3 text-slate-400" />
-                  <span className="text-sm truncate">
-                    {getAssigneeName(currentAssignee)}
-                  </span>
-                </div>
-              </SelectValue>
-            </SelectTrigger>
+            {(() => {
+              const assigneeColor = getAssigneeColor(currentAssignee, teamMembers);
+              return (
+                <SelectTrigger className={`h-8 text-white ${
+                  assigneeColor
+                    ? `${assigneeColor.bg} ${assigneeColor.border} ${assigneeColor.hover}`
+                    : 'bg-slate-800/50 border-slate-600/50'
+                }`}>
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                      <User className={`w-3 h-3 ${assigneeColor ? assigneeColor.icon : 'text-slate-400'}`} />
+                      <span className="text-sm truncate">
+                        {getAssigneeName(currentAssignee)}
+                      </span>
+                    </div>
+                  </SelectValue>
+                </SelectTrigger>
+              );
+            })()}
             <SelectContent>
               <SelectItem value="unassigned">
                 <div className="flex items-center gap-2">
@@ -468,16 +497,19 @@ function CheckinQuickControlsComponent({
                   <span>Não atribuído</span>
                 </div>
               </SelectItem>
-              {teamMembers.map((member) => (
-                <SelectItem key={member.user_id} value={member.user_id}>
-                  <div className="flex items-center gap-2">
-                    <User className="w-3 h-3 text-slate-400" />
-                    <span>
-                      {member.name}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
+              {teamMembers.map((member, index) => {
+                const memberColor = assigneeColorsService.getAssigneeColor(member.user_id, teamMembers, index) || availableColors[index % availableColors.length];
+                return (
+                  <SelectItem key={member.user_id} value={member.user_id}>
+                    <div className="flex items-center gap-2">
+                      <User className={`w-3 h-3 ${memberColor.icon}`} />
+                      <span>
+                        {member.name}
+                      </span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -503,7 +535,7 @@ function CheckinQuickControlsComponent({
                       }
                       setNotesModalOpen(true);
                     }}
-                    className={`h-8 px-2 ${
+                    className={`h-8 w-8 p-0 flex items-center justify-center relative ${
                       localNotesCount > 0 
                         ? 'bg-blue-500/20 text-blue-400 hover:text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 shadow-sm' 
                         : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
@@ -513,7 +545,7 @@ function CheckinQuickControlsComponent({
                     {localNotesCount > 0 && (
                       <Badge 
                         variant="outline" 
-                        className="ml-1 h-4 px-1 text-xs bg-blue-600/20 text-blue-300 border-blue-500/30"
+                        className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[10px] bg-blue-600/20 text-blue-300 border-blue-500/30 flex items-center justify-center"
                       >
                         {localNotesCount}
                       </Badge>
