@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp, Trash2, Loader2, Camera } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
 import { AddPhotosToCheckin } from "./AddPhotosToCheckin";
+import { AddEvolutionData } from "./AddEvolutionData";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,15 +30,18 @@ interface TimelineProps {
   checkins: Checkin[];
   onCheckinUpdated?: () => void;
   showEditButton?: boolean; // Controla se mostra o botão de editar
+  telefone?: string;
+  nome?: string;
 }
 
-export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: TimelineProps) {
+export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, telefone, nome }: TimelineProps) {
   const [editingCheckin, setEditingCheckin] = useState<Checkin | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isMinimized, setIsMinimized] = useState(true);
   const [checkinToDelete, setCheckinToDelete] = useState<Checkin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showAddEvolutionData, setShowAddEvolutionData] = useState(false);
   
   // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
   const checkinsOrdenados = [...checkins].reverse();
@@ -138,17 +142,33 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
               Histórico detalhado dos {checkins.length} check-ins realizados
             </CardDescription>
           </div>
-          <button
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
-            aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
-          >
-            {isMinimized ? (
-              <ChevronDown className="w-5 h-5 text-slate-300" />
-            ) : (
-              <ChevronUp className="w-5 h-5 text-slate-300" />
+          <div className="flex items-center gap-2">
+            {telefone && nome && (
+              <AddEvolutionData
+                telefone={telefone}
+                nome={nome}
+                open={showAddEvolutionData}
+                onOpenChange={setShowAddEvolutionData}
+                onSuccess={() => {
+                  setShowAddEvolutionData(false);
+                  if (onCheckinUpdated) {
+                    onCheckinUpdated();
+                  }
+                }}
+              />
             )}
-          </button>
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+            >
+              {isMinimized ? (
+                <ChevronDown className="w-5 h-5 text-slate-300" />
+              ) : (
+                <ChevronUp className="w-5 h-5 text-slate-300" />
+              )}
+            </button>
+          </div>
         </div>
       </CardHeader>
       <AnimatePresence>

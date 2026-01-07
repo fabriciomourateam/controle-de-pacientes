@@ -167,6 +167,9 @@ export function CheckinsList() {
   // Estado para controlar o limite de checkins carregados
   const [checkinLimit, setCheckinLimit] = useState<number | null>(200); // Padrão: 200 checkins
   const [showLimitControl, setShowLimitControl] = useState(false);
+  
+  // Estado para controlar quais check-ins estão expandidos
+  const [expandedCheckins, setExpandedCheckins] = useState<Set<string>>(new Set());
 
   // Hook para buscar checkins com dados do paciente e limite customizado
   // Usa o hook com atualização programada, mas com limite customizado
@@ -803,7 +806,32 @@ export function CheckinsList() {
                 } bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:shadow-lg hover:shadow-slate-900/20`}>
                   <div className="grid grid-cols-[1fr_140px_160px_120px] gap-3 items-center">
                     {/* Informações do Paciente - Coluna flexível */}
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div 
+                      className="flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={(e) => {
+                        // Prevenir expansão se o clique vier de dentro dos controles (status, responsável, ações)
+                        const target = e.target as HTMLElement;
+                        if (target.closest('[data-no-expand]')) {
+                          return;
+                        }
+                        // Prevenir expansão se o clique vier de um link ou botão
+                        if (target.closest('a') || target.closest('button') || target.closest('[role="button"]')) {
+                          return;
+                        }
+                        e.stopPropagation();
+                        const isCurrentlyExpanded = expandedCheckins.has(checkin.id);
+                        // Toggle do estado de expansão
+                        setExpandedCheckins(prev => {
+                          const newSet = new Set(prev);
+                          if (isCurrentlyExpanded) {
+                            newSet.delete(checkin.id);
+                          } else {
+                            newSet.add(checkin.id);
+                          }
+                          return newSet;
+                        });
+                      }}
+                    >
                       <Avatar className="w-8 h-8 flex-shrink-0">
                         <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
                           {checkin.patient?.nome?.charAt(0) || 'P'}
@@ -815,7 +843,7 @@ export function CheckinsList() {
                     </div>
                     
                     {/* Status - Coluna fixa */}
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0" data-no-expand>
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}
@@ -826,7 +854,7 @@ export function CheckinsList() {
                     </div>
                     
                     {/* Responsável - Coluna fixa */}
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0" data-no-expand>
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}
@@ -837,7 +865,7 @@ export function CheckinsList() {
                     </div>
                     
                     {/* Ações - Coluna fixa */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0 justify-end w-full">
+                    <div className="flex items-center gap-0.5 flex-shrink-0 justify-end w-full" data-no-expand>
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}
@@ -907,6 +935,18 @@ export function CheckinsList() {
                        checkin={checkin}
                        totalCheckins={totalPatientCheckins}
                        onUpdate={refetch}
+                       expanded={expandedCheckins.has(checkin.id)}
+                       onExpandedChange={(expanded) => {
+                         setExpandedCheckins(prev => {
+                           const newSet = new Set(prev);
+                           if (expanded) {
+                             newSet.add(checkin.id);
+                           } else {
+                             newSet.delete(checkin.id);
+                           }
+                           return newSet;
+                         });
+                       }}
                      />
                    </div>
                 </div>

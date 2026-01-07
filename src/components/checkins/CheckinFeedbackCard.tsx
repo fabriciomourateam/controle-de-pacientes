@@ -22,14 +22,41 @@ interface CheckinFeedbackCardProps {
   checkin: CheckinWithPatient;
   totalCheckins?: number;
   onUpdate?: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   checkin,
   totalCheckins = 0,
-  onUpdate
+  onUpdate,
+  expanded: externalExpanded,
+  onExpandedChange
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  
+  // Se externalExpanded está definido, usar ele; caso contrário, usar o estado interno
+  const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;
+  
+  // Sincronizar estado interno quando externalExpanded mudar
+  React.useEffect(() => {
+    if (externalExpanded !== undefined) {
+      setInternalExpanded(externalExpanded);
+    }
+  }, [externalExpanded]);
+  
+  const setIsExpanded = (value: boolean) => {
+    // Se há controle externo, sempre chamar o callback
+    if (externalExpanded !== undefined && onExpandedChange) {
+      onExpandedChange(value);
+    } else {
+      // Caso contrário, usar estado interno
+      setInternalExpanded(value);
+      if (onExpandedChange) {
+        onExpandedChange(value);
+      }
+    }
+  };
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [observedImprovements, setObservedImprovements] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -3105,7 +3132,12 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
 // Memoizar o componente para evitar re-renders desnecessários
 export const CheckinFeedbackCard = React.memo(CheckinFeedbackCardComponent, (prevProps, nextProps) => {
-  // Só re-renderiza se o checkin.id ou totalCheckins mudarem
-  return prevProps.checkin.id === nextProps.checkin.id && 
-         prevProps.totalCheckins === nextProps.totalCheckins;
+  // Se expanded mudou, deve re-renderizar
+  if (prevProps.expanded !== nextProps.expanded) {
+    return false;
+  }
+  
+  // Só pular render se checkin.id e totalCheckins forem iguais E expanded não mudou
+  return prevProps.checkin.id === nextProps.checkin.id &&
+    prevProps.totalCheckins === nextProps.totalCheckins; 
 });

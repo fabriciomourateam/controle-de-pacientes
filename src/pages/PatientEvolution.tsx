@@ -2015,7 +2015,12 @@ export default function PatientEvolution() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Timeline checkins={checkins} onCheckinUpdated={loadEvolution} />
+            <Timeline 
+              checkins={checkins} 
+              onCheckinUpdated={loadEvolution}
+              telefone={patient?.telefone || telefone}
+              nome={patient?.nome || 'Paciente'}
+            />
           </motion.div>
 
           {/* 6. Lista de Pesos Diários */}

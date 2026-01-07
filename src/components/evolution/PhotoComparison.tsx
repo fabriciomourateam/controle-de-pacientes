@@ -815,6 +815,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                   {checkins.length > 0 && (
                     <Button
                       onClick={() => setShowComparisonModal(true)}
+                      size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <Camera className="w-4 h-4 mr-2" />
