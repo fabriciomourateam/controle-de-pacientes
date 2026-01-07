@@ -88,10 +88,18 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
       // Se o mês atual não pertence ao ano selecionado, atualizar para o primeiro mês do ano
       if (!currentMonthValue || !currentMonthValue.includes(`- ${selectedYear}`)) {
         const firstMonth = monthsByYear[selectedYear][0];
-        setSelectedMonth(`${firstMonth} - ${selectedYear}`);
+        if (firstMonth) {
+          setSelectedMonth(`${firstMonth} - ${selectedYear}`);
+        } else {
+          // Se não há meses disponíveis, resetar para "all" para mostrar todos os meses do ano
+          setSelectedMonth('all');
+        }
       }
+    } else if (selectedYear && (!monthsByYear[selectedYear] || monthsByYear[selectedYear].length === 0)) {
+      // Se o ano está selecionado mas não há meses disponíveis ainda, resetar para "all"
+      setSelectedMonth('all');
     }
-  }, [selectedYear, monthsByYear]);
+  }, [selectedYear, monthsByYear, selectedMonth]);
 
   if (isLoading) {
     return (
@@ -195,19 +203,29 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
                   onValueChange={(value) => {
                     if (value === 'all') {
                       setSelectedYear(undefined);
+                    } else if (value === '2025') {
+                      setSelectedYear(2025);
+                    } else if (value === '2026') {
+                      setSelectedYear(2026);
                     } else {
                       setSelectedYear(parseInt(value, 10));
                     }
                   }}
                 >
-                  <SelectTrigger className="w-[120px] bg-slate-700/50 border-slate-600/50 text-white">
+                  <SelectTrigger className="w-[140px] bg-slate-700/50 border-slate-600/50 text-white">
                     <SelectValue placeholder="Ano" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
                     <SelectItem value="all" className="text-white hover:bg-slate-700">
                       📅 Todos os anos
                     </SelectItem>
-                    {availableYears.map((year) => (
+                    <SelectItem value="2025" className="text-white hover:bg-slate-700">
+                      2025
+                    </SelectItem>
+                    <SelectItem value="2026" className="text-white hover:bg-slate-700">
+                      2026
+                    </SelectItem>
+                    {availableYears.filter(y => y !== 2025 && y !== 2026).map((year) => (
                       <SelectItem key={year} value={year.toString()} className="text-white hover:bg-slate-700">
                         {year}
                       </SelectItem>
@@ -377,8 +395,8 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
                   
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div className="bg-blue-500/10 rounded p-2 text-center">
-                      <p className="text-xs text-blue-400 font-semibold">Calls</p>
-                      <p className="text-lg font-bold text-white">{funnel.totalCalls}</p>
+                      <p className="text-xs text-blue-400 font-semibold">Calls Realizadas</p>
+                      <p className="text-lg font-bold text-white">{funnel.comprou + funnel.naoComprou}</p>
                     </div>
                     <div className="bg-green-500/10 rounded p-2 text-center">
                       <p className="text-xs text-green-400 font-semibold">Vendas</p>
@@ -411,6 +429,10 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
                   </div>
 
                   <div className="mt-3 pt-3 border-t border-slate-600/30 text-xs text-slate-400 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Total de Calls:</span>
+                      <span className="text-blue-400 font-semibold">{funnel.totalCalls}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span>Não comprou:</span>
                       <span className="text-red-400 font-semibold">{funnel.naoComprou}</span>

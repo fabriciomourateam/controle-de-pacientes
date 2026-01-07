@@ -128,21 +128,73 @@ export const commercialMetricsService = {
 
   // Buscar dados de vendas
   // Otimizado: adiciona limite para reduzir egress
-  async getTotalDeVendas(limit: number = 1000) {
-    console.log('🔍 Buscando dados DIRETO do Supabase...');
+  // Se selectedYear for 2026 ou posterior, busca da tabela "Total de Vendas 2026"
+  // Se selectedYear for 2025, busca da tabela "Total de Vendas"
+  // Se selectedYear for undefined (todos os anos), busca de ambas as tabelas e combina
+  async getTotalDeVendas(limit: number = 1000, selectedYear?: number) {
+    console.log('🔍 Buscando dados DIRETO do Supabase...', selectedYear ? `Ano: ${selectedYear}` : 'Todos os anos');
+    
+    // Se não há ano selecionado (todos os anos), buscar de ambas as tabelas
+    if (selectedYear === undefined) {
+      console.log('📊 Buscando de ambas as tabelas (2025 e 2026)');
+      
+      const [data2025, data2026] = await Promise.all([
+        supabase
+          .from('Total de Vendas')
+          .select('*')
+          .order('DATA', { ascending: false })
+          .limit(limit),
+        supabase
+          .from('Total de Vendas 2026')
+          .select('*')
+          .order('DATA', { ascending: false })
+          .limit(limit)
+      ]);
+
+      if (data2025.error) {
+        console.error('Erro ao buscar vendas de 2025:', data2025.error);
+        throw data2025.error;
+      }
+
+      // Se a tabela de 2026 não existir (404), apenas usar dados de 2025
+      if (data2026.error) {
+        if (data2026.error.code === 'PGRST116' || data2026.error.message?.includes('404') || data2026.error.message?.includes('not found')) {
+          console.warn('⚠️ Tabela "Total de Vendas 2026" não encontrada. Usando apenas dados de 2025.');
+          return (data2025.data || []) as TotalDeVendas[];
+        }
+        console.error('Erro ao buscar vendas de 2026:', data2026.error);
+        throw data2026.error;
+      }
+
+      const combined = [...(data2025.data || []), ...(data2026.data || [])];
+      console.log(`✅ Dados combinados: ${data2025.data?.length || 0} de 2025 + ${data2026.data?.length || 0} de 2026 = ${combined.length} total`);
+      
+      return combined as TotalDeVendas[];
+    }
+    
+    // Determinar qual tabela usar baseado no ano
+    const use2026Table = selectedYear >= 2026;
+    const tableName = use2026Table ? 'Total de Vendas 2026' : 'Total de Vendas';
+    
+    console.log(`📊 Usando tabela: ${tableName}`);
     
     const { data, error } = await supabase
-      .from('Total de Vendas')
+      .from(tableName)
       .select('*')
       .order('DATA', { ascending: false })
       .limit(limit); // Limitar a 1000 registros mais recentes
 
     if (error) {
-      console.error('Erro ao buscar total de vendas:', error);
+      // Se a tabela de 2026 não existir e estamos tentando buscar dela, retornar erro mais claro
+      if (use2026Table && (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('not found'))) {
+        console.error(`❌ Tabela "${tableName}" não encontrada no Supabase. Verifique se o nome da tabela está correto.`);
+        throw new Error(`Tabela "${tableName}" não encontrada. Por favor, verifique se a tabela existe no Supabase com este nome exato.`);
+      }
+      console.error(`Erro ao buscar total de vendas da tabela ${tableName}:`, error);
       throw error;
     }
     
-    console.log('✅ Dados recebidos do Supabase:', data?.length, 'registros');
+    console.log(`✅ Dados recebidos do Supabase (${tableName}):`, data?.length, 'registros');
     
     // Contar diretamente aqui para verificar
     if (data) {
@@ -160,16 +212,22 @@ export const commercialMetricsService = {
 
   // Buscar vendas por mês específico
   // Otimizado: adiciona limite para reduzir egress
-  async getVendasByMonth(month: string, limit: number = 500) {
+  // Se o mês contém "2026" ou ano >= 2026, busca da tabela "Total de Vendas 2026"
+  async getVendasByMonth(month: string, limit: number = 500, selectedYear?: number) {
+    // Determinar qual tabela usar baseado no ano
+    // Se selectedYear for 2026 ou posterior, ou se o mês contém "2026", usar a tabela de 2026
+    const use2026Table = selectedYear !== undefined && selectedYear >= 2026 || month.includes('2026');
+    const tableName = use2026Table ? 'Total de Vendas 2026' : 'Total de Vendas';
+    
     const { data, error } = await supabase
-      .from('Total de Vendas')
+      .from(tableName)
       .select('*')
       .eq('MES', month)
       .order('DATA', { ascending: false })
       .limit(limit); // Limitar a 500 registros por mês
 
     if (error) {
-      console.error('Erro ao buscar vendas do mês:', error);
+      console.error(`Erro ao buscar vendas do mês da tabela ${tableName}:`, error);
       throw error;
     }
 

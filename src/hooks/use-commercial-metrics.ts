@@ -111,13 +111,13 @@ export function useTotalDeAgendamentosPorFunil() {
 
 // Hook para buscar dados de vendas
 // Otimizado: usa atualização agendada em vez de refetchInterval
-export function useTotalDeVendas() {
+export function useTotalDeVendas(selectedYear?: number) {
   // Usar atualização agendada (4x ao dia)
   useScheduledDataRefetch();
   
   return useQuery({
-    queryKey: ['total-de-vendas'],
-    queryFn: () => commercialMetricsService.getTotalDeVendas(),
+    queryKey: ['total-de-vendas', selectedYear],
+    queryFn: () => commercialMetricsService.getTotalDeVendas(1000, selectedYear),
     // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
     staleTime: 10 * 60 * 1000, // 10 minutos
     refetchOnWindowFocus: false,
@@ -126,13 +126,13 @@ export function useTotalDeVendas() {
 
 // Hook para buscar vendas de um mês específico
 // Otimizado: usa atualização agendada em vez de refetchInterval
-export function useVendasByMonth(month: string | null) {
+export function useVendasByMonth(month: string | null, selectedYear?: number) {
   // Usar atualização agendada (4x ao dia)
   useScheduledDataRefetch();
   
   return useQuery({
-    queryKey: ['vendas', month],
-    queryFn: () => month ? commercialMetricsService.getVendasByMonth(month) : [],
+    queryKey: ['vendas', month, selectedYear],
+    queryFn: () => month ? commercialMetricsService.getVendasByMonth(month, 500, selectedYear) : [],
     enabled: !!month,
     // ❌ REMOVIDO: refetchInterval - agora usa atualização agendada + Realtime
     staleTime: 10 * 60 * 1000, // 10 minutos
@@ -338,7 +338,7 @@ const extractYearFromData = (dataStr: string | null | undefined): number | null 
 
 // Hook para processar métricas de vendas
 export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
-  const vendasQuery = useTotalDeVendas();
+  const vendasQuery = useTotalDeVendas(selectedYear);
   
   if (vendasQuery.isLoading || !vendasQuery.data) {
       return {
@@ -392,14 +392,46 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
 
   const vendas = vendasQuery.data;
 
+  // Debug: verificar dados recebidos
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 useSalesMetrics - Total de vendas recebidas:', vendas.length);
+    if (vendas.length > 0) {
+      console.log('📋 Primeira venda (exemplo):', {
+        id: vendas[0].id,
+        MES: vendas[0].MÊS,
+        DATA: vendas[0].DATA,
+        FUNIL: vendas[0].FUNIL,
+        COMPROU: vendas[0].COMPROU
+      });
+    }
+  }
+
   // Função auxiliar para normalizar strings (remover acentos, espaços extras, etc)
   const normalizeString = (str: string | null | undefined): string => {
     if (!str) return '';
     return str.toString().toLowerCase().trim();
   };
 
-  // Log para debug - verificar se os dados estão chegando
-  // console.log('🔍 useSalesMetrics - Total de vendas:', vendas.length);
+  // Debug: verificar dados recebidos
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 useSalesMetrics - Total de vendas recebidas:', vendas.length, `selectedYear=${selectedYear}`);
+    if (vendas.length > 0) {
+      console.log('📋 Primeira venda (exemplo):', {
+        id: vendas[0].id,
+        MES: vendas[0].MÊS,
+        DATA: vendas[0].DATA,
+        FUNIL: vendas[0].FUNIL,
+        COMPROU: vendas[0].COMPROU,
+        anoExtraido: extractYearFromData(vendas[0].DATA)
+      });
+      // Mostrar algumas vendas de exemplo
+      if (vendas.length > 5) {
+        console.log('📋 Exemplos de meses encontrados:', [...new Set(vendas.slice(0, 10).map(v => v.MÊS))]);
+      }
+    } else if (selectedYear === 2026) {
+      console.warn('⚠️ Nenhuma venda encontrada para 2026. Verifique se a tabela "Total de Vendas 2026" tem dados.');
+    }
+  }
 
   // Função para verificar se é "Sim" ou variação (aceita vários formatos) - VERSÃO CORRIGIDA
   const isYes = (value: string | null | undefined): boolean => {
@@ -455,19 +487,35 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
     // Tentar extrair ano do campo DATA
     let ano = extractYearFromData(venda.DATA);
     
-    // Se não conseguiu extrair do DATA, assumir 2025 para meses de junho a dezembro
-    // e 2026 para meses de janeiro a maio (assumindo que estamos em 2025)
+    // Se não conseguiu extrair do DATA, tentar inferir do selectedYear ou do contexto
     if (!ano) {
-      const mesLower = mes.toLowerCase();
-      const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
-      
-      // Se for junho a dezembro, assumir 2025
-      if (mesIndex >= 5 && mesIndex <= 11) {
-        ano = 2025;
+      // Se há selectedYear, usar ele como fallback (importante: quando buscamos de uma tabela específica, todas as vendas são daquele ano)
+      if (selectedYear) {
+        ano = selectedYear;
       } else {
-        // Para outros meses, usar ano atual ou 2026
-        ano = new Date().getFullYear();
+        // Se não há selectedYear, tentar inferir do mês
+        const mesLower = mes.toLowerCase();
+        const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
+        
+        // Se for junho a dezembro, assumir 2025
+        if (mesIndex >= 5 && mesIndex <= 11) {
+          ano = 2025;
+        } else {
+          // Para janeiro a maio, assumir 2026 (já que estamos buscando dados de 2026)
+          // Mas se estamos buscando de ambas as tabelas, precisamos de uma lógica melhor
+          // Por enquanto, usar 2026 para janeiro-maio
+          ano = mesIndex >= 0 && mesIndex <= 4 ? 2026 : new Date().getFullYear();
+        }
       }
+    }
+    
+    // IMPORTANTE: Se selectedYear está definido, assumir que TODAS as vendas são do ano selecionado
+    // Isso é necessário porque quando buscamos da tabela "Total de Vendas 2026", 
+    // todas as vendas são de 2026, mesmo que o campo DATA tenha outro ano (pode ter sido copiado de 2025)
+    if (selectedYear) {
+      // Se estamos buscando de uma tabela específica (2025 ou 2026), 
+      // todas as vendas são daquele ano, independente do campo DATA
+      ano = selectedYear;
     }
     
     if (!monthsByYearMap.has(ano)) {
@@ -497,6 +545,13 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
   // Ordenar anos (mais recente primeiro)
   availableYears.sort((a, b) => b - a);
   
+  // Debug: verificar anos e meses encontrados
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📅 Anos disponíveis encontrados:', availableYears);
+    console.log('📅 Meses por ano:', monthsByYear);
+    console.log('📅 Total de vendas válidas:', vendasValidas.length);
+  }
+  
   // Criar lista de meses disponíveis com ano (formato: "Mês - Ano")
   const availableMonths: string[] = [];
   availableYears.forEach(year => {
@@ -516,30 +571,68 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
     // Extrair ano da venda
     let ano = extractYearFromData(venda.DATA);
     if (!ano) {
-      const mesLower = mes.toLowerCase();
-      const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
-      if (mesIndex >= 5 && mesIndex <= 11) {
-        ano = 2025;
+      // Se há selectedYear, usar ele como fallback (importante para dados de 2026)
+      if (selectedYear) {
+        ano = selectedYear;
       } else {
-        ano = new Date().getFullYear();
+        const mesLower = mes.toLowerCase();
+        const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
+        // Se for junho a dezembro, assumir 2025
+        if (mesIndex >= 5 && mesIndex <= 11) {
+          ano = 2025;
+        } else {
+          // Para janeiro a maio, assumir 2026
+          ano = mesIndex >= 0 && mesIndex <= 4 ? 2026 : new Date().getFullYear();
+        }
       }
     }
     
-    // Se há filtro de ano, verificar se o ano corresponde
-    if (selectedYear && ano !== selectedYear) return false;
+    // IMPORTANTE: Se selectedYear está definido, assumir que TODAS as vendas são do ano selecionado
+    // Isso é necessário porque quando buscamos da tabela "Total de Vendas 2026", 
+    // todas as vendas são de 2026, mesmo que o campo DATA tenha outro ano
+    if (selectedYear) {
+      ano = selectedYear;
+    }
+    
+    // Se há filtro de ano, verificar se o ano corresponde (agora sempre deve corresponder porque definimos acima)
+    if (selectedYear && ano !== selectedYear) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Venda filtrada (ano não corresponde): mes=${mes}, ano=${ano}, selectedYear=${selectedYear}, DATA=${venda.DATA}`);
+      }
+      return false;
+    }
     
     // Se há filtro de mês, verificar se o mês corresponde
     if (selectedMonth) {
-      // Se selectedMonth contém ano (formato "Mês - Ano"), extrair apenas o mês
-      const monthOnly = selectedMonth.includes(' - ') 
-        ? selectedMonth.split(' - ')[0].trim()
-        : selectedMonth;
-      
-      if (mes !== monthOnly) return false;
+      // Se selectedMonth contém ano (formato "Mês - Ano"), extrair apenas o mês e verificar o ano
+      if (selectedMonth.includes(' - ')) {
+        const [monthOnly, monthYear] = selectedMonth.split(' - ');
+        const monthYearNum = parseInt(monthYear.trim(), 10);
+        
+        // Se o ano do mês selecionado não corresponde ao ano da venda, filtrar
+        if (!isNaN(monthYearNum) && ano !== monthYearNum) {
+          return false;
+        }
+        
+        // Verificar se o mês corresponde
+        if (mes !== monthOnly.trim()) {
+          return false;
+        }
+      } else {
+        // Se não tem ano no selectedMonth, apenas verificar o mês
+        if (mes !== selectedMonth.trim()) {
+          return false;
+        }
+      }
     }
     
     return true;
   });
+
+  // Debug: verificar vendas filtradas
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 Vendas após filtro (selectedYear=${selectedYear}, selectedMonth=${selectedMonth}):`, filteredVendas.length);
+  }
 
   // 1. Métricas por mês (agora com ano)
   const monthlyMetricsMap = new Map<string, any>();
@@ -550,13 +643,27 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
     // Extrair ano
     let ano = extractYearFromData(venda.DATA);
     if (!ano) {
-      const mesLower = mes.toLowerCase();
-      const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
-      if (mesIndex >= 5 && mesIndex <= 11) {
-        ano = 2025;
+      // Se há selectedYear, usar ele como fallback (importante para dados de 2026)
+      if (selectedYear) {
+        ano = selectedYear;
       } else {
-        ano = new Date().getFullYear();
+        const mesLower = mes.toLowerCase();
+        const mesIndex = monthOrder.findIndex(m => mesLower.includes(m.toLowerCase()));
+        // Se for junho a dezembro, assumir 2025
+        if (mesIndex >= 5 && mesIndex <= 11) {
+          ano = 2025;
+        } else {
+          // Para janeiro a maio, assumir 2026
+          ano = mesIndex >= 0 && mesIndex <= 4 ? 2026 : new Date().getFullYear();
+        }
       }
+    }
+    
+    // IMPORTANTE: Se selectedYear está definido, assumir que TODAS as vendas são do ano selecionado
+    // Isso é necessário porque quando buscamos da tabela "Total de Vendas 2026", 
+    // todas as vendas são de 2026, mesmo que o campo DATA tenha outro ano
+    if (selectedYear) {
+      ano = selectedYear;
     }
     
     // Criar chave única mes-ano
