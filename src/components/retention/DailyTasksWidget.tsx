@@ -39,9 +39,7 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
     }
 
     try {
-      const hoje = new Date().toISOString();
-
-      // 1. Registrar contato no histórico (salva permanentemente)
+      // 1. Registrar contato no histórico (já atualiza ultimo_contato e ultimo_contato_nutricionista)
       const result = await ContactHistoryService.registerContact(
         task.telefone,
         task.nome,
@@ -53,21 +51,7 @@ export function DailyTasksWidget({ tasks, onTaskComplete }: DailyTasksWidgetProp
         throw result.error;
       }
 
-      // 2. Atualizar ambas as colunas na tabela patients
-      const { error: updateError } = await supabase
-        .from('patients')
-        .update({
-          ultimo_contato: hoje,
-          ultimo_contato_nutricionista: hoje
-        } as any)
-        .eq('id', task.patientId);
-
-      if (updateError) {
-        console.error('Erro ao atualizar último contato:', updateError);
-        throw updateError;
-      }
-
-      // 3. Remover da lista de retenção
+      // 2. Remover da lista de retenção
       const success = await retentionService.excludePatient(task.patientId, 'Contatado via Tarefas do Dia');
       
       if (!success) {

@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X, Camera } from 'lucide-react';
+import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X, Camera, Phone } from 'lucide-react';
 import { useCheckinFeedback } from '../../hooks/use-checkin-feedback';
 import { useFeedbackTemplates } from '../../hooks/use-feedback-templates';
 import { extractMeasurements } from '../../lib/measurement-utils';
@@ -315,6 +315,22 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       toast.error('Erro ao copiar feedback');
     }
   }, [generatedFeedback]);
+
+  const handleCopyPhone = useCallback(async () => {
+    const telefone = checkin.telefone || checkin.patient?.telefone;
+    if (!telefone) {
+      toast.error('Telefone não disponível');
+      return;
+    }
+    
+    try {
+      await navigator.clipboard.writeText(telefone);
+      toast.success('Telefone copiado!');
+    } catch (error) {
+      console.error('Erro ao copiar telefone:', error);
+      toast.error('Erro ao copiar telefone');
+    }
+  }, [checkin.telefone, checkin.patient?.telefone]);
 
   const handleOpenWhatsApp = useCallback(async () => {
     if (!generatedFeedback) return;
@@ -2948,7 +2964,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       value={generatedFeedback}
                       onChange={(e) => setGeneratedFeedback(e.target.value)}
                       placeholder="O feedback gerado aparecerá aqui..."
-                      rows={10}
+                      rows={20}
                       className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs font-mono whitespace-pre-wrap"
                     />
                     
@@ -2984,10 +3000,21 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       </Button>
                       
                       <Button
+                        onClick={handleCopyPhone}
+                        variant="outline"
+                        size="sm"
+                        className="bg-blue-600 border-blue-600 text-white hover:bg-blue-700 hover:border-blue-700"
+                        title={`Copiar telefone: ${checkin.telefone || checkin.patient?.telefone || ''}`}
+                      >
+                        <Phone className="h-3 w-3 mr-1" />
+                        {checkin.telefone || checkin.patient?.telefone || 'Telefone'}
+                      </Button>
+                      
+                      <Button
                         onClick={handleOpenWhatsApp}
                         variant="outline"
                         size="sm"
-                        className="text-green-400 border-green-600 hover:bg-green-900/20"
+                        className="bg-green-600 border-green-600 text-white hover:bg-green-700 hover:border-green-700"
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         WhatsApp

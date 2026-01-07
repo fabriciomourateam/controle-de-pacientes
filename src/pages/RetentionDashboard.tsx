@@ -326,7 +326,7 @@ Estou aqui pra te ajudar! 💪`;
       }
       
       if (success) {
-        // Registrar contato no histórico
+        // Registrar contato no histórico (já atualiza ultimo_contato e ultimo_contato_nutricionista)
         const result = await ContactHistoryService.registerContact(
           telefone,
           nome,
@@ -339,16 +339,6 @@ Estou aqui pra te ajudar! 💪`;
         if (!result.success) {
           console.error('Erro ao registrar contato:', result.error);
         }
-        
-        // Atualizar último contato do paciente
-        const hoje = new Date().toISOString();
-        await supabase
-          .from('patients')
-          .update({
-            ultimo_contato: hoje,
-            ultimo_contato_nutricionista: hoje
-          } as any)
-          .eq('id', patientId);
         
         // Recarregar dados
         await loadContactedPatients();
@@ -395,29 +385,52 @@ Estou aqui pra te ajudar! 💪`;
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       
-      // Buscar contatos de hoje de TODA A EQUIPE
+      // Buscar contatos dos últimos 20 dias de TODA A EQUIPE
+      // Pacientes contatados nos últimos 20 dias não devem aparecer na lista
+      const vinteDiasAtras = new Date(hoje);
+      vinteDiasAtras.setDate(vinteDiasAtras.getDate() - 20);
+      
       const { data, error } = await supabase
         .from('contact_history')
-        .select('telefone')
-        .gte('contact_date', hoje.toISOString())
+        .select('telefone, contact_date')
+        .gte('contact_date', vinteDiasAtras.toISOString())
         .in('user_id', teamUserIds); // Buscar contatos de toda a equipe
 
       if (error) throw error;
       
-      if (data) {
-        // Buscar IDs dos pacientes pelos telefones
-        const telefones = data.map(c => c.telefone);
-        if (telefones.length > 0) {
+      if (data && data.length > 0) {
+        // Agrupar por telefone e pegar o contato mais recente de cada paciente
+        const contatosPorTelefone = new Map<string, Date>();
+        
+        data.forEach(contato => {
+          const telefone = contato.telefone;
+          const dataContato = new Date(contato.contact_date);
+          
+          // Se não tem registro para este telefone, ou se este contato é mais recente
+          if (!contatosPorTelefone.has(telefone) || 
+              dataContato > contatosPorTelefone.get(telefone)!) {
+            contatosPorTelefone.set(telefone, dataContato);
+          }
+        });
+        
+        // Filtrar apenas pacientes contatados nos últimos 20 dias
+        const telefonesRecentes = Array.from(contatosPorTelefone.entries())
+          .filter(([_, dataContato]) => {
+            const diasDesdeContato = Math.ceil((hoje.getTime() - dataContato.getTime()) / (1000 * 60 * 60 * 24));
+            return diasDesdeContato < 20; // Apenas contatos dos últimos 20 dias
+          })
+          .map(([telefone]) => telefone);
+        
+        if (telefonesRecentes.length > 0) {
           const { data: patientsData } = await supabase
             .from('patients')
             .select('id, telefone')
-            .in('telefone', telefones);
+            .in('telefone', telefonesRecentes);
           
           if (patientsData) {
             setContactedPatients(new Set(patientsData.map(p => p.id)));
           }
         } else {
-          // Se não há contatos, limpar o Set
           setContactedPatients(new Set());
         }
       } else {
@@ -450,38 +463,54 @@ Estou aqui pra te ajudar! 💪`;
       umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
 
       // Contatos hoje - FILTRAR POR TODOS OS USER_IDS DA EQUIPE
-      const { count: todayCount } = await supabase
+      // Usar DISTINCT para evitar contar duplicatas do mesmo telefone no mesmo dia
+      const { data: todayContacts } = await supabase
         .from('contact_history')
-        .select('*', { count: 'exact', head: true })
+        .select('telefone, contact_date')
         .in('user_id', teamUserIds) // FILTRAR POR TODA A EQUIPE
         .gte('contact_date', hoje.toISOString());
+      
+      // Contar telefones únicos (evitar duplicatas)
+      const todayCount = todayContacts 
+        ? new Set(todayContacts.map(c => c.telefone)).size 
+        : 0;
 
       // Contatos esta semana - FILTRAR POR TODOS OS USER_IDS DA EQUIPE
-      const { count: weekCount } = await supabase
+      const { data: weekContacts } = await supabase
         .from('contact_history')
-        .select('*', { count: 'exact', head: true })
+        .select('telefone, contact_date')
         .in('user_id', teamUserIds) // FILTRAR POR TODA A EQUIPE
         .gte('contact_date', umaSemanaAtras.toISOString());
+      
+      // Contar telefones únicos (evitar duplicatas)
+      const weekCount = weekContacts 
+        ? new Set(weekContacts.map(c => c.telefone)).size 
+        : 0;
 
       // Dados para gráfico (últimos 7 dias) - FILTRAR POR TODA A EQUIPE
       const { data: chartData } = await supabase
         .from('contact_history')
-        .select('contact_date')
+        .select('telefone, contact_date')
         .in('user_id', teamUserIds) // FILTRAR POR TODA A EQUIPE
         .gte('contact_date', umaSemanaAtras.toISOString())
         .order('contact_date', { ascending: true });
 
-      // Processar dados do gráfico
+      // Processar dados do gráfico (contar telefones únicos por dia)
       const chartDataProcessed: Array<{ date: string; count: number }> = [];
       for (let i = 6; i >= 0; i--) {
         const date = new Date(hoje);
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
         
-        const count = chartData?.filter(c => {
+        // Filtrar contatos deste dia e contar telefones únicos
+        const contatosDoDia = chartData?.filter(c => {
           const contactDate = new Date(c.contact_date).toISOString().split('T')[0];
           return contactDate === dateStr;
-        }).length || 0;
+        }) || [];
+        
+        // Contar telefones únicos (evitar duplicatas)
+        const telefonesUnicos = new Set(contatosDoDia.map(c => c.telefone));
+        const count = telefonesUnicos.size;
         
         chartDataProcessed.push({
           date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
@@ -616,8 +645,10 @@ Estou aqui pra te ajudar! 💪`;
 
   // Calcular métricas
   const metrics = useMemo(() => {
-    // Filtrar pacientes removidos para as métricas
-    const activePatients = patients.filter(p => !removedPatients.has(p.id));
+    // Filtrar pacientes removidos E pacientes contatados nos últimos 20 dias para as métricas
+    const activePatients = patients.filter(p => 
+      !removedPatients.has(p.id) && !contactedPatients.has(p.id)
+    );
     const attention = activePatients.filter(p => p.riskLevel === 'attention').length;
     const critical = activePatients.filter(p => p.riskLevel === 'critical').length;
     const total = attention + critical;
@@ -626,11 +657,14 @@ Estou aqui pra te ajudar! 💪`;
       : 0;
 
     return { attention, critical, total, avgEngagement };
-  }, [patients, removedPatients]);
+  }, [patients, removedPatients, contactedPatients]);
 
   // Ordenar pacientes
   const sortedPatients = useMemo(() => {
-    const activePatients = patients.filter(p => !removedPatients.has(p.id));
+    // Filtrar pacientes removidos E pacientes contatados nos últimos 20 dias
+    const activePatients = patients.filter(p => 
+      !removedPatients.has(p.id) && !contactedPatients.has(p.id)
+    );
     
     const sorted = [...activePatients].sort((a, b) => {
       let comparison = 0;
@@ -651,30 +685,14 @@ Estou aqui pra te ajudar! 💪`;
     });
     
     return sorted;
-  }, [patients, removedPatients, sortBy, sortOrder]);
+  }, [patients, removedPatients, contactedPatients, sortBy, sortOrder]);
 
   const attentionPatients = sortedPatients.filter(p => p.riskLevel === 'attention');
   const criticalPatients = sortedPatients.filter(p => p.riskLevel === 'critical');
   
   const handleRemovePatient = async (patientId: string, patientName: string) => {
     try {
-      // Atualizar a data de último contato para reiniciar a contagem
-      // Isso garante que o paciente só volte a aparecer após 20 ou 30 dias
-      const hoje = new Date().toISOString();
-      const { error: updateError } = await supabase
-        .from('patients')
-        .update({
-          ultimo_contato: hoje,
-          ultimo_contato_nutricionista: hoje
-        } as any)
-        .eq('id', patientId);
-
-      if (updateError) {
-        console.error('Erro ao atualizar último contato ao remover:', updateError);
-        // Continuar mesmo se houver erro na atualização
-      }
-
-      // Registrar no histórico de contatos
+      // Registrar no histórico de contatos (já atualiza ultimo_contato e ultimo_contato_nutricionista)
       const patient = patients.find(p => p.id === patientId);
       if (patient) {
         await ContactHistoryService.registerContact(
@@ -731,7 +749,7 @@ Estou aqui pra te ajudar! 💪`;
       const success = await contactWebhookService.sendContactMessage(telefone, nome);
       
       if (success) {
-        // Registrar contato no histórico para persistir após refresh
+        // Registrar contato no histórico (já atualiza ultimo_contato e ultimo_contato_nutricionista)
         const result = await ContactHistoryService.registerContact(
           telefone,
           nome,
@@ -741,20 +759,6 @@ Estou aqui pra te ajudar! 💪`;
         
         if (!result.success) {
           console.error('Erro ao registrar contato:', result.error);
-        }
-        
-        // Atualizar AMBOS os campos para reiniciar a contagem
-        const hoje = new Date().toISOString();
-        const { error: updateError } = await supabase
-          .from('patients')
-          .update({
-            ultimo_contato: hoje,  // Atualizar para reiniciar contagem
-            ultimo_contato_nutricionista: hoje
-          } as any)
-          .eq('id', patientId);
-        
-        if (updateError) {
-          console.error('Erro ao atualizar último contato:', updateError);
         }
         
         // Recarregar pacientes contatados do banco (para persistir após refresh)
@@ -796,7 +800,7 @@ Estou aqui pra te ajudar! 💪`;
       
       const hoje = new Date().toISOString();
 
-      // 1. Registrar contato no histórico (salva permanentemente)
+      // 1. Registrar contato no histórico (já atualiza ultimo_contato e ultimo_contato_nutricionista)
       const result = await ContactHistoryService.registerContact(
         telefone,
         patientName,
@@ -808,26 +812,26 @@ Estou aqui pra te ajudar! 💪`;
         throw result.error;
       }
 
-      // 2. Atualizar ambas as colunas na tabela patients
-      const { error: updateError } = await supabase
-        .from('patients')
-        .update({
-          ultimo_contato: hoje,
-          ultimo_contato_nutricionista: hoje
-        } as any)
-        .eq('id', patientId);
-
-      if (updateError) {
-        console.error('Erro ao atualizar último contato:', updateError);
-        throw updateError;
+      // 2. Remover da lista de retenção (sem registrar outro contato)
+      // Não chamar handleRemovePatient para evitar duplicação
+      const excludeSuccess = await retentionService.excludePatient(patientId, 'Contatado via Dashboard de Retenção');
+      
+      if (excludeSuccess) {
+        const newRemoved = new Set([...removedPatients, patientId]);
+        setRemovedPatients(newRemoved);
+        
+        // Também salvar no localStorage como backup
+        try {
+          localStorage.setItem('retention_removed_patients', JSON.stringify(Array.from(newRemoved)));
+        } catch (e) {
+          // Ignorar erro do localStorage
+        }
       }
-
-      // 3. Remover da lista de retenção
-      await handleRemovePatient(patientId, patientName);
       
       // 4. Recarregar pacientes contatados do banco (para persistir após refresh)
       await loadContactedPatients();
       
+      // 5. Atualizar estatísticas
       loadContactStats();
 
       toast({
