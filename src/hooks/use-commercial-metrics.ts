@@ -693,8 +693,20 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
     const comprou = isYes(venda.COMPROU);
     const naoComprou = isYes(venda['NÃO COMPROU']);
     const noShow = isYes(venda['NO SHOW']);
-    const desmarcados = isYes(venda['DESMARCADOS']);
-    const pixCompromisso = isYes(venda['PIX COMPROMISSO']);
+    
+    // Para 2026 ou posterior, usar DESMARCOU e PIX_COMPROMISSO
+    // Para 2025 ou anterior, usar DESMARCADOS e PIX COMPROMISSO
+    const is2026OrLater = selectedYear !== undefined && selectedYear >= 2026;
+    const desmarcados = isYes(
+      is2026OrLater 
+        ? (venda as any)['DESMARCOU'] || (venda as any)['DESMARCADOS']
+        : venda['DESMARCADOS'] || (venda as any)['DESMARCOU']
+    );
+    const pixCompromisso = isYes(
+      is2026OrLater
+        ? (venda as any)['PIX_COMPROMISSO'] || (venda as any)['PIX COMPROMISSO']
+        : venda['PIX COMPROMISSO'] || (venda as any)['PIX_COMPROMISSO']
+    );
     
     if (comprou) {
       monthData.comprou++;
