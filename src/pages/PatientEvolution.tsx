@@ -935,6 +935,13 @@ export default function PatientEvolution() {
                     <Scale className="w-4 h-4 mr-2" />
                     Registrar Peso
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/renewal/${telefone}`)}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 mr-2 text-yellow-400" />
+                    Relatório de Evolução
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               

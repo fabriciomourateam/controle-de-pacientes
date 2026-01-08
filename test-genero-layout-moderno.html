@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Detecção de Gênero e Layout Moderno</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold mb-8 text-center">🎨 Melhorias Implementadas - Gênero + Layout</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Detecção de Gênero -->
+            <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-green-400">✅ Detecção de Gênero</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-yellow-400">🔧 Como Funciona</h3>
+                        <ul class="space-y-2 text-sm text-slate-300">
+                            <li>• <strong>Análise do nome:</strong> Detecta automaticamente se é masculino/feminino</li>
+                            <li>• <strong>Base de dados:</strong> Lista de nomes comuns brasileiros</li>
+                            <li>• <strong>Terminações:</strong> Analisa sufixos típicos (-a, -ana, -ina, etc.)</li>
+                            <li>• <strong>Fallback neutro:</strong> Quando não consegue determinar</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-blue-400">📝 Palavras Adaptadas</h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="bg-slate-800 rounded p-2">
+                                <strong>Masculino:</strong><br>
+                                perdido, disciplinado, focado, outro
+                            </div>
+                            <div class="bg-slate-800 rounded p-2">
+                                <strong>Feminino:</strong><br>
+                                perdida, disciplinada, focada, outra
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layout Moderno -->
+            <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-400">🎨 Layout Moderno</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-yellow-400">✨ Melhorias Visuais</h3>
+                        <ul class="space-y-2 text-sm text-slate-300">
+                            <li>• <strong>Gradientes:</strong> Backgrounds com múltiplas camadas</li>
+                            <li>• <strong>Backdrop blur:</strong> Efeito de vidro fosco</li>
+                            <li>• <strong>Sombras:</strong> Shadow-2xl para profundidade</li>
+                            <li>• <strong>Bordas:</strong> Bordas sutis com transparência</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-purple-400">📊 Cards de Estatísticas</h3>
+                        <ul class="space-y-2 text-sm text-slate-300">
+                            <li>• <strong>Ícones coloridos:</strong> Cada métrica com cor única</li>
+                            <li>• <strong>Backgrounds temáticos:</strong> Gradientes por categoria</li>
+                            <li>• <strong>Layout horizontal:</strong> Ícone + dados lado a lado</li>
+                            <li>• <strong>Bordas coloridas:</strong> Matching com o tema</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testes por Gênero -->
+        <div class="bg-slate-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">🧪 Testes por Gênero</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-pink-400">👩 Nomes Femininos</h3>
+                    <div class="space-y-2">
+                        <div class="bg-slate-700 rounded p-3 flex justify-between items-center">
+                            <span><strong>Fabiola</strong> (exemplo do usuário)</span>
+                            <a href="http://localhost:5161/renewal/5513997793555" 
+                               class="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-sm" 
+                               target="_blank">
+                                Testar
+                            </a>
+                        </div>
+                        <div class="bg-slate-700 rounded p-3 flex justify-between items-center">
+                            <span><strong>Maria Silva</strong></span>
+                            <a href="http://localhost:5161/renewal/554898477378" 
+                               class="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-sm" 
+                               target="_blank">
+                                Testar
+                            </a>
+                        </div>
+                        <div class="bg-slate-700 rounded p-3 flex justify-between items-center">
+                            <span><strong>Ana Carolina</strong></span>
+                            <a href="http://localhost:5161/renewal/553287015416" 
+                               class="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-sm" 
+                               target="_blank">
+                                Testar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-blue-400">👨 Nomes Masculinos</h3>
+                    <div class="space-y-2">
+                        <div class="bg-slate-700 rounded p-3 flex justify-between items-center">
+                            <span><strong>Jorge Luiz</strong></span>
+                            <a href="http://localhost:5161/renewal/554898477378" 
+                               class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" 
+                               target="_blank">
+                                Testar
+                            </a>
+                        </div>
+                        <div class="bg-slate-700 rounded p-3 flex justify-between items-center">
+                            <span><strong>Carlos Augusto</strong></span>
+                            <a href="http://localhost:5161/renewal/5521971811979" 
+                               class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" 
+                               target="_blank">
+                                Testar
+                            </a>
+                        </div>
+                        <div class="bg-slate-700 rounded p-3 flex justify-between items-center">
+                            <span><strong>Fabricio Moura</strong></span>
+                            <a href="http://localhost:5161/renewal/5511953514908" 
+                               class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" 
+                               target="_blank">
+                                Testar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparação Visual -->
+        <div class="bg-slate-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">🔄 Antes vs Depois</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-red-400">❌ Antes</h3>
+                    <div class="bg-slate-700 rounded p-4 space-y-2 text-sm">
+                        <p>• Linguagem genérica (sempre masculino)</p>
+                        <p>• Layout simples e básico</p>
+                        <p>• Cards sem gradientes</p>
+                        <p>• Estatísticas em texto simples</p>
+                        <p>• Sem ícones coloridos</p>
+                        <p>• Bordas básicas</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-green-400">✅ Depois</h3>
+                    <div class="bg-slate-700 rounded p-4 space-y-2 text-sm">
+                        <p>• Linguagem adaptada ao gênero</p>
+                        <p>• Layout moderno com gradientes</p>
+                        <p>• Cards com backdrop blur</p>
+                        <p>• Estatísticas com ícones coloridos</p>
+                        <p>• Design system consistente</p>
+                        <p>• Bordas e sombras profissionais</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exemplos de Texto -->
+        <div class="bg-slate-800 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">📝 Exemplos de Adaptação</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-pink-900/20 border border-pink-500/30 rounded p-4">
+                    <h3 class="text-lg font-semibold mb-2 text-pink-400">👩 Para Fabiola</h3>
+                    <p class="text-sm text-slate-300 italic">
+                        "Lembro quando você chegou aqui, meio <strong>perdida</strong>, sem saber direito por onde começar. 
+                        Hoje você é <strong>outra</strong> pessoa - não só fisicamente, mas mentalmente também. 
+                        Você se tornou mais <strong>disciplinada</strong> e <strong>focada</strong>."
+                    </p>
+                </div>
+                
+                <div class="bg-blue-900/20 border border-blue-500/30 rounded p-4">
+                    <h3 class="text-lg font-semibold mb-2 text-blue-400">👨 Para Jorge</h3>
+                    <p class="text-sm text-slate-300 italic">
+                        "Lembro quando você chegou aqui, meio <strong>perdido</strong>, sem saber direito por onde começar. 
+                        Hoje você é <strong>outro</strong> pessoa - não só fisicamente, mas mentalmente também. 
+                        Você se tornou mais <strong>disciplinado</strong> e <strong>focado</strong>."
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <p class="text-slate-400 text-sm">
+                🎯 <strong>Melhorias implementadas:</strong> Detecção automática de gênero + Layout moderno e visual<br>
+                Teste com diferentes nomes para ver a adaptação da linguagem!
+            </p>
+        </div>
+    </div>
+</body>
+</html>

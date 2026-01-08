@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Evolução - Teste Atualizado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold mb-8 text-center">📊 Relatório de Evolução - Atualizado!</h1>
+        
+        <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-green-400">✅ Alterações Implementadas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-yellow-400">🔧 Mudanças Técnicas</h3>
+                    <ul class="space-y-2 text-sm text-slate-300">
+                        <li>• <strong>DashboardLayout adicionado:</strong> Barra lateral ativa</li>
+                        <li>• <strong>Autenticação híbrida:</strong> Funciona logado ou público</li>
+                        <li>• <strong>Navegação melhorada:</strong> Botão "Voltar" para evolução</li>
+                        <li>• <strong>Compatibilidade total:</strong> Mantém todas as funcionalidades</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-blue-400">📝 Mudanças de Nome</h3>
+                    <ul class="space-y-2 text-sm text-slate-300">
+                        <li>• <strong>Título da página:</strong> "Relatório de Evolução"</li>
+                        <li>• <strong>Menu Ações Rápidas:</strong> "Relatório de Evolução"</li>
+                        <li>• <strong>Compartilhamento:</strong> Títulos atualizados</li>
+                        <li>• <strong>Consistência:</strong> Todos os textos alinhados</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Teste COM Sidebar -->
+            <div class="bg-slate-800 rounded-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-yellow-400">🔗 Teste COM Sidebar (Logado)</h2>
+                <p class="text-sm text-slate-400 mb-4">Acesse logado no sistema para ver a barra lateral</p>
+                
+                <div class="space-y-3">
+                    <div class="bg-slate-700 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Paciente com Dados</div>
+                                <div class="text-sm text-slate-400">5513997793555</div>
+                                <div class="text-xs text-green-400">✅ Com sidebar + dados completos</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/5513997793555" 
+                               class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Testar Logado
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-700 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Jorge Luiz Leal Junior</div>
+                                <div class="text-sm text-slate-400">554898477378</div>
+                                <div class="text-xs text-orange-400">⚠️ Com sidebar + sem check-ins</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/554898477378" 
+                               class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Testar Logado
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teste SEM Login -->
+            <div class="bg-slate-800 rounded-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-400">🌐 Teste SEM Login (Público)</h2>
+                <p class="text-sm text-slate-400 mb-4">Acesse em aba anônima para testar acesso público</p>
+                
+                <div class="space-y-3">
+                    <div class="bg-slate-700 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Paciente com Dados</div>
+                                <div class="text-sm text-slate-400">5513997793555</div>
+                                <div class="text-xs text-green-400">✅ Acesso público + dados completos</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/5513997793555" 
+                               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Testar Público
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-700 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Jorge Luiz Leal Junior</div>
+                                <div class="text-sm text-slate-400">554898477378</div>
+                                <div class="text-xs text-orange-400">⚠️ Acesso público + sem check-ins</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/554898477378" 
+                               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Testar Público
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Como Acessar -->
+        <div class="mt-8 bg-slate-800 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">🎯 Como Acessar o Relatório</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-yellow-400">📱 Pelo Sistema (Recomendado)</h3>
+                    <ol class="space-y-2 text-sm list-decimal list-inside text-slate-300">
+                        <li>Faça login no sistema</li>
+                        <li>Vá para <strong>Pacientes</strong> → <strong>Evolução</strong></li>
+                        <li>Clique em <strong>"Ações Rápidas"</strong></li>
+                        <li>Selecione <strong>"Relatório de Evolução"</strong></li>
+                        <li>Página abre COM sidebar ativa</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-blue-400">🔗 Link Direto (Compartilhamento)</h3>
+                    <ol class="space-y-2 text-sm list-decimal list-inside text-slate-300">
+                        <li>Use o formato: <code>/renewal/TELEFONE</code></li>
+                        <li>Funciona sem necessidade de login</li>
+                        <li>Ideal para compartilhar com pacientes</li>
+                        <li>Acesso público via service role</li>
+                        <li>Página abre SEM sidebar (público)</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Final -->
+        <div class="mt-8 bg-gradient-to-r from-green-900/20 to-blue-900/20 border border-green-500/30 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4 text-center">🎉 Status Final</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div class="text-3xl font-bold text-green-400 mb-1">✅</div>
+                    <div class="text-sm text-slate-400">Sidebar Ativa</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-green-400 mb-1">📊</div>
+                    <div class="text-sm text-slate-400">Nome Atualizado</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-green-400 mb-1">🔐</div>
+                    <div class="text-sm text-slate-400">Acesso Híbrido</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-green-400 mb-1">🚀</div>
+                    <div class="text-sm text-slate-400">Pronto!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <p class="text-slate-400 text-sm">
+                🎯 <strong>Relatório de Evolução</strong> implementado com sucesso!<br>
+                Agora com sidebar ativa e nome atualizado conforme solicitado.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

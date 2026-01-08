@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Acesso - Renovação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🧪 Teste de Acesso - Sistema de Renovação</h1>
+        
+        <div class="bg-slate-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">📋 Pacientes Disponíveis para Teste</h2>
+            <div class="space-y-2 text-sm font-mono">
+                <div class="flex justify-between">
+                    <span>Jorge Luiz Leal Junior</span>
+                    <a href="http://localhost:5160/renewal/554898477378" 
+                       class="text-blue-400 hover:text-blue-300" 
+                       target="_blank">
+                        /renewal/554898477378
+                    </a>
+                </div>
+                <div class="flex justify-between">
+                    <span>Carlos Augusto Santana da Silva</span>
+                    <a href="http://localhost:5160/renewal/5521971811979" 
+                       class="text-blue-400 hover:text-blue-300" 
+                       target="_blank">
+                        /renewal/5521971811979
+                    </a>
+                </div>
+                <div class="flex justify-between">
+                    <span>André Eller Pereira Mendonça</span>
+                    <a href="http://localhost:5160/renewal/553184809196" 
+                       class="text-blue-400 hover:text-blue-300" 
+                       target="_blank">
+                        /renewal/553184809196
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-yellow-400">⚠️ Possíveis Problemas</h2>
+            <ul class="space-y-2 text-sm">
+                <li>• <strong>RLS (Row Level Security):</strong> Políticas de acesso à tabela patients</li>
+                <li>• <strong>Autenticação:</strong> Usuário não logado ou sem permissão</li>
+                <li>• <strong>Tabela:</strong> Nome da tabela (patients vs pacientes)</li>
+                <li>• <strong>Contexto:</strong> AuthContext não carregado</li>
+            </ul>
+        </div>
+
+        <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-green-400">✅ Soluções Implementadas</h2>
+            <ul class="space-y-2 text-sm">
+                <li>• <strong>Tabela corrigida:</strong> Usando 'patients' em vez de 'pacientes'</li>
+                <li>• <strong>DashboardLayout:</strong> Garantindo autenticação</li>
+                <li>• <strong>Debug melhorado:</strong> Logs detalhados no console</li>
+                <li>• <strong>Tratamento de erro:</strong> Mensagens mais claras</li>
+            </ul>
+        </div>
+
+        <div class="mt-8 text-center">
+            <p class="text-slate-400 text-sm">
+                Abra o console do navegador (F12) para ver os logs de debug
+            </p>
+        </div>
+    </div>
+</body>
+</html>

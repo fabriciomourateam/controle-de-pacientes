@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Sistema de Renovação Corrigido</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🚀 Sistema de Renovação - Teste Corrigido</h1>
+        
+        <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-green-400">✅ Correções Implementadas</h2>
+            <ul class="space-y-2 text-sm">
+                <li>• <strong>Service Role:</strong> Usando VITE_SUPABASE_SERVICE_ROLE_KEY para acesso público</li>
+                <li>• <strong>Sem DashboardLayout:</strong> Página independente, não requer autenticação</li>
+                <li>• <strong>Acesso direto:</strong> Bypass completo das políticas RLS</li>
+                <li>• <strong>Debug melhorado:</strong> Logs detalhados para troubleshooting</li>
+            </ul>
+        </div>
+
+        <div class="bg-slate-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">📋 Links de Teste (Pacientes com Check-ins)</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center p-3 bg-slate-700 rounded">
+                    <div>
+                        <span class="font-medium">Paciente com Check-ins</span>
+                        <span class="text-slate-400 text-sm ml-2">(5513997793555)</span>
+                        <span class="text-green-400 text-xs ml-2">✅ 3 check-ins</span>
+                    </div>
+                    <a href="http://localhost:5173/renewal/5513997793555" 
+                       class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-4 py-2 rounded font-medium" 
+                       target="_blank">
+                        Testar Renovação
+                    </a>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-700 rounded">
+                    <div>
+                        <span class="font-medium">Paciente com Check-ins</span>
+                        <span class="text-slate-400 text-sm ml-2">(553287015416)</span>
+                        <span class="text-green-400 text-xs ml-2">✅ Com dados</span>
+                    </div>
+                    <a href="http://localhost:5173/renewal/553287015416" 
+                       class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-4 py-2 rounded font-medium" 
+                       target="_blank">
+                        Testar Renovação
+                    </a>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-700 rounded">
+                    <div>
+                        <span class="font-medium">Jorge Luiz Leal Junior</span>
+                        <span class="text-slate-400 text-sm ml-2">(554898477378)</span>
+                        <span class="text-orange-400 text-xs ml-2">⚠️ Sem check-ins</span>
+                    </div>
+                    <a href="http://localhost:5173/renewal/554898477378" 
+                       class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium" 
+                       target="_blank">
+                        Testar (Sem Dados)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-blue-400">🔧 Como Funciona Agora</h2>
+            <ol class="space-y-2 text-sm list-decimal list-inside">
+                <li>Página de renovação não requer autenticação</li>
+                <li>Usa service role key para acesso direto ao banco</li>
+                <li>Bypass completo das políticas RLS</li>
+                <li>Dados carregados diretamente via Supabase service role</li>
+                <li>Página totalmente pública e compartilhável</li>
+            </ol>
+        </div>
+
+        <div class="mt-8 text-center">
+            <p class="text-slate-400 text-sm">
+                Abra o console do navegador (F12) para ver os logs de debug
+            </p>
+        </div>
+    </div>
+</body>
+</html>

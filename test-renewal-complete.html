@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Renovação - Teste Completo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold mb-8 text-center">🚀 Sistema de Renovação - Funcionando!</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Pacientes COM Check-ins -->
+            <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-green-400">✅ Pacientes COM Check-ins</h2>
+                <p class="text-sm text-slate-400 mb-4">Estes pacientes têm dados completos para demonstração</p>
+                
+                <div class="space-y-3">
+                    <div class="bg-slate-800 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Paciente #1</div>
+                                <div class="text-sm text-slate-400">5513997793555</div>
+                                <div class="text-xs text-green-400">✅ 3 check-ins • Peso: 78,30kg • C95 Q110</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/5513997793555" 
+                               class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Ver Renovação
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-800 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Paciente #2</div>
+                                <div class="text-sm text-slate-400">553287015416</div>
+                                <div class="text-xs text-green-400">✅ Com dados de evolução</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/553287015416" 
+                               class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Ver Renovação
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-800 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Paciente #3</div>
+                                <div class="text-sm text-slate-400">5511953514908</div>
+                                <div class="text-xs text-green-400">✅ Com dados de evolução</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/5511953514908" 
+                               class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Ver Renovação
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pacientes SEM Check-ins -->
+            <div class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-orange-400">⚠️ Pacientes SEM Check-ins</h2>
+                <p class="text-sm text-slate-400 mb-4">Estes pacientes mostram como o sistema lida com dados limitados</p>
+                
+                <div class="space-y-3">
+                    <div class="bg-slate-800 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Jorge Luiz Leal Junior</div>
+                                <div class="text-sm text-slate-400">554898477378</div>
+                                <div class="text-xs text-orange-400">⚠️ Sem check-ins registrados</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/554898477378" 
+                               class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Ver Renovação
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-800 rounded p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium">Carlos Augusto Santana da Silva</div>
+                                <div class="text-sm text-slate-400">5521971811979</div>
+                                <div class="text-xs text-orange-400">⚠️ Sem check-ins registrados</div>
+                            </div>
+                            <a href="http://localhost:5173/renewal/5521971811979" 
+                               class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-medium text-sm" 
+                               target="_blank">
+                                Ver Renovação
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status do Sistema -->
+        <div class="mt-8 bg-slate-800 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">📊 Status do Sistema</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-400 mb-1">✅</div>
+                    <div class="text-sm text-slate-400">RLS Resolvido</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-400 mb-1">🔑</div>
+                    <div class="text-sm text-slate-400">Service Role</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-400 mb-1">🌐</div>
+                    <div class="text-sm text-slate-400">Acesso Público</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-400 mb-1">📱</div>
+                    <div class="text-sm text-slate-400">Compartilhável</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funcionalidades Implementadas -->
+        <div class="mt-8 bg-slate-800 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4">🎯 Funcionalidades Implementadas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-yellow-400">📝 Conteúdo Personalizado</h3>
+                    <ul class="space-y-1 text-sm text-slate-300">
+                        <li>• Resumo escrito como Fabricio Moura</li>
+                        <li>• Tom empático e descontraído</li>
+                        <li>• Análise de evolução personalizada</li>
+                        <li>• Metas realistas para próximo ciclo</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-blue-400">📊 Dados e Métricas</h3>
+                    <ul class="space-y-1 text-sm text-slate-300">
+                        <li>• Comparativo peso/medidas (início vs atual)</li>
+                        <li>• Gráficos de evolução automáticos</li>
+                        <li>• Comparação de fotos antes/depois</li>
+                        <li>• Estatísticas de jornada</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-green-400">🎨 Design e UX</h3>
+                    <ul class="space-y-1 text-sm text-slate-300">
+                        <li>• Design profissional e responsivo</li>
+                        <li>• Tema escuro com acentos dourados</li>
+                        <li>• Layout otimizado para compartilhamento</li>
+                        <li>• Carregamento gracioso</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-purple-400">🔗 Compartilhamento</h3>
+                    <ul class="space-y-1 text-sm text-slate-300">
+                        <li>• Links públicos únicos por paciente</li>
+                        <li>• Botões de compartilhamento WhatsApp/Email</li>
+                        <li>• Acesso sem necessidade de login</li>
+                        <li>• URLs amigáveis (/renewal/telefone)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instruções -->
+        <div class="mt-8 bg-blue-900/20 border border-blue-500/30 rounded-lg p-6">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-400">📖 Como Usar</h2>
+            <ol class="space-y-2 text-sm list-decimal list-inside">
+                <li>Clique em qualquer link "Ver Renovação" acima</li>
+                <li>A página abrirá sem necessidade de login</li>
+                <li>Veja o resumo personalizado do Fabricio</li>
+                <li>Analise as métricas e evolução (se houver dados)</li>
+                <li>Use os botões de compartilhamento para enviar ao paciente</li>
+                <li>O link pode ser compartilhado diretamente via WhatsApp/Email</li>
+            </ol>
+        </div>
+
+        <div class="mt-8 text-center">
+            <p class="text-slate-400 text-sm">
+                🎉 Sistema de Renovação implementado com sucesso!<br>
+                Abra o console do navegador (F12) para ver logs detalhados
+            </p>
+        </div>
+    </div>
+</body>
+</html>

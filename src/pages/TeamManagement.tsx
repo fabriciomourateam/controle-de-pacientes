@@ -31,6 +31,7 @@ export default function TeamManagement() {
   const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterAccess, setFilterAccess] = useState<'all' | 'today' | 'recent' | 'old' | 'very-old' | 'never'>('all');
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,7 +39,9 @@ export default function TeamManagement() {
     const matchesStatus = filterStatus === 'all' || 
                          (filterStatus === 'active' && member.is_active) ||
                          (filterStatus === 'inactive' && !member.is_active);
-    return matchesSearch && matchesStatus;
+    const matchesAccess = filterAccess === 'all' || 
+                         getLastAccessStatus(member.last_access) === filterAccess;
+    return matchesSearch && matchesStatus && matchesAccess;
   });
 
   const handleEdit = (member: TeamMember) => {
@@ -85,9 +88,52 @@ export default function TeamManagement() {
   const getLastAccessText = (lastAccess: string | null) => {
     if (!lastAccess) return 'Nunca acessou';
     try {
-      return `há ${formatDistanceToNow(new Date(lastAccess), { locale: ptBR })}`;
+      const lastAccessDate = new Date(lastAccess);
+      const now = new Date();
+      const diffInDays = Math.floor((now.getTime() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffInDays === 0) {
+        return 'Hoje';
+      } else if (diffInDays === 1) {
+        return 'Ontem';
+      } else if (diffInDays <= 7) {
+        return `há ${diffInDays} dias`;
+      } else if (diffInDays <= 30) {
+        const weeks = Math.floor(diffInDays / 7);
+        return `há ${weeks} semana${weeks > 1 ? 's' : ''}`;
+      } else {
+        return `há ${formatDistanceToNow(lastAccessDate, { locale: ptBR })}`;
+      }
     } catch {
       return 'Data inválida';
+    }
+  };
+
+  const getLastAccessStatus = (lastAccess: string | null) => {
+    if (!lastAccess) return 'never';
+    
+    const lastAccessDate = new Date(lastAccess);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'today';
+    if (diffInDays <= 7) return 'recent';
+    if (diffInDays <= 30) return 'old';
+    return 'very-old';
+  };
+
+  const getLastAccessBadge = (status: string) => {
+    switch (status) {
+      case 'today':
+        return { color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: '🟢' };
+      case 'recent':
+        return { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: '🔵' };
+      case 'old':
+        return { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: '🟡' };
+      case 'very-old':
+        return { color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: '🔴' };
+      default:
+        return { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: '⚫' };
     }
   };
 
@@ -137,6 +183,73 @@ export default function TeamManagement() {
           </div>
         </div>
 
+        {/* Estatísticas de Acesso */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-400">Acessaram Hoje</p>
+                  <p className="text-2xl font-bold text-green-400">
+                    {members.filter(m => getLastAccessStatus(m.last_access) === 'today').length}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <span className="text-lg">🟢</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-400">Esta Semana</p>
+                  <p className="text-2xl font-bold text-blue-400">
+                    {members.filter(m => ['today', 'recent'].includes(getLastAccessStatus(m.last_access))).length}
+                  </p>
+                </div>
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <span className="text-lg">🔵</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-400">Inativos (30+ dias)</p>
+                  <p className="text-2xl font-bold text-red-400">
+                    {members.filter(m => getLastAccessStatus(m.last_access) === 'very-old').length}
+                  </p>
+                </div>
+                <div className="p-2 bg-red-500/20 rounded-lg">
+                  <span className="text-lg">🔴</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-400">Nunca Acessaram</p>
+                  <p className="text-2xl font-bold text-slate-400">
+                    {members.filter(m => getLastAccessStatus(m.last_access) === 'never').length}
+                  </p>
+                </div>
+                <div className="p-2 bg-slate-500/20 rounded-lg">
+                  <span className="text-lg">⚫</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Filtros */}
         <Card className="bg-slate-800/50 border-slate-700">
           <CardContent className="pt-6">
@@ -176,6 +289,59 @@ export default function TeamManagement() {
                 Inativos ({members.filter(m => !m.is_active).length})
               </Button>
             </div>
+          </div>
+          
+          {/* Filtros de Último Acesso */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            <span className="text-sm text-slate-400 self-center mr-2">Último acesso:</span>
+            <Button
+              variant={filterAccess === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterAccess('all')}
+              className={filterAccess === 'all' ? 'bg-slate-600 hover:bg-slate-700 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={filterAccess === 'today' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterAccess('today')}
+              className={filterAccess === 'today' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            >
+              🟢 Hoje
+            </Button>
+            <Button
+              variant={filterAccess === 'recent' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterAccess('recent')}
+              className={filterAccess === 'recent' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            >
+              🔵 Esta semana
+            </Button>
+            <Button
+              variant={filterAccess === 'old' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterAccess('old')}
+              className={filterAccess === 'old' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            >
+              🟡 Este mês
+            </Button>
+            <Button
+              variant={filterAccess === 'very-old' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterAccess('very-old')}
+              className={filterAccess === 'very-old' ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            >
+              🔴 Mais de 30 dias
+            </Button>
+            <Button
+              variant={filterAccess === 'never' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterAccess('never')}
+              className={filterAccess === 'never' ? 'bg-slate-600 hover:bg-slate-700 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}
+            >
+              ⚫ Nunca acessaram
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -233,10 +399,18 @@ export default function TeamManagement() {
                     </div>
                     <CardDescription className="flex items-center gap-4 text-slate-400">
                       <span>{member.email}</span>
-                      <span className="flex items-center gap-1 text-xs">
-                        <Clock className="w-3 h-3" />
-                        Último acesso: {getLastAccessText(member.last_access)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const status = getLastAccessStatus(member.last_access);
+                          const badge = getLastAccessBadge(status);
+                          return (
+                            <Badge variant="outline" className={`${badge.color} text-xs`}>
+                              <Clock className="w-3 h-3 mr-1" />
+                              {badge.icon} {getLastAccessText(member.last_access)}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">

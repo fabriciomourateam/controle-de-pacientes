@@ -73,7 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const memberData = memberDataArray?.[0];
 
       if (memberData) {
-        // É membro da equipe
+        // É membro da equipe - atualizar último acesso
+        await updateLastAccess(memberData.id);
+        
         const permissions = memberData.permissions || memberData.role?.permissions || {};
         
         setProfile({
@@ -105,6 +107,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateLastAccess = async (memberId: string) => {
+    try {
+      await supabase
+        .from('team_members')
+        .update({ last_access: new Date().toISOString() })
+        .eq('id', memberId);
+    } catch (error) {
+      console.error('Erro ao atualizar último acesso:', error);
+      // Não bloquear o login se falhar
     }
   };
 

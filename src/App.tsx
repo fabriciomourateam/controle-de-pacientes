@@ -41,6 +41,7 @@ const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
+const RenewalPresentation = lazy(() => import("./pages/RenewalPresentation"));
 
 // Componente de loading melhorado
 const PageLoader = () => (
@@ -121,6 +122,16 @@ const App = () => (
           <Route path="/checkins/evolution/:telefone" element={
             <Suspense fallback={<PageLoader />}>
                 <PatientEvolution />
+              </Suspense>
+          } />
+          <Route path="/renewal/:telefone" element={
+            <Suspense fallback={<PageLoader />}>
+                <RenewalPresentation />
+              </Suspense>
+          } />
+          <Route path="/public/renewal/:telefone" element={
+            <Suspense fallback={<PageLoader />}>
+                <RenewalPresentation />
               </Suspense>
           } />
           <Route path="/plans" element={

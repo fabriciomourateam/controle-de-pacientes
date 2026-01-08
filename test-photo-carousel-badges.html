@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Carrossel de Fotos e Badges Melhorados</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(100, 116, 139, 0.5);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(4px);
+        }
+        
+        .badge-analysis {
+            background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #ca8a04 100%);
+            color: #fef3c7;
+            border: 1px solid rgba(217, 119, 6, 0.7);
+        }
+        
+        .badge-photos {
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #4338ca 100%);
+            color: white;
+            border: 1px solid rgba(139, 92, 246, 0.6);
+        }
+        
+        .navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+        
+        .nav-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(100, 116, 139, 0.6);
+            border-radius: 6px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .nav-button:hover {
+            background: rgba(51, 65, 85, 0.8);
+            color: white;
+        }
+        
+        .photo-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            position: relative;
+        }
+        
+        .photo-section {
+            text-align: center;
+        }
+        
+        .photo-container {
+            aspect-ratio: 3/4;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(100, 116, 139, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 16px;
+        }
+        
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #64748b;
+        }
+        
+        .transformation-arrow {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+        
+        .dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .dot.active {
+            background: #a855f7;
+        }
+        
+        .dot:hover {
+            background: #94a3b8;
+        }
+        
+        .sparkle {
+            animation: sparkle 2s infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .icon-blue {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        
+        .icon-green {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        
+        @media (max-width: 768px) {
+            .photo-comparison {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .transformation-arrow {
+                display: none;
+            }
+            
+            .navigation {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 32px; font-size: 28px;">
+            🔥 Melhorias Implementadas - Carrossel de Fotos e Badges
+        </h1>
+        
+        <!-- Card de Análise Personalizada -->
+        <div class="card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="padding: 12px; background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.2)); border-radius: 12px; border: 1px solid rgba(234, 179, 8, 0.3);">
+                        <span style="font-size: 24px;">💬</span>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 24px;">Sua Evolução</h2>
+                        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 14px;">Por Fabricio Moura</p>
+                    </div>
+                </div>
+                <div class="badge badge-analysis">
+                    <span class="sparkle">✨</span>
+                    <span>Análise Personalizada</span>
+                </div>
+            </div>
+            
+            <div style="background: rgba(15, 23, 42, 0.4); border-radius: 8px; padding: 24px; border: 1px solid rgba(51, 65, 85, 0.5);">
+                <p style="line-height: 1.6; margin: 0; font-size: 18px; color: #e2e8f0;">
+                    <strong>✅ BADGE MELHORADO:</strong> Agora com contraste perfeito - fundo mais escuro (amber-700/95) e texto branco para máxima legibilidade.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Card de Evolução Fotográfica -->
+        <div class="card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="padding: 12px; background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(147, 51, 234, 0.2)); border-radius: 12px; border: 1px solid rgba(147, 51, 234, 0.3);">
+                        <span style="font-size: 24px;">📸</span>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 24px;">Transformação Visual</h2>
+                        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 14px;">Comparação Antes vs Depois</p>
+                    </div>
+                </div>
+                <div class="badge badge-photos">
+                    <span>📈</span>
+                    <span>Evolução Fotográfica</span>
+                </div>
+            </div>
+            
+            <!-- Navegação do Carrossel -->
+            <div class="navigation">
+                <button class="nav-button" onclick="prevPhoto()">
+                    <span>←</span>
+                    <span>Anterior</span>
+                </button>
+                
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <span style="color: #94a3b8; font-size: 14px;">1 de 4</span>
+                    <div class="dots">
+                        <div class="dot active" onclick="setPhoto(0)"></div>
+                        <div class="dot" onclick="setPhoto(1)"></div>
+                        <div class="dot" onclick="setPhoto(2)"></div>
+                        <div class="dot" onclick="setPhoto(3)"></div>
+                    </div>
+                </div>
+                
+                <button class="nav-button" onclick="nextPhoto()">
+                    <span>Próxima</span>
+                    <span>→</span>
+                </button>
+            </div>
+            
+            <!-- Comparação Lado a Lado -->
+            <div class="photo-comparison">
+                <!-- Foto Inicial (Esquerda) -->
+                <div class="photo-section">
+                    <div class="section-title">
+                        <div class="icon icon-blue">📅</div>
+                        <div>
+                            <div>Início da Jornada</div>
+                            <div style="font-size: 14px; color: #94a3b8; font-weight: normal;">15/10/2024</div>
+                        </div>
+                    </div>
+                    
+                    <div class="photo-container">
+                        <div class="photo-placeholder">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 8px;">📸</div>
+                                <div>Foto Inicial - Frente</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seta de Transformação -->
+                <div class="transformation-arrow">
+                    <span style="color: #fbbf24; font-size: 24px;">→</span>
+                </div>
+                
+                <!-- Foto Atual (Direita) -->
+                <div class="photo-section">
+                    <div class="section-title">
+                        <div class="icon icon-green">📈</div>
+                        <div>
+                            <div>Resultado Atual</div>
+                            <div style="font-size: 14px; color: #94a3b8; font-weight: normal;">08/01/2025</div>
+                        </div>
+                    </div>
+                    
+                    <div class="photo-container">
+                        <div class="photo-placeholder">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 8px;">📸</div>
+                                <div>Foto Atual - Frente</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mensagem Motivacional -->
+            <div style="background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(245, 158, 11, 0.05)); border-radius: 12px; padding: 24px; border: 1px solid rgba(234, 179, 8, 0.2); margin-top: 24px; text-align: center;">
+                <h4 style="margin: 0 0 8px 0; font-size: 18px;">Sua Transformação é Visível! 🔥</h4>
+                <p style="margin: 0; color: #cbd5e1; font-size: 14px;">
+                    As fotos não mentem - sua dedicação e esforço estão claramente refletidos na sua evolução física. 
+                    Continue assim que os resultados só vão melhorar!
+                </p>
+            </div>
+        </div>
+        
+        <!-- Resumo das Melhorias -->
+        <div class="card">
+            <h2 style="margin: 0 0 16px 0; display: flex; align-items: center; gap: 12px;">
+                <span>✅</span>
+                <span>Melhorias Implementadas</span>
+            </h2>
+            
+            <div style="display: grid; gap: 16px;">
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 8px; padding: 16px;">
+                    <h3 style="margin: 0 0 8px 0; color: #4ade80;">🎨 Badges com Melhor Contraste</h3>
+                    <p style="margin: 0; color: #cbd5e1; font-size: 14px;">
+                        Ambos os badges agora têm fundos mais escuros e texto branco para perfeita legibilidade
+                    </p>
+                </div>
+                
+                <div style="background: rgba(147, 51, 234, 0.1); border: 1px solid rgba(147, 51, 234, 0.2); border-radius: 8px; padding: 16px;">
+                    <h3 style="margin: 0 0 8px 0; color: #a855f7;">📸 Carrossel de Fotos</h3>
+                    <p style="margin: 0; color: #cbd5e1; font-size: 14px;">
+                        Comparação lado a lado com navegação por botões e indicadores visuais
+                    </p>
+                </div>
+                
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 16px;">
+                    <h3 style="margin: 0 0 8px 0; color: #60a5fa;">🎯 Navegação Intuitiva</h3>
+                    <p style="margin: 0; color: #cbd5e1; font-size: 14px;">
+                        Botões anterior/próxima e indicadores de posição para fácil navegação
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPhoto = 0;
+        const totalPhotos = 4;
+        const photoTypes = ['Frente', 'Lado', 'Costas', 'Extra'];
+        
+        function updatePhotoDisplay() {
+            // Atualizar indicadores
+            document.querySelectorAll('.dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentPhoto);
+            });
+            
+            // Atualizar contador
+            document.querySelector('.navigation span').textContent = `${currentPhoto + 1} de ${totalPhotos}`;
+            
+            // Atualizar placeholders das fotos
+            const placeholders = document.querySelectorAll('.photo-placeholder div div:last-child');
+            placeholders[0].textContent = `Foto Inicial - ${photoTypes[currentPhoto]}`;
+            placeholders[1].textContent = `Foto Atual - ${photoTypes[currentPhoto]}`;
+        }
+        
+        function nextPhoto() {
+            currentPhoto = (currentPhoto + 1) % totalPhotos;
+            updatePhotoDisplay();
+        }
+        
+        function prevPhoto() {
+            currentPhoto = (currentPhoto - 1 + totalPhotos) % totalPhotos;
+            updatePhotoDisplay();
+        }
+        
+        function setPhoto(index) {
+            currentPhoto = index;
+            updatePhotoDisplay();
+        }
+        
+        // Inicializar
+        updatePhotoDisplay();
+    </script>
+</body>
+</html>

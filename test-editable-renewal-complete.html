@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Conteúdo Editável - Relatório de Renovação</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #fbbf24/10 0%, #f59e0b/10 100%);
+            border: 1px solid #fbbf24/30;
+            border-radius: 12px;
+        }
+        
+        .header h1 {
+            color: #fbbf24;
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #334155/80 0%, #475569/60 100%);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-card h3 {
+            color: #fbbf24;
+            margin: 0 0 15px 0;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .feature-card p {
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin: 0 0 15px 0;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .feature-list li {
+            color: #94a3b8;
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .feature-list li:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+        }
+        
+        .sql-section {
+            background: linear-gradient(135deg, #1e40af/20 0%, #3b82f6/20 100%);
+            border: 1px solid #3b82f6/30;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .sql-section h3 {
+            color: #60a5fa;
+            margin: 0 0 15px 0;
+            font-size: 1.3rem;
+        }
+        
+        .sql-code {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        
+        .implementation-section {
+            background: linear-gradient(135deg, #059669/20 0%, #10b981/20 100%);
+            border: 1px solid #10b981/30;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .implementation-section h3 {
+            color: #34d399;
+            margin: 0 0 15px 0;
+            font-size: 1.3rem;
+        }
+        
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            background: #0f172a/50;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .file-item h4 {
+            color: #34d399;
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+        }
+        
+        .file-item p {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .workflow-section {
+            background: linear-gradient(135deg, #7c3aed/20 0%, #8b5cf6/20 100%);
+            border: 1px solid #8b5cf6/30;
+            border-radius: 12px;
+            padding: 25px;
+        }
+        
+        .workflow-section h3 {
+            color: #a78bfa;
+            margin: 0 0 15px 0;
+            font-size: 1.3rem;
+        }
+        
+        .workflow-steps {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .workflow-step {
+            background: #1e1b4b/30;
+            border: 1px solid #6366f1/30;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .step-number {
+            background: #8b5cf6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .step-content h4 {
+            color: #a78bfa;
+            margin: 0 0 8px 0;
+        }
+        
+        .step-content p {
+            color: #cbd5e1;
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .alert {
+            background: linear-gradient(135deg, #dc2626/20 0%, #ef4444/20 100%);
+            border: 1px solid #ef4444/30;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .alert h4 {
+            color: #fca5a5;
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+        }
+        
+        .alert p {
+            color: #fecaca;
+            margin: 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Sistema de Conteúdo Editável</h1>
+            <p>Relatórios de Renovação Personalizáveis com Rich Text Editor</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>✏️ Editor Rico de Texto</h3>
+                <p>Sistema completo de edição com formatação avançada:</p>
+                <ul class="feature-list">
+                    <li>Negrito, itálico, sublinhado</li>
+                    <li>Listas numeradas e com marcadores</li>
+                    <li>Alinhamento de texto</li>
+                    <li>Cores e destaques</li>
+                    <li>Links e formatação HTML</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>💾 Persistência Inteligente</h3>
+                <p>Salvamento automático e seguro dos conteúdos:</p>
+                <ul class="feature-list">
+                    <li>Salva automaticamente no banco</li>
+                    <li>Controle de versões</li>
+                    <li>Backup de conteúdo original</li>
+                    <li>Reset para padrão quando necessário</li>
+                    <li>Sincronização em tempo real</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🎯 Seções Editáveis</h3>
+                <p>Todas as seções principais podem ser personalizadas:</p>
+                <ul class="feature-list">
+                    <li><strong>Sua Evolução</strong> - Resumo personalizado</li>
+                    <li><strong>Conquistas Alcançadas</strong> - Pontos fortes</li>
+                    <li><strong>Próximos Objetivos</strong> - Áreas de melhoria</li>
+                    <li><strong>Destaques da Evolução</strong> - Principais marcos</li>
+                    <li><strong>Metas para o Próximo Ciclo</strong> - Objetivos futuros</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>👥 Controle de Acesso</h3>
+                <p>Sistema de permissões robusto:</p>
+                <ul class="feature-list">
+                    <li>RLS (Row Level Security) ativo</li>
+                    <li>Acesso por usuário proprietário</li>
+                    <li>Membros da equipe podem editar</li>
+                    <li>Conteúdo público para compartilhamento</li>
+                    <li>Isolamento total entre usuários</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🌐 Acesso Público</h3>
+                <p>Compartilhamento inteligente:</p>
+                <ul class="feature-list">
+                    <li>URLs públicas para pacientes</li>
+                    <li>Conteúdo editado é refletido</li>
+                    <li>Interface limpa sem controles</li>
+                    <li>Otimizado para mobile</li>
+                    <li>Carregamento rápido</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>⚡ Performance</h3>
+                <p>Sistema otimizado para produção:</p>
+                <ul class="feature-list">
+                    <li>Cache inteligente de conteúdo</li>
+                    <li>Carregamento lazy dos editores</li>
+                    <li>Compressão de dados</li>
+                    <li>Índices otimizados no banco</li>
+                    <li>Debounce no salvamento</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="alert">
+            <h4>⚠️ Ação Necessária: Executar SQL Corrigido</h4>
+            <p>O SQL original tinha um erro nas políticas RLS. Use o arquivo <code>sql/renewal-custom-content-system-fixed.sql</code> que corrige as referências às colunas da tabela team_members.</p>
+        </div>
+
+        <div class="sql-section">
+            <h3>📊 SQL Corrigido para Criação da Tabela</h3>
+            <p>Execute este código corrigido no SQL Editor do Supabase Dashboard:</p>
+            <div class="sql-code">-- Tabela para conteúdo personalizado dos relatórios (CORRIGIDA)
+CREATE TABLE renewal_custom_content (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  patient_telefone TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  summary_content TEXT,
+  achievements_content TEXT,
+  improvement_areas_content TEXT,
+  highlights_content TEXT,
+  next_cycle_goals_content TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(patient_telefone, user_id)
+);
+
+-- Índices para performance
+CREATE INDEX idx_renewal_custom_content_patient_telefone ON renewal_custom_content(patient_telefone);
+CREATE INDEX idx_renewal_custom_content_user_id ON renewal_custom_content(user_id);
+
+-- Habilitar RLS
+ALTER TABLE renewal_custom_content ENABLE ROW LEVEL SECURITY;
+
+-- Políticas RLS básicas
+CREATE POLICY "Users can view own renewal custom content" ON renewal_custom_content
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own renewal custom content" ON renewal_custom_content
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own renewal custom content" ON renewal_custom_content
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own renewal custom content" ON renewal_custom_content
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Políticas para equipe (CORRIGIDAS com colunas corretas)
+CREATE POLICY "Team members can access owner renewal custom content" ON renewal_custom_content
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM team_members tm
+      WHERE tm.user_id = auth.uid()
+      AND tm.owner_id = renewal_custom_content.user_id
+      AND tm.is_active = true
+    )
+  );
+
+CREATE POLICY "Team members can create renewal custom content for owner" ON renewal_custom_content
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM team_members tm
+      WHERE tm.user_id = auth.uid()
+      AND tm.owner_id = renewal_custom_content.user_id
+      AND tm.is_active = true
+    )
+  );
+
+CREATE POLICY "Team members can update owner renewal custom content" ON renewal_custom_content
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM team_members tm
+      WHERE tm.user_id = auth.uid()
+      AND tm.owner_id = renewal_custom_content.user_id
+      AND tm.is_active = true
+    )
+  );
+
+-- Função para atualizar updated_at
+CREATE OR REPLACE FUNCTION update_renewal_custom_content_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para updated_at
+CREATE TRIGGER update_renewal_custom_content_updated_at
+    BEFORE UPDATE ON renewal_custom_content
+    FOR EACH ROW
+    EXECUTE FUNCTION update_renewal_custom_content_updated_at();</div>
+        </div>
+
+        <div class="implementation-section">
+            <h3>🛠️ Arquivos Implementados</h3>
+            <p>Sistema completo com todos os componentes necessários:</p>
+            
+            <div class="file-list">
+                <div class="file-item">
+                    <h4>📊 sql/renewal-custom-content-system.sql</h4>
+                    <p>Schema completo da tabela com RLS e políticas de segurança</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>🎣 src/hooks/use-renewal-custom-content.ts</h4>
+                    <p>Hook React para gerenciar conteúdo personalizado com CRUD completo</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>✏️ src/components/renewal/RichTextEditor.tsx</h4>
+                    <p>Editor rico de texto com toolbar de formatação</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>📝 src/components/renewal/EditableRenewalSection.tsx</h4>
+                    <p>Componente principal que torna seções editáveis</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>🎯 src/components/renewal/EvolutionAnalysis.tsx</h4>
+                    <p>Componente atualizado com seções editáveis (3 cards)</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>🚀 src/components/renewal/NextCycleGoals.tsx</h4>
+                    <p>Componente de metas futuras com conteúdo editável</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>📄 src/pages/RenewalPresentation.tsx</h4>
+                    <p>Página principal atualizada com suporte a acesso público</p>
+                </div>
+                
+                <div class="file-item">
+                    <h4>📋 src/components/renewal/RenewalSummary.tsx</h4>
+                    <p>Já implementado com sistema editável (primeira seção)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-section">
+            <h3>🔄 Como Usar o Sistema</h3>
+            <p>Fluxo completo de edição e compartilhamento:</p>
+            
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Executar SQL</h4>
+                        <p>Copie e execute o SQL acima no Supabase Dashboard para criar a tabela <code>renewal_custom_content</code></p>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Acessar Relatório</h4>
+                        <p>Vá para qualquer relatório de renovação em <code>/renewal/:telefone</code></p>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Editar Conteúdo</h4>
+                        <p>Clique no ícone de edição (✏️) em qualquer seção para personalizar o texto</p>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Formatar Texto</h4>
+                        <p>Use a toolbar do editor para aplicar negrito, itálico, listas e outras formatações</p>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Salvar Alterações</h4>
+                        <p>Clique em "Salvar" para persistir as mudanças no banco de dados</p>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>Compartilhar</h4>
+                        <p>Use o botão "Compartilhar" para gerar link público com o conteúdo personalizado</p>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-number">7</div>
+                    <div class="step-content">
+                        <h4>Visualização Pública</h4>
+                        <p>O paciente verá o conteúdo editado na URL pública sem opções de edição</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
