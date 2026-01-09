@@ -11,20 +11,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { createClient } from '@supabase/supabase-js';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RenewalSummary } from '@/components/renewal/RenewalSummary';
-import { MetricsComparison } from '@/components/renewal/MetricsComparison';
+import { EditableMotivationalCard } from '@/components/renewal/EditableMotivationalCard';
+import { EditableMetricsCard } from '@/components/renewal/EditableMetricsCard';
 import { EvolutionAnalysis } from '@/components/renewal/EvolutionAnalysis';
 import { NextCycleGoals } from '@/components/renewal/NextCycleGoals';
 import { RenewalPhotoComparison } from '@/components/renewal/RenewalPhotoComparison';
 import { ShareRenewalButton } from '@/components/renewal/ShareRenewalButton';
 import { 
   ArrowLeft, 
-  Share2, 
   Download, 
   Calendar,
   TrendingUp,
   Target,
   Award,
-  Heart
+  Heart,
+  Camera
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -354,37 +355,75 @@ export default function RenewalPresentation() {
             isPublicAccess={isPublicAccess}
           />
 
-          {/* 2. Comparativo de Métricas */}
+          {/* 2. Layout com Fotos (2/3) + Métricas (1/3) */}
           {checkins.length > 0 ? (
-            <MetricsComparison 
-              firstCheckin={firstCheckin}
-              lastCheckin={lastCheckin}
-              allCheckins={checkins}
-            />
-          ) : (
-            <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border-slate-600">
-              <CardContent className="pt-6">
-                <div className="text-center py-8">
-                  <TrendingUp className="w-16 h-16 mx-auto text-slate-500 mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    Dados de Evolução em Preparação
-                  </h3>
-                  <p className="text-slate-400">
-                    Os check-ins e métricas de evolução serão exibidos aqui conforme forem sendo registrados.
-                  </p>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                {/* Fotos - 2/3 da largura */}
+                <div className="xl:col-span-2">
+                  <RenewalPhotoComparison 
+                    firstCheckin={firstCheckin}
+                    lastCheckin={lastCheckin}
+                    patient={patient}
+                    checkins={checkins}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 3. Comparação de Fotos */}
-          {checkins.length > 0 && (
-            <RenewalPhotoComparison 
-              firstCheckin={firstCheckin}
-              lastCheckin={lastCheckin}
-              patient={patient}
-              checkins={checkins}
-            />
+                
+                {/* Métricas - 1/3 da largura (cards verticais) */}
+                <div className="xl:col-span-1">
+                  <EditableMetricsCard 
+                    firstCheckin={firstCheckin}
+                    lastCheckin={lastCheckin}
+                    allCheckins={checkins}
+                    isVerticalLayout={true}
+                    patient={patient}
+                    isPublicAccess={isPublicAccess}
+                  />
+                </div>
+              </div>
+              
+              {/* Mensagem motivacional abaixo dos cards */}
+              <EditableMotivationalCard 
+                patient={patient}
+                isPublicAccess={isPublicAccess}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              {/* Placeholder para fotos */}
+              <div className="xl:col-span-2">
+                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border-slate-600">
+                  <CardContent className="pt-6">
+                    <div className="text-center py-16">
+                      <Camera className="w-16 h-16 mx-auto text-slate-500 mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        Evolução Fotográfica
+                      </h3>
+                      <p className="text-slate-400">
+                        As fotos de evolução serão exibidas aqui conforme forem sendo registradas.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Placeholder para métricas */}
+              <div className="xl:col-span-1">
+                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border-slate-600">
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <TrendingUp className="w-16 h-16 mx-auto text-slate-500 mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        Dados de Evolução
+                      </h3>
+                      <p className="text-slate-400">
+                        As métricas de evolução serão exibidas aqui conforme forem sendo registradas.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           )}
 
           {/* 4. Três Blocos de Análise */}
@@ -433,21 +472,18 @@ export default function RenewalPresentation() {
                   Sua evolução até aqui foi incrível, mas sei que você tem muito mais potencial. 
                   Vamos juntos conquistar seus próximos objetivos!
                 </p>
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center">
                   <Button 
                     size="lg"
-                    className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold"
+                    onClick={() => {
+                      const message = encodeURIComponent("Oi Fabricio!!! Quero renovar o acompanhamento!");
+                      const whatsappUrl = `https://wa.me/5511914880872?text=${message}`;
+                      window.open(whatsappUrl, '_blank');
+                    }}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold text-lg px-8 py-4"
                   >
-                    <Target className="w-5 h-5 mr-2" />
+                    <Target className="w-6 h-6 mr-3" />
                     Renovar Acompanhamento
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    size="lg"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    <Share2 className="w-5 h-5 mr-2" />
-                    Compartilhar Evolução
                   </Button>
                 </div>
               </div>

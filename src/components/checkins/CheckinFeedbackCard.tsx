@@ -725,7 +725,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
                       >
-                        {evolutionData?.tem_checkin_anterior ? (
+                        {evolutionData?.tem_checkin_anterior && evolutionData ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                         <thead>
@@ -1254,7 +1254,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
 
                           {/* Tempo de Treino */}
-                          {((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
+                          {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">⏱️ Tempo de Treino</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -1360,7 +1360,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
 
                           {/* Tempo de Cardio */}
-                          {((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
+                          {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃 Tempo de Cardio</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -1466,7 +1466,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
 
                           {/* Descanso entre Séries */}
-                          {((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
+                          {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">⏸️ Descanso entre as séries</td>
                               <td className="py-1.5 px-1.5 text-center">
@@ -2040,7 +2040,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         </tbody>
                             </table>
                           </div>
-                        ) : (
+                        ) : evolutionData ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                         <thead>
@@ -2434,7 +2434,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
                           
                           {/* Tempo de Treino */}
-                          {((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
+                          {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">⏱️ Tempo de Treino</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
@@ -2487,7 +2487,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
                           
                           {/* Tempo de Cardio */}
-                          {((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
+                          {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">🏃 Tempo de Cardio</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
@@ -2540,7 +2540,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
                           
                           {/* Descanso entre Séries */}
-                          {((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
+                          {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30 bg-blue-500/10">
                               <td className="py-1.5 px-2 text-slate-300">⏸️ Descanso entre as séries</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400">-</td>
@@ -2797,6 +2797,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         </tbody>
                       </table>
                     </div>
+                        ) : (
+                          <div className="text-center py-8 text-slate-400">
+                            <p>Carregando dados de evolução...</p>
+                          </div>
                         )}
                         </motion.div>
                       )}

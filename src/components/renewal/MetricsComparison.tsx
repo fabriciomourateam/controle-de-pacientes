@@ -14,12 +14,14 @@ interface MetricsComparisonProps {
   firstCheckin: CheckinData | null;
   lastCheckin: CheckinData | null;
   allCheckins: CheckinData[];
+  isVerticalLayout?: boolean;
 }
 
 export function MetricsComparison({ 
   firstCheckin, 
   lastCheckin, 
-  allCheckins 
+  allCheckins,
+  isVerticalLayout = false
 }: MetricsComparisonProps) {
   
   const parseWeight = (peso: string) => {
@@ -110,20 +112,20 @@ export function MetricsComparison({
   };
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border-slate-600">
-      <CardHeader>
-        <CardTitle className="text-2xl text-white flex items-center gap-3">
-          <Target className="w-7 h-7 text-blue-400" />
-          Comparativo de Métricas
+    <Card className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 border-slate-600 h-full">
+      <CardHeader className={isVerticalLayout ? "pb-4" : ""}>
+        <CardTitle className={`${isVerticalLayout ? 'text-xl' : 'text-2xl'} text-white flex items-center gap-3`}>
+          <Target className={`${isVerticalLayout ? 'w-6 h-6' : 'w-7 h-7'} text-blue-400`} />
+          {isVerticalLayout ? 'Métricas' : 'Comparativo de Métricas'}
         </CardTitle>
-        <div className="text-slate-400">
-          Evolução dos seus números desde o início
+        <div className="text-slate-400 text-sm">
+          {isVerticalLayout ? 'Evolução dos números' : 'Evolução dos seus números desde o início'}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={`grid ${isVerticalLayout ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-3 gap-6'}`}>
           {/* Peso */}
-          <div className="bg-slate-900/30 rounded-lg p-6 border border-slate-700/50">
+          <div className={`bg-slate-900/30 rounded-lg ${isVerticalLayout ? 'p-4' : 'p-6'} border border-slate-700/50`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Scale className="w-5 h-5 text-purple-400" />
@@ -157,7 +159,7 @@ export function MetricsComparison({
           </div>
 
           {/* Cintura */}
-          <div className="bg-slate-900/30 rounded-lg p-6 border border-slate-700/50">
+          <div className={`bg-slate-900/30 rounded-lg ${isVerticalLayout ? 'p-4' : 'p-6'} border border-slate-700/50`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Ruler className="w-5 h-5 text-yellow-400" />
@@ -191,7 +193,7 @@ export function MetricsComparison({
           </div>
 
           {/* Quadril */}
-          <div className="bg-slate-900/30 rounded-lg p-6 border border-slate-700/50">
+          <div className={`bg-slate-900/30 rounded-lg ${isVerticalLayout ? 'p-4' : 'p-6'} border border-slate-700/50`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Ruler className="w-5 h-5 text-green-400" />
@@ -223,18 +225,35 @@ export function MetricsComparison({
               </div>
             </div>
           </div>
+
+          {/* Resumo da evolução - apenas no layout horizontal */}
+          {!isVerticalLayout && (
+            <div className="md:col-span-3">
+              <div className="mt-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-blue-400" />
+                  <h4 className="font-semibold text-white">Resumo da Recomposição</h4>
+                </div>
+                <p className="text-slate-300">
+                  {getProgressMessage()}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Resumo da evolução */}
-        <div className="mt-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-5 h-5 text-blue-400" />
-            <h4 className="font-semibold text-white">Resumo da Recomposição</h4>
+        {/* Resumo compacto para layout vertical */}
+        {isVerticalLayout && (
+          <div className="mt-4 p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-blue-400" />
+              <h4 className="font-semibold text-white text-sm">Resumo</h4>
+            </div>
+            <p className="text-slate-300 text-sm">
+              {getProgressMessage()}
+            </p>
           </div>
-          <p className="text-slate-300">
-            {getProgressMessage()}
-          </p>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

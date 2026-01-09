@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTeam } from '@/hooks/use-team';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,59 @@ export default function TeamManagement() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterAccess, setFilterAccess] = useState<'all' | 'today' | 'recent' | 'old' | 'very-old' | 'never'>('all');
+
+  // Funções auxiliares (movidas para o topo)
+  const getLastAccessStatus = (lastAccess: string | null) => {
+    if (!lastAccess) return 'never';
+    
+    const lastAccessDate = new Date(lastAccess);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'today';
+    if (diffInDays <= 7) return 'recent';
+    if (diffInDays <= 30) return 'old';
+    return 'very-old';
+  };
+
+  const getLastAccessBadge = (status: string) => {
+    switch (status) {
+      case 'today':
+        return { color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: '🟢' };
+      case 'recent':
+        return { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: '🔵' };
+      case 'old':
+        return { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: '🟡' };
+      case 'very-old':
+        return { color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: '🔴' };
+      default:
+        return { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: '⚫' };
+    }
+  };
+
+  const getLastAccessText = (lastAccess: string | null) => {
+    if (!lastAccess) return 'Nunca acessou';
+    try {
+      const lastAccessDate = new Date(lastAccess);
+      const now = new Date();
+      const diffInDays = Math.floor((now.getTime() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffInDays === 0) {
+        return 'Hoje';
+      } else if (diffInDays === 1) {
+        return 'Ontem';
+      } else if (diffInDays <= 7) {
+        return `há ${diffInDays} dias`;
+      } else if (diffInDays <= 30) {
+        const weeks = Math.floor(diffInDays / 7);
+        return `há ${weeks} semana${weeks > 1 ? 's' : ''}`;
+      } else {
+        return `há ${formatDistanceToNow(lastAccessDate, { locale: ptBR })}`;
+      }
+    } catch {
+      return 'Data inválida';
+    }
+  };
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,58 +135,6 @@ export default function TeamManagement() {
         description: error instanceof Error ? error.message : 'Erro ao alterar status',
         variant: 'destructive',
       });
-    }
-  };
-
-  const getLastAccessText = (lastAccess: string | null) => {
-    if (!lastAccess) return 'Nunca acessou';
-    try {
-      const lastAccessDate = new Date(lastAccess);
-      const now = new Date();
-      const diffInDays = Math.floor((now.getTime() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (diffInDays === 0) {
-        return 'Hoje';
-      } else if (diffInDays === 1) {
-        return 'Ontem';
-      } else if (diffInDays <= 7) {
-        return `há ${diffInDays} dias`;
-      } else if (diffInDays <= 30) {
-        const weeks = Math.floor(diffInDays / 7);
-        return `há ${weeks} semana${weeks > 1 ? 's' : ''}`;
-      } else {
-        return `há ${formatDistanceToNow(lastAccessDate, { locale: ptBR })}`;
-      }
-    } catch {
-      return 'Data inválida';
-    }
-  };
-
-  const getLastAccessStatus = (lastAccess: string | null) => {
-    if (!lastAccess) return 'never';
-    
-    const lastAccessDate = new Date(lastAccess);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - lastAccessDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'today';
-    if (diffInDays <= 7) return 'recent';
-    if (diffInDays <= 30) return 'old';
-    return 'very-old';
-  };
-
-  const getLastAccessBadge = (status: string) => {
-    switch (status) {
-      case 'today':
-        return { color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: '🟢' };
-      case 'recent':
-        return { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: '🔵' };
-      case 'old':
-        return { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: '🟡' };
-      case 'very-old':
-        return { color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: '🔴' };
-      default:
-        return { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: '⚫' };
     }
   };
 
@@ -397,7 +398,7 @@ export default function TeamManagement() {
                         </Badge>
                       )}
                     </div>
-                    <CardDescription className="flex items-center gap-4 text-slate-400">
+                    <div className="flex items-center gap-4 text-slate-400 text-sm">
                       <span>{member.email}</span>
                       <div className="flex items-center gap-2">
                         {(() => {
@@ -411,7 +412,7 @@ export default function TeamManagement() {
                           );
                         })()}
                       </div>
-                    </CardDescription>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {member.user_id && (

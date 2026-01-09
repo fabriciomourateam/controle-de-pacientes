@@ -303,7 +303,7 @@ export function RenewalPhotoComparison({ firstCheckin, lastCheckin, patient, che
   };
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-700/80 border-slate-600/50 backdrop-blur-sm shadow-2xl">
+    <Card className="bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-700/80 border-slate-600/50 backdrop-blur-sm shadow-2xl h-full">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -330,7 +330,7 @@ export function RenewalPhotoComparison({ firstCheckin, lastCheckin, patient, che
       
       <CardContent className="space-y-6">
         {/* Comparação lado a lado com carrosséis individuais */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
           {/* Fotos Iniciais (Esquerda) */}
           <PhotoCarousel
             photos={initialPhotos}
@@ -370,20 +370,7 @@ export function RenewalPhotoComparison({ firstCheckin, lastCheckin, patient, che
           />
         </div>
 
-        {/* Mensagem motivacional */}
-        {(initialPhotos.length > 0 || currentPhotos.length > 0) && (
-          <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 rounded-xl p-6 border border-yellow-500/20 mt-6">
-            <div className="text-center">
-              <h4 className="text-lg font-bold text-white mb-2">
-                Sua Transformação é Visível! 🔥
-              </h4>
-              <p className="text-slate-300 text-sm">
-                As fotos não mentem - sua dedicação e esforço estão claramente refletidos na sua evolução física. 
-                Continue assim que os resultados só vão melhorar!
-              </p>
-            </div>
-          </div>
-        )}
+
       </CardContent>
     </Card>
   );

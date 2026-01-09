@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste Layout Renovação - 2/3 + 1/3</title>
+    <title>Teste Layout Final - Mensagem Separada</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -15,11 +15,11 @@
 <body class="bg-slate-900 text-white">
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-center mb-8 text-yellow-400">
-            Teste Layout Renovação - 2/3 Fotos + 1/3 Métricas
+            Layout Final - Mensagem Motivacional Separada
         </h1>
         
         <!-- Layout Principal: 2/3 + 1/3 -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-6">
             <!-- Fotos - 2/3 da largura -->
             <div class="xl:col-span-2">
                 <div class="bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-700/80 border border-slate-600/50 rounded-lg shadow-2xl h-full">
@@ -109,16 +109,6 @@
                                         <p class="text-sm">Foto Atual</p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Mensagem motivacional -->
-                        <div class="bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 rounded-xl p-4 border border-yellow-500/20 mt-6">
-                            <div class="text-center">
-                                <h4 class="text-lg font-bold text-white mb-2">Sua Transformação é Visível! 🔥</h4>
-                                <p class="text-slate-300 text-sm">
-                                    As fotos não mentem - sua dedicação e esforço estão claramente refletidos na sua evolução física.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -237,7 +227,7 @@
                             </div>
                         </div>
 
-                        <!-- Resumo compacto */
+                        <!-- Resumo compacto -->
                         <div class="mt-4 p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
                             <div class="flex items-center gap-2 mb-1">
                                 <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,21 +244,48 @@
             </div>
         </div>
 
-        <!-- Teste Responsivo -->
+        <!-- Mensagem motivacional separada abaixo dos cards -->
+        <div class="bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 border border-yellow-500/20 rounded-lg mb-8">
+            <div class="p-6">
+                <div class="text-center">
+                    <h4 class="text-xl font-bold text-white mb-3">
+                        Sua Transformação é Visível! 🔥
+                    </h4>
+                    <p class="text-slate-300">
+                        As fotos não mentem - sua dedicação e esforço estão claramente refletidos na sua evolução física. 
+                        Continue assim que os resultados só vão melhorar!
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparação: Antes vs Depois -->
         <div class="bg-slate-800/50 rounded-lg p-6 border border-slate-600">
-            <h2 class="text-xl font-bold text-white mb-4">Teste de Responsividade</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                <div class="bg-slate-700/50 p-3 rounded">
-                    <strong class="text-green-400">Mobile (< 768px):</strong><br>
-                    Cards empilhados verticalmente
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Comparação: Antes vs Depois
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-700/50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-red-400 mb-3">❌ ANTES (Dentro do Card)</h3>
+                    <ul class="text-slate-300 space-y-2 text-sm">
+                        <li>• Mensagem motivacional dentro do card das fotos</li>
+                        <li>• Card das fotos ficava muito longo</li>
+                        <li>• Layout menos limpo</li>
+                        <li>• Mensagem competia com as fotos por atenção</li>
+                    </ul>
                 </div>
-                <div class="bg-slate-700/50 p-3 rounded">
-                    <strong class="text-yellow-400">Tablet (768px - 1279px):</strong><br>
-                    Cards empilhados verticalmente
-                </div>
-                <div class="bg-slate-700/50 p-3 rounded">
-                    <strong class="text-blue-400">Desktop (≥ 1280px):</strong><br>
-                    Layout 2/3 + 1/3 lado a lado
+                <div class="bg-slate-700/50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-green-400 mb-3">✅ DEPOIS (Card Separado)</h3>
+                    <ul class="text-slate-300 space-y-2 text-sm">
+                        <li>• Mensagem motivacional em card próprio</li>
+                        <li>• Cards das fotos e métricas mais focados</li>
+                        <li>• Layout mais limpo e organizado</li>
+                        <li>• Mensagem ganha destaque próprio</li>
+                        <li>• Melhor hierarquia visual</li>
+                    </ul>
                 </div>
             </div>
         </div>
