@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Geração de PDF - Relatório de Evolução</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, rgba(234, 179, 8, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border: 1px solid rgba(234, 179, 8, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .patient-card {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(71, 85, 105, 0.5) 100%);
+            border: 1px solid #475569;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .patient-info h2 {
+            font-size: 32px;
+            margin: 0 0 12px 0;
+            font-weight: bold;
+        }
+        
+        .patient-details {
+            color: #94a3b8;
+            display: flex;
+            gap: 24px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(71, 85, 105, 0.5) 100%);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .metric-card h3 {
+            margin: 0 0 16px 0;
+            color: #fbbf24;
+            font-size: 18px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .metric-change {
+            color: #10b981;
+            font-size: 14px;
+        }
+        
+        .analysis-section {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(71, 85, 105, 0.5) 100%);
+            border: 1px solid #475569;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+        
+        .analysis-section h3 {
+            color: #fbbf24;
+            font-size: 24px;
+            margin: 0 0 16px 0;
+        }
+        
+        .analysis-content {
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+        
+        .button {
+            background: #eab308;
+            color: #0f172a;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        .button:hover {
+            background: #d97706;
+            transform: translateY(-1px);
+        }
+        
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 16px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+        
+        .toast.success {
+            background: #059669;
+        }
+        
+        .toast.error {
+            background: #dc2626;
+        }
+        
+        .toast.loading {
+            background: #1e293b;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #3b82f6;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button id="generatePNG" class="button">📸 Gerar PNG</button>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <div class="container" data-pdf-content>
+        <div class="header">
+            <h1 style="margin: 0; font-size: 36px;">Relatório de Evolução</h1>
+            <p style="margin: 8px 0 0 0; color: #94a3b8;">Apresentação personalizada por Fabricio Moura</p>
+        </div>
+        
+        <div class="patient-card">
+            <div class="patient-info">
+                <h2>Maria Silva</h2>
+                <div class="patient-details">
+                    <span>📅 Jornada de 8 meses</span>
+                    <span>📈 24 check-ins realizados</span>
+                </div>
+            </div>
+            <div style="margin-left: auto; text-align: right;">
+                <div style="background: rgba(234, 179, 8, 0.2); color: #fbbf24; padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(234, 179, 8, 0.3); margin-bottom: 8px;">
+                    🏆 Evolução 2025
+                </div>
+                <p style="margin: 0; color: #94a3b8; font-size: 14px;">
+                    Relatório gerado em 09/01/2025
+                </p>
+            </div>
+        </div>
+        
+        <div class="analysis-section">
+            <h3>🎯 Sua Evolução</h3>
+            <div class="analysis-content">
+                <p><strong>Maria, sua transformação tem sido incrível!</strong> Em 8 meses de jornada, você demonstrou uma disciplina exemplar que se reflete claramente nos seus resultados.</p>
+                
+                <p>Analisando sua evolução, posso destacar que você conseguiu manter uma consistência impressionante nos treinos e na alimentação. Seus check-ins mostram uma progressão constante, especialmente na redução de medidas e no ganho de massa magra.</p>
+                
+                <p>O que mais me impressiona é sua capacidade de adaptação às mudanças no plano. Quando ajustamos sua rotina de treinos no 4º mês, você abraçou as mudanças e os resultados apareceram rapidamente.</p>
+            </div>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>⚖️ Peso</h3>
+                <div class="metric-value">68.5 kg</div>
+                <div class="metric-change">-8.5 kg desde o início</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>📏 Cintura</h3>
+                <div class="metric-value">72 cm</div>
+                <div class="metric-change">-12 cm de redução</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>📐 Quadril</h3>
+                <div class="metric-value">95 cm</div>
+                <div class="metric-change">-8 cm de redução</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>💪 Massa Magra</h3>
+                <div class="metric-value">52.3 kg</div>
+                <div class="metric-change">+3.2 kg de ganho</div>
+            </div>
+        </div>
+        
+        <div class="analysis-section">
+            <h3>🏆 Conquistas Alcançadas</h3>
+            <div class="analysis-content">
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 12px;">✅ <strong>Meta de peso atingida:</strong> Chegou aos 68kg conforme planejado</li>
+                    <li style="margin-bottom: 12px;">✅ <strong>Consistência nos treinos:</strong> 95% de frequência mensal</li>
+                    <li style="margin-bottom: 12px;">✅ <strong>Melhoria na composição corporal:</strong> Redução significativa do percentual de gordura</li>
+                    <li style="margin-bottom: 12px;">✅ <strong>Aumento da força:</strong> Progressão em todos os exercícios principais</li>
+                    <li style="margin-bottom: 12px;">✅ <strong>Hábitos alimentares:</strong> Aderência de 90% ao plano nutricional</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="analysis-section">
+            <h3>🎯 Metas para o Próximo Ciclo</h3>
+            <div class="analysis-content">
+                <p><strong>Com base na sua evolução atual, estabeleci metas desafiadoras mas alcançáveis para os próximos 6 meses:</strong></p>
+                
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 12px;">🎯 <strong>Definição muscular:</strong> Reduzir mais 3-4% de gordura corporal</li>
+                    <li style="margin-bottom: 12px;">🎯 <strong>Força funcional:</strong> Aumentar carga em 20% nos exercícios principais</li>
+                    <li style="margin-bottom: 12px;">🎯 <strong>Resistência cardiovascular:</strong> Melhorar VO2 máximo em 15%</li>
+                    <li style="margin-bottom: 12px;">🎯 <strong>Flexibilidade:</strong> Implementar rotina de mobilidade 3x/semana</li>
+                    <li style="margin-bottom: 12px;">🎯 <strong>Bem-estar geral:</strong> Manter energia alta e qualidade do sono</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="analysis-section" style="text-align: center;">
+            <h3>🚀 Pronto para o próximo nível?</h3>
+            <div class="analysis-content">
+                <p style="font-size: 18px; margin-bottom: 24px;">
+                    Sua evolução até aqui foi incrível, mas sei que você tem muito mais potencial. 
+                    Vamos juntos conquistar seus próximos objetivos!
+                </p>
+                <button class="button" style="font-size: 18px; padding: 16px 32px;">
+                    🎯 Renovar Acompanhamento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulação da classe RenewalPNGGenerator
+        class RenewalPNGGenerator {
+            static async waitForImages(element) {
+                const images = element.querySelectorAll('img');
+                const imagePromises = Array.from(images).map((img) => {
+                    if (img.complete) return Promise.resolve();
+                    
+                    return new Promise((resolve) => {
+                        img.onload = () => resolve();
+                        img.onerror = () => resolve();
+                        setTimeout(() => resolve(), 10000);
+                    });
+                });
+                
+                await Promise.all(imagePromises);
+            }
+
+            static async captureElement(element, options = {}) {
+                const { scale = 1.5 } = options; // Reduzido para performance
+                
+                await this.waitForImages(element);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Reduzido delay
+                
+                // Get actual content width
+                const computedStyle = window.getComputedStyle(element);
+                const contentWidth = element.offsetWidth - parseFloat(computedStyle.paddingLeft) - parseFloat(computedStyle.paddingRight);
+                
+                return html2canvas(element, {
+                    scale,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#0f172a',
+                    width: contentWidth,
+                    height: element.scrollHeight,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: contentWidth,
+                    windowHeight: element.scrollHeight,
+                    ignoreElements: (element) => {
+                        return element.hasAttribute('data-png-hide') || 
+                               element.classList.contains('sidebar') ||
+                               element.tagName === 'NAV' ||
+                               element.tagName === 'HEADER';
+                    },
+                    onclone: (clonedDoc) => {
+                        const clonedElement = clonedDoc.querySelector('[data-pdf-content]');
+                        if (clonedElement) {
+                            clonedElement.style.position = 'relative';
+                            clonedElement.style.left = '0';
+                            clonedElement.style.top = '0';
+                            clonedElement.style.transform = 'none';
+                            clonedElement.style.margin = '0';
+                            clonedElement.style.padding = '20px';
+                            clonedElement.style.maxWidth = `${contentWidth}px`;
+                            clonedElement.style.width = `${contentWidth}px`;
+                            clonedElement.style.boxSizing = 'border-box';
+                        }
+                    }
+                });
+            }
+
+            static async generatePNG(options) {
+                const { patientName, filename, quality = 0.92, scale = 1.5 } = options; // Otimizado
+                
+                try {
+                    const contentElement = document.querySelector('[data-pdf-content]');
+                    if (!contentElement) {
+                        throw new Error('Elemento de conteúdo não encontrado.');
+                    }
+
+                    this.showToast('loading', 'Capturando página...');
+
+                    console.log('📸 Capturando conteúdo da página...');
+                    const canvas = await this.captureElement(contentElement, { scale });
+                    
+                    this.showToast('loading', 'Processando imagem...');
+                    
+                    console.log('🖼️ Convertendo para PNG...');
+                    const blob = await new Promise((resolve) => {
+                        canvas.toBlob((blob) => {
+                            resolve(blob);
+                        }, 'image/png', quality);
+                    });
+                    
+                    const finalFilename = filename || `relatorio-evolucao-${patientName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.png`;
+                    
+                    console.log('💾 Salvando arquivo PNG...');
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = finalFilename;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    
+                    this.showToast('success', 'Imagem salva com sucesso!');
+                    console.log('✅ PNG gerado com sucesso:', finalFilename);
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao gerar PNG:', error);
+                    this.showToast('error', 'Erro ao gerar imagem. Tente novamente.');
+                    throw error;
+                }
+            }
+                    
+                    const finalFilename = filename || `relatorio-evolucao-${patientName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.png`;
+                    
+                    console.log('💾 Salvando arquivo PNG...');
+                    pdf.save(finalFilename);
+                    
+                    this.showToast('success', 'PNG gerado com sucesso!');
+                    console.log('✅ PNG gerado com sucesso:', finalFilename);
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao gerar PNG:', error);
+                    this.showToast('error', 'Erro ao gerar imagem. Tente novamente.');
+                    throw error;
+                }
+            }
+
+            static showToast(type, message) {
+                const toast = document.getElementById('toast');
+                toast.className = `toast ${type}`;
+                
+                if (type === 'loading') {
+                    toast.innerHTML = `<div class="spinner"></div>${message}`;
+                } else if (type === 'success') {
+                    toast.innerHTML = `✅ ${message}`;
+                } else if (type === 'error') {
+                    toast.innerHTML = `❌ ${message}`;
+                }
+                
+                toast.style.display = 'block';
+                
+                if (type !== 'loading') {
+                    setTimeout(() => {
+                        toast.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        }
+
+        // Event listener para o botão
+        document.getElementById('generatePNG').addEventListener('click', async () => {
+            const button = document.getElementById('generatePNG');
+            button.disabled = true;
+            button.textContent = '⏳ Gerando...';
+            
+            try {
+                await RenewalPNGGenerator.generatePNG({
+                    patientName: 'Maria Silva',
+                    filename: 'relatorio-evolucao-maria-silva-2025-01-10.png'
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+            } finally {
+                button.disabled = false;
+                button.textContent = '📸 Gerar PNG';
+            }
+        });
+    </script>
+</body>
+</html>

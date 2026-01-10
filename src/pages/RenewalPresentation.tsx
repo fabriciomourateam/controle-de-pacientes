@@ -4,7 +4,6 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +28,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { generateRenewalPNG } from '@/lib/renewal-png-generator';
 
 // Cliente Supabase com service role para acesso público aos dados de renovação
 const supabaseServiceRole = createClient(
@@ -69,6 +69,7 @@ export default function RenewalPresentation() {
   const [checkins, setCheckins] = useState<CheckinData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generatingPNG, setGeneratingPNG] = useState(false);
   
   // Detectar se é acesso público baseado na URL
   const isPublicAccess = window.location.pathname.includes('/public/');
@@ -256,11 +257,33 @@ export default function RenewalPresentation() {
   const { first: firstCheckin, last: lastCheckin } = getFirstAndLastCheckin();
   const journeyTime = getPatientJourneyTime();
 
+  const handleDownloadPNG = async () => {
+    if (!patient) return;
+    
+    try {
+      setGeneratingPNG(true);
+      await generateRenewalPNG(patient.nome, {
+        filename: `relatorio-evolucao-${patient.nome.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.png`
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PNG:', error);
+      if (!isPublicAccess) {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível gerar a imagem. Tente novamente.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setGeneratingPNG(false);
+    }
+  };
+
   // Conteúdo principal da página
   const MainContent = (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header com branding */}
-      <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-b border-yellow-500/20">
+      <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-b border-yellow-500/20" data-png-hide>
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -295,26 +318,23 @@ export default function RenewalPresentation() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleDownloadPNG}
+                disabled={generatingPNG}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Baixar PDF
+                {generatingPNG ? 'Gerando Imagem...' : 'Baixar Imagem'}
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8" data-pdf-content>
         {/* Card do Paciente */}
         <Card className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600 mb-8">
           <CardContent className="pt-6">
             <div className="flex items-center gap-6">
-              <Avatar className="w-20 h-20">
-                <AvatarFallback className="bg-yellow-500/20 text-yellow-400 text-2xl font-bold">
-                  {patient.nome?.charAt(0) || 'P'}
-                </AvatarFallback>
-              </Avatar>
               <div className="flex-1">
                 <h2 className="text-3xl font-bold text-white mb-2">
                   {patient.nome}
