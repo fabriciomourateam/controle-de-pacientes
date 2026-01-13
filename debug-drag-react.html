@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Drag React Style</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .modal-simulation {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .modal-title {
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .photo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .photo-column {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .column-header {
+            text-align: center;
+            margin-bottom: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .initial-header {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .previous-header {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .current-header {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .photo-container {
+            width: 100%;
+            height: 200px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+        
+        .photo-container:active {
+            cursor: grabbing;
+        }
+        
+        .photo-container.dragging {
+            cursor: grabbing;
+            border-color: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+        }
+        
+        .photo-content {
+            transition: transform 0.15s ease-out;
+            transform-origin: center center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: linear-gradient(45deg, #374151, #4b5563);
+            position: relative;
+        }
+        
+        .photo-content.no-transition {
+            transition: none;
+        }
+        
+        .drag-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .photo-container:hover .drag-indicator {
+            opacity: 1;
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .position-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .zoom-btn {
+            background: rgba(51, 65, 85, 0.8);
+            border: 1px solid #64748b;
+            color: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(71, 85, 105, 0.8);
+        }
+        
+        .zoom-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .debug-panel {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        
+        .debug-title {
+            color: #60a5fa;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .debug-info {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+        
+        .status-good { color: #22c55e; }
+        .status-warning { color: #f59e0b; }
+        .status-error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="modal-simulation">
+        <div class="modal-header">
+            <div class="modal-title">🖼️ Simulação do Modal de Comparação de Fotos</div>
+        </div>
+        
+        <div class="photo-grid">
+            <!-- Coluna 1: Inicial -->
+            <div class="photo-column">
+                <div class="column-header initial-header">
+                    ⭐ Dados Iniciais
+                </div>
+                <div class="photo-container" data-column="initial">
+                    <div class="photo-content" id="photo-initial">
+                        <div class="drag-indicator">🖱️ Clique e arraste</div>
+                        <div class="zoom-indicator" id="zoom-initial">100%</div>
+                        <div class="position-indicator" id="pos-initial">0, 0</div>
+                        <div>
+                            Foto Inicial<br>
+                            <small>15/01/2024</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="adjustZoom('initial', -10)">-</button>
+                    <button class="zoom-btn" onclick="adjustZoom('initial', 10)">+</button>
+                    <button class="zoom-btn" onclick="resetPosition('initial')">Reset</button>
+                </div>
+            </div>
+            
+            <!-- Coluna 2: Anterior -->
+            <div class="photo-column">
+                <div class="column-header previous-header">
+                    📅 Check-in Anterior
+                </div>
+                <div class="photo-container" data-column="previous">
+                    <div class="photo-content" id="photo-previous">
+                        <div class="drag-indicator">🖱️ Clique e arraste</div>
+                        <div class="zoom-indicator" id="zoom-previous">100%</div>
+                        <div class="position-indicator" id="pos-previous">0, 0</div>
+                        <div>
+                            Check-in Anterior<br>
+                            <small>15/12/2024</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="adjustZoom('previous', -10)">-</button>
+                    <button class="zoom-btn" onclick="adjustZoom('previous', 10)">+</button>
+                    <button class="zoom-btn" onclick="resetPosition('previous')">Reset</button>
+                </div>
+            </div>
+            
+            <!-- Coluna 3: Atual -->
+            <div class="photo-column">
+                <div class="column-header current-header">
+                    📸 Check-in Atual
+                </div>
+                <div class="photo-container" data-column="current">
+                    <div class="photo-content" id="photo-current">
+                        <div class="drag-indicator">🖱️ Clique e arraste</div>
+                        <div class="zoom-indicator" id="zoom-current">100%</div>
+                        <div class="position-indicator" id="pos-current">0, 0</div>
+                        <div>
+                            Check-in Atual<br>
+                            <small>15/01/2025</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="adjustZoom('current', -10)">-</button>
+                    <button class="zoom-btn" onclick="adjustZoom('current', 10)">+</button>
+                    <button class="zoom-btn" onclick="resetPosition('current')">Reset</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="debug-panel">
+            <div class="debug-title">🔍 Debug Info</div>
+            <div class="debug-info" id="debugInfo">
+                <div>Status: <span class="status-good">Pronto para teste</span></div>
+                <div>Drag ativo: <span id="dragStatus">false</span></div>
+                <div>Coluna ativa: <span id="activeColumn">nenhuma</span></div>
+                <div>Event listeners: <span class="status-good">anexados</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulação da implementação React
+        let isDragging = false;
+        let activeColumn = null;
+        let dragStart = { x: 0, y: 0 };
+        
+        // Estados de posição para cada coluna
+        let positions = {
+            initial: { x: 0, y: 0 },
+            previous: { x: 0, y: 0 },
+            current: { x: 0, y: 0 }
+        };
+        
+        // Estados de zoom para cada coluna
+        let zooms = {
+            initial: 100,
+            previous: 100,
+            current: 100
+        };
+        
+        // Elementos de debug
+        const debugInfo = document.getElementById('debugInfo');
+        const dragStatus = document.getElementById('dragStatus');
+        const activeColumnSpan = document.getElementById('activeColumn');
+        
+        function updateDebugInfo() {
+            dragStatus.textContent = isDragging;
+            dragStatus.className = isDragging ? 'status-warning' : 'status-good';
+            activeColumnSpan.textContent = activeColumn || 'nenhuma';
+        }
+        
+        function updatePosition(column) {
+            const photo = document.getElementById(`photo-${column}`);
+            const posIndicator = document.getElementById(`pos-${column}`);
+            const pos = positions[column];
+            const zoom = zooms[column];
+            
+            photo.style.transform = `scale(${zoom / 100}) translate(${pos.x / (zoom / 100)}px, ${pos.y / (zoom / 100)}px)`;
+            posIndicator.textContent = `${Math.round(pos.x)}, ${Math.round(pos.y)}`;
+        }
+        
+        function updateZoom(column) {
+            const zoomIndicator = document.getElementById(`zoom-${column}`);
+            zoomIndicator.textContent = `${zooms[column]}%`;
+            updatePosition(column);
+        }
+        
+        // Handlers globais (simulando useCallback)
+        function handleGlobalMouseMove(e) {
+            if (!isDragging || !activeColumn) return;
+            
+            e.preventDefault();
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            
+            const currentPos = positions[activeColumn];
+            positions[activeColumn] = {
+                x: currentPos.x + dx,
+                y: currentPos.y + dy
+            };
+            
+            updatePosition(activeColumn);
+            dragStart = { x: e.clientX, y: e.clientY };
+            updateDebugInfo();
+        }
+        
+        function handleGlobalMouseUp() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            activeColumn = null;
+            document.body.style.cursor = '';
+            
+            // Remover classes de drag
+            document.querySelectorAll('.photo-container').forEach(container => {
+                container.classList.remove('dragging');
+            });
+            
+            // Restaurar transições
+            document.querySelectorAll('.photo-content').forEach(content => {
+                content.classList.remove('no-transition');
+            });
+            
+            document.removeEventListener('mousemove', handleGlobalMouseMove);
+            document.removeEventListener('mouseup', handleGlobalMouseUp);
+            
+            updateDebugInfo();
+        }
+        
+        // Anexar event listeners aos containers
+        document.querySelectorAll('.photo-container').forEach(container => {
+            container.addEventListener('mousedown', (e) => {
+                const column = container.dataset.column;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                isDragging = true;
+                activeColumn = column;
+                dragStart = { x: e.clientX, y: e.clientY };
+                
+                container.classList.add('dragging');
+                document.getElementById(`photo-${column}`).classList.add('no-transition');
+                document.body.style.cursor = 'grabbing';
+                
+                document.addEventListener('mousemove', handleGlobalMouseMove);
+                document.addEventListener('mouseup', handleGlobalMouseUp);
+                
+                updateDebugInfo();
+            });
+        });
+        
+        // Funções de zoom
+        function adjustZoom(column, delta) {
+            zooms[column] = Math.max(50, Math.min(200, zooms[column] + delta));
+            updateZoom(column);
+            
+            // Reset posição se zoom <= 100%
+            if (zooms[column] <= 100) {
+                positions[column] = { x: 0, y: 0 };
+                updatePosition(column);
+            }
+        }
+        
+        function resetPosition(column) {
+            positions[column] = { x: 0, y: 0 };
+            zooms[column] = 100;
+            updatePosition(column);
+            updateZoom(column);
+        }
+        
+        // Inicializar
+        updateDebugInfo();
+        ['initial', 'previous', 'current'].forEach(column => {
+            updateZoom(column);
+        });
+        
+        console.log('🚀 Debug React-style drag iniciado');
+        console.log('📝 Teste: Clique e arraste qualquer foto');
+    </script>
+</body>
+</html>

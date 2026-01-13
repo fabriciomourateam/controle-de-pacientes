@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { X, ChevronLeft, ChevronRight, Upload, Loader2, Image as ImageIcon, Eye, EyeOff, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
@@ -224,9 +224,18 @@ export function PhotoComparisonModal({
       setPosInitial({ x: 0, y: 0 });
       setPosPrevious({ x: 0, y: 0 });
       setPosCurrent({ x: 0, y: 0 });
+      // Resetar estado de ocultar coluna anterior
+      setHidePreviousColumn(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, checkinId, telefone, checkinDate, previousCheckinId]);
+
+  // Auto-ocultar coluna anterior quando não há check-in anterior
+  useEffect(() => {
+    if (open && !previousDate) {
+      setHidePreviousColumn(true);
+    }
+  }, [open, previousDate]);
 
   // Cleanup de URLs de preview quando arquivos são removidos ou modal fecha
   useEffect(() => {
@@ -622,69 +631,190 @@ export function PhotoComparisonModal({
     }
   };
 
-  // Handlers para drag (arrastar imagem)
-  const handleMouseDown = (e: React.MouseEvent, column: 'initial' | 'previous' | 'current') => {
-    // Só permite arrastar se o zoom for maior que 100%
-    const zoom = column === 'initial' ? zoomInitial : column === 'previous' ? zoomPrevious : zoomCurrent;
-    if (zoom <= 100) return;
+  // Refs para manter referências atualizadas dos estados
+  const isDraggingRef = useRef(isDragging);
+  const activeColumnRef = useRef(activeColumn);
+  const dragStartRef = useRef(dragStart);
+  const posInitialRef = useRef(posInitial);
+  const posPreviousRef = useRef(posPrevious);
+  const posCurrentRef = useRef(posCurrent);
+
+  // Atualizar refs quando estados mudarem
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  useEffect(() => {
+    activeColumnRef.current = activeColumn;
+  }, [activeColumn]);
+
+  useEffect(() => {
+    dragStartRef.current = dragStart;
+  }, [dragStart]);
+
+  useEffect(() => {
+    posInitialRef.current = posInitial;
+  }, [posInitial]);
+
+  useEffect(() => {
+    posPreviousRef.current = posPrevious;
+  }, [posPrevious]);
+
+  useEffect(() => {
+    posCurrentRef.current = posCurrent;
+  }, [posCurrent]);
+
+  // Handlers para drag (arrastar imagem) - CORRIGIDOS
+  const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDraggingRef.current || !activeColumnRef.current) return;
     
     e.preventDefault();
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    
+    const currentPos = activeColumnRef.current === 'initial' ? posInitialRef.current : 
+                       activeColumnRef.current === 'previous' ? posPreviousRef.current : posCurrentRef.current;
+    
+    const newPos = { x: currentPos.x + dx, y: currentPos.y + dy };
+    
+    if (activeColumnRef.current === 'initial') {
+      setPosInitial(newPos);
+    } else if (activeColumnRef.current === 'previous') {
+      setPosPrevious(newPos);
+    } else {
+      setPosCurrent(newPos);
+    }
+    
+    setDragStart({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleGlobalMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setActiveColumn(null);
+    
+    // Restaurar cursor
+    document.body.style.cursor = '';
+    
+    // Remover event listeners globais
+    document.removeEventListener('mousemove', handleGlobalMouseMove);
+    document.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [handleGlobalMouseMove]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent, column: 'initial' | 'previous' | 'current') => {
+    // Permitir arrastar sempre que há uma foto
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     setActiveColumn(column);
     setDragStart({ x: e.clientX, y: e.clientY });
-  };
+    
+    // Adicionar event listeners globais para melhor controle
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    
+    // Mudar cursor para grabbing
+    document.body.style.cursor = 'grabbing';
+  }, [handleGlobalMouseMove, handleGlobalMouseUp]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    // Esta função agora é apenas para compatibilidade, o drag real usa os handlers globais
     if (!isDragging || !activeColumn) return;
-    
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
-    
-    const setPos = activeColumn === 'initial' ? setPosInitial : 
-                   activeColumn === 'previous' ? setPosPrevious : setPosCurrent;
-    const currentPos = activeColumn === 'initial' ? posInitial : 
-                       activeColumn === 'previous' ? posPrevious : posCurrent;
-    
-    setPos({ x: currentPos.x + dx, y: currentPos.y + dy });
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
+    e.preventDefault();
+  }, [isDragging, activeColumn]);
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setActiveColumn(null);
-  };
+  const handleMouseUp = useCallback(() => {
+    // Fallback para quando o mouse up acontece dentro do elemento
+    if (isDragging) {
+      handleGlobalMouseUp();
+    }
+  }, [isDragging, handleGlobalMouseUp]);
 
-  // Handlers para touch (mobile)
-  const handleTouchStart = (e: React.TouchEvent, column: 'initial' | 'previous' | 'current') => {
-    const zoom = column === 'initial' ? zoomInitial : column === 'previous' ? zoomPrevious : zoomCurrent;
-    if (zoom <= 100) return;
-    
+  // Handlers para touch (mobile) - MELHORADOS
+  const handleTouchStart = useCallback((e: React.TouchEvent, column: 'initial' | 'previous' | 'current') => {
+    // Permitir arrastar sempre que há uma foto
+    e.preventDefault();
     const touch = e.touches[0];
     setIsDragging(true);
     setActiveColumn(column);
     setDragStart({ x: touch.clientX, y: touch.clientY });
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging || !activeColumn) return;
     
+    e.preventDefault();
     const touch = e.touches[0];
     const dx = touch.clientX - dragStart.x;
     const dy = touch.clientY - dragStart.y;
     
-    const setPos = activeColumn === 'initial' ? setPosInitial : 
-                   activeColumn === 'previous' ? setPosPrevious : setPosCurrent;
     const currentPos = activeColumn === 'initial' ? posInitial : 
                        activeColumn === 'previous' ? posPrevious : posCurrent;
     
-    setPos({ x: currentPos.x + dx, y: currentPos.y + dy });
+    const newPos = { x: currentPos.x + dx, y: currentPos.y + dy };
+    
+    if (activeColumn === 'initial') {
+      setPosInitial(newPos);
+    } else if (activeColumn === 'previous') {
+      setPosPrevious(newPos);
+    } else {
+      setPosCurrent(newPos);
+    }
+    
     setDragStart({ x: touch.clientX, y: touch.clientY });
-  };
+  }, [isDragging, activeColumn, dragStart, posInitial, posPrevious, posCurrent]);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
     setActiveColumn(null);
-  };
+  }, []);
+
+  // Handler para zoom com scroll do mouse
+  const handleWheel = useCallback((e: React.WheelEvent, column: 'initial' | 'previous' | 'current') => {
+    e.preventDefault();
+    
+    const currentZoom = column === 'initial' ? zoomInitial : 
+                        column === 'previous' ? zoomPrevious : zoomCurrent;
+    
+    const delta = e.deltaY > 0 ? -10 : 10;
+    const newZoom = Math.max(50, Math.min(200, currentZoom + delta));
+    
+    if (column === 'initial') {
+      setZoomInitial(newZoom);
+    } else if (column === 'previous') {
+      setZoomPrevious(newZoom);
+    } else {
+      setZoomCurrent(newZoom);
+    }
+    
+    // Se o zoom voltar para 100% ou menos, resetar posição
+    if (newZoom <= 100) {
+      if (column === 'initial') {
+        setPosInitial({ x: 0, y: 0 });
+      } else if (column === 'previous') {
+        setPosPrevious({ x: 0, y: 0 });
+      } else {
+        setPosCurrent({ x: 0, y: 0 });
+      }
+    }
+  }, [zoomInitial, zoomPrevious, zoomCurrent]);
+
+  // Cleanup dos event listeners quando o componente desmontar
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [handleGlobalMouseMove, handleGlobalMouseUp]);
+
+  // Reset drag state quando modal fechar
+  React.useEffect(() => {
+    if (!open) {
+      setIsDragging(false);
+      setActiveColumn(null);
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [open]);
 
   const renderPhoto = (photoUrl: string | undefined, date: string, source: string, type: 'initial' | 'previous' | 'current', angle: PhotoAngle, zoom: number, pos: { x: number, y: number }) => {
     const uploadKey = `${type}_${angle}`;
@@ -727,11 +857,18 @@ export function PhotoComparisonModal({
 
     const isVideo = getMediaType(photoUrl) === 'video';
     const url = getPhotoUrl(photoUrl, isVideo);
-    const canDrag = zoom > 100;
+    const canDrag = true; // Sempre permitir drag quando há foto
+    const isActiveDrag = isDragging && activeColumn === type;
 
     return (
       <div 
-        className={`w-full h-full flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden min-h-[150px] md:min-h-[200px] ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        className={`w-full h-full flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden min-h-[150px] md:min-h-[200px] relative select-none ${
+          canDrag 
+            ? isActiveDrag 
+              ? 'cursor-grabbing' 
+              : 'cursor-grab hover:bg-slate-800/50' 
+            : 'cursor-default'
+        }`}
         onMouseDown={(e) => handleMouseDown(e, type)}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -739,11 +876,42 @@ export function PhotoComparisonModal({
         onTouchStart={(e) => handleTouchStart(e, type)}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onWheel={(e) => handleWheel(e, type)}
+        style={{
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none'
+        }}
       >
+        {/* Indicador visual quando pode arrastar */}
+        {canDrag && !isActiveDrag && zoom === 100 && (
+          <div className="absolute top-2 right-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
+            🖱️ Clique e arraste
+          </div>
+        )}
+        
+        {/* Indicador de zoom ativo */}
+        {zoom > 100 && (
+          <div className="absolute top-2 left-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded pointer-events-none">
+            {zoom}%
+          </div>
+        )}
+        
+        {/* Indicador de posição quando arrastado */}
+        {(pos.x !== 0 || pos.y !== 0) && (
+          <div className="absolute bottom-2 left-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded pointer-events-none">
+            📍 {Math.round(pos.x)}, {Math.round(pos.y)}
+          </div>
+        )}
+        
         <div 
-          className={`w-full h-full flex items-center justify-center ${isDragging && activeColumn === type ? '' : 'transition-transform duration-150'}`}
+          className={`w-full h-full flex items-center justify-center ${
+            isActiveDrag ? '' : 'transition-transform duration-150 ease-out'
+          }`}
           style={{ 
-            transform: `scale(${zoom / 100}) translate(${pos.x / (zoom / 100)}px, ${pos.y / (zoom / 100)}px)` 
+            transform: `scale(${zoom / 100}) translate(${pos.x / (zoom / 100)}px, ${pos.y / (zoom / 100)}px)`,
+            transformOrigin: 'center center'
           }}
         >
           {isVideo ? (
@@ -751,20 +919,30 @@ export function PhotoComparisonModal({
               src={url || photoUrl}
               controls
               className="w-full h-full object-contain pointer-events-none"
+              draggable={false}
             />
           ) : (
             <GoogleDriveImage
               src={photoUrl}
               alt={`${source} - ${date}`}
               className="w-full h-full object-contain pointer-events-none"
+              draggable={false}
+              style={{ userSelect: 'none' }}
             />
           )}
         </div>
+        
+        {/* Overlay para melhor controle de drag - sempre ativo quando há foto */}
+        <div 
+          className="absolute inset-0 z-5 bg-transparent"
+          onMouseDown={(e) => handleMouseDown(e, type)}
+          onTouchStart={(e) => handleTouchStart(e, type)}
+        />
       </div>
     );
   };
 
-  // Componente para controles de zoom e posição
+  // Componente para controles de zoom e posição - MELHORADO
   const ZoomControls = ({ 
     zoom, 
     setZoom, 
@@ -781,58 +959,65 @@ export function PhotoComparisonModal({
     const hasChanges = zoom !== 100 || pos.x !== 0 || pos.y !== 0;
     
     return (
-      <div className="flex items-center gap-1 mt-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setZoom(Math.max(50, zoom - 10))}
-          className={`h-5 w-5 p-0 text-${color}-400 hover:text-${color}-300`}
-          disabled={zoom <= 50}
-        >
-          <ZoomOut className="w-3 h-3" />
-        </Button>
-        <div className="w-14 md:w-16 px-1">
-          <Slider
-            value={[zoom]}
-            onValueChange={(v) => setZoom(v[0])}
-            min={50}
-            max={200}
-            step={5}
-            className="h-1"
-          />
+      <div className="flex flex-col items-center gap-1 mt-1">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setZoom(Math.max(50, zoom - 10))}
+            className={`h-5 w-5 p-0 text-${color}-400 hover:text-${color}-300`}
+            disabled={zoom <= 50}
+          >
+            <ZoomOut className="w-3 h-3" />
+          </Button>
+          <div className="w-14 md:w-16 px-1">
+            <Slider
+              value={[zoom]}
+              onValueChange={(v) => setZoom(v[0])}
+              min={50}
+              max={200}
+              step={5}
+              className="h-1"
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setZoom(Math.min(200, zoom + 10))}
+            className={`h-5 w-5 p-0 text-${color}-400 hover:text-${color}-300`}
+            disabled={zoom >= 200}
+          >
+            <ZoomIn className="w-3 h-3" />
+          </Button>
+          <span className="text-[9px] text-slate-500 w-7">{zoom}%</span>
+          {hasChanges && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setZoom(100);
+                      setPos({ x: 0, y: 0 });
+                    }}
+                    className="h-5 w-5 p-0 text-slate-400 hover:text-white"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Resetar zoom e posição</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setZoom(Math.min(200, zoom + 10))}
-          className={`h-5 w-5 p-0 text-${color}-400 hover:text-${color}-300`}
-          disabled={zoom >= 200}
-        >
-          <ZoomIn className="w-3 h-3" />
-        </Button>
-        <span className="text-[9px] text-slate-500 w-7">{zoom}%</span>
-        {hasChanges && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setZoom(100);
-                    setPos({ x: 0, y: 0 });
-                  }}
-                  className="h-5 w-5 p-0 text-slate-400 hover:text-white"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Resetar zoom e posição</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        
+        {/* Dica sobre controles */}
+        <div className="text-[8px] text-slate-500 text-center">
+          🖱️ Scroll para zoom • Clique e arraste para mover
+        </div>
       </div>
     );
   };
@@ -991,9 +1176,6 @@ export function PhotoComparisonModal({
                     <ZoomControls zoom={zoomInitial} setZoom={setZoomInitial} pos={posInitial} setPos={setPosInitial} color="green" />
                   </div>
                 )}
-                {zoomInitial > 100 && initialPhotos[selectedAngleInitial] && (
-                  <div className="text-[8px] text-slate-500 text-center mt-0.5">Arraste para mover</div>
-                )}
               </div>
 
               {/* Coluna 2: Check-in Anterior */}
@@ -1086,9 +1268,6 @@ export function PhotoComparisonModal({
                     <ZoomControls zoom={zoomPrevious} setZoom={setZoomPrevious} pos={posPrevious} setPos={setPosPrevious} color="purple" />
                   </div>
                 )}
-                {zoomPrevious > 100 && previousDate && previousPhotos[selectedAnglePrevious] && (
-                  <div className="text-[8px] text-slate-500 text-center mt-0.5">Arraste para mover</div>
-                )}
               </div>
               )}
 
@@ -1174,9 +1353,6 @@ export function PhotoComparisonModal({
                   <div className="flex justify-center">
                     <ZoomControls zoom={zoomCurrent} setZoom={setZoomCurrent} pos={posCurrent} setPos={setPosCurrent} color="blue" />
                   </div>
-                )}
-                {zoomCurrent > 100 && currentPhotos[selectedAngleCurrent] && (
-                  <div className="text-[8px] text-slate-500 text-center mt-0.5">Arraste para mover</div>
                 )}
               </div>
             </div>

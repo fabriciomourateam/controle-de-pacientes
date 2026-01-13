@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Teste de Drag das Fotos</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #ef4444;
+            margin-bottom: 10px;
+        }
+        
+        .debug-info {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .debug-info h3 {
+            color: #ef4444;
+            margin: 0 0 8px 0;
+            font-size: 16px;
+        }
+        
+        .debug-info p {
+            color: #fca5a5;
+            margin: 4px 0;
+            font-size: 14px;
+        }
+        
+        .test-area {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .photo-container {
+            width: 300px;
+            height: 200px;
+            background: linear-gradient(45deg, #374151, #4b5563);
+            border: 2px solid #60a5fa;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .photo-container:active {
+            cursor: grabbing;
+        }
+        
+        .photo-container.dragging {
+            cursor: grabbing;
+            border-color: #22c55e;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+        }
+        
+        .debug-log {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-mousedown { color: #22c55e; }
+        .log-mousemove { color: #60a5fa; }
+        .log-mouseup { color: #f59e0b; }
+        .log-error { color: #ef4444; }
+        
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .status-ready {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .status-dragging {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .position-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .clear-btn:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐛 Debug - Teste de Drag das Fotos</h1>
+            <p>Ferramenta para diagnosticar problemas com o drag das fotos no modal</p>
+        </div>
+
+        <div class="debug-info">
+            <h3>🔍 Problema Reportado:</h3>
+            <p>• Usuário não consegue arrastar as fotos para os lados dentro do modal de comparar fotos</p>
+            <p>• Este teste simula o comportamento esperado para identificar o problema</p>
+        </div>
+
+        <div class="test-area">
+            <h3 style="color: #60a5fa; margin-bottom: 16px;">📸 Teste de Drag Simples</h3>
+            <p style="color: #94a3b8; margin-bottom: 20px;">
+                Clique e arraste a foto abaixo. Se funcionar aqui, o problema está na implementação do modal.
+            </p>
+            
+            <div class="photo-container" id="testPhoto">
+                <div class="status-indicator status-ready" id="status">PRONTO</div>
+                <div class="position-info" id="position">X: 0, Y: 0</div>
+                <div>
+                    🖼️ FOTO DE TESTE<br>
+                    <small>Clique e arraste</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-area">
+            <h3 style="color: #60a5fa; margin-bottom: 16px;">📊 Log de Eventos</h3>
+            <div class="debug-log" id="debugLog">
+                <div class="log-entry">🚀 Sistema de debug iniciado...</div>
+                <div class="log-entry">📝 Aguardando interação do usuário...</div>
+            </div>
+            <button class="clear-btn" onclick="clearLog()">Limpar Log</button>
+        </div>
+
+        <div class="test-area">
+            <h3 style="color: #60a5fa; margin-bottom: 16px;">🔧 Possíveis Causas do Problema</h3>
+            <div style="color: #94a3b8; line-height: 1.6;">
+                <p><strong>1. Event Listeners não anexados:</strong></p>
+                <p style="margin-left: 20px;">• Verificar se os handlers estão sendo chamados</p>
+                
+                <p><strong>2. Closure/Stale State:</strong></p>
+                <p style="margin-left: 20px;">• Estados não atualizados nos handlers globais</p>
+                
+                <p><strong>3. CSS interferindo:</strong></p>
+                <p style="margin-left: 20px;">• pointer-events, user-select, ou z-index</p>
+                
+                <p><strong>4. Conflito de Event Handlers:</strong></p>
+                <p style="margin-left: 20px;">• Múltiplos handlers competindo pelo mesmo evento</p>
+                
+                <p><strong>5. Transform não aplicado:</strong></p>
+                <p style="margin-left: 20px;">• CSS transform não sendo atualizado corretamente</p>
+            </div>
+        </div>
+
+        <div class="test-area">
+            <h3 style="color: #60a5fa; margin-bottom: 16px;">✅ Checklist de Verificação</h3>
+            <div style="color: #94a3b8; line-height: 1.6;">
+                <p>□ Event listeners anexados corretamente</p>
+                <p>□ Estados sendo atualizados nos handlers</p>
+                <p>□ CSS transform sendo aplicado</p>
+                <p>□ Sem conflitos de z-index</p>
+                <p>□ preventDefault() funcionando</p>
+                <p>□ Cursor mudando durante drag</p>
+                <p>□ Cleanup de event listeners</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let dragCount = 0;
+
+        const photo = document.getElementById('testPhoto');
+        const status = document.getElementById('status');
+        const position = document.getElementById('position');
+        const debugLog = document.getElementById('debugLog');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            debugLog.appendChild(entry);
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+
+        function updatePosition() {
+            position.textContent = `X: ${Math.round(currentX)}, Y: ${Math.round(currentY)}`;
+            photo.style.transform = `translate(${currentX}px, ${currentY}px)`;
+        }
+
+        // Mouse Events
+        photo.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - currentX;
+            startY = e.clientY - currentY;
+            
+            photo.classList.add('dragging');
+            status.textContent = 'ARRASTANDO';
+            status.className = 'status-indicator status-dragging';
+            document.body.style.cursor = 'grabbing';
+            
+            log(`MouseDown: clientX=${e.clientX}, clientY=${e.clientY}`, 'mousedown');
+            
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            currentX = e.clientX - startX;
+            currentY = e.clientY - startY;
+            
+            updatePosition();
+            dragCount++;
+            
+            if (dragCount % 5 === 0) { // Log a cada 5 movimentos para não spam
+                log(`MouseMove: X=${Math.round(currentX)}, Y=${Math.round(currentY)}`, 'mousemove');
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            photo.classList.remove('dragging');
+            status.textContent = 'PRONTO';
+            status.className = 'status-indicator status-ready';
+            document.body.style.cursor = '';
+            
+            log(`MouseUp: Final position X=${Math.round(currentX)}, Y=${Math.round(currentY)}`, 'mouseup');
+            log(`Drag session completed. Total moves: ${dragCount}`, 'mouseup');
+            dragCount = 0;
+        });
+
+        // Touch Events (para mobile)
+        photo.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            isDragging = true;
+            startX = touch.clientX - currentX;
+            startY = touch.clientY - currentY;
+            
+            photo.classList.add('dragging');
+            status.textContent = 'ARRASTANDO';
+            status.className = 'status-indicator status-dragging';
+            
+            log(`TouchStart: clientX=${touch.clientX}, clientY=${touch.clientY}`, 'mousedown');
+            
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const touch = e.touches[0];
+            e.preventDefault();
+            currentX = touch.clientX - startX;
+            currentY = touch.clientY - startY;
+            
+            updatePosition();
+            dragCount++;
+            
+            if (dragCount % 5 === 0) {
+                log(`TouchMove: X=${Math.round(currentX)}, Y=${Math.round(currentY)}`, 'mousemove');
+            }
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            photo.classList.remove('dragging');
+            status.textContent = 'PRONTO';
+            status.className = 'status-indicator status-ready';
+            
+            log(`TouchEnd: Final position X=${Math.round(currentX)}, Y=${Math.round(currentY)}`, 'mouseup');
+            log(`Touch drag session completed. Total moves: ${dragCount}`, 'mouseup');
+            dragCount = 0;
+        });
+
+        function clearLog() {
+            debugLog.innerHTML = '<div class="log-entry">📝 Log limpo - aguardando nova interação...</div>';
+        }
+
+        // Log inicial
+        log('✅ Event listeners anexados com sucesso');
+        log('🖱️ Teste: Clique e arraste a foto acima');
+    </script>
+</body>
+</html>

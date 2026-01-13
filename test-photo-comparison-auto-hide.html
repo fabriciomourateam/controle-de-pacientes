@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Auto-ocultar Coluna Anterior no Comparador de Fotos</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            font-size: 16px;
+        }
+        
+        .demo-section {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .demo-title {
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .photo-grid {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .grid-2-cols {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .grid-3-cols {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        .photo-column {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .initial-header {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .previous-header {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .current-header {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .photo-placeholder {
+            width: 100%;
+            height: 200px;
+            background: rgba(51, 65, 85, 0.5);
+            border: 2px dashed #64748b;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .photo-sample {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #374151, #4b5563);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .photo-sample::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.05) 10px,
+                rgba(255, 255, 255, 0.05) 20px
+            );
+        }
+        
+        .toggle-button {
+            background: rgba(51, 65, 85, 0.8);
+            border: 1px solid #64748b;
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .toggle-button:hover {
+            background: rgba(71, 85, 105, 0.8);
+            border-color: #94a3b8;
+        }
+        
+        .feature-list {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-list h3 {
+            color: #60a5fa;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .feature-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .check-icon {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .scenario {
+            background: rgba(15, 23, 42, 0.4);
+            border-left: 4px solid #60a5fa;
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .scenario h4 {
+            color: #f1f5f9;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .scenario p {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Auto-ocultar Coluna Anterior - Comparador de Fotos</h1>
+            <p>Demonstração da funcionalidade que oculta automaticamente a coluna do check-in anterior quando não há dados</p>
+        </div>
+
+        <!-- Cenário 1: Paciente com check-in anterior -->
+        <div class="demo-section">
+            <div class="demo-title">
+                📸 Cenário 1: Paciente com Check-in Anterior
+            </div>
+            
+            <div class="scenario">
+                <h4>Situação:</h4>
+                <p>Paciente tem fotos iniciais e pelo menos um check-in anterior com fotos</p>
+            </div>
+            
+            <div class="photo-grid grid-3-cols" id="grid-with-previous">
+                <div class="photo-column">
+                    <div class="column-header initial-header">
+                        ⭐ Dados Iniciais
+                    </div>
+                    <div class="photo-sample">
+                        Foto Inicial<br>
+                        <small>15/01/2024</small>
+                    </div>
+                </div>
+                
+                <div class="photo-column" id="previous-column">
+                    <div class="column-header previous-header">
+                        📅 Check-in Anterior
+                    </div>
+                    <div class="photo-sample">
+                        Check-in Anterior<br>
+                        <small>15/12/2024</small>
+                    </div>
+                </div>
+                
+                <div class="photo-column">
+                    <div class="column-header current-header">
+                        📸 Check-in Atual
+                    </div>
+                    <div class="photo-sample">
+                        Check-in Atual<br>
+                        <small>15/01/2025</small>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="toggle-button" onclick="togglePreviousColumn()">
+                <span id="toggle-icon">👁️</span>
+                <span id="toggle-text">Ocultar Anterior</span>
+            </button>
+        </div>
+
+        <!-- Cenário 2: Primeiro check-in -->
+        <div class="demo-section">
+            <div class="demo-title">
+                🆕 Cenário 2: Primeiro Check-in (Auto-oculta)
+            </div>
+            
+            <div class="scenario">
+                <h4>Situação:</h4>
+                <p>Paciente fazendo o primeiro check-in - não há check-in anterior</p>
+            </div>
+            
+            <div class="photo-grid grid-2-cols">
+                <div class="photo-column">
+                    <div class="column-header initial-header">
+                        ⭐ Dados Iniciais
+                    </div>
+                    <div class="photo-sample">
+                        Foto Inicial<br>
+                        <small>15/01/2024</small>
+                    </div>
+                </div>
+                
+                <div class="photo-column">
+                    <div class="column-header current-header">
+                        📸 Primeiro Check-in
+                    </div>
+                    <div class="photo-sample">
+                        Primeiro Check-in<br>
+                        <small>15/01/2025</small>
+                    </div>
+                </div>
+            </div>
+            
+            <p style="color: #22c55e; font-size: 14px; margin-top: 12px;">
+                ✅ Coluna anterior automaticamente oculta (não há dados para mostrar)
+            </p>
+        </div>
+
+        <!-- Cenário 3: Sem fotos iniciais -->
+        <div class="demo-section">
+            <div class="demo-title">
+                📷 Cenário 3: Sem Fotos Iniciais
+            </div>
+            
+            <div class="scenario">
+                <h4>Situação:</h4>
+                <p>Paciente não tem fotos iniciais cadastradas</p>
+            </div>
+            
+            <div class="photo-grid grid-2-cols">
+                <div class="photo-column">
+                    <div class="column-header initial-header">
+                        ⭐ Dados Iniciais
+                    </div>
+                    <div class="photo-placeholder">
+                        Sem foto inicial
+                    </div>
+                </div>
+                
+                <div class="photo-column">
+                    <div class="column-header current-header">
+                        📸 Check-in Atual
+                    </div>
+                    <div class="photo-sample">
+                        Check-in Atual<br>
+                        <small>15/01/2025</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funcionalidades -->
+        <div class="feature-list">
+            <h3>🚀 Funcionalidades Implementadas</h3>
+            <ul>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Auto-ocultar inteligente:</strong> Coluna anterior é automaticamente oculta quando não há check-in anterior
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Botão de controle:</strong> Quando há check-in anterior, usuário pode ocultar/mostrar a coluna manualmente
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Layout responsivo:</strong> Grid se ajusta automaticamente (2 ou 3 colunas)
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Melhor UX:</strong> Interface mais limpa para primeiros check-ins
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Tooltip informativo:</strong> Explica a função do botão de ocultar/mostrar
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Reset automático:</strong> Estado é resetado ao fechar e reabrir o modal
+                </li>
+            </ul>
+        </div>
+
+        <!-- Código implementado -->
+        <div class="demo-section">
+            <div class="demo-title">
+                💻 Código Implementado
+            </div>
+            
+            <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto;">
+                <div style="color: #22c55e;">// Auto-ocultar coluna anterior quando não há check-in anterior</div>
+                <div style="color: #60a5fa;">useEffect</div><div style="color: #e2e8f0;">(() => {</div>
+                <div style="color: #e2e8f0; margin-left: 20px;">if (open && !previousDate) {</div>
+                <div style="color: #e2e8f0; margin-left: 40px;">setHidePreviousColumn(true);</div>
+                <div style="color: #e2e8f0; margin-left: 20px;">}</div>
+                <div style="color: #e2e8f0;">}, [open, previousDate]);</div>
+                <br>
+                <div style="color: #22c55e;">// Grid responsivo baseado no estado</div>
+                <div style="color: #e2e8f0;">&lt;div className={`grid gap-4 ${</div>
+                <div style="color: #e2e8f0; margin-left: 20px;">hidePreviousColumn</div>
+                <div style="color: #e2e8f0; margin-left: 40px;">? 'grid-cols-2'</div>
+                <div style="color: #e2e8f0; margin-left: 40px;">: 'grid-cols-2 md:grid-cols-3'</div>
+                <div style="color: #e2e8f0;">}`}&gt;</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isPreviousHidden = false;
+        
+        function togglePreviousColumn() {
+            const grid = document.getElementById('grid-with-previous');
+            const previousColumn = document.getElementById('previous-column');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const toggleText = document.getElementById('toggle-text');
+            
+            if (isPreviousHidden) {
+                // Mostrar coluna anterior
+                grid.className = 'photo-grid grid-3-cols';
+                previousColumn.style.display = 'block';
+                toggleIcon.textContent = '🙈';
+                toggleText.textContent = 'Ocultar Anterior';
+                isPreviousHidden = false;
+            } else {
+                // Ocultar coluna anterior
+                grid.className = 'photo-grid grid-2-cols';
+                previousColumn.style.display = 'none';
+                toggleIcon.textContent = '👁️';
+                toggleText.textContent = 'Mostrar Anterior';
+                isPreviousHidden = true;
+            }
+        }
+    </script>
+</body>
+</html>
