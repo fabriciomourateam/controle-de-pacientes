@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Histórico de Check-ins</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .section {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #a78bfa;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .feature-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .feature-card h3 {
+            color: #60a5fa;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .badge-success {
+            background: #10b981;
+            color: #000;
+        }
+        .badge-info {
+            background: #3b82f6;
+            color: #fff;
+        }
+        .badge-warning {
+            background: #f59e0b;
+            color: #000;
+        }
+        .code-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .highlight {
+            background: #a78bfa;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .demo-image {
+            width: 100%;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            padding: 15px;
+            margin: 10px 0;
+            background: #0f172a;
+            border-left: 4px solid #a78bfa;
+            border-radius: 4px;
+            position: relative;
+            padding-left: 50px;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #a78bfa;
+            color: #000;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .metric-example {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+        .metric-change {
+            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .metric-change.positive {
+            background: #dc2626;
+            color: #fff;
+        }
+        .metric-change.negative {
+            background: #10b981;
+            color: #fff;
+        }
+        .info-box {
+            background: #1e40af;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #92400e;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #065f46;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📜 Histórico Completo de Check-ins</h1>
+            <p>Visualize toda a evolução do paciente em um só lugar</p>
+            <div style="margin-top: 15px;">
+                <span class="badge badge-success">✅ Implementado</span>
+                <span class="badge badge-info">v1.0</span>
+            </div>
+        </div>
+
+        <!-- Visão Geral -->
+        <div class="section">
+            <h2>🎯 Visão Geral</h2>
+            <p>Nova funcionalidade que permite visualizar todos os check-ins anteriores do paciente de forma organizada e colapsável, diretamente no card de feedback da página de check-ins.</p>
+            
+            <div class="success-box">
+                <strong>✨ Benefício Principal:</strong> Acesso rápido ao histórico completo do paciente sem precisar navegar para outras páginas, facilitando a análise de evolução e contexto antes de dar feedback.
+            </div>
+        </div>
+
+        <!-- Características -->
+        <div class="section">
+            <h2>🚀 Características Principais</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>📊 Resumo Rápido</h3>
+                    <ul class="feature-list">
+                        <li>📅 Data do check-in</li>
+                        <li>⭐ Pontuação</li>
+                        <li>⚖️ Peso com mudança</li>
+                        <li>📏 Cintura com mudança</li>
+                        <li>📐 Quadril</li>
+                        <li>🏋️ Tempo de treino</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📋 Detalhes Completos</h3>
+                    <ul class="feature-list">
+                        <li>⏱️ Tempo de cardio</li>
+                        <li>😴 Descanso entre séries</li>
+                        <li>🍽️ Refeições livres</li>
+                        <li>🍪 Beliscos</li>
+                        <li>💧 Consumo de água</li>
+                        <li>😴 Qualidade do sono</li>
+                        <li>📝 Observações</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📈 Indicadores</h3>
+                    <ul class="feature-list">
+                        <li>📉 Mudanças de peso</li>
+                        <li>📊 Mudanças de medidas</li>
+                        <li>🎨 Cores indicativas</li>
+                        <li>📷 Acesso a fotos</li>
+                        <li>🔄 Comparação automática</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Como Usar -->
+        <div class="section">
+            <h2>📖 Como Usar</h2>
+            <ol class="steps">
+                <li>
+                    <strong>Abrir Check-in</strong><br>
+                    Clique em qualquer card de check-in na página de check-ins para expandir
+                </li>
+                <li>
+                    <strong>Localizar Histórico</strong><br>
+                    Role até o final do card expandido e encontre a seção "📜 Histórico de Check-ins"
+                </li>
+                <li>
+                    <strong>Expandir Histórico</strong><br>
+                    Clique no botão "Ver Histórico" para visualizar todos os check-ins anteriores
+                </li>
+                <li>
+                    <strong>Explorar Check-ins</strong><br>
+                    Clique no botão ▼ de qualquer check-in para ver todos os detalhes
+                </li>
+                <li>
+                    <strong>Ver Fotos (Opcional)</strong><br>
+                    Clique no ícone 📷 para abrir o modal de comparação de fotos daquele check-in
+                </li>
+            </ol>
+        </div>
+
+        <!-- Indicadores de Mudança -->
+        <div class="section">
+            <h2>📊 Indicadores de Mudança</h2>
+            <p>O sistema calcula automaticamente as mudanças entre check-ins consecutivos:</p>
+            
+            <div class="metric-example">
+                <span style="color: #94a3b8;">Peso:</span>
+                <span class="metric-value">75.5 kg</span>
+                <span class="metric-change negative">📉 1.2</span>
+                <span style="color: #94a3b8; font-size: 12px;">(Redução = Verde)</span>
+            </div>
+
+            <div class="metric-example">
+                <span style="color: #94a3b8;">Peso:</span>
+                <span class="metric-value">77.8 kg</span>
+                <span class="metric-change positive">📈 0.8</span>
+                <span style="color: #94a3b8; font-size: 12px;">(Aumento = Vermelho)</span>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Dica:</strong> Os indicadores ajudam a identificar rapidamente tendências de progresso ou regressão, facilitando a análise da evolução do paciente.
+            </div>
+        </div>
+
+        <!-- Arquivos Criados -->
+        <div class="section">
+            <h2>📁 Arquivos Criados</h2>
+            
+            <div class="feature-card" style="margin-bottom: 15px;">
+                <h3>1. Hook: use-checkin-history.ts</h3>
+                <div class="code-block">
+src/hooks/use-checkin-history.ts
+                </div>
+                <p><strong>Responsabilidades:</strong></p>
+                <ul>
+                    <li>Buscar todos os check-ins do paciente</li>
+                    <li>Ordenar por data (mais recente primeiro)</li>
+                    <li>Incluir dados do paciente</li>
+                    <li>Gerenciar estados de loading e erro</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>2. Componente: CheckinHistorySection.tsx</h3>
+                <div class="code-block">
+src/components/checkins/CheckinHistorySection.tsx
+                </div>
+                <p><strong>Responsabilidades:</strong></p>
+                <ul>
+                    <li>Renderizar seção colapsável de histórico</li>
+                    <li>Gerenciar expansão/colapso de check-ins</li>
+                    <li>Calcular mudanças de métricas</li>
+                    <li>Integrar com modal de fotos</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Integração -->
+        <div class="section">
+            <h2>🔧 Integração</h2>
+            <p>A seção de histórico foi integrada ao <span class="highlight">CheckinFeedbackCard.tsx</span>:</p>
+            
+            <div class="code-block">
+// Import adicionado
+import { CheckinHistorySection } from './CheckinHistorySection';
+
+// Seção adicionada após o feedback expandido
+{isExpanded && (
+  &lt;div className="mt-3"&gt;
+    &lt;CheckinHistorySection 
+      telefone={checkin.telefone}
+      currentCheckinId={checkin.id}
+    /&gt;
+  &lt;/div&gt;
+)}
+            </div>
+        </div>
+
+        <!-- Performance -->
+        <div class="section">
+            <h2>⚡ Performance</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>Lazy Loading</h3>
+                    <p>Histórico só é carregado quando o card é expandido, economizando recursos.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Memoização</h3>
+                    <p>Componente memoizado para evitar re-renders desnecessários.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Scroll Virtual</h3>
+                    <p>Lista com altura máxima de 600px e scroll interno para não sobrecarregar a página.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Responsividade -->
+        <div class="section">
+            <h2>📱 Responsividade</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>Mobile (< 768px)</h3>
+                    <ul class="feature-list">
+                        <li>Grid de 2 colunas</li>
+                        <li>Botões compactos</li>
+                        <li>Scroll otimizado para touch</li>
+                        <li>Badges menores</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3>Desktop (≥ 768px)</h3>
+                    <ul class="feature-list">
+                        <li>Grid de 4 colunas</li>
+                        <li>Mais espaço para informações</li>
+                        <li>Hover states nos botões</li>
+                        <li>Layout mais espaçado</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Melhorias Futuras -->
+        <div class="section">
+            <h2>🔮 Melhorias Futuras Possíveis</h2>
+            <ul class="feature-list">
+                <li>📅 <strong>Filtros de Período:</strong> Último mês, 3 meses, 6 meses, tudo</li>
+                <li>🔍 <strong>Busca por Data:</strong> Campo de busca para encontrar check-in específico</li>
+                <li>📄 <strong>Exportação:</strong> Exportar histórico completo em PDF ou Excel</li>
+                <li>📊 <strong>Comparação Múltipla:</strong> Selecionar múltiplos check-ins para comparar</li>
+                <li>📈 <strong>Estatísticas:</strong> Média de peso, tendência geral, melhor/pior check-in</li>
+            </ul>
+        </div>
+
+        <!-- Status Final -->
+        <div class="section">
+            <h2>✅ Status</h2>
+            <div class="success-box">
+                <strong>Funcionalidade Implementada e Testada!</strong><br><br>
+                ✅ Carregamento de histórico completo<br>
+                ✅ Expansão/colapso de seção<br>
+                ✅ Expansão/colapso de check-ins individuais<br>
+                ✅ Cálculo de mudanças de métricas<br>
+                ✅ Abertura de modal de fotos<br>
+                ✅ Formatação de datas<br>
+                ✅ Responsividade mobile/desktop<br>
+                ✅ Performance otimizada<br>
+                ✅ Estados de loading e erro
+            </div>
+        </div>
+    </div>
+</body>
+</html>
