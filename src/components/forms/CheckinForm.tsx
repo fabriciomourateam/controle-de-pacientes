@@ -31,7 +31,6 @@ interface CheckinFormProps {
 export function CheckinForm({ trigger, onSave, onCancel }: CheckinFormProps) {
   const [open, setOpen] = useState(false);
   
-  console.log('CheckinForm renderizado, open:', open);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     telefone: "",
@@ -264,7 +263,6 @@ export function CheckinForm({ trigger, onSave, onCancel }: CheckinFormProps) {
   return (
     <>
       <div onClick={() => {
-        console.log('Trigger clicado!');
         setOpen(true);
       }}>
         {trigger}

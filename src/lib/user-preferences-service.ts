@@ -44,7 +44,6 @@ class UserPreferencesService {
   // Buscar preferências do usuário
   async getUserPreferences(): Promise<UserPreferences | null> {
     const userId = this.getUserId();
-    console.log('Buscando preferências para usuário:', userId);
     
     try {
       // Primeiro tenta buscar sem .single() para ver se a tabela existe
@@ -58,15 +57,11 @@ class UserPreferencesService {
         throw listError;
       }
 
-      console.log('Resultado da consulta (array):', allData);
-
       if (!allData || allData.length === 0) {
-        console.log('Preferências não encontradas para novo usuário:', userId);
         return null;
       }
 
       const data = allData[0]; // Pega o primeiro resultado
-      console.log('Preferências carregadas:', data);
       return data;
     } catch (error) {
       console.error('Erro na consulta de preferências:', error);
@@ -80,8 +75,6 @@ class UserPreferencesService {
     
     // Se tiver read_notifications, tentar salvar no campo filters diretamente para evitar erro
     if (preferences.read_notifications) {
-      console.log('Usando fallback direto em filters para read_notifications...');
-      
       const currentPrefs = await this.getUserPreferences();
       const updatedFilters = {
         ...(currentPrefs?.filters || {}),
@@ -100,7 +93,6 @@ class UserPreferencesService {
   // Criar ou atualizar preferências
   async upsertUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
     const userId = this.getUserId();
-    console.log('Salvando preferências para usuário:', userId, preferences);
     
     try {
       const { data, error } = await supabase
@@ -128,7 +120,6 @@ class UserPreferencesService {
         throw error;
       }
 
-      console.log('Preferências salvas com sucesso:', data);
       return data;
     } catch (error) {
       console.error('Erro na operação upsert:', error);

@@ -99,7 +99,13 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
   const { activeTemplate } = useFeedbackTemplates();
   const { updateCheckinStatus } = useCheckinManagement();
-  const { previousCheckins, loading: loadingAllCheckins } = useAllCheckins(checkin.telefone, checkin.id);
+  
+  // ⚡ OTIMIZAÇÃO: Só buscar checkins anteriores quando expandido
+  const { previousCheckins, loading: loadingAllCheckins } = useAllCheckins(
+    checkin.telefone, 
+    checkin.id,
+    isExpanded // Só busca quando expandido
+  );
   // Carregar dados existentes quando disponível do hook
   React.useEffect(() => {
     if (feedbackAnalysis) {
@@ -147,8 +153,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     loadAnalysisForCheckin();
   }, [checkin.id]);
 
-  // Verificar se há fotos iniciais do paciente
+  // Verificar se há fotos iniciais do paciente - SÓ QUANDO EXPANDIDO
   React.useEffect(() => {
+    if (!isExpanded) return; // ⚡ OTIMIZAÇÃO
+    
     const checkInitialPhotos = async () => {
       try {
         const { data: patient } = await supabase
@@ -168,10 +176,12 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     };
 
     checkInitialPhotos();
-  }, [checkin.telefone]);
+  }, [checkin.telefone, isExpanded]); // ⚡ Adicionar isExpanded como dependência
 
-  // Verificar se há bioimpedância do paciente
+  // Verificar se há bioimpedância do paciente - SÓ QUANDO EXPANDIDO
   React.useEffect(() => {
+    if (!isExpanded) return; // ⚡ OTIMIZAÇÃO
+    
     const checkBioimpedancia = async () => {
       try {
         const { data: bioData, error } = await supabase
@@ -195,7 +205,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     };
 
     checkBioimpedancia();
-  }, [checkin.telefone]);
+  }, [checkin.telefone, isExpanded]); // ⚡ Adicionar isExpanded como dependência
 
   // Buscar ID do check-in anterior quando os dados de evolução estiverem disponíveis
   React.useEffect(() => {

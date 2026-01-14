@@ -267,11 +267,15 @@ export function CheckinsList() {
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Gerar dados reais para o gráfico de evolução de scores (memoizado)
+  // ⚡ OTIMIZAÇÃO: Processar apenas últimos 50 checkins ao invés de todos
   const scoreEvolutionData = useMemo(() => {
     if (recentCheckins.length === 0) return [];
     
+    // Limitar a 50 checkins mais recentes para performance
+    const checkinsToProcess = recentCheckins.slice(0, 50);
+    
     // Agrupar checkins por data e calcular médias
-    const groupedByDate = recentCheckins.reduce((acc, checkin) => {
+    const groupedByDate = checkinsToProcess.reduce((acc, checkin) => {
       const date = checkin.data_preenchimento || checkin.data_checkin;
       if (!date) return acc;
       
@@ -319,8 +323,12 @@ export function CheckinsList() {
   }, [recentCheckins]);
 
   // Gerar dados reais para o radar de categorias (memoizado)
+  // ⚡ OTIMIZAÇÃO: Processar apenas últimos 50 checkins ao invés de todos
   const categoryRadarData = useMemo(() => {
     if (recentCheckins.length === 0) return [];
+    
+    // Limitar a 50 checkins mais recentes para performance
+    const checkinsToProcess = recentCheckins.slice(0, 50);
     
     const categories = [
       { key: 'pontos_treinos', name: 'Treino' },
@@ -332,7 +340,7 @@ export function CheckinsList() {
     ];
     
     return categories.map(category => {
-      const scores = recentCheckins
+      const scores = checkinsToProcess
         .map(c => parseFloat((c as any)[category.key] || '0'))
         .filter(score => !isNaN(score) && score > 0);
       
@@ -361,27 +369,33 @@ export function CheckinsList() {
   }, [recentCheckins]);
 
   // Filtrar checkins com base nos filtros selecionados
+  // ⚡ OTIMIZAÇÃO: Early return para evitar verificações desnecessárias
   const filteredCheckins = useMemo(() => {
     return recentCheckins.filter(checkin => {
-      // Filtro de busca por nome (usando debouncedSearchTerm para melhor performance)
-      const matchesSearch = !debouncedSearchTerm || 
-        checkin.patient?.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      // Filtro de busca por nome (mais restritivo primeiro)
+      if (debouncedSearchTerm) {
+        const matchesSearch = checkin.patient?.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+        if (!matchesSearch) return false; // Early return
+      }
       
-      // Filtro de status (quando "pendente" é selecionado, selectedStatuses contém ['pendente', 'em_analise'])
-      const checkinStatus = (checkin.status as CheckinStatus) || 'pendente';
-      const matchesStatus = selectedStatuses.length === 0 || 
-        selectedStatuses.includes(checkinStatus);
+      // Filtro de status
+      if (selectedStatuses.length > 0) {
+        const checkinStatus = (checkin.status as CheckinStatus) || 'pendente';
+        if (!selectedStatuses.includes(checkinStatus)) return false; // Early return
+      }
       
       // Filtro de responsável
-      const matchesResponsible = selectedResponsibles.length === 0 || 
-        selectedResponsibles.includes(checkin.assigned_to || 'unassigned');
+      if (selectedResponsibles.length > 0) {
+        if (!selectedResponsibles.includes(checkin.assigned_to || 'unassigned')) return false; // Early return
+      }
       
       // Filtro de bioimpedância
-      const telefoneCheckin = checkin.telefone || checkin.patient?.telefone;
-      const matchesBioimpedance = !filterWithBioimpedance || 
-        (telefoneCheckin && patientsWithBioimpedance.has(telefoneCheckin));
+      if (filterWithBioimpedance) {
+        const telefoneCheckin = checkin.telefone || checkin.patient?.telefone;
+        if (!telefoneCheckin || !patientsWithBioimpedance.has(telefoneCheckin)) return false; // Early return
+      }
       
-      return matchesSearch && matchesStatus && matchesResponsible && matchesBioimpedance;
+      return true;
     });
   }, [recentCheckins, debouncedSearchTerm, selectedStatuses, selectedResponsibles, filterWithBioimpedance, patientsWithBioimpedance]);
 
@@ -391,8 +405,9 @@ export function CheckinsList() {
       let comparison = 0;
       
       if (sortBy === 'date') {
-        const dateA = new Date(a.data_checkin || a.data_preenchimento || 0).getTime();
-        const dateB = new Date(b.data_checkin || b.data_preenchimento || 0).getTime();
+        // Usar data_preenchimento (data/hora de envio) primeiro para ordenar por quando foi enviado
+        const dateA = new Date(a.data_preenchimento || a.data_checkin || 0).getTime();
+        const dateB = new Date(b.data_preenchimento || b.data_checkin || 0).getTime();
         comparison = dateA - dateB;
       } else if (sortBy === 'name') {
         const nameA = (a.patient?.nome || '').toLowerCase();
@@ -470,6 +485,32 @@ export function CheckinsList() {
     refetch();
   }, [refetch]);
 
+  // ⚡ OTIMIZAÇÃO: Memoizar métricas do header para evitar recálculos
+  const headerMetrics = useMemo(() => {
+    const now = new Date();
+    
+    return {
+      total: recentCheckins.length,
+      thisMonth: recentCheckins.filter(c => {
+        const dateToCheck = c.data_preenchimento || c.data_checkin;
+        if (!dateToCheck) return false;
+        
+        const checkinDate = new Date(dateToCheck);
+        if (isNaN(checkinDate.getTime())) return false;
+        
+        return checkinDate.getMonth() === now.getMonth() && 
+               checkinDate.getFullYear() === now.getFullYear();
+      }).length,
+      avgScore: recentCheckins.length > 0 
+        ? (recentCheckins.reduce((acc, c) => {
+            const score = parseFloat(c.total_pontuacao || '0');
+            return acc + (isNaN(score) ? 0 : score);
+          }, 0) / recentCheckins.length).toFixed(1)
+        : '0.0',
+      activePatients: new Set(recentCheckins.map(c => c.patient?.id).filter(Boolean)).size
+    };
+  }, [recentCheckins]);
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Header com destaque visual melhorado */}
@@ -502,7 +543,7 @@ export function CheckinsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400">Total de Checkins</p>
-                <p className="text-2xl font-bold text-white">{recentCheckins.length}</p>
+                <p className="text-2xl font-bold text-white">{headerMetrics.total}</p>
               </div>
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <Activity className="w-5 h-5 text-blue-400" />
@@ -516,22 +557,7 @@ export function CheckinsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400">Este Mês</p>
-                <p className="text-2xl font-bold text-white">
-                  {recentCheckins.filter(c => {
-                    // Usar data_preenchimento ou data_checkin como fallback
-                    const dateToCheck = c.data_preenchimento || c.data_checkin;
-                    if (!dateToCheck) return false;
-                    
-                    const checkinDate = new Date(dateToCheck);
-                    const now = new Date();
-                    
-                    // Verificar se a data é válida
-                    if (isNaN(checkinDate.getTime())) return false;
-                    
-                    return checkinDate.getMonth() === now.getMonth() && 
-                           checkinDate.getFullYear() === now.getFullYear();
-                  }).length}
-                </p>
+                <p className="text-2xl font-bold text-white">{headerMetrics.thisMonth}</p>
               </div>
               <div className="p-2 bg-emerald-500/20 rounded-lg">
                 <Calendar className="w-5 h-5 text-emerald-400" />
@@ -545,15 +571,7 @@ export function CheckinsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400">Score Médio</p>
-                <p className="text-2xl font-bold text-white">
-                  {recentCheckins.length > 0 
-                    ? (recentCheckins.reduce((acc, c) => {
-                        const score = parseFloat(c.total_pontuacao || '0');
-                        return acc + (isNaN(score) ? 0 : score);
-                      }, 0) / recentCheckins.length).toFixed(1)
-                    : '0.0'
-                  }
-                </p>
+                <p className="text-2xl font-bold text-white">{headerMetrics.avgScore}</p>
               </div>
               <div className="p-2 bg-amber-500/20 rounded-lg">
                 <Star className="w-5 h-5 text-amber-400" />
@@ -567,9 +585,7 @@ export function CheckinsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-400">Pacientes Ativos</p>
-                <p className="text-2xl font-bold text-white">
-                  {new Set(recentCheckins.map(c => c.patient?.id).filter(Boolean)).size}
-                </p>
+                <p className="text-2xl font-bold text-white">{headerMetrics.activePatients}</p>
               </div>
               <div className="p-2 bg-purple-500/20 rounded-lg">
                 <User className="w-5 h-5 text-purple-400" />

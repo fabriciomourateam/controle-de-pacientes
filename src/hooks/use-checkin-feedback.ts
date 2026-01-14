@@ -81,9 +81,7 @@ export const useCheckinFeedback = (telefone: string) => {
         return null;
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📋 Check-in mais recente encontrado:', data);
-      }
+      // Log removido para produção
       setLatestCheckin(data);
       return data;
     } catch (error) {
@@ -99,9 +97,7 @@ export const useCheckinFeedback = (telefone: string) => {
     if (!currentCheckin) return null;
 
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Buscando check-in anterior para:', currentCheckin.data_checkin);
-      }
+      // Log removido para produção
       
       // Buscar check-in anterior
       const { data: previousCheckins, error } = await supabase
@@ -118,9 +114,7 @@ export const useCheckinFeedback = (telefone: string) => {
 
       const previousCheckin = previousCheckins && previousCheckins.length > 0 ? previousCheckins[0] : null;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📊 Check-in anterior encontrado:', previousCheckin);
-      }
+      // Log removido para produção
 
       // Converter strings para números, tratando vírgulas e formatos diferentes
       const cleanNumber = (value: any): number => {
@@ -262,9 +256,7 @@ export const useCheckinFeedback = (telefone: string) => {
           tem_checkin_anterior: false,
           usando_dados_iniciais: true // Flag para indicar que está usando dados iniciais
         };
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📈 Evolução (primeiro check-in com dados iniciais):', evolution);
-        }
+        // Log removido para produção
         setEvolutionData(evolution);
         return evolution;
       }
@@ -364,12 +356,6 @@ export const useCheckinFeedback = (telefone: string) => {
       const aproveitamentoAtual = Number(currentCheckin.percentual_aproveitamento) || 0;
       const aproveitamentoAnterior = Number(previousCheckin.percentual_aproveitamento) || 0;
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚖️ Pesos:', { atual: pesoAtual, anterior: pesoAnterior });
-        console.log('📏 Medidas atuais:', medidasAtuais);
-        console.log('📏 Medidas anteriores:', medidasAnteriores);
-      }
-
       const evolution = {
         // Valores anteriores
         peso_anterior: pesoAnterior,
@@ -431,9 +417,6 @@ export const useCheckinFeedback = (telefone: string) => {
         medidas_anteriores: medidasAnteriores
       };
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📈 Evolução calculada:', evolution);
-      }
       setEvolutionData(evolution);
       return evolution;
     } catch (error) {

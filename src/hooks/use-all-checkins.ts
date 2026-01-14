@@ -22,12 +22,17 @@ interface CheckinData {
   foto_4: string | null;
 }
 
-export function useAllCheckins(telefone: string, currentCheckinId: string) {
+export function useAllCheckins(telefone: string, currentCheckinId: string, enabled: boolean = true) {
   const [allCheckins, setAllCheckins] = useState<CheckinData[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!telefone) return;
+    // ⚡ OTIMIZAÇÃO: Só buscar se enabled=true
+    if (!telefone || !enabled) {
+      setAllCheckins([]);
+      setLoading(false);
+      return;
+    }
 
     const fetchAllCheckins = async () => {
       setLoading(true);
@@ -73,7 +78,7 @@ export function useAllCheckins(telefone: string, currentCheckinId: string) {
     };
 
     fetchAllCheckins();
-  }, [telefone]);
+  }, [telefone, enabled]);
 
   // Encontrar o índice do check-in atual
   const currentIndex = allCheckins.findIndex(c => c.id === currentCheckinId);

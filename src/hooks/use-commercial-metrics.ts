@@ -392,20 +392,6 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
 
   const vendas = vendasQuery.data;
 
-  // Debug: verificar dados recebidos
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📊 useSalesMetrics - Total de vendas recebidas:', vendas.length);
-    if (vendas.length > 0) {
-      console.log('📋 Primeira venda (exemplo):', {
-        id: vendas[0].id,
-        MES: vendas[0].MÊS,
-        DATA: vendas[0].DATA,
-        FUNIL: vendas[0].FUNIL,
-        COMPROU: vendas[0].COMPROU
-      });
-    }
-  }
-
   // Função auxiliar para normalizar strings (remover acentos, espaços extras, etc)
   const normalizeString = (str: string | null | undefined): string => {
     if (!str) return '';
@@ -438,12 +424,7 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
     if (!value) return false;
     const normalized = normalizeString(value);
     
-    // Log para debug - verificar valores problemáticos
-    if (normalized && !['sim', 's', 'yes', 'y', 'x', '1', 'true', 'não', 'nao', 'no', '0', 'false', ''].includes(normalized)) {
-      console.log('🔍 Valor não reconhecido:', value, '-> normalizado:', normalized);
-    }
-    
-    // Aceita: "Sim", "sim", "S", "s", "Yes", "yes", "Y", "y", "X", "x", "1", "true"
+// Aceita: "Sim", "sim", "S", "s", "Yes", "yes", "Y", "y", "X", "x", "1", "true"
     const result = normalized === 'sim' || 
            normalized === 's' || 
            normalized === 'yes' || 
@@ -545,14 +526,7 @@ export function useSalesMetrics(selectedMonth?: string, selectedYear?: number) {
   // Ordenar anos (mais recente primeiro)
   availableYears.sort((a, b) => b - a);
   
-  // Debug: verificar anos e meses encontrados
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📅 Anos disponíveis encontrados:', availableYears);
-    console.log('📅 Meses por ano:', monthsByYear);
-    console.log('📅 Total de vendas válidas:', vendasValidas.length);
-  }
-  
-  // Criar lista de meses disponíveis com ano (formato: "Mês - Ano")
+// Criar lista de meses disponíveis com ano (formato: "Mês - Ano")
   const availableMonths: string[] = [];
   availableYears.forEach(year => {
     monthsByYear[year].forEach(mes => {

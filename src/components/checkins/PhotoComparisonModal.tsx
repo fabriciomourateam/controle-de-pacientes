@@ -224,18 +224,20 @@ export function PhotoComparisonModal({
       setPosInitial({ x: 0, y: 0 });
       setPosPrevious({ x: 0, y: 0 });
       setPosCurrent({ x: 0, y: 0 });
-      // Resetar estado de ocultar coluna anterior
-      setHidePreviousColumn(false);
+      // Manter coluna anterior visível por padrão (não resetar para false)
+      // setHidePreviousColumn(false); // Removido - mantém estado do usuário
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, checkinId, telefone, checkinDate, previousCheckinId]);
 
-  // Auto-ocultar coluna anterior quando não há check-in anterior
-  useEffect(() => {
-    if (open && !previousDate) {
-      setHidePreviousColumn(true);
-    }
-  }, [open, previousDate]);
+  // ⚡ REMOVIDO: Auto-ocultar coluna anterior
+  // Agora a coluna anterior fica visível por padrão quando houver fotos
+  // O usuário pode ocultar manualmente usando o botão
+  // useEffect(() => {
+  //   if (open && !previousDate) {
+  //     setHidePreviousColumn(true);
+  //   }
+  // }, [open, previousDate]);
 
   // Cleanup de URLs de preview quando arquivos são removidos ou modal fecha
   useEffect(() => {

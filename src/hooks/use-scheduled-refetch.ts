@@ -43,13 +43,8 @@ export function useScheduledRefetch(refetchFn: () => void | Promise<void>) {
       const nextTime = getNextScheduledTime();
       const msUntilNext = nextTime.getTime() - Date.now();
       
-      // Log apenas em desenvolvimento
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`📅 Próxima atualização programada: ${nextTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
-      }
-      
       timeoutRef.current = setTimeout(async () => {
-        console.log('🔄 Atualização programada executada!');
+        // Atualização programada executada
         try {
           await refetchFn();
         } catch (error) {
@@ -108,7 +103,7 @@ export function useScheduledDataRefetch() {
   const queryClient = useQueryClient();
 
   const refetchAll = useCallback(async () => {
-    console.log('🔄 Atualização programada: invalidando queries de pacientes, feedbacks e checkins');
+    // Atualização programada: invalidando queries
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['patients'] }),
       queryClient.invalidateQueries({ queryKey: ['feedbacks'] }),
