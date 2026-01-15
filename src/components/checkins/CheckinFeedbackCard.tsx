@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CheckinPhotosViewer } from './CheckinPhotosViewer';
 import { InitialDataInput } from '../evolution/InitialDataInput';
 import { PhotoComparisonModal } from './PhotoComparisonModal';
+import { BioimpedanciaModal } from './BioimpedanciaModal';
 
 interface CheckinFeedbackCardProps {
   checkin: CheckinWithPatient;
@@ -96,6 +97,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   const [hasCurrentPhotos, setHasCurrentPhotos] = useState(false);
   const [hasPreviousPhotos, setHasPreviousPhotos] = useState(false);
   const [showAllCheckinsColumns, setShowAllCheckinsColumns] = useState(false);
+  const [showBioimpedanciaModal, setShowBioimpedanciaModal] = useState(false);
 
   const { activeTemplate } = useFeedbackTemplates();
   const { updateCheckinStatus } = useCheckinManagement();
@@ -765,10 +767,16 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         </Badge>
                       )}
                       {hasBioimpedancia && (
-                        <Badge variant="outline" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowBioimpedanciaModal(true)}
+                          className="bg-purple-500/20 text-purple-300 border-purple-500/30 hover:text-purple-200 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all cursor-pointer h-7 px-3 text-xs font-semibold"
+                          title="Abrir dados de bioimpedância"
+                        >
                           <TrendingUp className="w-3 h-3 mr-1" />
                           Bioimpedância
-                        </Badge>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -3394,6 +3402,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
           editMode={hasInitialPhotos}
         />
       )}
+
+      {/* Modal de Bioimpedância */}
+      <BioimpedanciaModal
+        open={showBioimpedanciaModal}
+        onOpenChange={setShowBioimpedanciaModal}
+        telefone={checkin.telefone}
+        patientName={checkin.patient?.nome || checkin.nome || 'Paciente'}
+      />
     </div>
   );
 };
