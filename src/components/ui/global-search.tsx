@@ -65,6 +65,7 @@ export function GlobalSearch() {
   };
 
   const handleResultClick = (result: SearchResult) => {
+    // Navegação normal - o useEffect do PatientEvolution agora reage à mudança do telefone
     navigate(result.url);
     setIsFocused(false);
     setSearchTerm('');

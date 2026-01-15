@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,6 +42,12 @@ const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
 const RenewalPresentation = lazy(() => import("./pages/RenewalPresentation"));
+
+// Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
+function PatientEvolutionWrapper() {
+  const { telefone } = useParams<{ telefone: string }>();
+  return <PatientEvolution key={telefone} />;
+}
 
 // Componente de loading melhorado
 const PageLoader = () => (
@@ -121,7 +127,7 @@ const App = () => (
           } />
           <Route path="/checkins/evolution/:telefone" element={
             <Suspense fallback={<PageLoader />}>
-                <PatientEvolution />
+                <PatientEvolutionWrapper />
               </Suspense>
           } />
           <Route path="/renewal/:telefone" element={

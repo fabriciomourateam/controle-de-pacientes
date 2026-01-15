@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { checkinService } from '@/lib/checkin-service';
+import { patientService } from '@/lib/supabase-services';
 import { supabase } from '@/integrations/supabase/client';
 import { generateDossiePDF, generateDossieImage } from '@/lib/dossie-pdf-generator';
 import { EvolutionCharts } from '@/components/evolution/EvolutionCharts';
@@ -39,6 +40,7 @@ import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
 import { WeightInput } from '@/components/evolution/WeightInput';
 import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
 import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
+import { PatientForm } from '@/components/forms/PatientForm';
 import html2canvas from 'html2canvas';
 import { ExamRequestModal } from '@/components/exams/ExamRequestModal';
 import { ExamsHistory } from '@/components/exams/ExamsHistory';
@@ -67,7 +69,9 @@ import {
   ChevronDown,
   Scale,
   FlaskConical,
-  BarChart3
+  BarChart3,
+  Phone,
+  Edit
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -95,6 +99,7 @@ export default function PatientEvolution() {
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   const [showPhotoComparison, setShowPhotoComparison] = useState(false);
+  const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   
   // Estados para controlar visibilidade dos cards opcionais
   const [showDailyWeights, setShowDailyWeights] = useState(false);
@@ -109,7 +114,6 @@ export default function PatientEvolution() {
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
   const trends = checkins.length >= 3 ? analyzeTrends(checkins) : [];
 
-  // Calcular idade do paciente
   const calcularIdade = (dataNascimento: string | null) => {
     if (!dataNascimento) return null;
     const hoje = new Date();
@@ -121,6 +125,36 @@ export default function PatientEvolution() {
       idade--;
     }
     return idade;
+  };
+
+  // Função para mapear Patient (Supabase) para PatientFormData
+  const mapPatientToFormData = (patient: Patient | null) => {
+    if (!patient) return undefined;
+    
+    return {
+      id: patient.id,
+      nome: patient.nome || "",
+      apelido: patient.apelido || "",
+      cpf: patient.cpf || "",
+      email: patient.email || "",
+      telefone: patient.telefone || "",
+      telefone_filtro: (patient as any).telefone_filtro || "",
+      genero: patient.genero as "Masculino" | "Feminino" | "Outro" | undefined,
+      data_nascimento: patient.data_nascimento ? new Date(patient.data_nascimento) : undefined,
+      plano: patient.plano || "",
+      tempo_acompanhamento: patient.tempo_acompanhamento || 3,
+      vencimento: (patient as any).vencimento ? new Date((patient as any).vencimento) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      valor: (patient as any).valor || undefined,
+      observacao: (patient as any).observacao || "",
+      objetivo: (patient as any).objetivo || "",
+      peso: (patient as any).peso || undefined,
+      medida: (patient as any).medida || undefined,
+    };
+  };
+
+  // Função para editar paciente
+  const handleEditPatient = () => {
+    setIsPatientFormOpen(true);
   };
 
   // Função para abrir zoom da foto
@@ -447,7 +481,7 @@ export default function PatientEvolution() {
 
   useEffect(() => {
     loadEvolution();
-  }, [telefone, navigate, toast]);
+  }, [telefone]); // Apenas telefone como dependência
 
   const handleExport = async (format: 'pdf' | 'png' | 'jpeg') => {
     if (!patient) return;
@@ -912,6 +946,14 @@ export default function PatientEvolution() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                  <DropdownMenuItem
+                    onClick={handleEditPatient}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar Paciente
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {patient?.id && (
                     <DropdownMenuItem
                       onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
@@ -970,7 +1012,7 @@ export default function PatientEvolution() {
               <BioimpedanciaInput
                 telefone={patient?.telefone || telefone!}
                 nome={patient?.nome || 'Paciente'}
-                idade={patient?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
+                idade={(patient as any)?.idade || (patient?.data_nascimento ? calcularIdade(patient.data_nascimento) : null)}
                 altura={(patient as any)?.altura_inicial || null}
                 pesoInicial={(patient as any)?.peso_inicial || null}
                 sexo={patient?.genero || null}
@@ -997,30 +1039,43 @@ export default function PatientEvolution() {
                       </Badge>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  {/* Linha com apelido e telefone logo abaixo do nome */}
+                  <div className="flex items-center gap-6 mb-4">
                     <div className="flex items-center gap-2 text-slate-300">
                       <User className="w-4 h-4 text-blue-400" />
                       <span className="text-sm">{patient?.apelido || 'Apelido não informado'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-300">
-                      <Activity className="w-4 h-4 text-emerald-400" />
-                      <span className="text-sm">{checkins.length} check-ins realizados</span>
+                      <Phone className="w-4 h-4 text-green-400" />
+                      <span className="text-sm">{patient?.telefone || telefone || 'Telefone não informado'}</span>
                     </div>
-                    {checkins.length > 0 && (
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Calendar className="w-4 h-4 text-purple-400" />
-                        <span className="text-sm">
-                          {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR')} - {new Date(checkins[0]?.data_checkin).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    )}
                   </div>
-                  {patient?.objetivo && (
+                  {/* Linha com check-ins count */}
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <Activity className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm">{checkins.length} check-ins realizados</span>
+                  </div>
+                  {/* Linha com período de acompanhamento (inicio_acompanhamento - vencimento) */}
+                  {(patient?.inicio_acompanhamento || (patient as any)?.vencimento) && (
+                    <div className="flex items-center gap-2 text-slate-300 mt-2">
+                      <Calendar className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm">
+                        {patient?.inicio_acompanhamento 
+                          ? new Date(patient.inicio_acompanhamento).toLocaleDateString('pt-BR')
+                          : 'Início não informado'
+                        } - {(patient as any)?.vencimento 
+                          ? new Date((patient as any).vencimento).toLocaleDateString('pt-BR')
+                          : 'Vencimento não informado'
+                        }
+                      </span>
+                    </div>
+                  )}
+                  {(patient as any)?.objetivo && (
                     <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-600/30">
                       <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
                         <TrendingUp className="w-3 h-3" /> Objetivo Principal:
                       </p>
-                      <p className="text-sm text-slate-200">{patient.objetivo}</p>
+                      <p className="text-sm text-slate-200">{(patient as any).objetivo}</p>
                     </div>
                   )}
                 </div>
@@ -1069,7 +1124,7 @@ export default function PatientEvolution() {
               )}
 
               {/* Altura */}
-              {patient?.altura_inicial && (
+              {(patient as any)?.altura_inicial && (
                 <Card className="bg-gradient-to-br from-purple-600/20 via-purple-500/15 to-violet-500/10 border-purple-500/30 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 group">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-purple-200 flex items-center gap-2">
@@ -1081,7 +1136,7 @@ export default function PatientEvolution() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-violet-300 bg-clip-text text-transparent">
-                      {patient.altura_inicial}
+                      {(patient as any).altura_inicial}
                       <span className="text-lg ml-1">m</span>
                     </div>
                     <p className="text-xs text-purple-300/70 mt-1">Altura</p>
@@ -1093,11 +1148,11 @@ export default function PatientEvolution() {
               {(() => {
                 // Preparar dados de peso
                 const weightData = [];
-                if (patient?.peso_inicial) {
-                  const dataInicial = patient.data_fotos_iniciais || patient.created_at;
+                if ((patient as any)?.peso_inicial) {
+                  const dataInicial = (patient as any).data_fotos_iniciais || patient?.created_at;
                   weightData.push({
                     data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-                    peso: parseFloat(patient.peso_inicial.toString())
+                    peso: parseFloat((patient as any).peso_inicial.toString())
                   });
                 }
                 checkins.slice().reverse().forEach((c) => {
@@ -2304,6 +2359,82 @@ export default function PatientEvolution() {
           patient={patient}
           open={showPhotoComparison}
           onOpenChange={setShowPhotoComparison}
+        />
+
+        {/* Modal de Edição de Paciente */}
+        <PatientForm
+          patient={mapPatientToFormData(patient)}
+          trigger={<div />}
+          open={isPatientFormOpen}
+          onOpenChange={setIsPatientFormOpen}
+          onSave={async (data) => {
+            if (!patient) return;
+            
+            try {
+              // Preparar dados para salvar (mesma lógica do PatientsListNew)
+              const dataToSave: any = {
+                nome: data.nome,
+                telefone: data.telefone,
+              };
+              
+              // Campos opcionais que existem na tabela
+              if (data.apelido) dataToSave.apelido = data.apelido;
+              if (data.cpf) dataToSave.cpf = data.cpf;
+              if (data.email) dataToSave.email = data.email;
+              if (data.telefone_filtro) dataToSave.telefone_filtro = data.telefone_filtro;
+              if (data.genero) dataToSave.genero = data.genero;
+              if (data.plano) dataToSave.plano = data.plano;
+              if (data.observacao) dataToSave.observacao = data.observacao;
+              if (data.objetivo) dataToSave.objetivo = data.objetivo;
+              
+              // Converter data_nascimento para string
+              if (data.data_nascimento) {
+                dataToSave.data_nascimento = data.data_nascimento instanceof Date 
+                  ? data.data_nascimento.toISOString().split('T')[0] 
+                  : data.data_nascimento;
+              }
+              
+              // Converter vencimento para string
+              if (data.vencimento) {
+                dataToSave.vencimento = data.vencimento instanceof Date 
+                  ? data.vencimento.toISOString().split('T')[0] 
+                  : data.vencimento;
+              }
+              
+              // Converter números
+              if (data.tempo_acompanhamento !== undefined) {
+                dataToSave.tempo_acompanhamento = Number(data.tempo_acompanhamento);
+              }
+              if (data.valor !== undefined) {
+                dataToSave.valor = Number(data.valor);
+              }
+              if (data.peso !== undefined) {
+                dataToSave.peso = Number(data.peso);
+              }
+              if (data.medida !== undefined) {
+                dataToSave.medida = Number(data.medida);
+              }
+              
+              // Atualizar paciente no Supabase
+              await patientService.update(patient.id, dataToSave);
+              
+              // Recarregar dados do paciente após salvar
+              await loadEvolution();
+              setIsPatientFormOpen(false);
+              
+              toast({
+                title: 'Paciente atualizado',
+                description: 'Os dados do paciente foram atualizados com sucesso'
+              });
+            } catch (error: any) {
+              console.error('Erro ao atualizar paciente:', error);
+              toast({
+                title: 'Erro ao atualizar',
+                description: error.message || 'Não foi possível atualizar o paciente',
+                variant: 'destructive'
+              });
+            }
+          }}
         />
       </DashboardLayout>
     );

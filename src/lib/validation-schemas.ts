@@ -14,6 +14,8 @@ export const patientSchema = z.object({
   
   telefone: z.string().min(1, "Telefone é obrigatório"),
   
+  telefone_filtro: z.string().optional(),
+  
   genero: z.enum(['Masculino', 'Feminino', 'Outro']).optional(),
   
   data_nascimento: z.union([z.date(), z.string()]).optional(),

@@ -73,6 +73,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
       cpf: "",
       email: "",
       telefone: "",
+      telefone_filtro: "",
       genero: undefined,
       data_nascimento: undefined,
       plano: "",
@@ -103,6 +104,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
           cpf: "",
           email: "",
           telefone: "",
+          telefone_filtro: "",
           genero: undefined,
           data_nascimento: undefined,
           plano: "",
@@ -213,6 +215,37 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <FormControl>
                         <Input
                           placeholder="Digite o telefone"
+                          {...field}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="telefone_filtro"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Telefone Filtro
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <div className="w-4 h-4 rounded-full bg-slate-600 text-slate-300 flex items-center justify-center text-xs">
+                              ?
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Telefone alternativo para filtros e buscas</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Telefone alternativo (opcional)"
                           {...field}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />

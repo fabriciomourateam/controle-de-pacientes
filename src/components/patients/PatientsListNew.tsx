@@ -303,6 +303,7 @@ export function PatientsListNew() {
       cpf: patient.cpf || "",
       email: patient.email || "",
       telefone: patient.telefone || "",
+      telefone_filtro: patient.telefone_filtro || "",
       genero: patient.genero as "Masculino" | "Feminino" | "Outro" | undefined,
       data_nascimento: patient.data_nascimento ? new Date(patient.data_nascimento) : undefined,
       plano: patient.plano || "",
@@ -838,6 +839,7 @@ export function PatientsListNew() {
             if (data.apelido) dataToSave.apelido = data.apelido;
             if (data.cpf) dataToSave.cpf = data.cpf;
             if (data.email) dataToSave.email = data.email;
+            if (data.telefone_filtro) dataToSave.telefone_filtro = data.telefone_filtro;
             if (data.genero) dataToSave.genero = data.genero;
             if (data.plano) dataToSave.plano = data.plano;
             if (data.observacao) dataToSave.observacao = data.observacao;

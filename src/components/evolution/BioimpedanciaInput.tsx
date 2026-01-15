@@ -40,6 +40,7 @@ interface BioimpedanciaInputProps {
   onSuccess: () => void;
   editingBio?: Bioimpedancia | null; // Bioimpedância sendo editada
   onCancel?: () => void; // Callback para cancelar edição
+  autoOpen?: boolean; // Se true, abre o modal automaticamente
 }
 
 export function BioimpedanciaInput({ 
@@ -51,10 +52,11 @@ export function BioimpedanciaInput({
   sexo, 
   onSuccess,
   editingBio,
-  onCancel
+  onCancel,
+  autoOpen = false
 }: BioimpedanciaInputProps) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(!!editingBio);
+  const [open, setOpen] = useState(!!editingBio || autoOpen);
   const [loading, setLoading] = useState(false);
   const [loadingLastBio, setLoadingLastBio] = useState(false);
   const [hasLastBio, setHasLastBio] = useState(false);
@@ -331,14 +333,16 @@ export function BioimpedanciaInput({
 
   return (
     <div className="flex gap-2">
-      {/* BOTÃO PARA ABRIR O INSHAPE GPT */}
-      <Button
-        onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
-        className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
-      >
-        <ExternalLink className="w-4 h-4" />
-        Abrir InShape GPT
-      </Button>
+      {/* BOTÃO PARA ABRIR O INSHAPE GPT - só mostra se não for autoOpen */}
+      {!autoOpen && (
+        <Button
+          onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
+          className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Abrir InShape GPT
+        </Button>
+      )}
 
       {/* DIALOG PARA ADICIONAR/EDITAR BIOIMPEDÂNCIA */}
       <Dialog 
@@ -348,9 +352,12 @@ export function BioimpedanciaInput({
           if (!isOpen && editingBio && onCancel) {
             onCancel();
           }
+          if (!isOpen && autoOpen && onCancel) {
+            onCancel();
+          }
         }}
       >
-        {!editingBio && (
+        {!editingBio && !autoOpen && (
           <DialogTrigger asChild>
             <Button className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
               <Plus className="w-4 h-4" />
