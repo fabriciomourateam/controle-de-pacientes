@@ -134,48 +134,13 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
   const activeFiltersCount = getActiveFiltersCount();
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Filter className="w-5 h-5 text-blue-400" />
-            Filtros
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400 border-blue-500/30">
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            {activeFiltersCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="h-8 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-              >
-                <RotateCcw className="w-4 h-4 mr-1" />
-                Limpar
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-8 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-            >
-              {isExpanded ? 'Ocultar' : 'Mostrar'} Filtros
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      {isExpanded && (
-        <CardContent className="space-y-4">
-          {/* Busca por nome/telefone */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="search" className="text-slate-300">Buscar</Label>
+    <div className="space-y-4">
+      {/* Campo de busca sempre visível */}
+      <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Label htmlFor="search" className="text-slate-300 mb-2 block">Buscar Paciente</Label>
               <Input
                 id="search"
                 placeholder="Digite nome, apelido ou telefone..."
@@ -188,27 +153,99 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
                 <p className="text-xs text-slate-400 mt-1">Digite pelo menos 2 caracteres</p>
               )}
             </div>
-            <div>
-              <Label htmlFor="gender" className="text-slate-300">Gênero</Label>
-              <Select
-                value={localFilters.gender || 'all'}
-                onValueChange={(value) => handleFilterChange('gender', value === 'all' ? undefined : value)}
+            {searchValue && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSearchChange('')}
+                className="mt-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
               >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
-                  <SelectValue placeholder="Todos os gêneros" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os gêneros</SelectItem>
-                  <SelectItem value="Masculino">Masculino</SelectItem>
-                  <SelectItem value="Feminino">Feminino</SelectItem>
-                  <SelectItem value="Outro">Outro</SelectItem>
-                </SelectContent>
-              </Select>
+                <X className="w-4 h-4 mr-1" />
+                Limpar
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card de filtros avançados (expansível) */}
+      <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Filter className="w-5 h-5 text-blue-400" />
+              Filtros Avançados
+              {activeFiltersCount > 0 && (
+                <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {activeFiltersCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="h-8 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                >
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Limpar
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="h-8 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+              >
+                {isExpanded ? 'Ocultar' : 'Mostrar'}
+              </Button>
             </div>
           </div>
+        </CardHeader>
 
-          {/* Filtros de plano e status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isExpanded && (
+          <CardContent className="space-y-4">
+            {/* Filtros de gênero e outros */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="gender" className="text-slate-300">Gênero</Label>
+                <Select
+                  value={localFilters.gender || 'all'}
+                  onValueChange={(value) => handleFilterChange('gender', value === 'all' ? undefined : value)}
+                >
+                  <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                    <SelectValue placeholder="Todos os gêneros" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os gêneros</SelectItem>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Feminino">Feminino</SelectItem>
+                    <SelectItem value="Outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="status" className="text-slate-300">Status</Label>
+                <Select
+                  value={localFilters.status || 'all'}
+                  onValueChange={(value) => handleFilterChange('status', value as any)}
+                >
+                  <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="expiring_soon">Vencendo em breve</SelectItem>
+                    <SelectItem value="expired">Expirado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Filtros de plano */}
             <div>
               <Label className="text-slate-300">Planos (múltipla seleção)</Label>
               <div className="mt-2 space-y-2 max-h-32 overflow-y-auto bg-slate-800/30 rounded-lg p-3 border border-slate-600/30">
@@ -233,24 +270,6 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
                 })}
               </div>
             </div>
-            <div>
-              <Label htmlFor="status" className="text-slate-300">Status</Label>
-              <Select
-                value={localFilters.status || 'all'}
-                onValueChange={(value) => handleFilterChange('status', value as any)}
-              >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="expiring_soon">Vencendo em breve</SelectItem>
-                  <SelectItem value="expired">Expirado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           {/* Filtros de data */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,8 +406,9 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
               )}
             </div>
           )}
-        </CardContent>
-      )}
-    </Card>
+          </CardContent>
+        )}
+      </Card>
+    </div>
   );
 }
