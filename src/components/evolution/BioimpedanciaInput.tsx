@@ -333,14 +333,14 @@ export function BioimpedanciaInput({
 
   return (
     <div className="flex gap-2">
-      {/* BOTÃO PARA ABRIR O INSHAPE GPT - só mostra se não for autoOpen */}
+      {/* BOTÃO PARA ABRIR O INSHAPE - só mostra se não for autoOpen */}
       {!autoOpen && (
         <Button
           onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
           className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
         >
           <ExternalLink className="w-4 h-4" />
-          Abrir InShape GPT
+          Abrir InShape
         </Button>
       )}
 
@@ -378,7 +378,7 @@ export function BioimpedanciaInput({
                 📋 <strong>Paciente:</strong> {nome}
               </p>
               <p className="text-xs text-slate-400">
-                💡 Use o botão "Abrir InShape GPT" para obter a análise e cole a resposta abaixo
+                💡 Use o botão "Abrir InShape" para obter a análise e cole a resposta abaixo
               </p>
               {loadingLastBio && (
                 <p className="text-xs text-blue-400 mt-2 flex items-center gap-1">

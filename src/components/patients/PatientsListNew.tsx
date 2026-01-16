@@ -47,8 +47,8 @@ import {
 } from "@/components/ui/dialog";
 import { usePatients } from "@/hooks/use-supabase-data";
 import { usePatientPreferences } from "@/hooks/use-patient-preferences";
-import { PatientFilters, PatientFiltersProps } from "@/components/patients/PatientFilters";
-import { PatientSorting, PatientSortingProps } from "@/components/patients/PatientSorting";
+import { PatientFilters } from "@/components/patients/PatientFilters";
+import { PatientSorting } from "@/components/patients/PatientSorting";
 import { ColumnSelector, ColumnOption } from "@/components/patients/ColumnSelector";
 import { ColumnOrderManager } from "@/components/patients/ColumnOrderManager";
 import { TableRowSkeleton } from "@/components/ui/loading-skeleton";
@@ -373,6 +373,113 @@ export function PatientsListNew() {
     }
   };
 
+  // Função para exportar pacientes para CSV
+  const handleExportCSV = () => {
+    try {
+      // Cabeçalhos do CSV baseados nas colunas visíveis
+      const headers = filteredColumnOptions.map(col => col.label);
+      
+      // Adicionar colunas extras que não estão na tabela mas são úteis
+      const allHeaders = [...headers, 'CPF', 'Email', 'Data de Nascimento', 'Objetivo', 'Observação'];
+      
+      // Criar linhas do CSV
+      const rows = patients.map(patient => {
+        const row: string[] = [];
+        
+        // Adicionar dados das colunas visíveis
+        filteredColumnOptions.forEach(col => {
+          let value = '';
+          
+          switch (col.key) {
+            case 'nome':
+              value = patient.nome || '';
+              break;
+            case 'apelido':
+              value = patient.apelido || '';
+              break;
+            case 'telefone':
+              value = patient.telefone || '';
+              break;
+            case 'email':
+              value = patient.email || '';
+              break;
+            case 'plano':
+              value = patient.plano || '';
+              break;
+            case 'vencimento':
+              value = patient.vencimento ? new Date(patient.vencimento).toLocaleDateString('pt-BR') : '';
+              break;
+            case 'dias_para_vencer':
+              value = patient.dias_para_vencer !== null ? String(patient.dias_para_vencer) : '';
+              break;
+            case 'ultimo_contato':
+              const ultimoContatoRaw = (patient as any).ultimo_contato;
+              if (ultimoContatoRaw) {
+                try {
+                  const parsed = typeof ultimoContatoRaw === 'string' ? JSON.parse(ultimoContatoRaw) : ultimoContatoRaw;
+                  value = parsed.start ? new Date(parsed.start).toLocaleDateString('pt-BR') : '';
+                } catch {
+                  value = '';
+                }
+              }
+              break;
+            case 'status':
+              const status = getPatientStatus(patient);
+              value = status === 'active' ? 'Ativo' : status === 'expiring_soon' ? 'Vencendo' : status === 'expired' ? 'Expirado' : 'Desconhecido';
+              break;
+            case 'created_at':
+              value = patient.created_at ? new Date(patient.created_at).toLocaleDateString('pt-BR') : '';
+              break;
+            default:
+              value = (patient as any)[col.key] || '';
+          }
+          
+          row.push(value);
+        });
+        
+        // Adicionar colunas extras
+        row.push(patient.cpf || '');
+        row.push(patient.email || '');
+        row.push(patient.data_nascimento ? new Date(patient.data_nascimento).toLocaleDateString('pt-BR') : '');
+        row.push(patient.objetivo || '');
+        row.push(patient.observacao || '');
+        
+        return row;
+      });
+      
+      // Criar conteúdo CSV
+      const csvContent = [
+        allHeaders.join(','),
+        ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+      
+      // Criar blob e fazer download
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `pacientes_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Sucesso",
+        description: `${patients.length} paciente${patients.length !== 1 ? 's' : ''} exportado${patients.length !== 1 ? 's' : ''} com sucesso`
+      });
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível exportar os pacientes",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Calcular status do paciente
   const getPatientStatus = (patient: Patient) => {
     if (!patient.vencimento) return 'unknown';
@@ -485,46 +592,47 @@ export function PatientsListNew() {
         />
       )}
 
-      {/* Filtros */}
+      {/* Filtros com busca, ordenação e controles */}
       <PatientFilters
         filters={preferences?.filters || {}}
         onFiltersChange={handleFiltersChange}
         onReset={handleResetFilters}
         plans={uniquePlansFromAll}
-      />
-
-      {/* Controles de visualização */}
-      <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <PatientSorting
-                sorting={preferences?.sorting || { field: 'created_at', direction: 'desc' }}
-                onSortingChange={handleSortingChange}
-                options={sortingOptions}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <ColumnOrderManager
-                columns={columnOptions}
-                columnOrder={columnOrder}
-                onOrderChange={async (newOrder) => {
-                  await updateColumnOrder(newOrder);
-                }}
-              />
-              <ColumnSelector
-                columns={columnOptions}
-                visibleColumns={visibleColumns}
-                onColumnsChange={handleColumnsChange}
-              />
-              <Button variant="outline" size="sm" className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50">
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
-              </Button>
-            </div>
+        sortingComponent={
+          <div className="w-full">
+            <PatientSorting
+              sorting={preferences?.sorting || { field: 'created_at', direction: 'desc' }}
+              onSortingChange={handleSortingChange}
+              options={sortingOptions}
+            />
           </div>
-        </CardContent>
-      </Card>
+        }
+        controlsComponent={
+          <div className="flex items-center gap-2">
+            <ColumnOrderManager
+              columns={columnOptions}
+              columnOrder={columnOrder}
+              onOrderChange={async (newOrder) => {
+                await updateColumnOrder(newOrder);
+              }}
+            />
+            <ColumnSelector
+              columns={columnOptions}
+              visibleColumns={visibleColumns}
+              onColumnsChange={handleColumnsChange}
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+              onClick={handleExportCSV}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
+        }
+      />
 
       {/* Tabela de pacientes */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">

@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { 
   TrendingUp, 
   Copy, 
@@ -16,7 +22,11 @@ import {
   Calendar,
   User,
   Ruler,
-  Weight
+  Weight,
+  List,
+  MoreVertical,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +62,7 @@ interface CheckinData {
 
 interface BioimpedanciaData {
   id: string;
+  telefone?: string;
   data_avaliacao: string;
   percentual_gordura: number;
   peso: number;
@@ -60,6 +71,7 @@ interface BioimpedanciaData {
   imc: number;
   tmb: number;
   classificacao: string | null;
+  observacoes?: string | null;
 }
 
 export function BioimpedanciaModal({ 
@@ -90,6 +102,12 @@ export function BioimpedanciaModal({
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
+  
+  // Estados para histórico de bioimpedâncias
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [allBioimpedancias, setAllBioimpedancias] = useState<BioimpedanciaData[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<BioimpedanciaData | null>(null);
+  const [editingBio, setEditingBio] = useState<BioimpedanciaData | null>(null);
   
   // Ref para evitar múltiplas execuções do download
   const isExportingRef = useRef(false);
@@ -125,6 +143,7 @@ export function BioimpedanciaModal({
   useEffect(() => {
     if (open && telefone) {
       loadPatientData();
+      loadAllBioimpedancias(); // Carregar histórico também
     }
   }, [open, telefone]);
 
@@ -203,7 +222,7 @@ export function BioimpedanciaModal({
     }
   };
 
-  // Gerar texto para copiar para o InShape GPT
+  // Gerar texto para copiar para o InShape
   const generateInShapeText = () => {
     if (!patientData) return '';
 
@@ -260,6 +279,64 @@ ${lastBioimpedancia.imc.toFixed(2)} IMC Peso normal
 ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
 
     return texto;
+  };
+
+  // Carregar todas as bioimpedâncias para o histórico
+  const loadAllBioimpedancias = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('body_composition' as any)
+        .select('*')
+        .eq('telefone', telefone)
+        .order('data_avaliacao', { ascending: false });
+
+      if (error) throw error;
+      setAllBioimpedancias((data || []) as any);
+    } catch (error: any) {
+      console.error('Erro ao carregar bioimpedâncias:', error);
+      toast({
+        title: 'Erro ao carregar',
+        description: error.message || 'Não foi possível carregar as bioimpedâncias',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Deletar bioimpedância
+  const handleDeleteBio = async () => {
+    if (!deleteConfirm) return;
+
+    try {
+      const { error } = await supabase
+        .from('body_composition' as any)
+        .delete()
+        .eq('id', deleteConfirm.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Bioimpedância deletada',
+        description: 'A avaliação foi removida com sucesso',
+      });
+
+      setDeleteConfirm(null);
+      loadPatientData(); // Recarregar dados
+      loadAllBioimpedancias(); // Recarregar lista
+    } catch (error: any) {
+      console.error('Erro ao deletar bioimpedância:', error);
+      toast({
+        title: 'Erro ao deletar',
+        description: error.message || 'Não foi possível deletar a bioimpedância',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Callback após editar com sucesso
+  const handleEditSuccess = () => {
+    setEditingBio(null);
+    loadPatientData(); // Recarregar dados
+    loadAllBioimpedancias(); // Recarregar lista
   };
 
   const handleCopyPatientData = async () => {
@@ -498,27 +575,20 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700 max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-purple-400" />
-            Bioimpedância - {patientName}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="bg-slate-900 border-slate-700 max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-purple-400" />
+              Bioimpedância - {patientName}
+            </DialogTitle>
+          </DialogHeader>
 
-        <div ref={containerRef} className="space-y-6">
-          {/* Botões de Ação */}
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button
-              onClick={handleOpenInShape}
-              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Abrir InShape GPT
-            </Button>
-
-            <Button
+          <div ref={containerRef} className="space-y-6">
+            {/* Botões de Ação */}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button
               onClick={handleCopyAllData}
               variant="outline"
               className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-800"
@@ -528,12 +598,34 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
             </Button>
 
             <Button
+              onClick={handleOpenInShape}
+              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Abrir InShape
+            </Button>
+
+            <Button
               onClick={() => setShowAddBio(true)}
               className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Plus className="w-4 h-4" />
               Adicionar Bioimpedância
             </Button>
+
+            {allBioimpedancias.length > 0 && (
+              <Button
+                onClick={() => {
+                  loadAllBioimpedancias();
+                  setShowHistoryModal(true);
+                }}
+                variant="outline"
+                className="gap-2 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 hover:text-purple-200"
+              >
+                <List className="w-4 h-4" />
+                Ver Histórico ({allBioimpedancias.length})
+              </Button>
+            )}
 
             <Button
               onClick={() => handleExport('png')}
@@ -560,7 +652,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
                     📋 <strong>Paciente:</strong> {patientName}
                   </p>
                   <p className="text-xs text-slate-400">
-                    💡 Use o botão "Abrir InShape GPT" para obter a análise e cole a resposta abaixo
+                    💡 Use o botão "Abrir InShape" para obter a análise e cole a resposta abaixo
                   </p>
                 </div>
 
@@ -859,82 +951,156 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
             </Card>
           )}
         </div>
-
-        {/* Modal de Exportação da Evolução (mesmo da PatientEvolution) */}
-        {showEvolutionExport && patientData && (
-          <EvolutionExportPage
-            patient={{
-              ...patientData,
-              telefone,
-              id: telefone, // usar telefone como ID temporário
-              apelido: patientName,
-              plano: null,
-              objetivo: null,
-              genero: patientData.sexo,
-              data_nascimento: null,
-              inicio_acompanhamento: patientData.created_at,
-              vencimento: null,
-              dias_para_vencer: null,
-              valor: null,
-              ticket_medio: null,
-              rescisao_30_percent: null,
-              pagamento: null,
-              observacao: null,
-              indicacoes: null,
-              lembrete: null,
-              telefone_filtro: null,
-              antes_depois: null,
-              janeiro: null,
-              fevereiro: null,
-              marco: null,
-              abril: null,
-              maio: null,
-              junho: null,
-              julho: null,
-              agosto: null,
-              setembro: null,
-              outubro: null,
-              novembro: null,
-              dezembro: null,
-              updated_at: null,
-              cpf: null,
-              email: null,
-              tempo_acompanhamento: null
-            } as any}
-            checkins={checkins.map(c => ({
-              ...c,
-              telefone,
-              data_preenchimento: c.data_preenchimento || c.data_checkin,
-              total_pontuacao: '0',
-              aproveitamento: null,
-              treinos_semana: null,
-              tempo_treino: null,
-              cardio_semana: null,
-              tempo_cardio: null,
-              descanso_series: null,
-              agua_copos: null,
-              sono_horas: null,
-              refeicoes_livres: null,
-              beliscos: null,
-              observacoes: null,
-              foto_1: null,
-              foto_2: null,
-              foto_3: null,
-              foto_4: null,
-              created_at: c.data_checkin,
-              updated_at: null,
-              user_id: null
-            } as any))}
-            bodyCompositions={bodyCompositions}
-            onClose={() => { 
-              setShowEvolutionExport(false); 
-              setEvolutionExportMode(null); 
-            }}
-            directExportMode={evolutionExportMode || undefined}
-            onDirectExport={handleDirectEvolutionExport}
-          />
-        )}
       </DialogContent>
     </Dialog>
+
+      {/* Modal de Histórico de Bioimpedâncias */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="bg-slate-900 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-purple-400" />
+              Histórico de Bioimpedâncias
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {allBioimpedancias.length} {allBioimpedancias.length === 1 ? 'avaliação' : 'avaliações'} cadastrada{allBioimpedancias.length === 1 ? '' : 's'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {allBioimpedancias.map((bio) => (
+              <div
+                key={bio.id}
+                className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 hover:border-purple-500/50 transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm font-semibold text-white">
+                        {format(new Date(bio.data_avaliacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </span>
+                      {bio.classificacao && (
+                        <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-300">
+                          {bio.classificacao}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                      <div>
+                        <p className="text-xs text-slate-400">% Gordura</p>
+                        <p className="text-lg font-bold text-rose-400">{bio.percentual_gordura}%</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Peso</p>
+                        <p className="text-lg font-bold text-white">{bio.peso} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Massa Gorda</p>
+                        <p className="text-lg font-bold text-red-400">{bio.massa_gorda.toFixed(1)} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Massa Magra</p>
+                        <p className="text-lg font-bold text-emerald-400">{bio.massa_magra.toFixed(1)} kg</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <p className="text-xs text-slate-400">IMC</p>
+                        <p className="text-sm font-semibold text-white">{bio.imc.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">TMB</p>
+                        <p className="text-sm font-semibold text-amber-400">{bio.tmb} kcal/dia</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingBio(bio);
+                          setShowHistoryModal(false);
+                        }}
+                        className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setDeleteConfirm(bio);
+                          setShowHistoryModal(false);
+                        }}
+                        className="text-red-400 hover:text-red-300 hover:bg-slate-700 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Deletar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação de deleção */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Tem certeza que deseja deletar a bioimpedância de{' '}
+              {deleteConfirm && format(new Date(deleteConfirm.data_avaliacao), "dd/MM/yyyy", { locale: ptBR })}?
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirm(null)}
+              className="border-slate-600 text-slate-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteBio}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Deletar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de edição - renderizado inline */}
+      {editingBio && patientData && (
+        <BioimpedanciaInput
+          telefone={telefone}
+          nome={patientName}
+          idade={patientData.idade}
+          altura={patientData.altura_inicial}
+          pesoInicial={patientData.peso_inicial}
+          sexo={patientData.sexo}
+          editingBio={editingBio as any}
+          onSuccess={handleEditSuccess}
+          onCancel={() => setEditingBio(null)}
+        />
+      )}
+    </>
   );
 }

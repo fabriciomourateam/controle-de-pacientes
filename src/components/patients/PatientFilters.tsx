@@ -29,9 +29,11 @@ interface PatientFiltersProps {
   onFiltersChange: (filters: PatientFilters) => void;
   onReset: () => void;
   plans: string[];
+  sortingComponent?: React.ReactNode;
+  controlsComponent?: React.ReactNode;
 }
 
-export function PatientFilters({ filters, onFiltersChange, onReset, plans }: PatientFiltersProps) {
+export function PatientFilters({ filters, onFiltersChange, onReset, plans, sortingComponent, controlsComponent }: PatientFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localFilters, setLocalFilters] = useState<PatientFilters>(filters);
   const [searchValue, setSearchValue] = useState<string>(filters.search || '');
@@ -135,35 +137,44 @@ export function PatientFilters({ filters, onFiltersChange, onReset, plans }: Pat
 
   return (
     <div className="space-y-4">
-      {/* Campo de busca sempre visível */}
+      {/* Campo de busca e ordenação sempre visíveis */}
       <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Label htmlFor="search" className="text-slate-300 mb-2 block">Buscar Paciente</Label>
-              <Input
-                id="search"
-                placeholder="Digite nome, apelido ou telefone..."
-                value={searchValue}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-cyan-500/50 focus:ring-cyan-500/20"
-                autoComplete="off"
-              />
-              {searchValue.length > 0 && searchValue.length < 2 && (
-                <p className="text-xs text-slate-400 mt-1">Digite pelo menos 2 caracteres</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Campo de busca */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Label htmlFor="search" className="text-slate-300 mb-2 block">Buscar Paciente</Label>
+                <Input
+                  id="search"
+                  placeholder="Digite nome, apelido ou telefone..."
+                  value={searchValue}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-cyan-500/50 focus:ring-cyan-500/20"
+                  autoComplete="off"
+                />
+                {searchValue.length > 0 && searchValue.length < 2 && (
+                  <p className="text-xs text-slate-400 mt-1">Digite pelo menos 2 caracteres</p>
+                )}
+              </div>
+              {searchValue && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSearchChange('')}
+                  className="mt-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar
+                </Button>
               )}
             </div>
-            {searchValue && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSearchChange('')}
-                className="mt-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Limpar
-              </Button>
-            )}
+            
+            {/* Ordenação - será preenchido pelo componente pai */}
+            <div className="flex items-end gap-2">
+              {sortingComponent}
+              {controlsComponent}
+            </div>
           </div>
         </CardContent>
       </Card>
