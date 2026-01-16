@@ -738,7 +738,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       <h4 className="text-sm font-medium text-slate-200">Evolução Comparativa</h4>
                     </div>
                     <div className="flex items-center gap-2">
-                      {previousCheckins.length > 0 && (
+                      {previousCheckins.length > 1 && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -747,7 +747,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           title={showAllCheckinsColumns ? "Ocultar histórico" : "Mostrar todos os check-ins"}
                         >
                           <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                          {showAllCheckinsColumns ? 'Ocultar' : `Ver ${previousCheckins.length}`} Check-ins
+                          {showAllCheckinsColumns ? 'Ocultar' : `Ver ${previousCheckins.length - 1}`} Check-ins
                         </Button>
                       )}
                       <Button
@@ -795,22 +795,28 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <thead>
                           <tr className="border-b border-white/20 bg-slate-800/60">
                             <th className="text-left py-1.5 px-2 text-slate-300 font-medium sticky left-0 z-10">Métrica</th>
-                            {/* Colunas históricas (ocultas por padrão) */}
-                            {showAllCheckinsColumns && previousCheckins.map((checkin, index) => (
+                            {/* Colunas históricas (ocultas por padrão - a partir do 3º check-in mais antigo) */}
+                            {showAllCheckinsColumns && previousCheckins.slice(2).map((checkin, index) => (
                               <th key={checkin.id} className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/60">
                                 {new Date(checkin.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                               </th>
                             ))}
-                            {/* Coluna do check-in anterior (sempre visível se houver) */}
+                            {/* Coluna do antepenúltimo check-in (sempre visível se houver pelo menos 2 check-ins anteriores) */}
+                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                              <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                {new Date(previousCheckins[1].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                              </th>
+                            )}
+                            {/* Coluna do penúltimo check-in (sempre visível se houver) */}
                             {!showAllCheckinsColumns && (
-                              <th className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/95 z-10">
+                              <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
                                 {evolutionData.checkin_anterior_data 
                                   ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
                                   : 'Anterior'}
                               </th>
                             )}
                             {/* Coluna do check-in atual */}
-                            <th className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/95 z-10">
+                            <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
                               {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                             </th>
                             <th className="text-center py-1.5 px-2 text-slate-300 font-medium sticky right-0 z-10">Evolução</th>
@@ -821,13 +827,21 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {evolutionData.peso_anterior !== undefined && evolutionData.peso_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Peso</td>
-                              {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {/* Colunas históricas (a partir do 3º mais antigo) */}
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'peso') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'peso') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   {editingField === 'peso' && editingPrevious ? (
@@ -876,7 +890,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                               )}
                               {/* Coluna atual */}
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'peso' ? (
+                                {editingField === 'peso' && !editingPrevious ? (
                                   <div className="flex items-center justify-center gap-1">
                                     <Input
                                       type="number"
@@ -911,7 +925,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                 </div>
                                 ) : (
                                   <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
                                     onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false)}
                                     title="Clique para editar"
                                   >
@@ -932,12 +946,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Cintura</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'cintura') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'cintura') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'cintura' && editingPrevious ? (
@@ -1044,12 +1066,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Quadril</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'quadril') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'quadril') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'quadril' && editingPrevious ? (
@@ -1155,12 +1185,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-white/20">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {historicCheckin.percentual_aproveitamento ? `${historicCheckin.percentual_aproveitamento}%` : '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {previousCheckins[1].percentual_aproveitamento ? `${previousCheckins[1].percentual_aproveitamento}%` : '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10 text-slate-400">{evolutionData.aderencia_anterior || 0}%</td>
                               )}
@@ -1180,12 +1218,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'treino') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'treino') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'treino' && editingPrevious ? (
@@ -1289,12 +1335,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'cardio') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'cardio') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'cardio' && editingPrevious ? (
@@ -1398,12 +1452,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">⏱️ Tempo de Treino</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {historicCheckin.tempo || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {previousCheckins[1].tempo || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'tempo_treino' && editingPrevious ? (
@@ -1514,12 +1576,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">🏃 Tempo de Cardio</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {historicCheckin.tempo_cardio || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {previousCheckins[1].tempo_cardio || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'tempo_cardio' && editingPrevious ? (
@@ -1630,12 +1700,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-white/20">
                               <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'descanso') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'descanso') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'descanso' && editingPrevious ? (
@@ -1747,12 +1825,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">💧 Água</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'agua') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'agua') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'agua' && editingPrevious ? (
@@ -1856,12 +1942,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">😴 Sono</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'sono') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'sono') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'sono' && editingPrevious ? (
@@ -1965,12 +2059,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'refeicoes') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'refeicoes') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'ref_livre' && editingPrevious ? (
@@ -2074,12 +2176,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <tr className="border-b border-white/20">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
                               {/* Colunas históricas */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                              {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
                                   {getCheckinMetricValue(historicCheckin, 'beliscos') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna anterior (se não estiver mostrando todas) */}
+                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-400">
+                                    {getCheckinMetricValue(previousCheckins[1], 'beliscos') || '-'}
+                                  </span>
+                                </td>
+                              )}
+                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
                               {!showAllCheckinsColumns && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'beliscos' && editingPrevious ? (
@@ -2182,7 +2292,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                             <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">📷 Fotos</td>
                             
                             {/* Colunas históricas de fotos (quando expandido) */}
-                            {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => {
+                            {showAllCheckinsColumns && previousCheckins.slice(2).map((historicCheckin) => {
                               const hasPhotos = !!(
                                 historicCheckin.foto_1 || 
                                 historicCheckin.foto_2 || 
@@ -2230,7 +2340,45 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                               );
                             })}
                             
-                            {/* Coluna do check-in anterior (quando não está expandido) */}
+                            {/* Coluna do antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
+                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      const { data, error } = await supabase
+                                        .from('checkin')
+                                        .select('foto_1, foto_2, foto_3, foto_4')
+                                        .eq('id', previousCheckins[1].id)
+                                        .single();
+                                      
+                                      if (data && (data.foto_1 || data.foto_2 || data.foto_3 || data.foto_4)) {
+                                        setShowPhotosViewer(true);
+                                        toast.info(`Fotos de ${new Date(previousCheckins[1].data_checkin).toLocaleDateString('pt-BR')}`);
+                                      } else {
+                                        toast.info('Sem fotos neste check-in');
+                                      }
+                                    } catch (error) {
+                                      console.error('Erro ao buscar fotos:', error);
+                                      toast.error('Erro ao carregar fotos');
+                                    }
+                                  }}
+                                  className={`text-xs h-6 px-2 ${
+                                    previousCheckins[1].foto_1 || previousCheckins[1].foto_2 || previousCheckins[1].foto_3 || previousCheckins[1].foto_4
+                                      ? 'text-purple-400 font-semibold bg-purple-500/20 border border-purple-500/30 hover:text-purple-300 hover:bg-purple-500/30'
+                                      : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
+                                  }`}
+                                  title="Ver fotos do antepenúltimo check-in"
+                                >
+                                  <Camera className="w-3 h-3 mr-1" />
+                                  {previousCheckins[1].foto_1 || previousCheckins[1].foto_2 || previousCheckins[1].foto_3 || previousCheckins[1].foto_4 ? 'Ver' : 'Sem fotos'}
+                                </Button>
+                              </td>
+                            )}
+                            
+                            {/* Coluna do penúltimo (quando não está expandido) */}
                             {!showAllCheckinsColumns && (
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 <Button

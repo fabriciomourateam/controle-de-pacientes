@@ -52,6 +52,7 @@ export const checkinService = {
 
   // Buscar checkins com dados do paciente (usando telefone)
   // Otimizado: aceita limite customizado para reduzir tráfego
+  // Filtra apenas check-ins completos (não inclui registros de evolução)
   async getAllWithPatient(limit: number | null = 200): Promise<CheckinWithPatient[]> {
     let query = supabase
       .from('checkin')
@@ -65,6 +66,7 @@ export const checkinService = {
           plano
         )
       `)
+      .eq('tipo_checkin', 'completo') // Filtrar apenas check-ins completos
       .order('data_checkin', { ascending: false });
     
     // Aplicar limite apenas se fornecido e for um número válido

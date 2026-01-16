@@ -21,9 +21,10 @@ interface AddEvolutionDataProps {
   onSuccess: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  showButton?: boolean; // Controla se o botão deve ser renderizado (padrão: true quando não controlado externamente)
 }
 
-export function AddEvolutionData({ telefone, nome, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange }: AddEvolutionDataProps) {
+export function AddEvolutionData({ telefone, nome, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange, showButton }: AddEvolutionDataProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = externalOnOpenChange || setInternalOpen;
@@ -182,6 +183,7 @@ export function AddEvolutionData({ telefone, nome, onSuccess, open: externalOpen
         telefone,
         data_checkin: dataRegistro,
         data_preenchimento: new Date().toISOString(),
+        tipo_checkin: 'evolucao', // Marcar como registro de evolução
         ...photoUrls
       };
 
@@ -224,15 +226,30 @@ export function AddEvolutionData({ telefone, nome, onSuccess, open: externalOpen
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="gap-2 bg-blue-600/20 hover:bg-blue-600/30 border-blue-500/50 text-blue-300 hover:text-blue-200"
-      >
-        <Camera className="w-4 h-4" />
-        Adicionar Dados
-      </Button>
+      {/* Renderizar botão apenas se:
+          1. Não está sendo controlado externamente (externalOpen === undefined) OU
+          2. showButton === true (explicitamente solicitado)
+      */}
+      {(externalOpen === undefined || showButton === true) && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          style={{
+            backgroundImage: 'linear-gradient(to right, rgb(37, 99, 235), rgb(8, 145, 178))',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundImage = 'linear-gradient(to right, rgb(29, 78, 216), rgb(14, 116, 144))';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundImage = 'linear-gradient(to right, rgb(37, 99, 235), rgb(8, 145, 178))';
+          }}
+          className="gap-2 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all border-0"
+        >
+          <Camera className="w-4 h-4" />
+          Adicionar Dados
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
           <DialogHeader>

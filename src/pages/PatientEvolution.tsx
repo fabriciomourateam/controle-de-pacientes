@@ -27,6 +27,7 @@ import { BioimpedanciaInput } from '@/components/evolution/BioimpedanciaInput';
 import { BioimpedanciaList } from '@/components/evolution/BioimpedanciaList';
 import { InitialDataInput } from '@/components/evolution/InitialDataInput';
 import { CurrentDataInput } from '@/components/evolution/CurrentDataInput';
+import { AddEvolutionData } from '@/components/evolution/AddEvolutionData';
 import { InitialCurrentPhotoComparison } from '@/components/evolution/InitialCurrentPhotoComparison';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
@@ -100,6 +101,7 @@ export default function PatientEvolution() {
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   const [showPhotoComparison, setShowPhotoComparison] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
+  const [addEvolutionDataOpen, setAddEvolutionDataOpen] = useState(false);
   
   // Estados para controlar visibilidade dos cards opcionais
   const [showDailyWeights, setShowDailyWeights] = useState(false);
@@ -1832,7 +1834,16 @@ export default function PatientEvolution() {
                   <CardContent>
                     <Button
                       onClick={() => setShowPhotoComparison(true)}
-                      className="w-full gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all"
+                      style={{
+                        backgroundImage: 'linear-gradient(to right, rgb(37, 99, 235), rgb(8, 145, 178))',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundImage = 'linear-gradient(to right, rgb(29, 78, 216), rgb(14, 116, 144))';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundImage = 'linear-gradient(to right, rgb(37, 99, 235), rgb(8, 145, 178))';
+                      }}
+                      className="w-full gap-2 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all border-0"
                     >
                       <Camera className="w-4 h-4" />
                       Comparar Fotos Inicial vs Atual
@@ -2026,6 +2037,7 @@ export default function PatientEvolution() {
               checkins={checkins} 
               patient={patient} 
               refreshTrigger={chartsRefreshTrigger}
+              onAddData={() => setAddEvolutionDataOpen(true)}
             />
           </motion.div>
 
@@ -2293,6 +2305,21 @@ export default function PatientEvolution() {
               // Forçar atualização dos gráficos
               setChartsRefreshTrigger(prev => prev + 1);
             }}
+          />
+        )}
+
+        {/* Modal de Adicionar Dados de Evolução (aberto pelos botões + dos gráficos e Timeline) */}
+        {telefone && patient && (
+          <AddEvolutionData
+            telefone={patient.telefone || telefone}
+            nome={patient.nome || 'Paciente'}
+            open={addEvolutionDataOpen}
+            onOpenChange={setAddEvolutionDataOpen}
+            onSuccess={() => {
+              loadEvolution();
+              setChartsRefreshTrigger(prev => prev + 1);
+            }}
+            showButton={false}
           />
         )}
 

@@ -149,6 +149,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                 nome={nome}
                 open={showAddEvolutionData}
                 onOpenChange={setShowAddEvolutionData}
+                showButton={true}
                 onSuccess={() => {
                   setShowAddEvolutionData(false);
                   if (onCheckinUpdated) {

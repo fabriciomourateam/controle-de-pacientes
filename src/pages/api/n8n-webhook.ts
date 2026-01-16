@@ -242,6 +242,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const defaultUserId = await getDefaultUserId();
       
       // Adicionar user_id a todos os checkins
+      // Nota: tipo_checkin já vem do N8N
       const processedDataWithUserId = processedData.map((item: any) => ({
         ...item,
         user_id: defaultUserId
@@ -279,6 +280,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const defaultUserId = await getDefaultUserId();
       
       // Adicionar user_id ao checkin
+      // Nota: tipo_checkin já vem do N8N
       const mappedDataWithUserId = {
         ...mappedData,
         user_id: defaultUserId

@@ -619,8 +619,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
                   loadAllBioimpedancias();
                   setShowHistoryModal(true);
                 }}
-                variant="outline"
-                className="gap-2 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 hover:text-purple-200"
+                className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <List className="w-4 h-4" />
                 Ver Histórico ({allBioimpedancias.length})
@@ -1099,6 +1098,29 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
           editingBio={editingBio as any}
           onSuccess={handleEditSuccess}
           onCancel={() => setEditingBio(null)}
+        />
+      )}
+
+      {/* Modal de Exportação da Evolução */}
+      {showEvolutionExport && patientData && (
+        <EvolutionExportPage
+          patient={{
+            ...patientData,
+            telefone,
+            nome: patientName,
+            genero: patientData.sexo,
+            data_nascimento: null,
+            objetivo: null,
+            observacoes: null,
+            ativo: true,
+            user_id: '',
+            id: telefone
+          } as any}
+          checkins={checkins as any}
+          bodyCompositions={bodyCompositions}
+          onClose={() => { setShowEvolutionExport(false); setEvolutionExportMode(null); }}
+          directExportMode={evolutionExportMode || undefined}
+          onDirectExport={handleDirectEvolutionExport}
         />
       )}
     </>
