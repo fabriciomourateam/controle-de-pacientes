@@ -250,6 +250,52 @@ export function InitialDataInput({ telefone, nome, onSuccess, editMode = false, 
         throw new Error('UPDATE executado mas nenhum registro foi atualizado');
       }
 
+      // NOVO: Criar também um registro na tabela checkin para aparecer no timeline
+      if (pesoInicial || cinturaInicial || quadrilInicial || fotoFrenteUrl || fotoLadoUrl || fotoLado2Url || fotoCostasUrl) {
+        // Preparar dados para o checkin inicial
+        const checkinData: any = {
+          telefone: cleanTelefone,
+          data_checkin: dataFotos,
+          data_preenchimento: new Date().toISOString(),
+          tipo_checkin: 'inicial', // Marcar como dados iniciais
+          peso: pesoInicial || null,
+          foto_1: fotoFrenteUrl || null,
+          foto_2: fotoLadoUrl || null,
+          foto_3: fotoLado2Url || null,
+          foto_4: fotoCostasUrl || null
+        };
+
+        // Adicionar medidas se fornecidas
+        if (cinturaInicial || quadrilInicial) {
+          const medidas: string[] = [];
+          if (cinturaInicial) medidas.push(`Cintura: ${cinturaInicial}cm`);
+          if (quadrilInicial) medidas.push(`Quadril: ${quadrilInicial}cm`);
+          checkinData.medida = medidas.join(' ');
+        }
+
+        // Verificar se já existe um checkin inicial para esta data
+        const { data: existingCheckin } = await supabase
+          .from('checkin')
+          .select('id')
+          .eq('telefone', cleanTelefone)
+          .eq('data_checkin', dataFotos)
+          .eq('tipo_checkin', 'inicial')
+          .maybeSingle();
+
+        if (existingCheckin) {
+          // Atualizar checkin inicial existente
+          await supabase
+            .from('checkin')
+            .update(checkinData)
+            .eq('id', existingCheckin.id);
+        } else {
+          // Criar novo checkin inicial
+          await supabase
+            .from('checkin')
+            .insert(checkinData);
+        }
+      }
+
       // Limpar formulário apenas se não estiver em modo de edição
       if (!editMode) {
         setFotoFrente(null);

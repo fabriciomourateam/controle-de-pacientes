@@ -844,11 +844,11 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       </Button>
                       <TrendingUp className="w-4 h-4 text-green-400" />
                       <Badge 
-                        className="text-sm font-medium text-slate-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg cursor-pointer transition-all duration-200 px-3 py-1 border-0"
+                        className="text-xs font-medium text-slate-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg cursor-pointer transition-all duration-200 px-2.5 py-1 border-0"
                         onClick={() => handleExportEvolution('png')}
                         title="Clique para baixar a evolução do paciente (PNG)"
                       >
-                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                        <Download className="w-3 h-3 mr-1.5" />
                         Evolução Comparativa
                       </Badge>
                     </div>

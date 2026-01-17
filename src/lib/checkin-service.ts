@@ -81,11 +81,13 @@ export const checkinService = {
   },
 
   // Buscar checkins por telefone do paciente
+  // MODIFICADO: Inclui registros iniciais e de evolução para o Timeline
   async getByPhone(telefone: string): Promise<Checkin[]> {
     const { data, error } = await supabase
       .from('checkin')
       .select('*')
       .eq('telefone', telefone)
+      .in('tipo_checkin', ['completo', 'evolucao', 'inicial']) // Incluir todos os tipos para Timeline
       .order('data_checkin', { ascending: false });
     
     if (error) throw error;

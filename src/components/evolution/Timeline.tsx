@@ -186,7 +186,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
           {checkinsOrdenados.map((checkin, index) => {
             const previousCheckin = index > 0 ? checkinsOrdenados[index - 1] : null;
             const weightTrend = getWeightTrend(checkin.peso, previousCheckin?.peso || null);
-            const checkinDate = new Date(checkin.data_checkin);
+            // Corrigir problema de timezone - usar data local sem conversão
+            const checkinDate = new Date(checkin.data_checkin + 'T00:00:00');
             const isFirst = index === 0;
             const isLast = index === checkinsOrdenados.length - 1;
             const isExpanded = expandedCards.has(checkin.id);
@@ -214,6 +215,8 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                           })}
                           {isFirst && <Badge className="bg-blue-600/90 text-white">Inicial</Badge>}
                           {isLast && <Badge className="bg-emerald-600/90 text-white">Mais Recente</Badge>}
+                          {checkin.tipo_checkin === 'inicial' && <Badge className="bg-purple-600/90 text-white">Dados Iniciais</Badge>}
+                          {checkin.tipo_checkin === 'evolucao' && <Badge className="bg-cyan-600/90 text-white">Evolução</Badge>}
                         </h4>
                         <p className="text-slate-400 text-sm mt-1">
                           Check-in #{checkins.length - index}
@@ -568,7 +571,7 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
               Tem certeza que deseja deletar o check-in de{' '}
               <strong className="text-white">
                 {checkinToDelete 
-                  ? new Date(checkinToDelete.data_checkin).toLocaleDateString('pt-BR', {
+                  ? new Date(checkinToDelete.data_checkin + 'T00:00:00').toLocaleDateString('pt-BR', {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric'
