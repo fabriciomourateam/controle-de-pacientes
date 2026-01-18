@@ -19,7 +19,6 @@ import { CheckinPhotosViewer } from './CheckinPhotosViewer';
 import { InitialDataInput } from '../evolution/InitialDataInput';
 import { PhotoComparisonModal } from './PhotoComparisonModal';
 import { BioimpedanciaModal } from './BioimpedanciaModal';
-import { EvolutionExportPage } from '../evolution/EvolutionExportPage';
 
 interface CheckinFeedbackCardProps {
   checkin: CheckinWithPatient;
@@ -99,12 +98,6 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   const [hasPreviousPhotos, setHasPreviousPhotos] = useState(false);
   const [showAllCheckinsColumns, setShowAllCheckinsColumns] = useState(false);
   const [showBioimpedanciaModal, setShowBioimpedanciaModal] = useState(false);
-  
-  // Estados para exportação de evolução
-  const [showEvolutionExport, setShowEvolutionExport] = useState(false);
-  const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
   
   // Ref para evitar múltiplas execuções do download
   const isExportingRef = React.useRef(false);
@@ -217,33 +210,6 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     };
 
     checkBioimpedancia();
-  }, [checkin.telefone, isExpanded]); // ⚡ Adicionar isExpanded como dependência
-
-  // Carregar body compositions para exportação - SÓ QUANDO EXPANDIDO
-  React.useEffect(() => {
-    if (!isExpanded) return; // ⚡ OTIMIZAÇÃO
-    
-    const loadBodyCompositions = async () => {
-      try {
-        const { data: bioData, error } = await supabase
-          .from('body_composition')
-          .select('*')
-          .eq('telefone', checkin.telefone)
-          .order('data_avaliacao', { ascending: false });
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Erro ao buscar body compositions:', error);
-          return;
-        }
-
-        setBodyCompositions(bioData || []);
-      } catch (error) {
-        console.error('Erro ao carregar body compositions:', error);
-        setBodyCompositions([]);
-      }
-    };
-
-    loadBodyCompositions();
   }, [checkin.telefone, isExpanded]); // ⚡ Adicionar isExpanded como dependência
 
   // Buscar ID do check-in anterior quando os dados de evolução estiverem disponíveis
@@ -696,69 +662,23 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     }
   }, [checkin.id, updateCheckinStatus, onUpdate, feedbackAnalysis, markFeedbackAsSent, setIsExpanded]);
 
-  // Função de exportação de evolução
+  // Função de exportação de evolução - Abre página de evolução em nova aba
   const handleExportEvolution = async (format: 'pdf' | 'png' | 'jpeg') => {
-    if (!checkin?.patient) return;
-    
-    // Usar o mesmo componente de exportação do portal
-    setEvolutionExportMode(format === 'jpeg' ? 'png' : format);
-    setShowEvolutionExport(true);
-  };
-
-  // Callback quando a exportação direta é concluída
-  const handleDirectEvolutionExport = async (exportRef: HTMLDivElement, format: 'png' | 'pdf') => {
-    // Prevenir execução múltipla
-    if (isExportingRef.current) {
+    if (!checkin?.telefone) {
+      toast.error('Erro', { description: 'Telefone do paciente não disponível' });
       return;
     }
     
-    try {
-      isExportingRef.current = true;
-      setGeneratingPDF(true);
-      toast.success(format === 'png' ? '📸 Gerando PNG...' : '📄 Gerando PDF...', {
-        description: 'Aguarde enquanto criamos seu arquivo'
-      });
-
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(exportRef, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#0f172a',
-        logging: false,
-      });
-
-      if (format === 'png') {
-        const dataURL = canvas.toDataURL('image/png', 1.0);
-        const link = document.createElement('a');
-        link.download = `evolucao-${checkin.patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success('PNG gerado! 🎉', { description: 'Evolução exportada com sucesso' });
-      } else {
-        const { jsPDF } = await import('jspdf');
-        const imgData = canvas.toDataURL('image/png', 1.0);
-        const pdfWidth = 210;
-        const imgHeightMM = (canvas.height * pdfWidth) / canvas.width;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, imgHeightMM] });
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeightMM);
-        pdf.save(`evolucao-${checkin.patient?.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
-        toast.success('PDF gerado! 📄', { description: 'Relatório baixado com sucesso' });
-      }
-      setShowEvolutionExport(false);
-      setEvolutionExportMode(null);
-    } catch (error) {
-      console.error('Erro ao exportar:', error);
-      toast.error('Erro', { description: 'Não foi possível gerar o arquivo' });
-    } finally {
-      setGeneratingPDF(false);
-      // Resetar flag após um pequeno delay para permitir que o download seja processado
-      setTimeout(() => {
-        isExportingRef.current = false;
-      }, 1000);
-    }
+    // Abrir página de evolução em nova aba com parâmetros de auto-export
+    const exportFormat = format === 'jpeg' ? 'png' : format;
+    const url = `/checkins/evolution/${checkin.telefone}?autoExport=${exportFormat}&autoClose=true`;
+    
+    toast.success('Abrindo página de evolução...', {
+      description: 'O download iniciará automaticamente'
+    });
+    
+    // Abrir em nova aba
+    window.open(url, '_blank');
   };
 
   if (!checkin) return null;
@@ -3673,18 +3593,6 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
         telefone={checkin.telefone}
         patientName={checkin.patient?.nome || checkin.nome || 'Paciente'}
       />
-
-      {/* Modal de Exportação de Evolução */}
-      {showEvolutionExport && checkin.patient && (
-        <EvolutionExportPage
-          patient={checkin.patient}
-          checkins={previousCheckins.length > 0 ? [checkin, ...previousCheckins] : [checkin]}
-          bodyCompositions={bodyCompositions}
-          onClose={() => { setShowEvolutionExport(false); setEvolutionExportMode(null); }}
-          directExportMode={evolutionExportMode || undefined}
-          onDirectExport={handleDirectEvolutionExport}
-        />
-      )}
     </div>
   );
 };

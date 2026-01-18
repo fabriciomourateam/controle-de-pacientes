@@ -625,15 +625,6 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
                 Ver Histórico ({allBioimpedancias.length})
               </Button>
             )}
-
-            <Button
-              onClick={() => handleExport('png')}
-              disabled={generatingPDF}
-              className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg"
-            >
-              <Download className="w-4 h-4" />
-              {generatingPDF ? 'Gerando...' : 'Baixar Evolução'}
-            </Button>
           </div>
 
           {/* Formulário de Bioimpedância Integrado */}

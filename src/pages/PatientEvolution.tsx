@@ -485,6 +485,31 @@ export default function PatientEvolution() {
     loadEvolution();
   }, [telefone]); // Apenas telefone como dependência
 
+  // Auto-export: Detectar parâmetros da URL e baixar automaticamente
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const autoExport = searchParams.get('autoExport');
+    const autoClose = searchParams.get('autoClose');
+    
+    if (autoExport && !loading && patient) {
+      // Aguardar um pouco para garantir que a página carregou completamente
+      const timer = setTimeout(() => {
+        console.log('🚀 Auto-export ativado:', autoExport);
+        handleExport(autoExport as 'pdf' | 'png' | 'jpeg');
+        
+        // Se autoClose estiver ativo, fechar a aba após o download
+        if (autoClose === 'true') {
+          setTimeout(() => {
+            console.log('🔒 Fechando aba automaticamente');
+            window.close();
+          }, 1500); // Fechar após 1.5 segundos (reduzido de 3s)
+        }
+      }, 500); // Aguardar apenas 500ms antes de iniciar o download (reduzido de 1.5s)
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, patient]); // Executar quando loading terminar e patient estiver disponível
+
   const handleExport = async (format: 'pdf' | 'png' | 'jpeg') => {
     if (!patient) return;
     
