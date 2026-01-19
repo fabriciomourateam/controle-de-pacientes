@@ -47,32 +47,34 @@ export function CheckinPhotosViewer({
     try {
       const allPhotos: PhotoData[] = [];
 
-      // 1. Buscar fotos do checkin atual
-      const { data: currentCheckin } = await supabase
-        .from('checkin')
-        .select('foto_1, foto_2, foto_3, foto_4, data_checkin')
-        .eq('id', checkinId)
-        .single();
+      // 1. Buscar fotos do checkin específico (SEMPRE busca as fotos do checkinId fornecido)
+      if (photoSource === 'current' || photoSource === 'all') {
+        const { data: currentCheckin } = await supabase
+          .from('checkin')
+          .select('foto_1, foto_2, foto_3, foto_4, data_checkin')
+          .eq('id', checkinId)
+          .single();
 
-      if (currentCheckin && (photoSource === 'all' || photoSource === 'current')) {
-        const currentDate = new Date(currentCheckin.data_checkin || checkinDate).toLocaleDateString('pt-BR');
-        [currentCheckin.foto_1, currentCheckin.foto_2, currentCheckin.foto_3, currentCheckin.foto_4]
-          .filter(Boolean)
-          .forEach((url, index) => {
-            if (url) {
-              const isVideo = getMediaType(url) === 'video';
-              allPhotos.push({
-                url,
-                label: `Check-in ${currentDate} - Foto ${index + 1}`,
-                date: currentDate,
-                source: 'current',
-                isVideo
-              });
-            }
-          });
+        if (currentCheckin) {
+          const currentDate = new Date(currentCheckin.data_checkin || checkinDate).toLocaleDateString('pt-BR');
+          [currentCheckin.foto_1, currentCheckin.foto_2, currentCheckin.foto_3, currentCheckin.foto_4]
+            .filter(Boolean)
+            .forEach((url, index) => {
+              if (url) {
+                const isVideo = getMediaType(url) === 'video';
+                allPhotos.push({
+                  url,
+                  label: `Check-in ${currentDate} - Foto ${index + 1}`,
+                  date: currentDate,
+                  source: 'current',
+                  isVideo
+                });
+              }
+            });
+        }
       }
 
-      // 2. Buscar checkin anterior
+      // 2. Buscar checkin anterior (SOMENTE se photoSource for 'all' ou 'previous')
       if (photoSource === 'all' || photoSource === 'previous') {
         let previousCheckinData = null;
         
@@ -123,38 +125,40 @@ export function CheckinPhotosViewer({
         }
       }
 
-      // 3. Buscar fotos iniciais do paciente
-      const { data: patient } = await supabase
-        .from('patients')
-        .select('foto_inicial_frente, foto_inicial_lado, foto_inicial_lado_2, foto_inicial_costas, data_fotos_iniciais')
-        .eq('telefone', telefone)
-        .single();
+      // 3. Buscar fotos iniciais do paciente (SOMENTE se photoSource for 'all' ou 'initial')
+      if (photoSource === 'all' || photoSource === 'initial') {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('foto_inicial_frente, foto_inicial_lado, foto_inicial_lado_2, foto_inicial_costas, data_fotos_iniciais')
+          .eq('telefone', telefone)
+          .single();
 
-      if (patient && (photoSource === 'all' || photoSource === 'initial')) {
-        setPatientData(patient);
-        const initialDate = patient.data_fotos_iniciais 
-          ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR')
-          : 'Dados Iniciais';
-        
-        const initialPhotos = [
-          { url: patient.foto_inicial_frente, label: 'Frente' },
-          { url: patient.foto_inicial_lado, label: 'Lado D' },
-          { url: patient.foto_inicial_lado_2, label: 'Lado E' },
-          { url: patient.foto_inicial_costas, label: 'Costas' }
-        ];
+        if (patient) {
+          setPatientData(patient);
+          const initialDate = patient.data_fotos_iniciais 
+            ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR')
+            : 'Dados Iniciais';
+          
+          const initialPhotos = [
+            { url: patient.foto_inicial_frente, label: 'Frente' },
+            { url: patient.foto_inicial_lado, label: 'Lado D' },
+            { url: patient.foto_inicial_lado_2, label: 'Lado E' },
+            { url: patient.foto_inicial_costas, label: 'Costas' }
+          ];
 
-        initialPhotos.forEach((photo) => {
-          if (photo.url) {
-            const isVideo = getMediaType(photo.url) === 'video';
-            allPhotos.push({
-              url: photo.url,
-              label: `Dados Iniciais (${initialDate}) - ${photo.label}`,
-              date: initialDate,
-              source: 'initial',
-              isVideo
-            });
-          }
-        });
+          initialPhotos.forEach((photo) => {
+            if (photo.url) {
+              const isVideo = getMediaType(photo.url) === 'video';
+              allPhotos.push({
+                url: photo.url,
+                label: `Dados Iniciais (${initialDate}) - ${photo.label}`,
+                date: initialDate,
+                source: 'initial',
+                isVideo
+              });
+            }
+          });
+        }
       }
 
       setPhotos(allPhotos);
