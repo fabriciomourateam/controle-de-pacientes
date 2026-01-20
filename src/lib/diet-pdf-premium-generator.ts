@@ -138,11 +138,8 @@ export class DietPremiumPDFGenerator {
         <div style="font-size:20px;font-weight:700;color:#ffffff;margin-bottom:16px;display:flex;align-items:center;gap:10px;">📚 Orientações Nutricionais</div>
         ${plan.diet_guidelines.map((g: any) => `
           <div style="background:rgba(30,41,59,0.6);border:1px solid rgba(71,85,105,0.5);border-radius:12px;padding:20px;margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-              <span style="background:rgba(16,185,129,0.15);color:#10b981;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;">${g.guideline_type}</span>
-              <span style="font-size:16px;font-weight:700;color:#ffffff;">${g.title}</span>
-            </div>
-            <div style="font-size:14px;color:#94a3b8;line-height:1.7;">${g.content}</div>
+            <div style="font-size:16px;font-weight:700;color:#ffffff;margin-bottom:10px;">${g.title || ''}</div>
+            <div style="font-size:14px;color:#94a3b8;line-height:1.7;word-wrap:break-word;">${g.content || ''}</div>
           </div>
         `).join('')}
       </div>

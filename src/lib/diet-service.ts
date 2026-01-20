@@ -162,13 +162,23 @@ export const dietService = {
 
   // Buscar banco de alimentos
   async getFoodDatabase() {
+    console.log('🔍 [diet-service] getFoodDatabase() chamado');
     const { data, error } = await supabase
       .from('food_database')
       .select('*')
       .eq('is_active', true)
       .order('name', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ [diet-service] Erro ao buscar alimentos:', error);
+      throw error;
+    }
+    
+    console.log('✅ [diet-service] Alimentos retornados:', {
+      count: data?.length || 0,
+      firstFoods: data?.slice(0, 3).map(f => f.name) || []
+    });
+    
     return data;
   },
 

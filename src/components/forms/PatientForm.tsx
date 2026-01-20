@@ -247,6 +247,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                         <Input
                           placeholder="Telefone alternativo (opcional)"
                           {...field}
+                          value={field.value || ''}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
@@ -387,6 +388,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                         <Input
                           placeholder="Ex: João"
                           {...field}
+                          value={field.value || ''}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
@@ -406,6 +408,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                           type="email"
                           placeholder="joao@email.com"
                           {...field}
+                          value={field.value || ''}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
@@ -426,6 +429,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                         <Input
                           placeholder="Digite o CPF"
                           {...field}
+                          value={field.value || ''}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
                       </FormControl>
@@ -516,6 +520,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                           max="300"
                           placeholder="70.5"
                           {...field}
+                          value={field.value ?? ''}
                           onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
@@ -537,6 +542,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                           step="0.1"
                           placeholder="175.0"
                           {...field}
+                          value={field.value ?? ''}
                           onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                           className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400"
                         />
@@ -557,7 +563,8 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <Input
                         placeholder="Ex: Perder peso, ganhar massa muscular..."
                         {...field}
-                          className="bg-slate-800/50 border-slate-600/50 text-white"
+                        value={field.value || ''}
+                        className="bg-slate-800/50 border-slate-600/50 text-white"
                       />
                     </FormControl>
                     <FormMessage />
@@ -575,7 +582,8 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <Input
                         placeholder="Observações adicionais..."
                         {...field}
-                          className="bg-slate-800/50 border-slate-600/50 text-white"
+                        value={field.value || ''}
+                        className="bg-slate-800/50 border-slate-600/50 text-white"
                       />
                     </FormControl>
                     <FormMessage />

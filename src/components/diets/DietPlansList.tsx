@@ -1852,11 +1852,18 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                             key={guideline.id || index} 
                             className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
                           >
-                            <p className="font-semibold text-[#222222] mb-2">{guideline.title}</p>
-                            <p className="text-sm text-[#777777] leading-relaxed mb-3">{guideline.content}</p>
-                            <Badge className="bg-[#00C98A]/10 text-[#00A875] border-[#00C98A]/20">
-                              {guideline.guideline_type}
-                            </Badge>
+                            <div 
+                              className="font-semibold text-[#222222] mb-2"
+                              dangerouslySetInnerHTML={{ __html: guideline.title || '' }}
+                            />
+                            <div 
+                              className="text-sm text-[#777777] leading-relaxed prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: guideline.content || '' }}
+                              style={{
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word'
+                              }}
+                            />
                           </div>
                         ))}
                       </div>

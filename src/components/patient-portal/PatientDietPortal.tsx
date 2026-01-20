@@ -39,7 +39,9 @@ import {
   AlertTriangle,
   BookOpen,
   Info,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { dietConsumptionService } from '@/lib/diet-consumption-service';
 import { useToast } from '@/hooks/use-toast';
@@ -756,19 +758,59 @@ export function PatientDietPortal({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {planDetails.diet_guidelines.map((guideline: any, index: number) => (
-                    <div 
-                      key={guideline.id || index} 
-                      className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200 hover:bg-gray-100 transition-all duration-200"
-                    >
-                      <p className="font-semibold text-sm sm:text-base text-[#222222] mb-2">{guideline.title}</p>
-                      <p className="text-xs sm:text-sm text-[#777777] leading-relaxed mb-3">{guideline.content}</p>
-                      <Badge className="bg-[#00C98A]/20 text-[#00C98A] border-[#00C98A]/30 text-xs">
-                        {guideline.guideline_type}
-                      </Badge>
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  {planDetails.diet_guidelines.map((guideline: any, index: number) => {
+                    // Extrair texto puro do HTML para o título
+                    const getTitleText = (html: string) => {
+                      if (!html) return `Orientação ${index + 1}`;
+                      const div = document.createElement('div');
+                      div.innerHTML = html;
+                      const text = div.textContent || div.innerText || '';
+                      return text.trim() || `Orientação ${index + 1}`;
+                    };
+
+                    return (
+                      <Collapsible key={guideline.id || index}>
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-between p-3 sm:p-4 h-auto bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all duration-200"
+                          >
+                            <div className="flex items-center gap-2 flex-1 text-left">
+                              <ChevronRight className="w-4 h-4 text-[#00C98A] flex-shrink-0 transition-transform group-data-[state=open]:rotate-90" />
+                              <span className="font-semibold text-sm sm:text-base text-[#222222]">
+                                {getTitleText(guideline.title)}
+                              </span>
+                            </div>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                          <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-200">
+                            {/* Conteúdo com HTML e links clicáveis */}
+                            <div 
+                              className="text-xs sm:text-sm text-[#777777] leading-relaxed prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: guideline.content || '' }}
+                              style={{
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word'
+                              }}
+                              onClick={(e) => {
+                                // Tornar links clicáveis
+                                const target = e.target as HTMLElement;
+                                if (target.tagName === 'A') {
+                                  e.preventDefault();
+                                  const href = target.getAttribute('href');
+                                  if (href) {
+                                    window.open(href, '_blank', 'noopener,noreferrer');
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

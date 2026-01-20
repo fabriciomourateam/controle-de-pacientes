@@ -40,9 +40,11 @@ import { Plus, Trash2, Calculator, Utensils, Clock, Star, Copy, ChevronDown, Che
 import { TMBCalculator } from "./TMBCalculator";
 import { MacroDistributionModal } from "./MacroDistributionModal";
 import { TemplateLibraryModal } from "./TemplateLibraryModal";
+import { GuidelineTemplatesModal } from "./GuidelineTemplatesModal";
 import { FoodSuggestionsDropdown } from "./FoodSuggestionsDropdown";
 import { FoodSearchInput } from "./FoodSearchInput";
 import { FoodSelectionModal } from "./FoodSelectionModal";
+import { RichTextEditor } from "./RichTextEditor";
 import { foodSuggestionsService } from "@/lib/diet-food-suggestions-service";
 import FoodCacheService from "@/lib/food-cache-service";
 
@@ -63,6 +65,7 @@ import { dietVersionHistoryService } from "@/lib/diet-version-history-service";
 import { dietFavoritesService } from "@/lib/diet-favorites-service";
 import { dietMealFavoritesService, type FavoriteMeal } from "@/lib/diet-meal-favorites-service";
 import { foodGroupsService } from "@/lib/diet-food-groups-service";
+import { useGuidelineTemplates } from "@/hooks/use-guideline-templates";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -154,7 +157,7 @@ const dietPlanSchema = z.object({
   ).optional(),
   guidelines: z.array(
     z.object({
-      guideline_type: z.string(),
+      guideline_type: z.string().optional().default("general"),
       title: z.string().min(1, "Título é obrigatório"),
       content: z.string().min(1, "Conteúdo é obrigatório"),
       priority: z.number().default(0),
@@ -193,6 +196,7 @@ export function DietPlanForm({
   isPageMode = false,
 }: DietPlanFormProps) {
   const { toast } = useToast();
+  const { copyTemplatesToPlan, createTemplate } = useGuidelineTemplates();
   const [loading, setLoading] = useState(false);
   const [foodDatabase, setFoodDatabase] = useState<any[]>([]);
   const [foodDatabaseLoaded, setFoodDatabaseLoaded] = useState(false);
@@ -206,11 +210,13 @@ export function DietPlanForm({
   const [tmbDialogOpen, setTmbDialogOpen] = useState(false);
   const [expandedMeals, setExpandedMeals] = useState<Set<number>>(new Set());
   const [expandedObservations, setExpandedObservations] = useState<Set<number>>(new Set());
+  const [expandedGuidelines, setExpandedGuidelines] = useState<Set<number>>(new Set());
   const [patientData, setPatientData] = useState<any>(null);
   
   // Estados para novos modais e funcionalidades
   const [macroDistributionOpen, setMacroDistributionOpen] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
+  const [guidelineTemplatesOpen, setGuidelineTemplatesOpen] = useState(false);
   const [substitutionsModalOpen, setSubstitutionsModalOpen] = useState(false);
   const [proportionalAdjustmentOpen, setProportionalAdjustmentOpen] = useState(false);
   const [quickPortionAdjustmentOpen, setQuickPortionAdjustmentOpen] = useState(false);
@@ -369,37 +375,61 @@ export function DietPlanForm({
 
   // Lazy loading: carregar alimentos apenas quando necessário
   const loadFoodDatabase = useCallback(async (force = false) => {
+    console.log('🔍 [DietPlanForm] loadFoodDatabase() chamado, force:', force);
     // Verificar cache primeiro
     if (!force) {
       const cached = FoodCacheService.getCachedFoods();
+      console.log('💾 [DietPlanForm] Cache verificado:', {
+        hasCached: !!cached,
+        cachedCount: cached?.length || 0
+      });
+      
       if (cached && cached.length > 0) {
+        console.log('✅ [DietPlanForm] Usando alimentos do cache');
         setFoodDatabase(cached);
         setFoodDatabaseLoaded(true);
         // Carregar em background para atualizar cache
+        console.log('🔄 [DietPlanForm] Atualizando cache em background');
         loadFoodDatabaseFromServer();
         return;
       }
     }
 
+    console.log('📡 [DietPlanForm] Carregando alimentos do servidor');
     await loadFoodDatabaseFromServer();
   }, []);
 
   const loadFoodDatabaseFromServer = async () => {
-    if (foodDatabaseLoading) return;
+    console.log('🔍 [DietPlanForm] loadFoodDatabaseFromServer() chamado');
+    if (foodDatabaseLoading) {
+      console.log('⏸️ [DietPlanForm] Já está carregando, abortando');
+      return;
+    }
     
     setFoodDatabaseLoading(true);
     try {
+      console.log('📡 [DietPlanForm] Chamando dietService.getFoodDatabase()...');
       const foods = await dietService.getFoodDatabase();
+      console.log('📦 [DietPlanForm] Resposta recebida:', {
+        foodsCount: foods?.length || 0,
+        firstFoods: foods?.slice(0, 3).map((f: any) => f.name) || []
+      });
+      
       if (foods && foods.length > 0) {
+        console.log('✅ [DietPlanForm] Salvando alimentos no state');
         setFoodDatabase(foods);
         setFoodDatabaseLoaded(true);
         // Salvar no cache
         FoodCacheService.cacheFoods(foods);
+        console.log('✅ [DietPlanForm] Alimentos salvos com sucesso');
+      } else {
+        console.warn('⚠️ [DietPlanForm] Nenhum alimento retornado');
       }
     } catch (error) {
-      console.error("Erro ao carregar banco de alimentos:", error);
+      console.error("❌ [DietPlanForm] Erro ao carregar banco de alimentos:", error);
     } finally {
       setFoodDatabaseLoading(false);
+      console.log('🏁 [DietPlanForm] loadFoodDatabaseFromServer() finalizado');
     }
   };
 
@@ -407,6 +437,14 @@ export function DietPlanForm({
   useEffect(() => {
     FoodCacheService.cleanExpiredCache();
   }, []);
+
+  // Carregar alimentos quando o modal de seleção for aberto
+  useEffect(() => {
+    if (foodSelectionModalOpen && !foodDatabaseLoaded && !foodDatabaseLoading) {
+      console.log('🔄 [DietPlanForm] Modal de seleção aberto, carregando alimentos...');
+      loadFoodDatabase();
+    }
+  }, [foodSelectionModalOpen, foodDatabaseLoaded, foodDatabaseLoading, loadFoodDatabase]);
 
   // Navegação por teclado
   useEffect(() => {
@@ -1067,6 +1105,15 @@ export function DietPlanForm({
 
         const newPlan = await dietService.create(planData);
         currentPlanId = newPlan.id;
+        
+        // Copiar templates de orientações para o novo plano
+        try {
+          await copyTemplatesToPlan(currentPlanId);
+          console.log('✅ Templates de orientações copiados para o novo plano');
+        } catch (error) {
+          console.error('⚠️ Erro ao copiar templates:', error);
+          // Não bloquear a criação do plano se houver erro ao copiar templates
+        }
       }
 
       // Criar refeições e alimentos
@@ -1159,9 +1206,18 @@ export function DietPlanForm({
         description: "O plano alimentar foi salvo com sucesso.",
       });
 
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
+      // Se estiver editando, manter na mesma aba e recarregar os dados
+      if (isEditing && planId) {
+        await loadPlanData();
+        // Não fechar o modal nem resetar o formulário
+        // Apenas chamar onSaveSuccess se existir
+        onSaveSuccess?.();
+      } else {
+        // Se for novo plano, fechar o modal
+        form.reset();
+        onOpenChange(false);
+        onSuccess?.();
+      }
     } catch (error) {
       console.error("❌ Erro ao salvar plano:", error);
       toast({
@@ -2156,15 +2212,26 @@ export function DietPlanForm({
                         Adicione orientações gerais para o paciente seguir o plano
                       </p>
                     </div>
-                    <Button 
-                      type="button" 
-                      onClick={addGuideline} 
-                      size="sm"
-                      className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Orientação
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        onClick={() => setGuidelineTemplatesOpen(true)} 
+                        size="sm"
+                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
+                      >
+                        <Star className="w-4 h-4 mr-2 fill-white" />
+                        Gerenciar Favoritas
+                      </Button>
+                      <Button 
+                        type="button" 
+                        onClick={addGuideline} 
+                        size="sm"
+                        className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Orientação
+                      </Button>
+                    </div>
                   </div>
 
                   {guidelineFields.length === 0 ? (
@@ -2189,89 +2256,141 @@ export function DietPlanForm({
                     </Card>
                   ) : (
                     <div className="space-y-4">
-                      {guidelineFields.map((guideline, index) => (
-                        <Card 
-                          key={guideline.id}
-                          className="bg-green-400/10 border border-green-500/30 hover:bg-green-400/15 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20"
-                        >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-base font-semibold text-[#222222]">Orientação {index + 1}</CardTitle>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeGuideline(index)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                              <FormField
-                                control={form.control}
-                                name={`guidelines.${index}.guideline_type`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-[#222222] font-medium">Tipo de Orientação</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {guidelineTypes.map((type) => (
-                                        <SelectItem key={type.value} value={type.value}>
-                                          {type.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                      {guidelineFields.map((guideline, index) => {
+                        const titleValue = form.watch(`guidelines.${index}.title`);
+                        const isExpanded = expandedGuidelines.has(index);
+                        
+                        // Extrair texto puro do HTML para exibir no header
+                        const getTitleText = (html: string) => {
+                          if (!html) return `Orientação ${index + 1}`;
+                          const div = document.createElement('div');
+                          div.innerHTML = html;
+                          const text = div.textContent || div.innerText || '';
+                          return text.trim() || `Orientação ${index + 1}`;
+                        };
+                        
+                        return (
+                          <Card 
+                            key={guideline.id}
+                            className="bg-green-400/10 border border-green-500/30 hover:bg-green-400/15 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20"
+                          >
+                            <CardHeader className="pb-3 cursor-pointer" onClick={() => {
+                              const newExpanded = new Set(expandedGuidelines);
+                              if (isExpanded) {
+                                newExpanded.delete(index);
+                              } else {
+                                newExpanded.add(index);
+                              }
+                              setExpandedGuidelines(newExpanded);
+                            }}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 flex-1">
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-4 h-4 text-[#00C98A]" />
+                                  ) : (
+                                    <ChevronUp className="w-4 h-4 text-[#777777]" />
+                                  )}
+                                  <CardTitle className="text-base font-semibold text-[#222222]">
+                                    {getTitleText(titleValue)}
+                                  </CardTitle>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Salvar como template
+                                      const guidelineData = form.getValues(`guidelines.${index}`);
+                                      if (guidelineData.title && guidelineData.content) {
+                                        createTemplate({
+                                          guideline_type: guidelineData.guideline_type || 'general',
+                                          title: guidelineData.title,
+                                          content: guidelineData.content,
+                                          priority: index
+                                        }).then(() => {
+                                          toast({
+                                            title: 'Orientação favoritada!',
+                                            description: 'Esta orientação aparecerá em novos planos',
+                                          });
+                                        }).catch((error) => {
+                                          console.error('Erro ao favoritar:', error);
+                                        });
+                                      } else {
+                                        toast({
+                                          title: 'Erro',
+                                          description: 'Preencha título e conteúdo antes de favoritar',
+                                          variant: 'destructive'
+                                        });
+                                      }
+                                    }}
+                                    className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                                    title="Salvar como favorita"
+                                  >
+                                    <Star className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeGuideline(index);
+                                    }}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            
+                            {isExpanded && (
+                              <CardContent className="space-y-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`guidelines.${index}.title`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[#222222] font-medium">Título *</FormLabel>
+                                      <FormControl>
+                                        <RichTextEditor
+                                          value={field.value || ''}
+                                          onChange={field.onChange}
+                                          placeholder="Ex: Hidratação"
+                                          className="min-h-[60px]"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
 
-                            <FormField
-                              control={form.control}
-                              name={`guidelines.${index}.title`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[#222222] font-medium">Título *</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="Ex: Hidratação" 
-                                      className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name={`guidelines.${index}.content`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[#222222] font-medium">Conteúdo *</FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      placeholder="Ex: Beber 2-3L de água por dia..."
-                                      className="resize-none border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </CardContent>
-                        </Card>
-                      ))}
+                                <FormField
+                                  control={form.control}
+                                  name={`guidelines.${index}.content`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[#222222] font-medium">Conteúdo *</FormLabel>
+                                      <FormControl>
+                                        <RichTextEditor
+                                          value={field.value || ''}
+                                          onChange={field.onChange}
+                                          placeholder="Ex: Beber 2-3L de água por dia..."
+                                          className="min-h-[120px]"
+                                          resizable={true}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </CardContent>
+                            )}
+                          </Card>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -2416,8 +2535,18 @@ export function DietPlanForm({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {form.watch("guidelines")?.map((guideline: any, index: number) => (
                             <div key={index} className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-lg hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300">
-                              <p className="font-semibold text-emerald-300 mb-2">{guideline.title}</p>
-                              <p className="text-sm text-slate-300">{guideline.content}</p>
+                              <div 
+                                className="font-semibold text-emerald-300 mb-2"
+                                dangerouslySetInnerHTML={{ __html: guideline.title || '' }}
+                              />
+                              <div 
+                                className="text-sm text-slate-300 prose prose-sm prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: guideline.content || '' }}
+                                style={{
+                                  wordWrap: 'break-word',
+                                  overflowWrap: 'break-word'
+                                }}
+                              />
                             </div>
                           ))}
                         </div>
@@ -2488,6 +2617,11 @@ export function DietPlanForm({
           onOpenChange={setTemplateLibraryOpen}
           patientId={patientId}
           onTemplateSelected={handleTemplateSelected}
+        />
+
+        <GuidelineTemplatesModal
+          open={guidelineTemplatesOpen}
+          onOpenChange={setGuidelineTemplatesOpen}
         />
 
         {form.watch('total_calories') && form.watch('meals')?.length > 0 && (

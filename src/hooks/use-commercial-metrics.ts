@@ -146,8 +146,14 @@ export function useCommercialMetrics(selectedMonth?: string) {
   const allLeadsQuery = useAllTotalDeLeads();
   const allCallsQuery = useAllTotalDeCallsAgendadas();
   
-  // Se não há mês selecionado ou é string vazia, usa o mais recente
-  const currentMonth = (selectedMonth && selectedMonth !== '') 
+  // Filtrar valores especiais que não devem ser buscados do Supabase
+  const isSpecialValue = (month: string | undefined): boolean => {
+    if (!month) return false;
+    return month === 'TODOS' || month === 'TOTAL_2025' || month === 'TOTAL_2026';
+  };
+  
+  // Se não há mês selecionado, é string vazia, ou é valor especial, usa o mais recente
+  const currentMonth = (selectedMonth && selectedMonth !== '' && !isSpecialValue(selectedMonth)) 
     ? selectedMonth 
     : (allLeadsQuery.data && allLeadsQuery.data.length > 0 ? allLeadsQuery.data[0].LEADS : null);
   
