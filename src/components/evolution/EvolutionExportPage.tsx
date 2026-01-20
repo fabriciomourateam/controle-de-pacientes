@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { X, FileImage, FileText } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import { extractMeasurements } from '@/lib/measurement-utils';
 
 interface PatientData {
   nome: string;
@@ -285,6 +286,53 @@ export function EvolutionExportPage({
       };
     })
     .filter(d => d.treino > 0 || d.cardio > 0 || d.sono > 0 || d.agua > 0 || d.stress > 0 || d.refeicoesLivres > 0 || d.beliscadas > 0);
+
+  // Dados de medidas (cintura e quadril) para o gráfico
+  const measurementsData: { date: string; cintura: number | null; quadril: number | null }[] = [];
+  
+  // Adicionar medidas iniciais se existirem
+  const patientAny = patient as any;
+  if (patientAny.medida_cintura_inicial || patientAny.medida_quadril_inicial) {
+    const dataInicial = patientAny.data_fotos_iniciais || patient.created_at;
+    if (dataInicial) {
+      measurementsData.push({
+        date: formatDate(dataInicial),
+        cintura: patientAny.medida_cintura_inicial ? parseFloat(patientAny.medida_cintura_inicial.toString()) : null,
+        quadril: patientAny.medida_quadril_inicial ? parseFloat(patientAny.medida_quadril_inicial.toString()) : null,
+      });
+    }
+  }
+  
+  // Adicionar medidas dos check-ins usando extractMeasurements
+  [...checkins].reverse().forEach(c => {
+    if (c.medida) {
+      const measurements = extractMeasurements(c.medida);
+      // Só adicionar se encontrou pelo menos uma medida
+      if (measurements.cintura !== null || measurements.quadril !== null) {
+        measurementsData.push({
+          date: formatDate(c.data_checkin),
+          cintura: measurements.cintura,
+          quadril: measurements.quadril,
+        });
+      }
+    }
+  });
+
+  // Debug: Log para verificar se há dados de medidas
+  if (measurementsData.length > 0) {
+    console.log('📏 Dados de medidas encontrados para exportação:', measurementsData.length, 'pontos', measurementsData);
+  } else {
+    console.log('⚠️ Nenhum dado de medida encontrado para exportação');
+  }
+
+  // Calcular ranges para o gráfico de medidas
+  const allMeasurements = [
+    ...measurementsData.map(d => d.cintura).filter((v): v is number => v !== null),
+    ...measurementsData.map(d => d.quadril).filter((v): v is number => v !== null)
+  ];
+  const minMeasurement = allMeasurements.length > 0 ? Math.min(...allMeasurements) - 5 : 50;
+  const maxMeasurement = allMeasurements.length > 0 ? Math.max(...allMeasurements) + 5 : 150;
+  const rangeMeasurement = maxMeasurement - minMeasurement || 1;
 
   const minPeso = weightData.length > 0 ? Math.min(...weightData.map(d => d.peso)) - 2 : 0;
   const maxPeso = weightData.length > 0 ? Math.max(...weightData.map(d => d.peso)) + 2 : 100;
@@ -863,6 +911,105 @@ export function EvolutionExportPage({
                     </g>
                   ))}
                 </svg>
+              </div>
+            );
+          })()}
+
+          {/* Evolução de Medidas (Cintura e Quadril) - Gráfico de Linha SVG */}
+          {measurementsData.length >= 1 && (() => {
+            const svgWidth = 800;
+            const svgHeight = 200;
+            const padding = { top: 30, right: 40, bottom: 40, left: 50 };
+            const chartWidth = svgWidth - padding.left - padding.right;
+            const chartHeight = svgHeight - padding.top - padding.bottom;
+            
+            // Calcular pontos para cintura
+            const cinturaPoints = measurementsData
+              .map((d, i) => {
+                if (d.cintura === null) return null;
+                const x = measurementsData.length === 1 
+                  ? padding.left + chartWidth / 2 
+                  : padding.left + (i / (measurementsData.length - 1)) * chartWidth;
+                const y = padding.top + chartHeight - ((d.cintura - minMeasurement) / rangeMeasurement) * chartHeight;
+                return { x, y, value: d.cintura, date: d.date };
+              })
+              .filter((p): p is { x: number; y: number; value: number; date: string } => p !== null);
+            
+            // Calcular pontos para quadril
+            const quadrilPoints = measurementsData
+              .map((d, i) => {
+                if (d.quadril === null) return null;
+                const x = measurementsData.length === 1 
+                  ? padding.left + chartWidth / 2 
+                  : padding.left + (i / (measurementsData.length - 1)) * chartWidth;
+                const y = padding.top + chartHeight - ((d.quadril - minMeasurement) / rangeMeasurement) * chartHeight;
+                return { x, y, value: d.quadril, date: d.date };
+              })
+              .filter((p): p is { x: number; y: number; value: number; date: string } => p !== null);
+            
+            const cinturaLinePath = cinturaPoints.length > 1 
+              ? cinturaPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+              : '';
+            
+            const quadrilLinePath = quadrilPoints.length > 1 
+              ? quadrilPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+              : '';
+            
+            return (
+              <div className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 border border-slate-700/50">
+                <h3 className="text-lg font-bold text-white mb-2">📏 Evolução de Medidas</h3>
+                <p className="text-slate-400 text-sm mb-4">Acompanhamento de cintura e quadril ao longo do tempo</p>
+                
+                <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="overflow-visible">
+                  {/* Linhas de grade horizontais */}
+                  {[0, 1, 2, 3, 4].map(i => {
+                    const y = padding.top + (i / 4) * chartHeight;
+                    const value = maxMeasurement - (i / 4) * rangeMeasurement;
+                    return (
+                      <g key={i}>
+                        <line x1={padding.left} y1={y} x2={svgWidth - padding.right} y2={y} stroke="#334155" strokeWidth="1" strokeDasharray="4" />
+                        <text x={padding.left - 8} y={y + 4} fill="#94a3b8" fontSize="11" textAnchor="end">{value.toFixed(0)}</text>
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Linha de cintura (só se tiver mais de 1 ponto) */}
+                  {cinturaLinePath && <path d={cinturaLinePath} fill="none" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                  
+                  {/* Linha de quadril (só se tiver mais de 1 ponto) */}
+                  {quadrilLinePath && <path d={quadrilLinePath} fill="none" stroke="#ec4899" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                  
+                  {/* Pontos de cintura */}
+                  {cinturaPoints.map((p, i) => (
+                    <g key={`cintura-${i}`}>
+                      <circle cx={p.x} cy={p.y} r={5} fill="#a855f7" stroke="#fff" strokeWidth="2" />
+                      <text x={p.x} y={p.y - 14} fill="#a855f7" fontSize="11" fontWeight="bold" textAnchor="middle">{p.value.toFixed(0)}</text>
+                    </g>
+                  ))}
+                  
+                  {/* Pontos de quadril */}
+                  {quadrilPoints.map((p, i) => (
+                    <g key={`quadril-${i}`}>
+                      <circle cx={p.x} cy={p.y} r={5} fill="#ec4899" stroke="#fff" strokeWidth="2" />
+                      <text x={p.x} y={p.y + 20} fill="#ec4899" fontSize="11" fontWeight="bold" textAnchor="middle">{p.value.toFixed(0)}</text>
+                    </g>
+                  ))}
+                  
+                  {/* Labels de data no eixo X */}
+                  {measurementsData.map((d, i) => {
+                    const x = measurementsData.length === 1 
+                      ? padding.left + chartWidth / 2 
+                      : padding.left + (i / (measurementsData.length - 1)) * chartWidth;
+                    return (
+                      <text key={i} x={x} y={svgHeight - 8} fill="#94a3b8" fontSize="10" textAnchor="middle">{d.date}</text>
+                    );
+                  })}
+                </svg>
+                
+                <div className="flex justify-center gap-6 mt-2 text-xs text-slate-400">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: '#a855f7' }}></span> Cintura (cm)</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: '#ec4899' }}></span> Quadril (cm)</span>
+                </div>
               </div>
             );
           })()}

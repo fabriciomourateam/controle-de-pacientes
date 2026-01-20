@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -485,6 +485,15 @@ export default function PatientEvolution() {
     loadEvolution();
   }, [telefone]); // Apenas telefone como dependência
 
+  // Função de exportação (declarada antes do useEffect que a usa)
+  const handleExport = useCallback(async (format: 'pdf' | 'png' | 'jpeg') => {
+    if (!patient) return;
+    
+    // Usar o mesmo componente de exportação do portal
+    setEvolutionExportMode(format === 'jpeg' ? 'png' : format);
+    setShowEvolutionExport(true);
+  }, [patient]);
+
   // Auto-export: Detectar parâmetros da URL e baixar automaticamente
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -502,21 +511,13 @@ export default function PatientEvolution() {
           setTimeout(() => {
             console.log('🔒 Fechando aba automaticamente');
             window.close();
-          }, 1500); // Fechar após 1.5 segundos (reduzido de 3s)
+          }, 5000); // Fechar após 5 segundos para dar tempo do download completar
         }
-      }, 500); // Aguardar apenas 500ms antes de iniciar o download (reduzido de 1.5s)
+      }, 2000); // Aguardar 2 segundos antes de iniciar o download para garantir que tudo carregou
       
       return () => clearTimeout(timer);
     }
-  }, [loading, patient]); // Executar quando loading terminar e patient estiver disponível
-
-  const handleExport = async (format: 'pdf' | 'png' | 'jpeg') => {
-    if (!patient) return;
-    
-    // Usar o mesmo componente de exportação do portal
-    setEvolutionExportMode(format === 'jpeg' ? 'png' : format);
-    setShowEvolutionExport(true);
-  };
+  }, [loading, patient, handleExport]); // Executar quando loading terminar e patient estiver disponível
 
   // Ref para evitar múltiplas execuções do download
   const isExportingRef = useRef(false);

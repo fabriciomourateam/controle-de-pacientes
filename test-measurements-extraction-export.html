@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste - Extração de Medidas para Exportação</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    h2 {
+      color: #667eea;
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+    .test-case {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .test-input {
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+      border: 1px solid #ddd;
+    }
+    .test-result {
+      background: #e8f5e9;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      border: 1px solid #4caf50;
+    }
+    .test-result.error {
+      background: #ffebee;
+      border-color: #f44336;
+    }
+    .success {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+    .info {
+      color: #2196f3;
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #667eea;
+      color: white;
+      font-weight: 600;
+    }
+    tr:hover {
+      background: #f5f5f5;
+    }
+    .chart-preview {
+      background: #0f172a;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: white;
+    }
+    .chart-point {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin: 0 5px;
+    }
+    .cintura-point {
+      background: #a855f7;
+    }
+    .quadril-point {
+      background: #ec4899;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Teste - Extração de Medidas para Exportação</h1>
+    <p>Este teste simula a extração de medidas (cintura e quadril) dos check-ins para o gráfico de exportação.</p>
+
+    <h2>📋 Casos de Teste</h2>
+    <div id="test-results"></div>
+
+    <h2>📊 Simulação de Dados para Exportação</h2>
+    <div id="export-simulation"></div>
+  </div>
+
+  <script>
+    // Copiar a função extractMeasurements do measurement-utils.ts
+    function extractMeasurements(text) {
+      if (!text) return { cintura: null, quadril: null };
+      
+      const textStr = text.toString();
+      let cintura = null;
+      let quadril = null;
+      
+      const parseNumber = (str) => parseFloat(str.replace(',', '.'));
+      
+      // Padrão especial: "Cintura X e Quadril Y"
+      const combinedPattern = /cintura\s+(\d+(?:[.,]\d+)?)\s*(?:e|,)?\s*quadril\s+(\d+(?:[.,]\d+)?)/i;
+      const combinedMatch = textStr.match(combinedPattern);
+      if (combinedMatch) {
+        const cinturaValue = parseNumber(combinedMatch[1]);
+        const quadrilValue = parseNumber(combinedMatch[2]);
+        if (isValidMeasurement(cinturaValue, 'cintura') && isValidMeasurement(quadrilValue, 'quadril')) {
+          return { cintura: cinturaValue, quadril: quadrilValue };
+        }
+      }
+      
+      // Padrão especial: "cintura 89Quadril 89" (sem espaço)
+      const noSpacePattern = /cintura\s+(\d+(?:[.,]\d+)?)(?:cm)?\s*quadril\s+(\d+(?:[.,]\d+)?)/i;
+      const noSpaceMatch = textStr.match(noSpacePattern);
+      if (noSpaceMatch) {
+        const cinturaValue = parseNumber(noSpaceMatch[1]);
+        const quadrilValue = parseNumber(noSpaceMatch[2]);
+        if (isValidMeasurement(cinturaValue, 'cintura') && isValidMeasurement(quadrilValue, 'quadril')) {
+          return { cintura: cinturaValue, quadril: quadrilValue };
+        }
+      }
+      
+      // Padrões com palavra-chave
+      const cinturaPatterns = [
+        /cintura\s+(\d+(?:[.,]\d+)?)(?:\s|$|cm|quadril|\n|e|,)/i,
+        /cintura[^:]*:\*?\s*(\d+(?:[.,]\d+)?)/i,
+      ];
+      
+      const quadrilPatterns = [
+        /quadril\s+(\d+(?:[.,]\d+)?)(?:\s|$|cm|\n|e|,)/i,
+        /quadril[^:]*:\*?\s*(\d+(?:[.,]\d+)?)/i,
+      ];
+      
+      for (const pattern of cinturaPatterns) {
+        const match = textStr.match(pattern);
+        if (match) {
+          const value = parseNumber(match[1]);
+          if (isValidMeasurement(value, 'cintura')) {
+            cintura = value;
+            break;
+          }
+        }
+      }
+      
+      for (const pattern of quadrilPatterns) {
+        const match = textStr.match(pattern);
+        if (match) {
+          const value = parseNumber(match[1]);
+          if (isValidMeasurement(value, 'quadril') && (cintura === null || value !== cintura)) {
+            quadril = value;
+            break;
+          }
+        }
+      }
+      
+      if (cintura !== null || quadril !== null) {
+        return { cintura, quadril };
+      }
+      
+      // Fallback: dois números consecutivos
+      const numbers = textStr.match(/\d+(?:[.,]\d+)?/g);
+      if (numbers && numbers.length >= 2) {
+        const num1 = parseNumber(numbers[0]);
+        const num2 = parseNumber(numbers[1]);
+        
+        if (num1 < num2) {
+          cintura = isValidMeasurement(num1, 'cintura') ? num1 : null;
+          quadril = isValidMeasurement(num2, 'quadril') ? num2 : null;
+        } else {
+          cintura = isValidMeasurement(num2, 'cintura') ? num2 : null;
+          quadril = isValidMeasurement(num1, 'quadril') ? num1 : null;
+        }
+      }
+      
+      return { cintura, quadril };
+    }
+    
+    function isValidMeasurement(value, type) {
+      if (type === 'cintura') {
+        return value >= 50 && value <= 120;
+      } else {
+        return value >= 70 && value <= 150;
+      }
+    }
+
+    // Casos de teste
+    const testCases = [
+      { input: "cintura 89Quadril 89", expected: { cintura: 89, quadril: 89 } },
+      { input: "Cintura 77,5 e Quadril 98", expected: { cintura: 77.5, quadril: 98 } },
+      { input: "cintura 63 quadril 97", expected: { cintura: 63, quadril: 97 } },
+      { input: "64cm 97cm", expected: { cintura: 64, quadril: 97 } },
+      { input: "Cintura: 81\nQuadril: 115", expected: { cintura: 81, quadril: 115 } },
+      { input: "96 104", expected: { cintura: 96, quadril: 104 } },
+      { input: "", expected: { cintura: null, quadril: null } },
+    ];
+
+    // Executar testes
+    const resultsDiv = document.getElementById('test-results');
+    let passedTests = 0;
+    let failedTests = 0;
+
+    testCases.forEach((testCase, index) => {
+      const result = extractMeasurements(testCase.input);
+      const passed = result.cintura === testCase.expected.cintura && result.quadril === testCase.expected.quadril;
+      
+      if (passed) passedTests++;
+      else failedTests++;
+
+      const testDiv = document.createElement('div');
+      testDiv.className = 'test-case';
+      testDiv.innerHTML = `
+        <strong>Teste ${index + 1}: ${passed ? '<span class="success">✅ PASSOU</span>' : '<span class="error">❌ FALHOU</span>'}</strong>
+        <div class="test-input"><strong>Input:</strong> "${testCase.input}"</div>
+        <div class="test-result ${passed ? '' : 'error'}">
+          <strong>Esperado:</strong> Cintura: ${testCase.expected.cintura || 'null'}, Quadril: ${testCase.expected.quadril || 'null'}<br>
+          <strong>Obtido:</strong> Cintura: ${result.cintura || 'null'}, Quadril: ${result.quadril || 'null'}
+        </div>
+      `;
+      resultsDiv.appendChild(testDiv);
+    });
+
+    // Resumo dos testes
+    const summaryDiv = document.createElement('div');
+    summaryDiv.style.cssText = 'background: #f0f0f0; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;';
+    summaryDiv.innerHTML = `
+      <h3>Resumo dos Testes</h3>
+      <p><span class="success">✅ Passou: ${passedTests}</span> | <span class="error">❌ Falhou: ${failedTests}</span></p>
+      <p><strong>Taxa de Sucesso: ${((passedTests / testCases.length) * 100).toFixed(1)}%</strong></p>
+    `;
+    resultsDiv.insertBefore(summaryDiv, resultsDiv.firstChild);
+
+    // Simulação de dados para exportação
+    const simulationDiv = document.getElementById('export-simulation');
+    
+    const mockCheckins = [
+      { data_checkin: '2024-01-15', medida: 'cintura 89Quadril 89' },
+      { data_checkin: '2024-02-15', medida: 'Cintura 85 e Quadril 95' },
+      { data_checkin: '2024-03-15', medida: 'cintura 82 quadril 92' },
+      { data_checkin: '2024-04-15', medida: '80 90' },
+    ];
+
+    const measurementsData = [];
+    mockCheckins.forEach(checkin => {
+      if (checkin.medida) {
+        const measurements = extractMeasurements(checkin.medida);
+        if (measurements.cintura !== null || measurements.quadril !== null) {
+          measurementsData.push({
+            date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+            cintura: measurements.cintura,
+            quadril: measurements.quadril,
+          });
+        }
+      }
+    });
+
+    const tableHTML = `
+      <div class="chart-preview">
+        <h3>📏 Gráfico de Medidas (Preview)</h3>
+        <p>Dados extraídos: ${measurementsData.length} pontos</p>
+        <div style="margin: 20px 0;">
+          <span class="chart-point cintura-point"></span> Cintura (roxo)
+          <span class="chart-point quadril-point"></span> Quadril (rosa)
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Texto Original</th>
+            <th>Cintura (cm)</th>
+            <th>Quadril (cm)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${mockCheckins.map((checkin, index) => {
+            const data = measurementsData[index];
+            const hasData = data && (data.cintura !== null || data.quadril !== null);
+            return `
+              <tr>
+                <td>${new Date(checkin.data_checkin).toLocaleDateString('pt-BR')}</td>
+                <td><code>${checkin.medida}</code></td>
+                <td>${data?.cintura || '-'}</td>
+                <td>${data?.quadril || '-'}</td>
+                <td>${hasData ? '<span class="success">✅ Extraído</span>' : '<span class="error">❌ Não extraído</span>'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <p class="info">ℹ️ Informação:</p>
+        <p>Estes dados seriam usados para renderizar o gráfico de medidas no arquivo exportado (PNG ou PDF).</p>
+        <p>O gráfico só aparecerá se houver pelo menos 1 ponto de dados com cintura ou quadril.</p>
+      </div>
+    `;
+
+    simulationDiv.innerHTML = tableHTML;
+
+    // Log no console
+    console.log('📏 Dados de medidas encontrados para exportação:', measurementsData.length, 'pontos', measurementsData);
+  </script>
+</body>
+</html>

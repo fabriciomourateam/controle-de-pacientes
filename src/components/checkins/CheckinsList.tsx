@@ -409,6 +409,12 @@ export function CheckinsList() {
         const dateA = new Date(a.data_preenchimento || a.data_checkin || 0).getTime();
         const dateB = new Date(b.data_preenchimento || b.data_checkin || 0).getTime();
         comparison = dateA - dateB;
+        
+        // REGRA ESPECIAL: Quando filtro de pendentes está ativo, sempre ordenar ascendente (mais antigos primeiro)
+        const isPendingFilterActive = selectedStatuses.length === 1 && selectedStatuses.includes('pendente');
+        if (isPendingFilterActive) {
+          return comparison; // Sempre ascendente para pendentes
+        }
       } else if (sortBy === 'name') {
         const nameA = (a.patient?.nome || '').toLowerCase();
         const nameB = (b.patient?.nome || '').toLowerCase();
@@ -427,7 +433,7 @@ export function CheckinsList() {
     });
     
     return sorted;
-  }, [filteredCheckins, sortBy, sortOrder]);
+  }, [filteredCheckins, sortBy, sortOrder, selectedStatuses]);
 
   // Limitar check-ins exibidos baseado no displayLimit
   const displayedCheckins = useMemo(() => {

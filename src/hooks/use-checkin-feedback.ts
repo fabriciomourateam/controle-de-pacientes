@@ -210,6 +210,9 @@ export const useCheckinFeedback = (telefone: string) => {
           peso_anterior: pesoAnterior,
           cintura_anterior: cinturaAnterior,
           quadril_anterior: quadrilAnterior,
+          peso_inicial: pesoAnterior, // Dados iniciais do paciente
+          cintura_inicial: cinturaAnterior, // Dados iniciais do paciente
+          quadril_inicial: quadrilAnterior, // Dados iniciais do paciente
           treino_anterior: null, // Sem dados iniciais
           cardio_anterior: null, // Sem dados iniciais
           agua_anterior: null, // Sem dados iniciais
@@ -260,6 +263,13 @@ export const useCheckinFeedback = (telefone: string) => {
         setEvolutionData(evolution);
         return evolution;
       }
+
+      // Buscar dados iniciais do paciente (para exibir na coluna "Dados Iniciais" quando há 1 check-in anterior)
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('peso_inicial, medida_cintura_inicial, medida_quadril_inicial')
+        .eq('telefone', telefone)
+        .single();
 
       // Extrair pesos
       const pesoAtual = cleanNumber(currentCheckin.peso);
@@ -361,6 +371,10 @@ export const useCheckinFeedback = (telefone: string) => {
         peso_anterior: pesoAnterior,
         cintura_anterior: medidasAnteriores.cintura,
         quadril_anterior: medidasAnteriores.quadril,
+        // Dados iniciais do paciente (para coluna "Dados Iniciais")
+        peso_inicial: patientData?.peso_inicial ? cleanNumber(patientData.peso_inicial) : null,
+        cintura_inicial: patientData?.medida_cintura_inicial ? cleanNumber(patientData.medida_cintura_inicial) : null,
+        quadril_inicial: patientData?.medida_quadril_inicial ? cleanNumber(patientData.medida_quadril_inicial) : null,
         treino_anterior: treinoAnterior,
         cardio_anterior: cardioAnterior,
         agua_anterior: aguaAnterior,

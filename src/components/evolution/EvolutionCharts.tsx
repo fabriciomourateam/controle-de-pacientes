@@ -743,6 +743,11 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
           }
         });
         
+        // Debug: Log para verificar se há dados de medidas
+        if (measurementsData.length > 0) {
+          console.log('📏 Dados de medidas encontrados:', measurementsData.length, 'pontos');
+        }
+        
         // Ordenar por data
         measurementsData.sort((a, b) => new Date(a.dataCompleta).getTime() - new Date(b.dataCompleta).getTime());
         

@@ -99,6 +99,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   const [hasPreviousPhotos, setHasPreviousPhotos] = useState(false);
   const [showAllCheckinsColumns, setShowAllCheckinsColumns] = useState(false);
   const [showBioimpedanciaModal, setShowBioimpedanciaModal] = useState(false);
+  const [showAproveitamento, setShowAproveitamento] = useState(false); // Oculto por padrão
   
   // Ref para evitar múltiplas execuções do download
   const isExportingRef = React.useRef(false);
@@ -112,6 +113,21 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     checkin.id,
     isExpanded // Só busca quando expandido
   );
+  
+  // Debug: Log para verificar quantos check-ins anteriores existem
+  React.useEffect(() => {
+    if (isExpanded && checkin.telefone === '5511995844506') {
+      console.log(`📊 Check-ins anteriores para ${checkin.telefone}:`, {
+        total: previousCheckins.length,
+        datas: previousCheckins.map(c => new Date(c.data_checkin).toLocaleDateString('pt-BR')),
+        checkinAtualId: checkin.id,
+        checkinAtualData: new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR'),
+        showAllCheckinsColumns,
+        condicaoPenultimo: `!showAllCheckinsColumns (${!showAllCheckinsColumns}) && previousCheckins.length >= 2 (${previousCheckins.length >= 2})`,
+        condicaoUltimo: `!showAllCheckinsColumns (${!showAllCheckinsColumns}) && previousCheckins.length > 0 (${previousCheckins.length > 0})`
+      });
+    }
+  }, [previousCheckins, isExpanded, checkin.telefone, checkin.id, checkin.data_checkin, checkin.data_preenchimento, showAllCheckinsColumns]);
   // Carregar dados existentes quando disponível do hook
   React.useEffect(() => {
     if (feedbackAnalysis) {
@@ -789,6 +805,19 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setShowAproveitamento(!showAproveitamento)}
+                        className={`text-xs h-7 px-3 font-semibold border transition-all ${
+                          showAproveitamento 
+                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:text-amber-300 hover:bg-amber-500/30 hover:border-amber-500/50 shadow-sm shadow-amber-500/10' 
+                            : 'bg-slate-700/30 text-slate-400 border-slate-600/30 hover:text-slate-300 hover:bg-slate-700/50 hover:border-slate-600/50'
+                        }`}
+                        title={showAproveitamento ? "Ocultar linha de Aproveitamento" : "Mostrar linha de Aproveitamento"}
+                      >
+                        🎯 {showAproveitamento ? 'Ocultar' : 'Mostrar'} Aproveitamento
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setShowPhotoComparison(true)}
                         className="text-xs h-7 px-3 font-semibold bg-green-500/20 text-green-400 border border-green-500/30 hover:text-green-300 hover:bg-green-500/30 hover:border-green-500/50 shadow-sm shadow-green-500/10 transition-all"
                         title="Comparar fotos lado a lado"
@@ -837,17 +866,31 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                 {new Date(checkin.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                               </th>
                             ))}
-                            {/* Coluna do penúltimo check-in (se houver pelo menos 2 e NÃO estiver expandido) */}
-                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                              <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                                {new Date(previousCheckins[previousCheckins.length - 2].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                              </th>
+                            {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                            {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                              <>
+                                {/* Coluna de dados iniciais */}
+                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                  Dados Iniciais
+                                </th>
+                                {/* Coluna do único check-in anterior */}
+                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                  {new Date(previousCheckins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                </th>
+                              </>
                             )}
-                            {/* Coluna do último check-in (se houver pelo menos 1 e NÃO estiver expandido) */}
-                            {!showAllCheckinsColumns && previousCheckins.length > 0 && (
-                              <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                                {new Date(previousCheckins[previousCheckins.length - 1].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                              </th>
+                            {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                              <>
+                                {/* Coluna do penúltimo check-in */}
+                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                  {new Date(previousCheckins[previousCheckins.length - 2].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                </th>
+                                {/* Coluna do último check-in */}
+                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                  {new Date(previousCheckins[previousCheckins.length - 1].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                </th>
+                              </>
                             )}
                             {/* Coluna do check-in atual */}
                             <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
@@ -867,27 +910,129 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'peso') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna penúltimo (se houver pelo menos 2 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'peso') || '-'}
-                                  </span>
-                                </td>
+                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <>
+                                  {/* Coluna com dados iniciais do paciente */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400 text-xs">
+                                      {evolutionData.peso_inicial ? `${evolutionData.peso_inicial}kg` : '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna do único check-in anterior */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    {editingField === 'peso' && editingPrevious ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit('peso');
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                          }}
+                                        />
+                                        <span className="text-xs text-slate-400">kg</span>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                          <Check className="h-3 w-3" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span 
+                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                        onClick={() => handleStartEdit('peso', getCheckinMetricValue(previousCheckins[0], 'peso')?.replace('kg', ''), true)}
+                                        title="Clique para editar"
+                                      >
+                                        {getCheckinMetricValue(previousCheckins[0], 'peso') || '-'}
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
-                              {/* Coluna último (se houver pelo menos 1 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {evolutionData.peso_anterior || '-'}kg
-                                  </span>
-                                </td>
+                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <>
+                                  {/* Coluna penúltimo */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400">
+                                      {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'peso') || '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna último */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    {editingField === 'peso' && editingPrevious ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit('peso');
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                          }}
+                                        />
+                                        <span className="text-xs text-slate-400">kg</span>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                          <Check className="h-3 w-3" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span 
+                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                        onClick={() => handleStartEdit('peso', evolutionData.peso_anterior, true)}
+                                        title="Clique para editar"
+                                      >
+                                        {evolutionData.peso_anterior || '-'}kg
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
                               {/* Coluna atual (sempre visível) */}
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                <span className="text-slate-200">
-                                  {evolutionData.peso_atual || '-'}kg
-                                </span>
+                                {editingField === 'peso' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('peso');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">kg</span>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                    onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.peso_atual || '-'}kg
+                                  </span>
+                                )}
                               </td>
                               {/* Coluna de evolução */}
                               <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
@@ -907,27 +1052,129 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'cintura') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna penúltimo (se houver pelo menos 2 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'cintura') || '-'}
-                                  </span>
-                                </td>
+                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <>
+                                  {/* Coluna com dados iniciais do paciente */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400 text-xs">
+                                      {evolutionData.cintura_inicial ? `${evolutionData.cintura_inicial}cm` : '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna do único check-in anterior */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    {editingField === 'cintura' && editingPrevious ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit('cintura');
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                          }}
+                                        />
+                                        <span className="text-xs text-slate-400">cm</span>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                          <Check className="h-3 w-3" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span 
+                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                        onClick={() => handleStartEdit('cintura', getCheckinMetricValue(previousCheckins[0], 'cintura')?.replace('cm', ''), true)}
+                                        title="Clique para editar"
+                                      >
+                                        {getCheckinMetricValue(previousCheckins[0], 'cintura') || '-'}
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
-                              {/* Coluna último (se houver pelo menos 1 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {evolutionData.cintura_anterior || '-'}cm
-                                  </span>
-                                </td>
+                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <>
+                                  {/* Coluna penúltimo */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400">
+                                      {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'cintura') || '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna último */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    {editingField === 'cintura' && editingPrevious ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit('cintura');
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                          }}
+                                        />
+                                        <span className="text-xs text-slate-400">cm</span>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                          <Check className="h-3 w-3" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span 
+                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                        onClick={() => handleStartEdit('cintura', evolutionData.cintura_anterior, true)}
+                                        title="Clique para editar"
+                                      >
+                                        {evolutionData.cintura_anterior || '-'}cm
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
                               {/* Coluna atual (sempre visível) */}
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                <span className="text-slate-200">
-                                  {evolutionData.cintura_atual || '-'}cm
-                                </span>
+                                {editingField === 'cintura' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('cintura');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">cm</span>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                    onClick={() => handleStartEdit('cintura', evolutionData.cintura_atual, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.cintura_atual || '-'}cm
+                                  </span>
+                                )}
                               </td>
                               {/* Coluna de evolução */}
                               <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
@@ -941,7 +1188,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Quadril */}
                           {(evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined) || 
                            (evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-white/20">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Quadril</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
@@ -949,27 +1196,129 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'quadril') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna penúltimo (se houver pelo menos 2 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'quadril') || '-'}
-                                  </span>
-                                </td>
+                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <>
+                                  {/* Coluna com dados iniciais do paciente */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400 text-xs">
+                                      {evolutionData.quadril_inicial ? `${evolutionData.quadril_inicial}cm` : '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna do único check-in anterior */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    {editingField === 'quadril' && editingPrevious ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit('quadril');
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                          }}
+                                        />
+                                        <span className="text-xs text-slate-400">cm</span>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                          <Check className="h-3 w-3" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span 
+                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                        onClick={() => handleStartEdit('quadril', getCheckinMetricValue(previousCheckins[0], 'quadril')?.replace('cm', ''), true)}
+                                        title="Clique para editar"
+                                      >
+                                        {getCheckinMetricValue(previousCheckins[0], 'quadril') || '-'}
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
-                              {/* Coluna último (se houver pelo menos 1 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {evolutionData.quadril_anterior || '-'}cm
-                                  </span>
-                                </td>
+                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <>
+                                  {/* Coluna penúltimo */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400">
+                                      {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'quadril') || '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna último */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    {editingField === 'quadril' && editingPrevious ? (
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Input
+                                          type="number"
+                                          step="0.1"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit('quadril');
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                          }}
+                                        />
+                                        <span className="text-xs text-slate-400">cm</span>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                          <Check className="h-3 w-3" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span 
+                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                        onClick={() => handleStartEdit('quadril', evolutionData.quadril_anterior, true)}
+                                        title="Clique para editar"
+                                      >
+                                        {evolutionData.quadril_anterior || '-'}cm
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
                               {/* Coluna atual (sempre visível) */}
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                <span className="text-slate-200">
-                                  {evolutionData.quadril_atual || '-'}cm
-                                </span>
+                                {editingField === 'quadril' && !editingPrevious ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEdit('quadril');
+                                        if (e.key === 'Escape') handleCancelEdit();
+                                      }}
+                                    />
+                                    <span className="text-xs text-slate-400">cm</span>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                      <Check className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span 
+                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                    onClick={() => handleStartEdit('quadril', evolutionData.quadril_atual, false)}
+                                    title="Clique para editar"
+                                  >
+                                    {evolutionData.quadril_atual || '-'}cm
+                                  </span>
+                                )}
                               </td>
                               {/* Coluna de evolução */}
                               <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
@@ -981,8 +1330,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           ) : null}
                           
                           {/* Aproveitamento - não editável, calculado automaticamente */}
-                          {evolutionData.aderencia_anterior !== undefined && evolutionData.aderencia_atual !== undefined && (
-                            <tr className="border-b border-white/20">
+                          {showAproveitamento && evolutionData.aderencia_anterior !== undefined && evolutionData.aderencia_atual !== undefined && (
+                            <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
@@ -990,21 +1339,37 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {historicCheckin.percentual_aproveitamento ? `${historicCheckin.percentual_aproveitamento}%` : '-'}
                                 </td>
                               ))}
-                              {/* Coluna penúltimo (se houver pelo menos 2 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {previousCheckins[previousCheckins.length - 2].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 2].percentual_aproveitamento}%` : '-'}
-                                  </span>
-                                </td>
+                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais (vazio) + último */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <>
+                                  {/* Coluna vazia (não há dados iniciais de aproveitamento) */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-500 text-xs">-</span>
+                                  </td>
+                                  {/* Coluna do único check-in anterior */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400">
+                                      {previousCheckins[0].percentual_aproveitamento ? `${previousCheckins[0].percentual_aproveitamento}%` : '-'}
+                                    </span>
+                                  </td>
+                                </>
                               )}
-                              {/* Coluna último (se houver pelo menos 1 e NÃO estiver expandido) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {previousCheckins[previousCheckins.length - 1].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 1].percentual_aproveitamento}%` : '-'}
-                                  </span>
-                                </td>
+                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                <>
+                                  {/* Coluna penúltimo */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400">
+                                      {previousCheckins[previousCheckins.length - 2].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 2].percentual_aproveitamento}%` : '-'}
+                                    </span>
+                                  </td>
+                                  {/* Coluna último */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <span className="text-slate-400">
+                                      {previousCheckins[previousCheckins.length - 1].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 1].percentual_aproveitamento}%` : '-'}
+                                    </span>
+                                  </td>
+                                </>
                               )}
                               {/* Coluna atual (sempre visível) */}
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10 text-slate-200">{evolutionData.aderencia_atual || 0}%</td>
@@ -1027,8 +1392,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'treino') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar coluna vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs"></span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'treino') || '-'}
@@ -1144,8 +1515,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'cardio') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'cardio') || '-'}
@@ -1261,8 +1638,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {historicCheckin.tempo || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {previousCheckins[previousCheckins.length - 1].tempo || '-'}
@@ -1385,8 +1768,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {historicCheckin.tempo_cardio || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {previousCheckins[previousCheckins.length - 1].tempo_cardio || '-'}
@@ -1509,8 +1898,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'descanso') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'descanso') || '-'}
@@ -1634,8 +2029,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'agua') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'agua') || '-'}
@@ -1751,8 +2152,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'sono') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'sono') || '-'}
@@ -1868,8 +2275,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'refeicoes') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'refeicoes') || '-'}
@@ -1985,8 +2398,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                   {getCheckinMetricValue(historicCheckin, 'beliscos') || '-'}
                                 </td>
                               ))}
-                              {/* Coluna antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && previousCheckins.length > 0 && (
+                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <span className="text-slate-500 text-xs">-</span>
+                                </td>
+                              )}
+                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
                                 <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                   <span className="text-slate-400">
                                     {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'beliscos') || '-'}
@@ -2105,7 +2524,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                               );
                               
                               return (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center bg-purple-500/5">
+                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center bg-blue-500/5">
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -2121,80 +2540,137 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                     }}
                                     className={`text-[10px] h-5 px-1.5 ${
                                       hasPhotos
-                                        ? 'text-purple-400 font-semibold bg-purple-500/20 border border-purple-500/30 hover:text-purple-300 hover:bg-purple-500/30'
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
                                         : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
                                     }`}
                                     title={hasPhotos ? `Ver fotos de ${new Date(historicCheckin.data_checkin).toLocaleDateString('pt-BR')}` : 'Sem fotos'}
                                   >
-                                    <Camera className={`w-2.5 h-2.5 ${hasPhotos ? 'text-purple-400' : ''}`} />
+                                    <Camera className={`w-2.5 h-2.5 ${hasPhotos ? 'text-slate-200' : ''}`} />
                                   </Button>
                                 </td>
                               );
                             })}
                             
-                            {/* Coluna do antepenúltimo (se houver pelo menos 2 anteriores e não estiver mostrando todas) */}
-                            {!showAllCheckinsColumns && previousCheckins.length > 0 && (
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const antepenultimoCheckin = previousCheckins[previousCheckins.length - 1];
-                                    const hasPhotos = !!(antepenultimoCheckin.foto_1 || antepenultimoCheckin.foto_2 || antepenultimoCheckin.foto_3 || antepenultimoCheckin.foto_4);
-                                    
-                                    if (hasPhotos) {
-                                      // Abrir visualizador simples mostrando SOMENTE as fotos deste check-in
-                                      setSelectedHistoricCheckinId(antepenultimoCheckin.id);
-                                      setPhotoViewerSource('current'); // Mostrar SOMENTE fotos deste check-in
-                                      setShowPhotosViewer(true);
-                                    } else {
-                                      toast.info('Sem fotos neste check-in');
-                                    }
-                                  }}
-                                  className={`text-xs h-6 px-2 ${
-                                    previousCheckins[previousCheckins.length - 1].foto_1 || previousCheckins[previousCheckins.length - 1].foto_2 || previousCheckins[previousCheckins.length - 1].foto_3 || previousCheckins[previousCheckins.length - 1].foto_4
-                                      ? 'text-purple-400 font-semibold bg-purple-500/20 border border-purple-500/30 hover:text-purple-300 hover:bg-purple-500/30'
-                                      : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
-                                  }`}
-                                  title="Ver fotos do antepenúltimo check-in"
-                                >
-                                  <Camera className="w-3 h-3 mr-1" />
-                                  {previousCheckins[previousCheckins.length - 1].foto_1 || previousCheckins[previousCheckins.length - 1].foto_2 || previousCheckins[previousCheckins.length - 1].foto_3 || previousCheckins[previousCheckins.length - 1].foto_4 ? 'Ver' : 'Sem fotos'}
-                                </Button>
-                              </td>
+                            {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 3 colunas: dados iniciais + anterior + atual */}
+                            {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                              <>
+                                {/* Coluna de fotos iniciais do paciente */}
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (hasInitialPhotos) {
+                                        setPhotoViewerSource('initial');
+                                        setShowPhotosViewer(true);
+                                      } else {
+                                        toast.info('Sem fotos iniciais');
+                                      }
+                                    }}
+                                    className={`text-xs h-6 px-2 ${
+                                      hasInitialPhotos
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                        : 'text-slate-500 cursor-not-allowed opacity-50'
+                                    }`}
+                                    disabled={!hasInitialPhotos}
+                                    title={hasInitialPhotos ? 'Ver fotos iniciais' : 'Sem fotos iniciais'}
+                                  >
+                                    <Camera className={`w-3 h-3 mr-1 ${hasInitialPhotos ? 'text-slate-200' : ''}`} />
+                                    {hasInitialPhotos ? 'Ver' : '-'}
+                                  </Button>
+                                </td>
+                                {/* Coluna do único check-in anterior */}
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const ultimoCheckin = previousCheckins[0];
+                                      const hasPhotos = !!(ultimoCheckin.foto_1 || ultimoCheckin.foto_2 || ultimoCheckin.foto_3 || ultimoCheckin.foto_4);
+                                      
+                                      if (hasPhotos) {
+                                        setSelectedHistoricCheckinId(ultimoCheckin.id);
+                                        setPhotoViewerSource('current');
+                                        setShowPhotosViewer(true);
+                                      } else {
+                                        toast.info('Sem fotos neste check-in');
+                                      }
+                                    }}
+                                    className={`text-xs h-6 px-2 ${
+                                      previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                    }`}
+                                    title="Ver fotos do check-in anterior"
+                                  >
+                                    <Camera className={`w-3 h-3 mr-1 ${previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4 ? 'text-slate-200' : ''}`} />
+                                    {new Date(previousCheckins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                  </Button>
+                                </td>
+                              </>
                             )}
                             
-                            {/* Coluna do penúltimo (quando não está expandido) */}
-                            {!showAllCheckinsColumns && (
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (previousCheckinId && hasPreviousPhotos) {
-                                      // Abrir visualizador simples mostrando SOMENTE as fotos deste check-in
-                                      setSelectedHistoricCheckinId(previousCheckinId);
-                                      setPhotoViewerSource('current'); // Mostrar SOMENTE fotos deste check-in
-                                      setShowPhotosViewer(true);
-                                    } else if (previousCheckinId) {
-                                      toast.info('Sem fotos neste check-in');
-                                    } else {
-                                      toast.info('ID do check-in anterior não disponível');
-                                    }
-                                  }}
-                                  className={`text-xs h-6 px-2 ${
-                                    hasPreviousPhotos 
-                                      ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
-                                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                                  }`}
-                                  title={hasPreviousPhotos ? "Ver fotos do check-in anterior (há fotos)" : "Ver fotos do check-in anterior"}
-                                >
-                                  <Camera className={`w-3 h-3 mr-1 ${hasPreviousPhotos ? 'text-slate-200' : ''}`} />
-                                  {evolutionData.checkin_anterior_data 
-                                    ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-                                    : 'Anterior'}
-                                </Button>
-                              </td>
+                            {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                              <>
+                                {/* Coluna do penúltimo */}
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const penultimoCheckin = previousCheckins[previousCheckins.length - 2];
+                                      const hasPhotos = !!(penultimoCheckin.foto_1 || penultimoCheckin.foto_2 || penultimoCheckin.foto_3 || penultimoCheckin.foto_4);
+                                      
+                                      if (hasPhotos) {
+                                        setSelectedHistoricCheckinId(penultimoCheckin.id);
+                                        setPhotoViewerSource('current');
+                                        setShowPhotosViewer(true);
+                                      } else {
+                                        toast.info('Sem fotos neste check-in');
+                                      }
+                                    }}
+                                    className={`text-xs h-6 px-2 ${
+                                      previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                        : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
+                                    }`}
+                                    title="Ver fotos do penúltimo check-in"
+                                  >
+                                    <Camera className="w-3 h-3 mr-1" />
+                                    {previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4 ? 'Ver' : 'Sem fotos'}
+                                  </Button>
+                                </td>
+                                {/* Coluna do último */}
+                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (previousCheckinId && hasPreviousPhotos) {
+                                        setSelectedHistoricCheckinId(previousCheckinId);
+                                        setPhotoViewerSource('current');
+                                        setShowPhotosViewer(true);
+                                      } else if (previousCheckinId) {
+                                        toast.info('Sem fotos neste check-in');
+                                      } else {
+                                        toast.info('ID do check-in anterior não disponível');
+                                      }
+                                    }}
+                                    className={`text-xs h-6 px-2 ${
+                                      hasPreviousPhotos 
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                    }`}
+                                    title={hasPreviousPhotos ? "Ver fotos do check-in anterior (há fotos)" : "Ver fotos do check-in anterior"}
+                                  >
+                                    <Camera className={`w-3 h-3 mr-1 ${hasPreviousPhotos ? 'text-slate-200' : ''}`} />
+                                    {evolutionData.checkin_anterior_data 
+                                      ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                      : 'Anterior'}
+                                  </Button>
+                                </td>
+                              </>
                             )}
                             
                             {/* Coluna do check-in atual */}
@@ -2447,7 +2923,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Quadril */}
                           {(evolutionData?.quadril_anterior !== null && evolutionData?.quadril_anterior !== undefined) || 
                            (evolutionData?.quadril_atual !== null && evolutionData?.quadril_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
+                            <tr className="border-b border-white/20">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Quadril</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'quadril' && editingInitialData ? (
@@ -2530,8 +3006,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           ) : null}
                           
                           {/* Aproveitamento */}
-                          {evolutionData?.aderencia_atual !== undefined && (
-                            <tr className="border-b border-white/20">
+                          {showAproveitamento && evolutionData?.aderencia_atual !== undefined && (
+                            <tr className="border-b border-slate-700/30">
                               <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">

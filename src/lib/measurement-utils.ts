@@ -28,11 +28,22 @@ export function extractMeasurements(text: string | null | undefined): Measuremen
   };
   
   // Padrão especial: "Cintura X e Quadril Y" ou "Cintura X, Quadril Y" - captura ambos de uma vez
-  const combinedPattern = /cintura\s+(\d+(?:[.,]\d+)?)\s*(?:e|,)\s*quadril\s+(\d+(?:[.,]\d+)?)/i;
+  const combinedPattern = /cintura\s+(\d+(?:[.,]\d+)?)\s*(?:e|,)?\s*quadril\s+(\d+(?:[.,]\d+)?)/i;
   const combinedMatch = textStr.match(combinedPattern);
   if (combinedMatch) {
     const cinturaValue = parseNumber(combinedMatch[1]);
     const quadrilValue = parseNumber(combinedMatch[2]);
+    if (isValidMeasurement(cinturaValue, 'cintura') && isValidMeasurement(quadrilValue, 'quadril')) {
+      return { cintura: cinturaValue, quadril: quadrilValue };
+    }
+  }
+  
+  // Padrão especial: "cintura 89Quadril 89" (sem espaço entre número e Quadril)
+  const noSpacePattern = /cintura\s+(\d+(?:[.,]\d+)?)(?:cm)?\s*quadril\s+(\d+(?:[.,]\d+)?)/i;
+  const noSpaceMatch = textStr.match(noSpacePattern);
+  if (noSpaceMatch) {
+    const cinturaValue = parseNumber(noSpaceMatch[1]);
+    const quadrilValue = parseNumber(noSpaceMatch[2]);
     if (isValidMeasurement(cinturaValue, 'cintura') && isValidMeasurement(quadrilValue, 'quadril')) {
       return { cintura: cinturaValue, quadril: quadrilValue };
     }

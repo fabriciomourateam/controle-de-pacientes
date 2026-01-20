@@ -68,6 +68,25 @@ export function useAllCheckins(telefone: string, currentCheckinId: string, enabl
           throw error;
         }
 
+        // Debug para telefone específico
+        if (telefone === '5511995844506') {
+          console.log('🔍 useAllCheckins - Todos os check-ins retornados do BANCO:', {
+            total: data?.length || 0,
+            checkins: data?.map(c => ({ 
+              id: c.id, 
+              data: new Date(c.data_checkin).toLocaleDateString('pt-BR'),
+              data_iso: c.data_checkin,
+              peso: c.peso
+            })) || [],
+            currentCheckinId,
+            mensagem: data?.length === 2 
+              ? '⚠️ BANCO SÓ TEM 2 CHECK-INS TOTAIS (incluindo o atual)' 
+              : data?.length === 3 
+                ? '✅ BANCO TEM 3 CHECK-INS TOTAIS (incluindo o atual)'
+                : `BANCO TEM ${data?.length} CHECK-INS TOTAIS`
+          });
+        }
+
         setAllCheckins(data || []);
       } catch (error) {
         console.error('Erro ao buscar todos os check-ins:', error);
