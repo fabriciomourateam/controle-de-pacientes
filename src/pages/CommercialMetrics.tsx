@@ -19,11 +19,26 @@ import { getUserWebhookUrl } from "@/lib/webhook-config-service";
 
 export default function CommercialMetrics() {
   const [selectedMonthForComparison, setSelectedMonthForComparison] = useState<string>('');
-  const [isFunnelConversionExpanded, setIsFunnelConversionExpanded] = useState(false);
+  // Carregar preferência de visualização do localStorage (padrão: compacta)
+  const [isFunnelConversionExpanded, setIsFunnelConversionExpanded] = useState(() => {
+    const saved = localStorage.getItem('funnelConversionViewExpanded');
+    return saved === 'true' ? true : false; // Padrão: compacta (false)
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
   const { isLoading, isError, kpis, dailyData, funnelData, availableMonths, currentMonth, allMonthsData, refetch } = useCommercialMetrics(selectedMonthForComparison);
+
+  // Função para alternar visualização e salvar preferência
+  const toggleFunnelView = () => {
+    const newValue = !isFunnelConversionExpanded;
+    setIsFunnelConversionExpanded(newValue);
+    localStorage.setItem('funnelConversionViewExpanded', String(newValue));
+    toast({
+      title: newValue ? "Visão expandida ativada" : "Visão compacta ativada",
+      description: "Sua preferência foi salva automaticamente",
+    });
+  };
 
   // Abrir dialog de confirmação de email
   const handleRefreshClick = () => {
@@ -329,37 +344,36 @@ export default function CommercialMetrics() {
                     <div>
                       <CardTitle className="text-white flex items-center gap-2">
                         <Target className="w-5 h-5 text-purple-400" />
-                        Total de Conversões pra Call por Funil
+                        Leads que vão para Call
                       </CardTitle>
                       <CardDescription className="text-slate-400 mt-1">
-                        {funnelData.leads.length} {funnelData.leads.length === 1 ? 'funil' : 'funis'} • Taxa de conversão (Calls / Leads)
+                        {funnelData.leads.length} {funnelData.leads.length === 1 ? 'funil' : 'funis'} • Ordenado por taxa de conversão
                       </CardDescription>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setIsFunnelConversionExpanded(!isFunnelConversionExpanded)}
+                      onClick={toggleFunnelView}
                       className="text-slate-300 hover:text-white hover:bg-slate-700/50"
                     >
                       {isFunnelConversionExpanded ? (
                         <>
                           <ChevronUp className="w-4 h-4 mr-2" />
-                          Minimizar
+                          Visão Compacta
                         </>
                       ) : (
                         <>
                           <ChevronDown className="w-4 h-4 mr-2" />
-                          Expandir
+                          Visão Expandida
                         </>
                       )}
                     </Button>
                   </div>
                 </CardHeader>
-                {isFunnelConversionExpanded && (
-                  <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {funnelData.leads.map((leadItem, index) => {
-                      // Encontrar o agendamento correspondente pelo nome do funil
+                <CardContent>
+                  {/* Preparar e ordenar dados por taxa de conversão */}
+                  {(() => {
+                    const funnelStats = funnelData.leads.map((leadItem, index) => {
                       const agendItem = funnelData.agendamentos.find(
                         a => a.TOTAL_AGEND_DOS_FUNIS === leadItem.TOTAL_DE_LEADS_DOS_FUNIS
                       );
@@ -368,54 +382,134 @@ export default function CommercialMetrics() {
                       const totalCalls = agendItem?.TOTAL_GERAL_AGEND || 0;
                       const conversionRate = totalLeads > 0 ? (totalCalls / totalLeads) * 100 : 0;
                       
-                      return (
-                        <div 
-                          key={index} 
-                          className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/30 hover:border-purple-500/50 transition-colors"
-                        >
-                          <h3 className="text-slate-300 text-sm font-medium mb-3">{leadItem.TOTAL_DE_LEADS_DOS_FUNIS}</h3>
-                          
-                          {/* Métricas em grid */}
-                          <div className="grid grid-cols-2 gap-2 mb-3">
-                            <div className="bg-blue-500/10 rounded p-2 text-center">
-                              <p className="text-xs text-blue-400 font-semibold">Leads</p>
-                              <p className="text-lg font-bold text-white">{totalLeads.toLocaleString('pt-BR')}</p>
-                            </div>
-                            <div className="bg-green-500/10 rounded p-2 text-center">
-                              <p className="text-xs text-green-400 font-semibold">Calls</p>
-                              <p className="text-lg font-bold text-white">{totalCalls.toLocaleString('pt-BR')}</p>
-                            </div>
-                          </div>
+                      return {
+                        name: leadItem.TOTAL_DE_LEADS_DOS_FUNIS,
+                        totalLeads,
+                        totalCalls,
+                        conversionRate
+                      };
+                    }).sort((a, b) => b.conversionRate - a.conversionRate); // Ordenar do melhor para o pior
 
-                          {/* Taxa de conversão destacada */}
-                          <div className="bg-purple-500/10 rounded-lg p-3 text-center border border-purple-500/30">
-                            <p className="text-xs text-purple-400 font-semibold mb-1">Taxa de Conversão</p>
-                            <p className={`text-3xl font-bold ${
-                              conversionRate >= 21 ? 'text-green-400' : 
-                              conversionRate >= 15 ? 'text-yellow-400' : 
-                              conversionRate >= 10 ? 'text-orange-400' :
-                              'text-red-400'
-                            }`}>
-                              {conversionRate.toFixed(1)}%
-                            </p>
-                          </div>
+                    return isFunnelConversionExpanded ? (
+                      // Visão Expandida (Cards)
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {funnelStats.map((funnel, index) => (
+                          <div 
+                            key={index} 
+                            className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/30 hover:border-purple-500/50 transition-colors"
+                          >
+                            <h3 className="text-slate-300 text-sm font-medium mb-3">{funnel.name}</h3>
+                            
+                            {/* Métricas em grid */}
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              <div className="bg-blue-500/10 rounded p-2 text-center">
+                                <p className="text-xs text-blue-400 font-semibold">Leads</p>
+                                <p className="text-lg font-bold text-white">{funnel.totalLeads.toLocaleString('pt-BR')}</p>
+                              </div>
+                              <div className="bg-green-500/10 rounded p-2 text-center">
+                                <p className="text-xs text-green-400 font-semibold">Calls</p>
+                                <p className="text-lg font-bold text-white">{funnel.totalCalls.toLocaleString('pt-BR')}</p>
+                              </div>
+                            </div>
 
-                          {/* Barra de progresso */}
-                          <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden mt-3">
-                            <div 
-                              className={`absolute h-full transition-all duration-500 ${
-                                conversionRate >= 21 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
-                                conversionRate >= 15 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
-                                conversionRate >= 10 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                                'bg-gradient-to-r from-red-500 to-red-600'
-                              }`}
-                              style={{ width: `${Math.min(conversionRate, 100)}%` }}
-                            />
+                            {/* Taxa de conversão destacada */}
+                            <div className="bg-purple-500/10 rounded-lg p-3 text-center border border-purple-500/30">
+                              <p className="text-xs text-purple-400 font-semibold mb-1">Taxa de Conversão</p>
+                              <p className={`text-3xl font-bold ${
+                                funnel.conversionRate >= 21 ? 'text-green-400' : 
+                                funnel.conversionRate >= 15 ? 'text-yellow-400' : 
+                                funnel.conversionRate >= 10 ? 'text-orange-400' :
+                                'text-red-400'
+                              }`}>
+                                {funnel.conversionRate.toFixed(1)}%
+                              </p>
+                            </div>
+
+                            {/* Barra de progresso */}
+                            <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden mt-3">
+                              <div 
+                                className={`absolute h-full transition-all duration-500 ${
+                                  funnel.conversionRate >= 21 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                                  funnel.conversionRate >= 15 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                                  funnel.conversionRate >= 10 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                                  'bg-gradient-to-r from-red-500 to-red-600'
+                                }`}
+                                style={{ width: `${Math.min(funnel.conversionRate, 100)}%` }}
+                              />
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                    ) : (
+                      // Visão Compacta (Tabela)
+                      <div className="space-y-2">
+                        {/* Header da tabela */}
+                        <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-700/30 rounded-lg text-xs font-semibold text-slate-400">
+                          <div className="col-span-4">Funil</div>
+                          <div className="col-span-2 text-center">Leads</div>
+                          <div className="col-span-2 text-center">Calls</div>
+                          <div className="col-span-2 text-center">Taxa</div>
+                          <div className="col-span-2"></div>
                         </div>
-                      );
-                    })}
-                  </div>
+                        
+                        {/* Linhas da tabela */}
+                        {funnelStats.map((funnel, index) => (
+                          <div 
+                            key={index}
+                            className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-700/20 hover:bg-slate-700/40 rounded-lg border border-slate-600/20 hover:border-purple-500/30 transition-all"
+                          >
+                            {/* Nome do funil */}
+                            <div className="col-span-4 flex items-center">
+                              <span className="text-slate-200 font-medium text-sm truncate" title={funnel.name}>
+                                {funnel.name}
+                              </span>
+                            </div>
+                            
+                            {/* Leads */}
+                            <div className="col-span-2 flex items-center justify-center">
+                              <span className="text-blue-400 font-semibold">
+                                {funnel.totalLeads.toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                            
+                            {/* Calls */}
+                            <div className="col-span-2 flex items-center justify-center">
+                              <span className="text-green-400 font-semibold">
+                                {funnel.totalCalls.toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                            
+                            {/* Taxa de conversão */}
+                            <div className="col-span-2 flex items-center justify-center">
+                              <span className={`text-lg font-bold ${
+                                funnel.conversionRate >= 21 ? 'text-green-400' : 
+                                funnel.conversionRate >= 15 ? 'text-yellow-400' : 
+                                funnel.conversionRate >= 10 ? 'text-orange-400' :
+                                'text-red-400'
+                              }`}>
+                                {funnel.conversionRate.toFixed(1)}%
+                              </span>
+                            </div>
+                            
+                            {/* Barra de progresso */}
+                            <div className="col-span-2 flex items-center">
+                              <div className="relative w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                                <div 
+                                  className={`absolute h-full transition-all duration-500 ${
+                                    funnel.conversionRate >= 21 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                                    funnel.conversionRate >= 15 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                                    funnel.conversionRate >= 10 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                                    'bg-gradient-to-r from-red-500 to-red-600'
+                                  }`}
+                                  style={{ width: `${Math.min(funnel.conversionRate, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {/* Legenda de cores */}
                   <div className="mt-6 p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
@@ -439,7 +533,6 @@ export default function CommercialMetrics() {
                     </div>
                   </div>
                 </CardContent>
-                )}
               </Card>
             )}
           </TabsContent>
