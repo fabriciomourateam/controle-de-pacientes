@@ -184,6 +184,7 @@ export function AddEvolutionData({ telefone, nome, onSuccess, open: externalOpen
         data_checkin: dataRegistro,
         data_preenchimento: new Date().toISOString(),
         tipo_checkin: 'evolucao', // Marcar como registro de evolução
+        status: 'enviado', // Definir status para não aparecer como pendente
         ...photoUrls
       };
 
@@ -232,19 +233,8 @@ export function AddEvolutionData({ telefone, nome, onSuccess, open: externalOpen
       */}
       {(externalOpen === undefined || showButton === true) && (
         <Button
-          variant="outline"
-          size="sm"
           onClick={() => setOpen(true)}
-          style={{
-            backgroundImage: 'linear-gradient(to right, rgb(37, 99, 235), rgb(8, 145, 178))',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundImage = 'linear-gradient(to right, rgb(29, 78, 216), rgb(14, 116, 144))';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundImage = 'linear-gradient(to right, rgb(37, 99, 235), rgb(8, 145, 178))';
-          }}
-          className="gap-2 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all border-0"
+          className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all border-0"
         >
           <Camera className="w-4 h-4" />
           Adicionar Dados

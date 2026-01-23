@@ -497,101 +497,118 @@ export function ChannelComparisonWithFilter(props: ChannelComparisonWithFilterPr
             ))}
           </div>
         ) : (
-          // Visão Compacta (Tabela)
+          // Visão Compacta (Cards Modernos)
           <div className="space-y-2">
             {/* Header da tabela - Clicável para ordenar */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-700/30 rounded-lg text-xs font-semibold text-slate-400">
+            <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-gradient-to-r from-slate-700/40 to-slate-700/30 rounded-xl text-xs font-bold text-slate-300 border border-slate-600/30">
               <button
                 onClick={() => handleSortChange('name')}
-                className="col-span-4 flex items-center gap-1 hover:text-slate-200 transition-colors text-left"
+                className="col-span-4 flex items-center gap-1.5 hover:text-white transition-colors text-left group"
               >
-                Canal
+                <span className="group-hover:scale-110 transition-transform">Canal</span>
                 {sortBy === 'name' && (
-                  <ArrowUpDown className={`w-3 h-3 ${sortAscending ? 'rotate-180' : ''}`} />
+                  <ArrowUpDown className={`w-3.5 h-3.5 text-blue-400 ${sortAscending ? 'rotate-180' : ''}`} />
                 )}
               </button>
               <button
                 onClick={() => handleSortChange('leads')}
-                className="col-span-2 flex items-center justify-center gap-1 hover:text-slate-200 transition-colors"
+                className="col-span-2 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
               >
-                Leads
+                <span className="group-hover:scale-110 transition-transform">Leads</span>
                 {sortBy === 'leads' && (
-                  <ArrowUpDown className={`w-3 h-3 ${sortAscending ? 'rotate-180' : ''}`} />
+                  <ArrowUpDown className={`w-3.5 h-3.5 text-blue-400 ${sortAscending ? 'rotate-180' : ''}`} />
                 )}
               </button>
               <button
                 onClick={() => handleSortChange('calls')}
-                className="col-span-2 flex items-center justify-center gap-1 hover:text-slate-200 transition-colors"
+                className="col-span-2 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
               >
-                Calls
+                <span className="group-hover:scale-110 transition-transform">Calls</span>
                 {sortBy === 'calls' && (
-                  <ArrowUpDown className={`w-3 h-3 ${sortAscending ? 'rotate-180' : ''}`} />
+                  <ArrowUpDown className={`w-3.5 h-3.5 text-blue-400 ${sortAscending ? 'rotate-180' : ''}`} />
                 )}
               </button>
               <button
                 onClick={() => handleSortChange('conversion')}
-                className="col-span-2 flex items-center justify-center gap-1 hover:text-slate-200 transition-colors"
+                className="col-span-2 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
               >
-                Taxa
+                <span className="group-hover:scale-110 transition-transform">Taxa</span>
                 {sortBy === 'conversion' && (
-                  <ArrowUpDown className={`w-3 h-3 ${sortAscending ? 'rotate-180' : ''}`} />
+                  <ArrowUpDown className={`w-3.5 h-3.5 text-blue-400 ${sortAscending ? 'rotate-180' : ''}`} />
                 )}
               </button>
-              <div className="col-span-2"></div>
+              <div className="col-span-2 text-center">Status</div>
             </div>
             
-            {/* Linhas da tabela */}
+            {/* Linhas da tabela - Cards modernos */}
             {channels.map((channel, index) => (
               <div 
                 key={index}
-                className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-700/20 hover:bg-slate-700/40 rounded-lg border border-slate-600/20 hover:border-blue-500/30 transition-all"
+                className="group relative grid grid-cols-12 gap-3 px-4 py-2.5 bg-gradient-to-r from-slate-700/30 to-slate-700/20 hover:from-slate-700/50 hover:to-slate-700/40 rounded-xl border border-slate-600/30 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-[1.01]"
               >
-                {/* Nome do canal com emoji */}
-                <div className="col-span-4 flex items-center gap-2">
-                  <span className="text-xl">{channel.icon}</span>
-                  <span className="text-slate-200 font-medium text-sm truncate" title={channel.name}>
+                {/* Borda lateral colorida baseada na performance */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl transition-all duration-300 ${
+                  channel.conversion >= 21 ? 'bg-gradient-to-b from-green-500 to-green-600' : 
+                  channel.conversion >= 15 ? 'bg-gradient-to-b from-yellow-500 to-yellow-600' : 
+                  channel.conversion >= 10 ? 'bg-gradient-to-b from-orange-500 to-orange-600' :
+                  'bg-gradient-to-b from-red-500 to-red-600'
+                }`} />
+                
+                {/* Nome do canal com emoji e gradiente no hover */}
+                <div className="col-span-4 flex items-center gap-2.5 pl-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-700/50 group-hover:bg-slate-700/70 transition-colors">
+                    <span className="text-xl group-hover:scale-110 transition-transform">{channel.icon}</span>
+                  </div>
+                  <span className="text-slate-100 font-semibold text-sm truncate group-hover:text-white transition-colors" title={channel.name}>
                     {channel.name}
                   </span>
                 </div>
                 
-                {/* Leads */}
+                {/* Leads - Card interno */}
                 <div className="col-span-2 flex items-center justify-center">
-                  <span className="text-blue-400 font-semibold">
-                    {channel.leads.toLocaleString('pt-BR')}
-                  </span>
+                  <div className="bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20 group-hover:border-blue-500/40 transition-colors">
+                    <span className="text-blue-400 font-bold text-sm">
+                      {channel.leads.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
                 </div>
                 
-                {/* Calls */}
+                {/* Calls - Card interno */}
                 <div className="col-span-2 flex items-center justify-center">
-                  <span className="text-green-400 font-semibold">
-                    {channel.calls.toLocaleString('pt-BR')}
-                  </span>
+                  <div className="bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20 group-hover:border-green-500/40 transition-colors">
+                    <span className="text-green-400 font-bold text-sm">
+                      {channel.calls.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
                 </div>
                 
-                {/* Taxa de conversão */}
+                {/* Taxa de conversão - Destaque */}
                 <div className="col-span-2 flex items-center justify-center">
-                  <span className={`text-lg font-bold ${
-                    channel.conversion >= 21 ? 'text-green-400' : 
-                    channel.conversion >= 15 ? 'text-yellow-400' : 
-                    channel.conversion >= 10 ? 'text-orange-400' :
-                    'text-red-400'
+                  <div className={`px-3 py-1 rounded-lg font-bold text-base transition-all duration-300 ${
+                    channel.conversion >= 21 ? 'bg-green-500/20 text-green-400 border border-green-500/30 group-hover:bg-green-500/30' : 
+                    channel.conversion >= 15 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 group-hover:bg-yellow-500/30' : 
+                    channel.conversion >= 10 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 group-hover:bg-orange-500/30' :
+                    'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30'
                   }`}>
                     {channel.conversion.toFixed(1)}%
-                  </span>
+                  </div>
                 </div>
                 
-                {/* Barra de progresso */}
-                <div className="col-span-2 flex items-center">
-                  <div className="relative w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                {/* Barra de progresso vertical com gradiente */}
+                <div className="col-span-2 flex items-center justify-center">
+                  <div className="relative w-full h-2.5 bg-slate-700/50 rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className={`absolute h-full transition-all duration-500 bg-gradient-to-r ${
-                        channel.conversion >= 21 ? 'from-green-500 to-green-600' : 
-                        channel.conversion >= 15 ? 'from-yellow-500 to-yellow-600' : 
-                        channel.conversion >= 10 ? 'from-orange-500 to-orange-600' :
-                        'from-red-500 to-red-600'
+                      className={`absolute h-full transition-all duration-700 ease-out bg-gradient-to-r shadow-lg ${
+                        channel.conversion >= 21 ? 'from-green-500 via-green-400 to-green-600 shadow-green-500/50' : 
+                        channel.conversion >= 15 ? 'from-yellow-500 via-yellow-400 to-yellow-600 shadow-yellow-500/50' : 
+                        channel.conversion >= 10 ? 'from-orange-500 via-orange-400 to-orange-600 shadow-orange-500/50' :
+                        'from-red-500 via-red-400 to-red-600 shadow-red-500/50'
                       }`}
                       style={{ width: `${Math.min(channel.conversion, 100)}%` }}
-                    />
+                    >
+                      {/* Brilho animado */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -600,7 +617,7 @@ export function ChannelComparisonWithFilter(props: ChannelComparisonWithFilterPr
         )}
 
         {/* Legenda */}
-        <div className="mt-6 p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
+        <div className="mt-4 p-3 bg-slate-700/20 rounded-lg border border-slate-600/30">
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>

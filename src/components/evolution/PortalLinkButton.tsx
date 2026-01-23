@@ -18,14 +18,22 @@ import { getOrCreatePatientToken, getPortalUrl } from '@/lib/patient-portal-serv
 interface PortalLinkButtonProps {
   telefone: string;
   patientName: string;
+  externalControl?: {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+  };
 }
 
-export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProps) {
+export function PortalLinkButton({ telefone, patientName, externalControl }: PortalLinkButtonProps) {
   const { toast } = useToast();
-  const [showDialog, setShowDialog] = useState(false);
+  const [internalShowDialog, setInternalShowDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string>('');
   const [isNewToken, setIsNewToken] = useState(false);
+
+  // Usar controle externo se fornecido, senão usar interno
+  const showDialog = externalControl?.isOpen ?? internalShowDialog;
+  const setShowDialog = externalControl?.onOpenChange ?? setInternalShowDialog;
 
   useEffect(() => {
     if (showDialog && !portalUrl) {
@@ -110,14 +118,16 @@ export function PortalLinkButton({ telefone, patientName }: PortalLinkButtonProp
 
   return (
     <Dialog open={showDialog} onOpenChange={setShowDialog}>
-      <DialogTrigger asChild>
-        <Button
-          className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition-all"
-        >
-          <Link2 className="w-4 h-4 mr-2" />
-          Portal do Aluno
-        </Button>
-      </DialogTrigger>
+      {!externalControl && (
+        <DialogTrigger asChild>
+          <Button
+            className="bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition-all"
+          >
+            <Link2 className="w-4 h-4 mr-2" />
+            Portal do Aluno
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="glass-card border-slate-700 max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">

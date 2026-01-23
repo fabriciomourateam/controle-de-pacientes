@@ -72,7 +72,8 @@ import {
   FlaskConical,
   BarChart3,
   Phone,
-  Edit
+  Edit,
+  Link2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -102,6 +103,7 @@ export default function PatientEvolution() {
   const [showPhotoComparison, setShowPhotoComparison] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [addEvolutionDataOpen, setAddEvolutionDataOpen] = useState(false);
+  const [showPortalDialog, setShowPortalDialog] = useState(false);
   
   // Estados para controlar visibilidade dos cards opcionais
   const [showDailyWeights, setShowDailyWeights] = useState(false);
@@ -1012,15 +1014,26 @@ export default function PatientEvolution() {
                     <FileText className="w-4 h-4 mr-2 text-yellow-400" />
                     Relatório de Evolução
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setShowPortalDialog(true)}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <Link2 className="w-4 h-4 mr-2 text-blue-400" />
+                    Portal do Aluno
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               
+              {/* Portal Link Button - Controlado externamente */}
               <PortalLinkButton 
                 telefone={patient?.telefone || telefone!} 
-                patientName={patient?.nome || 'Paciente'} 
+                patientName={patient?.nome || 'Paciente'}
+                externalControl={{
+                  isOpen: showPortalDialog,
+                  onOpenChange: setShowPortalDialog
+                }}
               />
-              
-              {shareData && <ShareButton data={shareData} />}
               
               {certificateData && (
                 <CertificateButton
@@ -1046,6 +1059,20 @@ export default function PatientEvolution() {
                 sexo={patient?.genero || null}
                 onSuccess={handleBioSuccess}
               />
+              
+              {patient?.telefone && patient?.nome && (
+                <AddEvolutionData
+                  telefone={patient.telefone}
+                  nome={patient.nome}
+                  open={addEvolutionDataOpen}
+                  onOpenChange={setAddEvolutionDataOpen}
+                  showButton={true}
+                  onSuccess={() => {
+                    setAddEvolutionDataOpen(false);
+                    loadEvolution();
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -1113,7 +1140,7 @@ export default function PatientEvolution() {
 
           {/* Cards de Resumo - Movidos do EvolutionCharts */}
           {checkins.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-6 gap-4">
               {/* Check-ins Realizados */}
               <Card className="bg-gradient-to-br from-blue-600/20 via-blue-500/15 to-cyan-500/10 border-blue-500/30 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 group">
                 <CardHeader className="pb-2">
@@ -2118,8 +2145,6 @@ export default function PatientEvolution() {
             <Timeline 
               checkins={checkins} 
               onCheckinUpdated={loadEvolution}
-              telefone={patient?.telefone || telefone}
-              nome={patient?.nome || 'Paciente'}
             />
           </motion.div>
 
@@ -2175,25 +2200,7 @@ export default function PatientEvolution() {
             </motion.div>
           )}
 
-          {/* 8. Aviso se houver poucos check-ins */}
-          {checkins.length > 0 && checkins.length < 3 && (
-            <Card className="bg-amber-50 border-amber-200">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-amber-900 font-semibold">Dados Limitados</p>
-                    <p className="text-amber-800 text-sm mt-1">
-                      Este paciente possui apenas {checkins.length} check-in{checkins.length > 1 ? 's' : ''} registrado{checkins.length > 1 ? 's' : ''}. 
-                      Alguns gráficos e análises de evolução podem ter informações limitadas.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 9. Card de Ações Finais - Aparece sempre */}
+          {/* Gráficos e análises */}          {/* 9. Card de Ações Finais - Aparece sempre */}
           <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">

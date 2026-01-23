@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp, Trash2, Loader2, Camera } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp, Trash2, Loader2 } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
 import { AddPhotosToCheckin } from "./AddPhotosToCheckin";
-import { AddEvolutionData } from "./AddEvolutionData";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl } from "@/lib/google-drive-utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,21 +29,18 @@ interface TimelineProps {
   checkins: Checkin[];
   onCheckinUpdated?: () => void;
   showEditButton?: boolean; // Controla se mostra o botão de editar
-  telefone?: string;
-  nome?: string;
 }
 
-export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, telefone, nome }: TimelineProps) {
+export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: TimelineProps) {
   const [editingCheckin, setEditingCheckin] = useState<Checkin | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isMinimized, setIsMinimized] = useState(true);
   const [checkinToDelete, setCheckinToDelete] = useState<Checkin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showAddEvolutionData, setShowAddEvolutionData] = useState(false);
   
-  // IMPORTANTE: checkins vem DESC (mais recente primeiro), vamos reverter
-  const checkinsOrdenados = [...checkins].reverse();
+  // IMPORTANTE: checkins vem DESC (mais recente primeiro), mantemos essa ordem
+  const checkinsOrdenados = [...checkins];
 
   const toggleCard = (checkinId: string) => {
     setExpandedCards(prev => {
@@ -142,34 +138,17 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
               Histórico detalhado dos {checkins.length} check-ins realizados
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            {telefone && nome && (
-              <AddEvolutionData
-                telefone={telefone}
-                nome={nome}
-                open={showAddEvolutionData}
-                onOpenChange={setShowAddEvolutionData}
-                showButton={true}
-                onSuccess={() => {
-                  setShowAddEvolutionData(false);
-                  if (onCheckinUpdated) {
-                    onCheckinUpdated();
-                  }
-                }}
-              />
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
+          >
+            {isMinimized ? (
+              <ChevronDown className="w-5 h-5 text-slate-300" />
+            ) : (
+              <ChevronUp className="w-5 h-5 text-slate-300" />
             )}
-            <button
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 flex items-center justify-center"
-              aria-label={isMinimized ? 'Expandir' : 'Minimizar'}
-            >
-              {isMinimized ? (
-                <ChevronDown className="w-5 h-5 text-slate-300" />
-              ) : (
-                <ChevronUp className="w-5 h-5 text-slate-300" />
-              )}
-            </button>
-          </div>
+          </button>
         </div>
       </CardHeader>
       <AnimatePresence>
@@ -202,23 +181,23 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                 }`} />
 
                 {/* Card do Check-in */}
-                <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-lg p-4 border border-slate-600/50 hover:border-slate-500/50 transition-all">
+                <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-lg p-3 border border-slate-600/50 hover:border-slate-500/50 transition-all">
                   {/* Cabeçalho */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
                       <div>
-                        <h4 className="text-white font-semibold text-lg flex items-center gap-2 flex-wrap">
+                        <h4 className="text-white font-semibold text-base flex items-center gap-2 flex-wrap">
                           {checkinDate.toLocaleDateString('pt-BR', { 
                             day: '2-digit', 
                             month: 'long', 
                             year: 'numeric' 
                           })}
-                          {isFirst && <Badge className="bg-blue-600/90 text-white">Inicial</Badge>}
-                          {isLast && <Badge className="bg-emerald-600/90 text-white">Mais Recente</Badge>}
-                          {checkin.tipo_checkin === 'inicial' && <Badge className="bg-purple-600/90 text-white">Dados Iniciais</Badge>}
-                          {checkin.tipo_checkin === 'evolucao' && <Badge className="bg-cyan-600/90 text-white">Evolução</Badge>}
+                          {index === 0 && <Badge className="bg-emerald-600/90 text-white text-xs">Mais Recente</Badge>}
+                          {index === checkinsOrdenados.length - 1 && <Badge className="bg-blue-600/90 text-white text-xs">Inicial</Badge>}
+                          {checkin.tipo_checkin === 'inicial' && <Badge className="bg-purple-600/90 text-white text-xs">Dados Iniciais</Badge>}
+                          {checkin.tipo_checkin === 'evolucao' && <Badge className="bg-cyan-600/90 text-white text-xs">Evolução</Badge>}
                         </h4>
-                        <p className="text-slate-400 text-sm mt-1">
+                        <p className="text-slate-400 text-xs mt-0.5">
                           Check-in #{checkins.length - index}
                         </p>
                       </div>
@@ -230,10 +209,10 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                         size="sm"
                         variant="ghost"
                         onClick={() => toggleCard(checkin.id)}
-                        className="bg-slate-700/30 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0 px-2"
+                        className="bg-slate-700/30 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0 px-2 h-7"
                         title={isExpanded ? "Minimizar" : "Expandir"}
                       >
-                        <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </Button>
                       {showEditButton && (
                         <>
@@ -241,9 +220,9 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                             size="sm"
                             variant="outline"
                             onClick={() => handleEditClick(checkin)}
-                            className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0"
+                            className="bg-slate-700/50 border-slate-600 hover:bg-slate-600/50 text-slate-300 hover:text-white flex-shrink-0 h-7 text-xs"
                           >
-                            <Edit className="w-4 h-4 mr-1" />
+                            <Edit className="w-3 h-3 mr-1" />
                             Editar
                           </Button>
                           <AddPhotosToCheckin
@@ -255,19 +234,19 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                             size="sm"
                             variant="outline"
                             onClick={() => handleDeleteClick(checkin)}
-                            className="bg-red-900/30 border-red-700/50 hover:bg-red-900/50 text-red-300 hover:text-red-200 flex-shrink-0"
+                            className="bg-red-900/30 border-red-700/50 hover:bg-red-900/50 text-red-300 hover:text-red-200 flex-shrink-0 h-7"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </>
                       )}
                       <div className="flex flex-col items-end flex-1 sm:flex-initial">
-                        <div className="text-2xl font-bold text-white">
+                        <div className="text-xl font-bold text-white">
                           {checkin.total_pontuacao || 'N/A'}
                         </div>
-                        <p className="text-xs text-slate-400 whitespace-nowrap">pontos totais</p>
+                        <p className="text-[10px] text-slate-400 whitespace-nowrap">pontos totais</p>
                         {checkin.percentual_aproveitamento && (
-                          <Badge className="mt-1 bg-purple-600/20 text-purple-300 border-purple-500/30 whitespace-nowrap">
+                          <Badge className="mt-0.5 bg-purple-600/20 text-purple-300 border-purple-500/30 whitespace-nowrap text-xs py-0">
                             {checkin.percentual_aproveitamento}% aproveitamento
                           </Badge>
                         )}
@@ -275,149 +254,135 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true, te
                     </div>
                   </div>
 
-                  {/* Dados Físicos - Primeira linha (5 cards) */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Weight className="w-3 h-3 text-slate-400" />
-                        <p className="text-xs text-slate-400">Peso</p>
+                  {/* Dados Físicos e Métricas - Grid fixo de 10 colunas para alinhamento perfeito */}
+                  <div className="grid grid-cols-10 gap-2">
+                    {/* Peso */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Weight className="w-4 h-4 text-slate-400" />
+                        <p className="text-xs text-slate-400 leading-none">Peso</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-lg font-bold text-white">{checkin.peso || 'N/A'}</p>
-                        {checkin.peso && <span className="text-xs text-slate-400">kg</span>}
+                      <div className="flex flex-col">
+                        <p className="text-lg font-bold text-white leading-none">{checkin.peso || 'N/A'}</p>
+                        {checkin.peso && <span className="text-[10px] text-slate-500 mt-0.5">kg</span>}
                         {weightTrend !== null && (
-                          <div className={`flex items-center gap-1 text-xs ${
+                          <div className={`flex items-center gap-0.5 text-[10px] mt-1 ${
                             weightTrend < 0 ? 'text-emerald-400' : 'text-orange-400'
                           }`}>
-                            {weightTrend < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                            {Math.abs(weightTrend).toFixed(1)}kg
+                            {weightTrend < 0 ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                            {Math.abs(weightTrend).toFixed(1)}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Medidas (Cintura e Quadril) */}
-                    {checkin.medida && (
-                      (() => {
-                        const measurements = extractMeasurements(checkin.medida);
-                        
-                        return (
-                          <>
-                            {/* Cintura */}
-                            {measurements.cintura && (
-                              <div className="bg-slate-800/50 p-3 rounded-lg">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Target className="w-3 h-3 text-cyan-400" />
-                                  <p className="text-xs text-slate-400">Cintura</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-lg font-bold text-white">{measurements.cintura}</p>
-                                  <span className="text-xs text-slate-400">cm</span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Quadril */}
-                            {measurements.quadril && (
-                              <div className="bg-slate-800/50 p-3 rounded-lg">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Target className="w-3 h-3 text-teal-400" />
-                                  <p className="text-xs text-slate-400">Quadril</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-lg font-bold text-white">{measurements.quadril}</p>
-                                  <span className="text-xs text-slate-400">cm</span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Se não conseguiu extrair medidas válidas, mostrar valor original com aviso */}
-                            {!measurements.cintura && !measurements.quadril && (
-                              <div className="bg-slate-800/50 p-3 rounded-lg">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Target className="w-3 h-3 text-orange-400" />
-                                  <p className="text-xs text-slate-400">Medida</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-lg font-bold text-white">{checkin.medida}</p>
-                                  <span className="text-xs text-orange-400" title="Não foi possível extrair medidas válidas">⚠️</span>
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()
-                    )}
+                    {/* Cintura */}
+                    {(() => {
+                      const measurements = checkin.medida ? extractMeasurements(checkin.medida) : { cintura: null, quadril: null };
+                      return (
+                        <div className="bg-slate-800/50 p-2.5 rounded">
+                          <div className="flex items-center gap-0.5 mb-1">
+                            <Target className="w-4 h-4 text-cyan-400" />
+                            <p className="text-xs text-slate-400 leading-none">Cintura</p>
+                          </div>
+                          <div className="flex flex-col">
+                            <p className="text-lg font-bold text-white leading-none">{measurements.cintura || 'N/A'}</p>
+                            {measurements.cintura && <span className="text-[10px] text-slate-500 mt-0.5">cm</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Activity className="w-3 h-3 text-orange-400" />
-                        <p className="text-xs text-slate-400">Treino</p>
+                    {/* Quadril */}
+                    {(() => {
+                      const measurements = checkin.medida ? extractMeasurements(checkin.medida) : { cintura: null, quadril: null };
+                      return (
+                        <div className="bg-slate-800/50 p-2.5 rounded">
+                          <div className="flex items-center gap-0.5 mb-1">
+                            <Target className="w-4 h-4 text-teal-400" />
+                            <p className="text-xs text-slate-400 leading-none">Quadril</p>
+                          </div>
+                          <div className="flex flex-col">
+                            <p className="text-lg font-bold text-white leading-none">{measurements.quadril || 'N/A'}</p>
+                            {measurements.quadril && <span className="text-[10px] text-slate-500 mt-0.5">cm</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Treino */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Activity className="w-4 h-4 text-orange-400" />
+                        <p className="text-xs text-slate-400 leading-none">Treino</p>
                       </div>
-                      <Badge className={getScoreColor(checkin.pontos_treinos)}>
+                      <Badge className={`${getScoreColor(checkin.pontos_treinos)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_treinos || 'N/A'}
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Heart className="w-3 h-3 text-red-400" />
-                        <p className="text-xs text-slate-400">Cardio</p>
+                    {/* Cardio */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Heart className="w-4 h-4 text-red-400" />
+                        <p className="text-xs text-slate-400 leading-none">Cardio</p>
                       </div>
-                      <Badge className={getScoreColor(checkin.pontos_cardios)}>
+                      <Badge className={`${getScoreColor(checkin.pontos_cardios)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_cardios || 'N/A'}
                       </Badge>
                     </div>
-                  </div>
 
-                  {/* Segunda linha (5 cards) */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Moon className="w-3 h-3 text-purple-400" />
-                        <p className="text-xs text-slate-400">Sono</p>
+                    {/* Sono */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Moon className="w-4 h-4 text-purple-400" />
+                        <p className="text-xs text-slate-400 leading-none">Sono</p>
                       </div>
-                      <Badge className={getScoreColor(checkin.pontos_sono)}>
+                      <Badge className={`${getScoreColor(checkin.pontos_sono)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_sono || 'N/A'}
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Droplets className="w-3 h-3 text-blue-400" />
-                        <p className="text-xs text-slate-400">Hidratação</p>
+                    {/* Hidratação */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Droplets className="w-4 h-4 text-blue-400" />
+                        <p className="text-xs text-slate-400 leading-none">Água</p>
                       </div>
-                      <Badge variant="outline" className={getScoreColor(checkin.pontos_agua)}>
+                      <Badge variant="outline" className={`${getScoreColor(checkin.pontos_agua)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_agua || 'N/A'}
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Target className="w-3 h-3 text-amber-400" />
-                        <p className="text-xs text-slate-400">Stress</p>
+                    {/* Stress */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Target className="w-4 h-4 text-amber-400" />
+                        <p className="text-xs text-slate-400 leading-none">Stress</p>
                       </div>
-                      <Badge variant="outline" className={getScoreColor(checkin.pontos_stress)}>
+                      <Badge variant="outline" className={`${getScoreColor(checkin.pontos_stress)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_stress || 'N/A'}
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Flame className="w-3 h-3 text-pink-400" />
-                        <p className="text-xs text-slate-400">Libido</p>
+                    {/* Libido */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <Flame className="w-4 h-4 text-pink-400" />
+                        <p className="text-xs text-slate-400 leading-none">Libido</p>
                       </div>
-                      <Badge variant="outline" className={getScoreColor(checkin.pontos_libido)}>
+                      <Badge variant="outline" className={`${getScoreColor(checkin.pontos_libido)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_libido || 'N/A'}
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-800/50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1 mb-1">
-                        <BedDouble className="w-3 h-3 text-indigo-400" />
-                        <p className="text-xs text-slate-400">Qualidade Sono</p>
+                    {/* Qualidade Sono */}
+                    <div className="bg-slate-800/50 p-2.5 rounded">
+                      <div className="flex items-center gap-0.5 mb-1">
+                        <BedDouble className="w-4 h-4 text-indigo-400" />
+                        <p className="text-xs text-slate-400 leading-none">Qual.Sono</p>
                       </div>
-                      <Badge variant="outline" className={getScoreColor(checkin.pontos_qualidade_sono)}>
+                      <Badge variant="outline" className={`${getScoreColor(checkin.pontos_qualidade_sono)} text-sm py-1 px-2 h-7`}>
                         {checkin.pontos_qualidade_sono || 'N/A'}
                       </Badge>
                     </div>

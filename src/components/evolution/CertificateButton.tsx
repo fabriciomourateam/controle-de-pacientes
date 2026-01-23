@@ -86,59 +86,9 @@ export function CertificateButton({
     }
   };
 
+  // Não renderizar nada se não for elegível
   if (!eligibility.eligible) {
-    return (
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="border-slate-600 hover:bg-slate-800 text-slate-400"
-            disabled
-          >
-            <Award className="w-4 h-4 mr-2" />
-            Certificado Bloqueado
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="glass-card border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-slate-400" />
-              Certificado de Conquista
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Continue sua jornada para desbloquear seu certificado!
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-slate-300">
-              Para ganhar um certificado, você precisa alcançar uma dessas conquistas:
-            </p>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${weightLost >= 10 ? 'bg-green-500' : 'bg-slate-600'}`} />
-                <span className="text-slate-300">Perder 10kg ou mais</span>
-                {weightLost >= 10 && <Badge className="bg-green-500/20 text-green-300">✓ Conquistado</Badge>}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${bodyFatLost && bodyFatLost >= 5 ? 'bg-green-500' : 'bg-slate-600'}`} />
-                <span className="text-slate-300">Reduzir 5% ou mais de gordura</span>
-                {bodyFatLost && bodyFatLost >= 5 && <Badge className="bg-green-500/20 text-green-300">✓ Conquistado</Badge>}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${totalWeeks >= 12 && weightLost >= 5 ? 'bg-green-500' : 'bg-slate-600'}`} />
-                <span className="text-slate-300">Completar 12 semanas (perdendo 5kg+)</span>
-                {totalWeeks >= 12 && weightLost >= 5 && <Badge className="bg-green-500/20 text-green-300">✓ Conquistado</Badge>}
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-sm text-blue-300">
-                💪 Seu progresso atual: {weightLost.toFixed(1)}kg perdidos em {totalWeeks} semanas. Continue firme!
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+    return null;
   }
 
   return (
