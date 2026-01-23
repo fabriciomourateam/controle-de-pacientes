@@ -1022,6 +1022,62 @@ export default function PatientEvolution() {
                     <Link2 className="w-4 h-4 mr-2 text-blue-400" />
                     Portal do Aluno
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEvolutionExportMode('png');
+                      setShowEvolutionExport(true);
+                    }}
+                    disabled={generatingPDF}
+                    className="text-white hover:bg-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Image className="w-4 h-4 mr-2 text-green-400" />
+                    {generatingPDF ? 'Gerando...' : 'Baixar Evolução (PNG)'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEvolutionExportMode('pdf');
+                      setShowEvolutionExport(true);
+                    }}
+                    disabled={generatingPDF}
+                    className="text-white hover:bg-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileDown className="w-4 h-4 mr-2 text-purple-400" />
+                    {generatingPDF ? 'Gerando...' : 'Baixar Evolução (PDF)'}
+                  </DropdownMenuItem>
+                  
+                  {/* Seções ocultas - mostrar apenas se houver alguma oculta */}
+                  {(!showExams || !showDailyWeights || (achievements.length > 0 && !showAchievements)) && (
+                    <>
+                      <DropdownMenuSeparator />
+                      {telefone && !showExams && (
+                        <DropdownMenuItem
+                          onClick={() => setShowExams(true)}
+                          className="text-white hover:bg-slate-700 cursor-pointer"
+                        >
+                          <FlaskConical className="w-4 h-4 mr-2 text-cyan-400" />
+                          Mostrar Exames
+                        </DropdownMenuItem>
+                      )}
+                      {telefone && !showDailyWeights && (
+                        <DropdownMenuItem
+                          onClick={() => setShowDailyWeights(true)}
+                          className="text-white hover:bg-slate-700 cursor-pointer"
+                        >
+                          <Scale className="w-4 h-4 mr-2 text-emerald-400" />
+                          Mostrar Pesos Diários
+                        </DropdownMenuItem>
+                      )}
+                      {achievements.length > 0 && !showAchievements && (
+                        <DropdownMenuItem
+                          onClick={() => setShowAchievements(true)}
+                          className="text-white hover:bg-slate-700 cursor-pointer"
+                        >
+                          <Activity className="w-4 h-4 mr-2 text-amber-400" />
+                          Mostrar Conquistas
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               
@@ -2123,28 +2179,28 @@ export default function PatientEvolution() {
             </motion.div>
           )}
 
-          {/* 4. Comparação de Fotos */}
+          {/* 4. Timeline Detalhada */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35 }}
           >
-            <PhotoComparison 
+            <Timeline 
               checkins={checkins} 
-              patient={patient} 
-              onPhotoDeleted={loadEvolution}
+              onCheckinUpdated={loadEvolution}
             />
           </motion.div>
 
-          {/* 5. Timeline Detalhada */}
+          {/* 5. Comparação de Fotos */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Timeline 
+            <PhotoComparison 
               checkins={checkins} 
-              onCheckinUpdated={loadEvolution}
+              patient={patient} 
+              onPhotoDeleted={loadEvolution}
             />
           </motion.div>
 
@@ -2200,102 +2256,7 @@ export default function PatientEvolution() {
             </motion.div>
           )}
 
-          {/* Gráficos e análises */}          {/* 9. Card de Ações Finais - Aparece sempre */}
-          <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <FileText className="w-5 h-5 text-blue-400" />
-                Ações Disponíveis
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Exporte ou compartilhe este dossiê
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={() => {
-                      setEvolutionExportMode('png');
-                      setShowEvolutionExport(true);
-                    }}
-                    disabled={generatingPDF}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all gap-2"
-                  >
-                    <Image className="w-4 h-4" />
-                    {generatingPDF ? 'Gerando...' : 'Baixar evolução'}
-                  </Button>
-                  
-                  <Button
-                    onClick={() => {
-                      setEvolutionExportMode('pdf');
-                      setShowEvolutionExport(true);
-                    }}
-                    disabled={generatingPDF}
-                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all gap-2"
-                  >
-                    <FileDown className="w-4 h-4" />
-                    {generatingPDF ? 'Gerando...' : 'Baixar evolução (PDF)'}
-                  </Button>
-                  
-                  <Button
-                    onClick={() => navigate('/checkins')}
-                    className="gap-2"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Voltar para Check-ins
-                  </Button>
-                </div>
-                
-                {/* Botão para mostrar seções ocultas - canto direito inferior */}
-                {(!showExams || !showDailyWeights || !showAchievements) && (
-                  <div className="flex justify-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-slate-400 hover:text-white border-slate-700 hover:bg-slate-800/50"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Mostrar seções ocultas
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-                        {telefone && !showExams && (
-                          <DropdownMenuItem
-                            onClick={() => setShowExams(true)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <FlaskConical className="w-4 h-4 mr-2" />
-                            Exames
-                          </DropdownMenuItem>
-                        )}
-                        {telefone && !showDailyWeights && (
-                          <DropdownMenuItem
-                            onClick={() => setShowDailyWeights(true)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Scale className="w-4 h-4 mr-2" />
-                            Pesos Diários
-                          </DropdownMenuItem>
-                        )}
-                        {achievements.length > 0 && !showAchievements && (
-                          <DropdownMenuItem
-                            onClick={() => setShowAchievements(true)}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Activity className="w-4 h-4 mr-2" />
-                            Conquistas
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Gráficos e análises */}
         </motion.div>
 
         {/* Dialog de Zoom da Foto */}

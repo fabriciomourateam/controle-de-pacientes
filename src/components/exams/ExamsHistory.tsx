@@ -235,7 +235,7 @@ export function ExamsHistory({ patientId, telefone, onUpdate, refreshTrigger, al
           <div className="flex items-center justify-between gap-4">
             <CardTitle className={`flex items-center gap-2 ${isDark ? "text-white" : "text-[#222222]"}`}>
               <FlaskConical className={`w-5 h-5 ${isDark ? "text-blue-400" : "text-[#00C98A]"}`} />
-              Exames ({exams.length})
+              Exames
             </CardTitle>
             <Button
               variant="ghost"
