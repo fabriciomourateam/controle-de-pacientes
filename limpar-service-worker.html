@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Service Worker e Cache</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #b91c1c;
+        }
+        button.success {
+            background: #16a34a;
+        }
+        button.success:hover {
+            background: #15803d;
+        }
+        .log {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-success {
+            color: #16a34a;
+        }
+        .log-error {
+            color: #dc2626;
+        }
+        .log-info {
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpar Service Worker e Cache</h1>
+        <p>Esta página vai limpar completamente todos os Service Workers e caches do navegador.</p>
+        
+        <div>
+            <button onclick="limparTudo()">🗑️ Limpar Tudo</button>
+            <button onclick="limparServiceWorker()">🔧 Limpar Service Worker</button>
+            <button onclick="limparCaches()">💾 Limpar Caches</button>
+            <button onclick="limparLocalStorage()">📦 Limpar LocalStorage</button>
+            <button class="success" onclick="recarregar()">🔄 Recarregar Página</button>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const item = document.createElement('div');
+            item.className = `log-item log-${type}`;
+            item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(item);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+
+        async function limparServiceWorker() {
+            addLog('🔧 Iniciando limpeza de Service Workers...', 'info');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    addLog(`📋 Encontrados ${registrations.length} Service Worker(s)`, 'info');
+                    
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        addLog(`✅ Service Worker desregistrado: ${registration.scope}`, 'success');
+                    }
+                    
+                    if (registrations.length === 0) {
+                        addLog('ℹ️ Nenhum Service Worker encontrado', 'info');
+                    } else {
+                        addLog(`✅ ${registrations.length} Service Worker(s) removido(s)`, 'success');
+                    }
+                } catch (error) {
+                    addLog(`❌ Erro ao limpar Service Workers: ${error.message}`, 'error');
+                }
+            } else {
+                addLog('⚠️ Service Worker não suportado neste navegador', 'error');
+            }
+        }
+
+        async function limparCaches() {
+            addLog('💾 Iniciando limpeza de caches...', 'info');
+            
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    addLog(`📋 Encontrados ${cacheNames.length} cache(s)`, 'info');
+                    
+                    for (let cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        addLog(`✅ Cache removido: ${cacheName}`, 'success');
+                    }
+                    
+                    if (cacheNames.length === 0) {
+                        addLog('ℹ️ Nenhum cache encontrado', 'info');
+                    } else {
+                        addLog(`✅ ${cacheNames.length} cache(s) removido(s)`, 'success');
+                    }
+                } catch (error) {
+                    addLog(`❌ Erro ao limpar caches: ${error.message}`, 'error');
+                }
+            } else {
+                addLog('⚠️ Cache API não suportada neste navegador', 'error');
+            }
+        }
+
+        function limparLocalStorage() {
+            addLog('📦 Iniciando limpeza de LocalStorage...', 'info');
+            
+            try {
+                const itemCount = localStorage.length;
+                addLog(`📋 Encontrados ${itemCount} item(ns) no LocalStorage`, 'info');
+                
+                localStorage.clear();
+                addLog(`✅ LocalStorage limpo (${itemCount} item(ns) removido(s))`, 'success');
+            } catch (error) {
+                addLog(`❌ Erro ao limpar LocalStorage: ${error.message}`, 'error');
+            }
+        }
+
+        async function limparTudo() {
+            addLog('🧹 Iniciando limpeza completa...', 'info');
+            addLog('═══════════════════════════════════════', 'info');
+            
+            await limparServiceWorker();
+            addLog('───────────────────────────────────────', 'info');
+            
+            await limparCaches();
+            addLog('───────────────────────────────────────', 'info');
+            
+            limparLocalStorage();
+            addLog('═══════════════════════════════════════', 'info');
+            addLog('✅ Limpeza completa finalizada!', 'success');
+            addLog('ℹ️ Recarregue a página para aplicar as mudanças', 'info');
+        }
+
+        function recarregar() {
+            addLog('🔄 Recarregando página...', 'info');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 500);
+        }
+
+        // Executar limpeza automaticamente ao carregar a página
+        window.addEventListener('load', () => {
+            addLog('🚀 Página carregada', 'info');
+            addLog('ℹ️ Clique em "Limpar Tudo" para começar', 'info');
+        });
+    </script>
+</body>
+</html>

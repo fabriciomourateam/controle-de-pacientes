@@ -334,7 +334,8 @@ export const patientService = {
         created_at,
         updated_at
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(5000); // Limite explícito para garantir que todos os pacientes sejam carregados
 
     if (error) throw error;
     
@@ -479,7 +480,10 @@ export const patientService = {
     }
 
     // Não aplicar limite aqui - deixar o componente controlar a paginação
+    // Mas adicionar limite alto (5000) como fallback para evitar problemas com limite padrão do PostgREST
     // Isso permite que filtros funcionem corretamente
+    query = query.limit(5000);
+    
     const { data, error } = await query;
     
     if (error) throw error;
@@ -697,9 +701,11 @@ export const dashboardService = {
         .select('*', { count: 'exact', head: true });
 
       // Buscar todos os pacientes para calcular expirando
+      // Limite aumentado para 5000 para garantir que todos os pacientes sejam carregados
       const { data: allPatients } = await supabase
         .from('patients')
-        .select('vencimento, created_at, telefone, plano');
+        .select('vencimento, created_at, telefone, plano')
+        .limit(5000);
 
       // Calcular pacientes expirando em 30 dias
       const today = new Date();
@@ -719,9 +725,11 @@ export const dashboardService = {
       }).length || 0;
 
       // Buscar checkins existentes para calcular pendentes
+      // Limite aumentado para 10000 para garantir que todos os checkins sejam carregados
       const { data: checkins } = await supabase
         .from('checkin')
-        .select('telefone, data_checkin, total_pontuacao');
+        .select('telefone, data_checkin, total_pontuacao')
+        .limit(10000);
 
       // Calcular checkins pendentes (pacientes sem checkin recente)
       const thirtyDaysAgo = new Date();

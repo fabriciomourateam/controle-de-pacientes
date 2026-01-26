@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -903,7 +903,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Peso */}
                           {evolutionData.peso_anterior !== undefined && evolutionData.peso_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Peso</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Peso</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1045,7 +1045,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {(evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined) || 
                            (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) ? (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Cintura</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Cintura</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1189,7 +1189,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {(evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined) || 
                            (evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined) ? (
                             <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Quadril</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Quadril</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1385,7 +1385,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Treinos */}
                           {evolutionData.treino_anterior !== undefined && evolutionData.treino_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1508,7 +1508,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Cardio */}
                           {evolutionData.cardio_anterior !== undefined && evolutionData.cardio_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1631,7 +1631,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Tempo de Treino */}
                           {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">⏱️ Tempo de Treino</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1761,7 +1761,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Tempo de Cardio */}
                           {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">🏃 Tempo de Cardio</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -1891,7 +1891,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Descanso entre Séries */}
                           {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
                             <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -2022,7 +2022,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Água */}
                           {evolutionData.agua_anterior !== undefined && evolutionData.agua_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">💧 Água</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">💧 Água</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -2145,7 +2145,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Sono */}
                           {evolutionData.sono_anterior !== undefined && evolutionData.sono_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">😴 Sono</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">😴 Sono</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -2268,7 +2268,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Refeições Livres */}
                           {evolutionData.ref_livre_anterior !== undefined && evolutionData.ref_livre_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -2391,7 +2391,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Beliscos */}
                           {evolutionData.beliscos_anterior !== undefined && evolutionData.beliscos_atual !== undefined && (
                             <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
                               {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
                               {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
                                 <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
@@ -2752,7 +2752,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Peso */}
                           {evolutionData?.peso_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Peso</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Peso</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'peso' && editingInitialData ? (
                                   <div className="flex items-center justify-center gap-1">
@@ -2835,7 +2835,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {(evolutionData?.cintura_anterior !== null && evolutionData?.cintura_anterior !== undefined) || 
                            (evolutionData?.cintura_atual !== null && evolutionData?.cintura_atual !== undefined) ? (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Cintura</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Cintura</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'cintura' && editingInitialData ? (
                                   <div className="flex items-center justify-center gap-1">
@@ -2924,7 +2924,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {(evolutionData?.quadril_anterior !== null && evolutionData?.quadril_anterior !== undefined) || 
                            (evolutionData?.quadril_atual !== null && evolutionData?.quadril_atual !== undefined) ? (
                             <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">Quadril</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Quadril</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'quadril' && editingInitialData ? (
                                   <div className="flex items-center justify-center gap-1">
@@ -3049,7 +3049,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Treinos */}
                           {evolutionData?.treino_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'treino' && !editingInitialData && !editingPrevious ? (
@@ -3089,7 +3089,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Cardio */}
                           {evolutionData?.cardio_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'cardio' && !editingInitialData && !editingPrevious ? (
@@ -3129,7 +3129,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Tempo de Treino */}
                           {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'tempo_treino' && !editingInitialData && !editingPrevious ? (
@@ -3182,7 +3182,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Tempo de Cardio */}
                           {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'tempo_cardio' && !editingInitialData && !editingPrevious ? (
@@ -3235,7 +3235,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Descanso entre Séries */}
                           {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
                             <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
+                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'descanso' && !editingInitialData && !editingPrevious ? (
@@ -3288,7 +3288,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Água */}
                           {evolutionData?.agua_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">💧 Água</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">💧 Água</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'agua' && !editingInitialData && !editingPrevious ? (
@@ -3328,7 +3328,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Sono */}
                           {evolutionData?.sono_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">😴 Sono</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">😴 Sono</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'sono' && !editingInitialData && !editingPrevious ? (
@@ -3368,7 +3368,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Refeições Livres */}
                           {evolutionData?.ref_livre_atual !== undefined && (
                             <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'ref_livre' && !editingInitialData && !editingPrevious ? (
@@ -3408,7 +3408,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {/* Beliscos */}
                           {evolutionData?.beliscos_atual !== undefined && (
                             <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
+                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
                               <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
                               <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                 {editingField === 'beliscos' && !editingInitialData && !editingPrevious ? (
@@ -3446,7 +3446,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           )}
                           {/* Linha de botões de fotos */}
                           <tr className="border-b border-slate-700/30">
-                            <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">📷 Fotos</td>
+                            <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">📷 Fotos</td>
                             <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                               <Button
                                 variant="ghost"
@@ -3535,7 +3535,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                     {/* Objetivo & Dificuldades */}
                     <div className="space-y-2">
                       <h5 className="text-sm font-semibold text-slate-300 mb-2">🎯 Objetivo & Dificuldades</h5>
-                      <div className="space-y-2.5 text-xs">
+                      <div className="space-y-2.5 text-[13px]">
                         <div>
                           <span className="font-semibold text-slate-200">Objetivo: </span>
                           <span className="text-slate-200">{checkin.objetivo || 'Não informado'}</span>
@@ -3550,7 +3550,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                     {/* Percepções Visuais */}
                     <div className="space-y-2">
                       <h5 className="text-sm font-semibold text-slate-300 mb-2">👁️ Percepções Visuais</h5>
-                      <div className="space-y-2.5 text-xs">
+                      <div className="space-y-2.5 text-[13px]">
                         <div>
                           <span className="font-semibold text-slate-200">Melhora Visual: </span>
                           <span className="text-slate-200">{checkin.melhora_visual || 'Não informado'}</span>
@@ -3565,7 +3565,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                     {/* Refeições Livres & Beliscos */}
                     <div className="space-y-2">
                       <h5 className="text-sm font-semibold text-slate-300 mb-2">🍽️ Refeições Livres & Beliscos</h5>
-                      <div className="space-y-2.5 text-xs">
+                      <div className="space-y-2.5 text-[13px]">
                         <div>
                           <span className="font-semibold text-slate-200">O que comeu na refeição livre: </span>
                           <span className="text-slate-200">{checkin.oq_comeu_ref_livre || 'Não informado'}</span>
@@ -3580,7 +3580,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                     {/* Fome & Ajustes */}
                     <div className="space-y-2">
                       <h5 className="text-sm font-semibold text-slate-300 mb-2">🍴 Fome & Ajustes</h5>
-                      <div className="space-y-2.5 text-xs">
+                      <div className="space-y-2.5 text-[13px]">
                         <div>
                           <span className="font-semibold text-slate-200">Comeu menos que o planejado: </span>
                           <span className="text-slate-200">{checkin.comeu_menos || 'Não informado'}</span>
@@ -3605,11 +3605,11 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
               {/* Suas Observações */}
               <Card className="bg-slate-800/30 border-slate-700/50">
                 <CardContent className="p-3 space-y-3">
-                  <h4 className="text-xs font-semibold text-slate-200">📝 Suas Observações</h4>
+                  <h4 className="text-sm font-semibold text-slate-200">📝 Suas Observações</h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-200 mb-1.5">
+                      <label className="block text-[13px] font-medium text-slate-200 mb-1.5">
                         🔍 Melhoras Observadas:
                       </label>
                       <Textarea
@@ -3617,12 +3617,12 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         onChange={(e) => setObservedImprovements(e.target.value)}
                         placeholder="Descreva as melhoras que você observou no paciente..."
                         rows={3}
-                        className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs"
+                        className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-[13px]"
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-xs font-medium text-slate-200 mb-1.5">
+                      <label className="block text-[13px] font-medium text-slate-200 mb-1.5">
                         ⚙️ Ajustes Realizados na Dieta:
                       </label>
                       <Textarea
@@ -3630,7 +3630,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         onChange={(e) => setDietAdjustments(e.target.value)}
                         placeholder="Descreva os ajustes que você fez na dieta..."
                         rows={3}
-                        className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs"
+                        className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-[13px]"
                       />
                     </div>
                   </div>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Limite de Query</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+        .info {
+            color: #60a5fa;
+        }
+        .warning {
+            color: #f59e0b;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Teste de Limite de Query do Supabase</h1>
+        <p>Este teste vai verificar quantos registros estão sendo retornados pelas queries.</p>
+        
+        <div>
+            <button onclick="testarSemLimite()">Teste SEM .limit()</button>
+            <button onclick="testarComLimite1000()">Teste COM .limit(1000)</button>
+            <button onclick="testarComLimite5000()">Teste COM .limit(5000)</button>
+            <button onclick="testarGetFiltered()">Teste getFiltered()</button>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://qhzifnyjyxdushxorzrk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function addLog(message, type = 'info') {
+            const result = document.getElementById('result');
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            result.appendChild(line);
+            result.scrollTop = result.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        async function testarSemLimite() {
+            clearLog();
+            addLog('🔍 Testando query SEM .limit()...', 'info');
+            addLog('═══════════════════════════════════════', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('patients')
+                    .select('id, nome, plano', { count: 'exact' })
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    addLog(`❌ Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                addLog(`✅ Query executada com sucesso!`, 'success');
+                addLog(`📊 Total no banco (count): ${count}`, 'info');
+                addLog(`📦 Registros retornados (data.length): ${data?.length || 0}`, data?.length === count ? 'success' : 'warning');
+                
+                if (data?.length !== count) {
+                    addLog(`⚠️ PROBLEMA: Esperava ${count} mas recebeu ${data?.length}`, 'warning');
+                    addLog(`⚠️ Diferença: ${count - (data?.length || 0)} registros faltando`, 'warning');
+                }
+
+                // Mostrar primeiros e últimos registros
+                if (data && data.length > 0) {
+                    addLog('───────────────────────────────────────', 'info');
+                    addLog(`📝 Primeiro registro: ${data[0].nome} (${data[0].plano})`, 'info');
+                    addLog(`📝 Último registro: ${data[data.length - 1].nome} (${data[data.length - 1].plano})`, 'info');
+                }
+            } catch (error) {
+                addLog(`❌ Exceção: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarComLimite1000() {
+            clearLog();
+            addLog('🔍 Testando query COM .limit(1000)...', 'info');
+            addLog('═══════════════════════════════════════', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('patients')
+                    .select('id, nome, plano', { count: 'exact' })
+                    .order('created_at', { ascending: false })
+                    .limit(1000);
+
+                if (error) {
+                    addLog(`❌ Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                addLog(`✅ Query executada com sucesso!`, 'success');
+                addLog(`📊 Total no banco (count): ${count}`, 'info');
+                addLog(`📦 Registros retornados (data.length): ${data?.length || 0}`, 'info');
+                addLog(`🎯 Limite aplicado: 1000`, 'info');
+                
+                if (data && data.length > 0) {
+                    addLog('───────────────────────────────────────', 'info');
+                    addLog(`📝 Primeiro registro: ${data[0].nome} (${data[0].plano})`, 'info');
+                    addLog(`📝 Último registro: ${data[data.length - 1].nome} (${data[data.length - 1].plano})`, 'info');
+                }
+            } catch (error) {
+                addLog(`❌ Exceção: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarComLimite5000() {
+            clearLog();
+            addLog('🔍 Testando query COM .limit(5000)...', 'info');
+            addLog('═══════════════════════════════════════', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('patients')
+                    .select('id, nome, plano', { count: 'exact' })
+                    .order('created_at', { ascending: false })
+                    .limit(5000);
+
+                if (error) {
+                    addLog(`❌ Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                addLog(`✅ Query executada com sucesso!`, 'success');
+                addLog(`📊 Total no banco (count): ${count}`, 'info');
+                addLog(`📦 Registros retornados (data.length): ${data?.length || 0}`, data?.length === count ? 'success' : 'warning');
+                addLog(`🎯 Limite aplicado: 5000`, 'info');
+                
+                if (data?.length === count) {
+                    addLog(`✅ SUCESSO: Todos os ${count} registros foram retornados!`, 'success');
+                } else {
+                    addLog(`⚠️ AVISO: Esperava ${count} mas recebeu ${data?.length}`, 'warning');
+                }
+                
+                if (data && data.length > 0) {
+                    addLog('───────────────────────────────────────', 'info');
+                    addLog(`📝 Primeiro registro: ${data[0].nome} (${data[0].plano})`, 'info');
+                    addLog(`📝 Último registro: ${data[data.length - 1].nome} (${data[data.length - 1].plano})`, 'info');
+                }
+            } catch (error) {
+                addLog(`❌ Exceção: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarGetFiltered() {
+            clearLog();
+            addLog('🔍 Testando getFiltered() (simulado)...', 'info');
+            addLog('═══════════════════════════════════════', 'info');
+            
+            try {
+                // Simular a query do getFiltered
+                let query = supabase
+                    .from('patients')
+                    .select('id, nome, telefone, plano', { count: 'exact' })
+                    .order('created_at', { ascending: false });
+
+                // Aplicar limite como no código
+                query = query.limit(5000);
+
+                const { data, error, count } = await query;
+
+                if (error) {
+                    addLog(`❌ Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                addLog(`✅ Query executada com sucesso!`, 'success');
+                addLog(`📊 Total no banco (count): ${count}`, 'info');
+                addLog(`📦 Registros retornados (data.length): ${data?.length || 0}`, data?.length === count ? 'success' : 'warning');
+                addLog(`🎯 Limite aplicado: 5000`, 'info');
+                
+                if (data?.length === count) {
+                    addLog(`✅ SUCESSO: Todos os ${count} registros foram retornados!`, 'success');
+                    addLog(`✅ O código está correto! O problema é cache do navegador.`, 'success');
+                } else {
+                    addLog(`⚠️ PROBLEMA: Esperava ${count} mas recebeu ${data?.length}`, 'warning');
+                    addLog(`⚠️ Diferença: ${count - (data?.length || 0)} registros faltando`, 'warning');
+                }
+                
+                if (data && data.length > 0) {
+                    addLog('───────────────────────────────────────', 'info');
+                    addLog(`📝 Primeiro registro: ${data[0].nome} (${data[0].plano})`, 'info');
+                    addLog(`📝 Último registro: ${data[data.length - 1].nome} (${data[data.length - 1].plano})`, 'info');
+                }
+            } catch (error) {
+                addLog(`❌ Exceção: ${error.message}`, 'error');
+            }
+        }
+
+        // Executar teste automaticamente ao carregar
+        window.addEventListener('load', () => {
+            addLog('🚀 Página carregada', 'info');
+            addLog('ℹ️ Clique em um dos botões para testar', 'info');
+        });
+    </script>
+</body>
+</html>

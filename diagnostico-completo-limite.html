@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnóstico Completo - Limite de Pacientes</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    h2 {
+      color: #667eea;
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+    .test-section {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .result {
+      background: #e9ecef;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .success {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      color: #155724;
+    }
+    .warning {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      color: #856404;
+    }
+    .error {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+      color: #721c24;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 10px 10px 0;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .summary h3 {
+      margin-top: 0;
+      color: white;
+    }
+    .metric {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 10px 20px;
+      border-radius: 6px;
+      margin: 5px;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .metric-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Diagnóstico Completo - Limite de Pacientes</h1>
+    
+    <div class="summary">
+      <h3>📊 Resumo dos Testes</h3>
+      <div id="summary">Clique em "Executar Todos os Testes" para começar</div>
+    </div>
+
+    <button onclick="runAllTests()" id="runAllBtn">▶️ Executar Todos os Testes</button>
+    <button onclick="clearAllCache()">🗑️ Limpar Todo o Cache</button>
+    <button onclick="location.reload()">🔄 Recarregar Página</button>
+
+    <div class="test-section">
+      <h2>1️⃣ Teste de Contagem (HEAD request)</h2>
+      <p>Verifica o total de pacientes usando count exact (não carrega dados)</p>
+      <button onclick="testCount()">Executar Teste 1</button>
+      <div id="test1-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>2️⃣ Teste de Query Sem Limite</h2>
+      <p>Busca TODOS os pacientes sem especificar limite</p>
+      <button onclick="testNoLimit()">Executar Teste 2</button>
+      <div id="test2-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>3️⃣ Teste de Query Com Limite 5000</h2>
+      <p>Busca pacientes com .limit(5000) explícito</p>
+      <button onclick="testWithLimit()">Executar Teste 3</button>
+      <div id="test3-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>4️⃣ Teste de Query Com Limite 10000</h2>
+      <p>Busca pacientes com .limit(10000) para verificar se aceita limites maiores</p>
+      <button onclick="testWithHighLimit()">Executar Teste 4</button>
+      <div id="test4-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>5️⃣ Teste de Paginação</h2>
+      <p>Busca pacientes em páginas de 1000 registros</p>
+      <button onclick="testPagination()">Executar Teste 5</button>
+      <div id="test5-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>6️⃣ Verificação de Cache</h2>
+      <p>Verifica se há cache ativo no navegador</p>
+      <button onclick="checkCache()">Executar Teste 6</button>
+      <div id="test6-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>7️⃣ Teste de Configuração do Supabase</h2>
+      <p>Verifica headers de resposta para identificar limites do servidor</p>
+      <button onclick="testSupabaseConfig()">Executar Teste 7</button>
+      <div id="test7-result" class="result" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://qhzifnyjyxdushxorzrk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbnlqeXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg0MzMsImV4cCI6MjA3MjkyNDQzM30.3K7qDeqle5OYC0wsuaB1S8NDkk8XfI8BN_VX7s4zLKA';
+    
+    let supabaseClient = null;
+    
+    // Aguardar o carregamento da biblioteca Supabase
+    window.addEventListener('load', function() {
+      if (window.supabase && window.supabase.createClient) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('✅ Cliente Supabase inicializado');
+      } else {
+        console.error('❌ Biblioteca Supabase não carregada');
+      }
+    });
+
+    let testResults = {};
+
+    async function testCount() {
+      const resultDiv = document.getElementById('test1-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '⏳ Executando teste...';
+      resultDiv.className = 'result';
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('Cliente Supabase não inicializado. Recarregue a página.');
+        }
+
+        const start = performance.now();
+        const { count, error } = await supabaseClient
+          .from('patients')
+          .select('*', { count: 'exact', head: true });
+        const duration = (performance.now() - start).toFixed(2);
+
+        if (error) throw error;
+
+        testResults.count = count;
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `✅ SUCESSO!\n\nTotal de pacientes: ${count}\nTempo: ${duration}ms\n\n${count === 1024 ? '✅ Contagem correta!' : '⚠️ Contagem diferente do esperado (1024)'}`;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `❌ ERRO!\n\n${error.message}`;
+      }
+    }
+
+    async function testNoLimit() {
+      const resultDiv = document.getElementById('test2-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '⏳ Executando teste...';
+      resultDiv.className = 'result';
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('Cliente Supabase não inicializado. Recarregue a página.');
+        }
+
+        const start = performance.now();
+        const { data, error } = await supabaseClient
+          .from('patients')
+          .select('id, nome')
+          .order('created_at', { ascending: false });
+        const duration = (performance.now() - start).toFixed(2);
+
+        if (error) throw error;
+
+        testResults.noLimit = data?.length || 0;
+        const className = data?.length === 1000 ? 'result warning' : 'result success';
+        resultDiv.className = className;
+        resultDiv.innerHTML = `${data?.length === 1000 ? '⚠️' : '✅'} Registros retornados: ${data?.length}\nTempo: ${duration}ms\n\n${data?.length === 1000 ? '⚠️ LIMITE PADRÃO DE 1000 DETECTADO!\nO PostgREST está limitando a query.' : '✅ Query retornou todos os registros!'}`;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `❌ ERRO!\n\n${error.message}`;
+      }
+    }
+
+    async function testWithLimit() {
+      const resultDiv = document.getElementById('test3-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '⏳ Executando teste...';
+      resultDiv.className = 'result';
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('Cliente Supabase não inicializado. Recarregue a página.');
+        }
+
+        const start = performance.now();
+        const { data, error } = await supabaseClient
+          .from('patients')
+          .select('id, nome')
+          .order('created_at', { ascending: false })
+          .limit(5000);
+        const duration = (performance.now() - start).toFixed(2);
+
+        if (error) throw error;
+
+        testResults.withLimit5000 = data?.length || 0;
+        const className = data?.length >= 1024 ? 'result success' : 'result warning';
+        resultDiv.className = className;
+        resultDiv.innerHTML = `${data?.length >= 1024 ? '✅' : '⚠️'} Registros retornados: ${data?.length}\nTempo: ${duration}ms\n\n${data?.length >= 1024 ? '✅ Limite de 5000 funcionando!' : '⚠️ Ainda está limitado a menos de 1024'}`;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `❌ ERRO!\n\n${error.message}`;
+      }
+    }
+
+    async function testWithHighLimit() {
+      const resultDiv = document.getElementById('test4-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '⏳ Executando teste...';
+      resultDiv.className = 'result';
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('Cliente Supabase não inicializado. Recarregue a página.');
+        }
+
+        const start = performance.now();
+        const { data, error } = await supabaseClient
+          .from('patients')
+          .select('id, nome')
+          .order('created_at', { ascending: false })
+          .limit(10000);
+        const duration = (performance.now() - start).toFixed(2);
+
+        if (error) throw error;
+
+        testResults.withLimit10000 = data?.length || 0;
+        const className = data?.length >= 1024 ? 'result success' : 'result warning';
+        resultDiv.className = className;
+        resultDiv.innerHTML = `${data?.length >= 1024 ? '✅' : '⚠️'} Registros retornados: ${data?.length}\nTempo: ${duration}ms\n\n${data?.length >= 1024 ? '✅ Limite de 10000 funcionando!' : '⚠️ Ainda está limitado a menos de 1024'}`;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `❌ ERRO!\n\n${error.message}`;
+      }
+    }
+
+    async function testPagination() {
+      const resultDiv = document.getElementById('test5-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '⏳ Executando teste...';
+      resultDiv.className = 'result';
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('Cliente Supabase não inicializado. Recarregue a página.');
+        }
+
+        let allData = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const { data, error } = await supabaseClient
+            .from('patients')
+            .select('id, nome')
+            .order('created_at', { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            allData = allData.concat(data);
+            page++;
+            resultDiv.innerHTML = `⏳ Carregando página ${page}... (${allData.length} registros)`;
+          } else {
+            hasMore = false;
+          }
+
+          if (data.length < pageSize) {
+            hasMore = false;
+          }
+        }
+
+        testResults.pagination = allData.length;
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `✅ PAGINAÇÃO COMPLETA!\n\nTotal de registros: ${allData.length}\nPáginas carregadas: ${page}\n\n${allData.length >= 1024 ? '✅ Todos os registros foram carregados!' : '⚠️ Ainda faltam registros'}`;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `❌ ERRO!\n\n${error.message}`;
+      }
+    }
+
+    async function checkCache() {
+      const resultDiv = document.getElementById('test6-result');
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'result';
+
+      let cacheInfo = [];
+
+      // Verificar localStorage
+      const localStorageSize = new Blob(Object.values(localStorage)).size;
+      cacheInfo.push(`📦 LocalStorage: ${(localStorageSize / 1024).toFixed(2)} KB`);
+      cacheInfo.push(`   Chaves: ${Object.keys(localStorage).length}`);
+
+      // Verificar sessionStorage
+      const sessionStorageSize = new Blob(Object.values(sessionStorage)).size;
+      cacheInfo.push(`\n📦 SessionStorage: ${(sessionStorageSize / 1024).toFixed(2)} KB`);
+      cacheInfo.push(`   Chaves: ${Object.keys(sessionStorage).length}`);
+
+      // Verificar Service Worker
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        cacheInfo.push(`\n🔧 Service Workers: ${registrations.length} ativo(s)`);
+        registrations.forEach((reg, i) => {
+          cacheInfo.push(`   SW ${i + 1}: ${reg.active ? 'Ativo' : 'Inativo'}`);
+        });
+      }
+
+      // Verificar Cache API
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        cacheInfo.push(`\n💾 Cache API: ${cacheNames.length} cache(s)`);
+        cacheNames.forEach(name => {
+          cacheInfo.push(`   - ${name}`);
+        });
+      }
+
+      resultDiv.innerHTML = cacheInfo.join('\n');
+    }
+
+    async function testSupabaseConfig() {
+      const resultDiv = document.getElementById('test7-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '⏳ Executando teste...';
+      resultDiv.className = 'result';
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/patients?select=id&limit=1`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const headers = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+
+        let info = [];
+        info.push('📋 Headers de Resposta do Supabase:\n');
+        info.push(`Content-Range: ${headers['content-range'] || 'N/A'}`);
+        info.push(`X-Total-Count: ${headers['x-total-count'] || 'N/A'}`);
+        info.push(`Preference-Applied: ${headers['preference-applied'] || 'N/A'}`);
+        
+        // Verificar se há limite configurado
+        const contentRange = headers['content-range'];
+        if (contentRange) {
+          const match = contentRange.match(/\/(\d+)/);
+          if (match) {
+            const total = parseInt(match[1]);
+            info.push(`\n✅ Total de registros detectado: ${total}`);
+          }
+        }
+
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = info.join('\n');
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `❌ ERRO!\n\n${error.message}`;
+      }
+    }
+
+    async function clearAllCache() {
+      if (confirm('⚠️ Isso vai limpar TODO o cache do navegador para este site. Continuar?')) {
+        // Limpar localStorage
+        localStorage.clear();
+        
+        // Limpar sessionStorage
+        sessionStorage.clear();
+        
+        // Limpar Service Workers
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+          }
+        }
+        
+        // Limpar Cache API
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (const name of cacheNames) {
+            await caches.delete(name);
+          }
+        }
+        
+        alert('✅ Cache limpo! A página será recarregada.');
+        location.reload();
+      }
+    }
+
+    async function runAllTests() {
+      const btn = document.getElementById('runAllBtn');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Executando testes...';
+
+      await testCount();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await testNoLimit();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await testWithLimit();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await testWithHighLimit();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await testPagination();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await checkCache();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await testSupabaseConfig();
+
+      // Atualizar resumo
+      updateSummary();
+
+      btn.disabled = false;
+      btn.innerHTML = '▶️ Executar Todos os Testes';
+    }
+
+    function updateSummary() {
+      const summaryDiv = document.getElementById('summary');
+      
+      let html = '<div>';
+      html += `<div class="metric"><div class="metric-value">${testResults.count || '?'}</div><div class="metric-label">Total (Count)</div></div>`;
+      html += `<div class="metric"><div class="metric-value">${testResults.noLimit || '?'}</div><div class="metric-label">Sem Limite</div></div>`;
+      html += `<div class="metric"><div class="metric-value">${testResults.withLimit5000 || '?'}</div><div class="metric-label">Limite 5000</div></div>`;
+      html += `<div class="metric"><div class="metric-value">${testResults.withLimit10000 || '?'}</div><div class="metric-label">Limite 10000</div></div>`;
+      html += `<div class="metric"><div class="metric-value">${testResults.pagination || '?'}</div><div class="metric-label">Paginação</div></div>`;
+      html += '</div>';
+
+      // Diagnóstico
+      html += '<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.3);">';
+      
+      if (testResults.noLimit === 1000 && testResults.withLimit5000 >= 1024) {
+        html += '<h4 style="margin: 0 0 10px 0;">🎯 DIAGNÓSTICO: Limite Padrão do PostgREST</h4>';
+        html += '<p style="margin: 0;">O Supabase está usando o limite padrão de 1000 registros quando não especificado. Mas com .limit(5000) funciona corretamente!</p>';
+        html += '<p style="margin: 10px 0 0 0;"><strong>✅ SOLUÇÃO: O código está correto! O problema é cache do navegador.</strong></p>';
+      } else if (testResults.noLimit < 1024 && testResults.withLimit5000 < 1024) {
+        html += '<h4 style="margin: 0 0 10px 0;">⚠️ DIAGNÓSTICO: Configuração do Supabase</h4>';
+        html += '<p style="margin: 0;">Há um limite configurado no projeto Supabase que está impedindo queries maiores.</p>';
+        html += '<p style="margin: 10px 0 0 0;"><strong>🔧 SOLUÇÃO: Verificar configuração de max_rows no Dashboard do Supabase.</strong></p>';
+      } else if (testResults.pagination >= 1024) {
+        html += '<h4 style="margin: 0 0 10px 0;">✅ DIAGNÓSTICO: Paginação Funciona</h4>';
+        html += '<p style="margin: 0;">A paginação consegue carregar todos os registros. O problema é que o código não está usando paginação.</p>';
+        html += '<p style="margin: 10px 0 0 0;"><strong>🔧 SOLUÇÃO: Implementar paginação no código ou aumentar limite.</strong></p>';
+      }
+      
+      html += '</div>';
+
+      summaryDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
