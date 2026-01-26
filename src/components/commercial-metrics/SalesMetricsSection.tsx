@@ -16,9 +16,11 @@ import {
   Phone,
   PhoneCall,
   X,
-  CreditCard
+  CreditCard,
+  ArrowUpDown
 } from "lucide-react";
 import { useSalesMetrics } from "@/hooks/use-commercial-metrics";
+import { useToast } from "@/hooks/use-toast";
 
 interface SalesMetricsSectionProps {
   initialMonth?: string;
@@ -39,6 +41,53 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
   const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
   const [isFunnelExpanded, setIsFunnelExpanded] = useState(true);
   const [isCloserExpanded, setIsCloserExpanded] = useState(true);
+  
+  // Carregar preferência de visualização compacta do localStorage (padrão: compacta)
+  const [isFunnelCompactView, setIsFunnelCompactView] = useState(() => {
+    const saved = localStorage.getItem('funnelConversionCompactView');
+    return saved === 'false' ? false : true; // Padrão: compacta (true)
+  });
+
+  const { toast } = useToast();
+
+  // Estado de ordenação (padrão: por taxa de conversão, decrescente)
+  type FunnelSortOption = 'funil' | 'calls' | 'vendas' | 'naoComprou' | 'noShow' | 'taxa';
+  const [funnelSortBy, setFunnelSortBy] = useState<FunnelSortOption>(() => {
+    const saved = localStorage.getItem('funnelConversionSortBy');
+    return (saved as FunnelSortOption) || 'taxa';
+  });
+  const [funnelSortAscending, setFunnelSortAscending] = useState(() => {
+    const saved = localStorage.getItem('funnelConversionSortAscending');
+    return saved === 'true' ? true : false; // Padrão: decrescente
+  });
+
+  // Função para alternar visualização compacta e salvar preferência
+  const toggleFunnelCompactView = () => {
+    const newValue = !isFunnelCompactView;
+    setIsFunnelCompactView(newValue);
+    localStorage.setItem('funnelConversionCompactView', String(newValue));
+    toast({
+      title: newValue ? "Visão compacta ativada" : "Visão expandida ativada",
+      description: "Sua preferência foi salva automaticamente",
+    });
+  };
+
+  // Função para alterar ordenação
+  const handleFunnelSortChange = (newSortBy: FunnelSortOption) => {
+    if (funnelSortBy === newSortBy) {
+      // Se clicar na mesma coluna, inverte a ordem
+      const newAscending = !funnelSortAscending;
+      setFunnelSortAscending(newAscending);
+      localStorage.setItem('funnelConversionSortAscending', String(newAscending));
+    } else {
+      // Se mudar de coluna, começa decrescente (exceto nome que começa crescente)
+      setFunnelSortBy(newSortBy);
+      const defaultAscending = newSortBy === 'funil';
+      setFunnelSortAscending(defaultAscending);
+      localStorage.setItem('funnelConversionSortBy', newSortBy);
+      localStorage.setItem('funnelConversionSortAscending', String(defaultAscending));
+    }
+  };
 
   // Inicializar com o mês atual quando os dados chegarem (apenas uma vez)
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -363,88 +412,291 @@ export function SalesMetricsSection({ initialMonth }: SalesMetricsSectionProps) 
                 Performance de cada funil no período selecionado
               </CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsFunnelExpanded(!isFunnelExpanded)}
-              className="text-slate-300 hover:text-white hover:bg-slate-700/50"
-            >
-              {isFunnelExpanded ? (
-                <>
-                  <ChevronUp className="w-4 h-4 mr-2" />
-                  Minimizar
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-4 h-4 mr-2" />
-                  Expandir
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Botão de alternar visualização compacta/expandida */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleFunnelCompactView}
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+              >
+                {isFunnelCompactView ? (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Visão Expandida
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    Visão Compacta
+                  </>
+                )}
+              </Button>
+              {/* Botão de minimizar/expandir seção */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFunnelExpanded(!isFunnelExpanded)}
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+              >
+                {isFunnelExpanded ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    Minimizar
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Expandir
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         {isFunnelExpanded && (
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {funnelMetrics.map((funnel, index) => (
-                <div 
-                  key={index} 
-                  className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 hover:border-purple-500/50 transition-colors"
-                >
-                  <h3 className="text-slate-300 text-sm font-medium mb-3">{funnel.funil}</h3>
-                  
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-blue-500/10 rounded p-2 text-center">
-                      <p className="text-xs text-blue-400 font-semibold">Calls Realizadas</p>
-                      <p className="text-lg font-bold text-white">{funnel.comprou + funnel.naoComprou}</p>
-                    </div>
-                    <div className="bg-green-500/10 rounded p-2 text-center">
-                      <p className="text-xs text-green-400 font-semibold">Vendas</p>
-                      <p className="text-lg font-bold text-white">{funnel.comprou}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-500/10 rounded-lg p-3 text-center border border-purple-500/30">
-                    <p className="text-xs text-purple-400 font-semibold mb-1">Taxa de Conversão</p>
-                    <p className={`text-3xl font-bold ${
-                      funnel.conversionRate >= 60 ? 'text-green-400' : 
-                      funnel.conversionRate >= 50 ? 'text-yellow-400' : 
-                      funnel.conversionRate >= 40 ? 'text-orange-400' :
-                      'text-red-400'
-                    }`}>
-                      {funnel.conversionRate.toFixed(1)}%
-                    </p>
-                  </div>
-
-                  <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden mt-3">
-                    <div 
-                      className={`absolute h-full transition-all duration-500 ${
-                        funnel.conversionRate >= 60 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
-                        funnel.conversionRate >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
-                        funnel.conversionRate >= 40 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                        'bg-gradient-to-r from-red-500 to-red-600'
-                      }`}
-                      style={{ width: `${Math.min(funnel.conversionRate, 100)}%` }}
-                    />
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-slate-600/30 text-xs text-slate-400 space-y-1">
-                    <div className="flex justify-between">
-                      <span>Total de Calls:</span>
-                      <span className="text-blue-400 font-semibold">{funnel.totalCalls}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Não comprou:</span>
-                      <span className="text-red-400 font-semibold">{funnel.naoComprou}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>No Show:</span>
-                      <span className="text-orange-400 font-semibold">{funnel.noShow}</span>
-                    </div>
-                  </div>
+            {isFunnelCompactView ? (
+              // Visão Compacta (Tabela moderna)
+              <div className="space-y-2">
+                {/* Header da tabela - Clicável para ordenar */}
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-gradient-to-r from-slate-700/40 to-slate-700/30 rounded-xl text-xs font-bold text-slate-300 border border-slate-600/30">
+                  <button
+                    onClick={() => handleFunnelSortChange('funil')}
+                    className="col-span-2 flex items-center gap-1.5 hover:text-white transition-colors text-left group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">Funil</span>
+                    {funnelSortBy === 'funil' && (
+                      <ArrowUpDown className={`w-3.5 h-3.5 text-purple-400 ${funnelSortAscending ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleFunnelSortChange('calls')}
+                    className="col-span-1 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">Calls</span>
+                    {funnelSortBy === 'calls' && (
+                      <ArrowUpDown className={`w-3.5 h-3.5 text-purple-400 ${funnelSortAscending ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleFunnelSortChange('vendas')}
+                    className="col-span-1 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">Vendas</span>
+                    {funnelSortBy === 'vendas' && (
+                      <ArrowUpDown className={`w-3.5 h-3.5 text-purple-400 ${funnelSortAscending ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleFunnelSortChange('naoComprou')}
+                    className="col-span-1 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">Não Comprou</span>
+                    {funnelSortBy === 'naoComprou' && (
+                      <ArrowUpDown className={`w-3.5 h-3.5 text-purple-400 ${funnelSortAscending ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleFunnelSortChange('noShow')}
+                    className="col-span-1 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">No Show</span>
+                    {funnelSortBy === 'noShow' && (
+                      <ArrowUpDown className={`w-3.5 h-3.5 text-purple-400 ${funnelSortAscending ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleFunnelSortChange('taxa')}
+                    className="col-span-2 flex items-center justify-center gap-1.5 hover:text-white transition-colors group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">Taxa</span>
+                    {funnelSortBy === 'taxa' && (
+                      <ArrowUpDown className={`w-3.5 h-3.5 text-purple-400 ${funnelSortAscending ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  <div className="col-span-4 text-center">Status</div>
                 </div>
-              ))}
-            </div>
+                
+                {/* Linhas da tabela - Cards modernos */}
+                {[...funnelMetrics].sort((a, b) => {
+                  let comparison = 0;
+                  const callsA = a.comprou + a.naoComprou;
+                  const callsB = b.comprou + b.naoComprou;
+                  
+                  switch (funnelSortBy) {
+                    case 'funil':
+                      comparison = a.funil.localeCompare(b.funil);
+                      break;
+                    case 'calls':
+                      comparison = callsA - callsB;
+                      break;
+                    case 'vendas':
+                      comparison = a.comprou - b.comprou;
+                      break;
+                    case 'naoComprou':
+                      comparison = a.naoComprou - b.naoComprou;
+                      break;
+                    case 'noShow':
+                      comparison = a.noShow - b.noShow;
+                      break;
+                    case 'taxa':
+                      comparison = a.conversionRate - b.conversionRate;
+                      break;
+                  }
+                  
+                  return funnelSortAscending ? comparison : -comparison;
+                }).map((funnel, index) => {
+                  const callsRealizadas = funnel.comprou + funnel.naoComprou;
+                  return (
+                    <div 
+                      key={index}
+                      className="group relative grid grid-cols-12 gap-2 px-4 py-2.5 bg-gradient-to-r from-slate-700/30 to-slate-700/20 hover:from-slate-700/50 hover:to-slate-700/40 rounded-xl border border-slate-600/30 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:scale-[1.01]"
+                    >
+                      {/* Borda lateral colorida baseada na performance */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl transition-all duration-300 ${
+                        funnel.conversionRate >= 60 ? 'bg-gradient-to-b from-green-500 to-green-600' : 
+                        funnel.conversionRate >= 50 ? 'bg-gradient-to-b from-yellow-500 to-yellow-600' : 
+                        funnel.conversionRate >= 40 ? 'bg-gradient-to-b from-orange-500 to-orange-600' :
+                        'bg-gradient-to-b from-red-500 to-red-600'
+                      }`} />
+                      
+                      {/* Nome do funil */}
+                      <div className="col-span-2 flex items-center gap-2 pl-2">
+                        <span className="text-slate-100 font-semibold text-sm truncate group-hover:text-white transition-colors" title={funnel.funil}>
+                          {funnel.funil}
+                        </span>
+                      </div>
+                      
+                      {/* Calls Realizadas - Card interno */}
+                      <div className="col-span-1 flex items-center justify-center">
+                        <div className="bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 group-hover:border-blue-500/40 transition-colors">
+                          <span className="text-blue-400 font-bold text-sm">
+                            {callsRealizadas}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Vendas - Card interno */}
+                      <div className="col-span-1 flex items-center justify-center">
+                        <div className="bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20 group-hover:border-green-500/40 transition-colors">
+                          <span className="text-green-400 font-bold text-sm">
+                            {funnel.comprou}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Não Comprou - Card interno */}
+                      <div className="col-span-1 flex items-center justify-center">
+                        <div className="bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 group-hover:border-red-500/40 transition-colors">
+                          <span className="text-red-400 font-bold text-sm">
+                            {funnel.naoComprou}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* No Show - Card interno */}
+                      <div className="col-span-1 flex items-center justify-center">
+                        <div className="bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20 group-hover:border-orange-500/40 transition-colors">
+                          <span className="text-orange-400 font-bold text-sm">
+                            {funnel.noShow}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Taxa de conversão - Destaque */}
+                      <div className="col-span-2 flex items-center justify-center">
+                        <div className={`px-3 py-1 rounded-lg font-bold text-base transition-all duration-300 ${
+                          funnel.conversionRate >= 60 ? 'bg-green-500/20 text-green-400 border border-green-500/30 group-hover:bg-green-500/30' : 
+                          funnel.conversionRate >= 50 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 group-hover:bg-yellow-500/30' : 
+                          funnel.conversionRate >= 40 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 group-hover:bg-orange-500/30' :
+                          'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30'
+                        }`}>
+                          {funnel.conversionRate.toFixed(1)}%
+                        </div>
+                      </div>
+                      
+                      {/* Barra de progresso com gradiente */}
+                      <div className="col-span-4 flex items-center justify-center">
+                        <div className="relative w-full h-2.5 bg-slate-700/50 rounded-full overflow-hidden">
+                          <div 
+                            className={`absolute h-full transition-all duration-500 ${
+                              funnel.conversionRate >= 60 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                              funnel.conversionRate >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                              funnel.conversionRate >= 40 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                              'bg-gradient-to-r from-red-500 to-red-600'
+                            }`}
+                            style={{ width: `${Math.min(funnel.conversionRate, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // Visão Expandida (Cards em grid) - Original
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {funnelMetrics.map((funnel, index) => (
+                  <div 
+                    key={index} 
+                    className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 hover:border-purple-500/50 transition-colors"
+                  >
+                    <h3 className="text-slate-300 text-sm font-medium mb-3">{funnel.funil}</h3>
+                    
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-blue-500/10 rounded p-2 text-center">
+                        <p className="text-xs text-blue-400 font-semibold">Calls Realizadas</p>
+                        <p className="text-lg font-bold text-white">{funnel.comprou + funnel.naoComprou}</p>
+                      </div>
+                      <div className="bg-green-500/10 rounded p-2 text-center">
+                        <p className="text-xs text-green-400 font-semibold">Vendas</p>
+                        <p className="text-lg font-bold text-white">{funnel.comprou}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-500/10 rounded-lg p-3 text-center border border-purple-500/30">
+                      <p className="text-xs text-purple-400 font-semibold mb-1">Taxa de Conversão</p>
+                      <p className={`text-3xl font-bold ${
+                        funnel.conversionRate >= 60 ? 'text-green-400' : 
+                        funnel.conversionRate >= 50 ? 'text-yellow-400' : 
+                        funnel.conversionRate >= 40 ? 'text-orange-400' :
+                        'text-red-400'
+                      }`}>
+                        {funnel.conversionRate.toFixed(1)}%
+                      </p>
+                    </div>
+
+                    <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden mt-3">
+                      <div 
+                        className={`absolute h-full transition-all duration-500 ${
+                          funnel.conversionRate >= 60 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                          funnel.conversionRate >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                          funnel.conversionRate >= 40 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                          'bg-gradient-to-r from-red-500 to-red-600'
+                        }`}
+                        style={{ width: `${Math.min(funnel.conversionRate, 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-slate-600/30 text-xs text-slate-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Total de Calls:</span>
+                        <span className="text-blue-400 font-semibold">{funnel.totalCalls}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Não comprou:</span>
+                        <span className="text-red-400 font-semibold">{funnel.naoComprou}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>No Show:</span>
+                        <span className="text-orange-400 font-semibold">{funnel.noShow}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {funnelMetrics.length === 0 && (
               <p className="text-slate-400 text-center py-8">Nenhum dado disponível para o período selecionado.</p>

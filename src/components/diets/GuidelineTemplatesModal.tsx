@@ -22,15 +22,23 @@ import {
   Save, 
   X,
   BookOpen,
-  AlertCircle
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 
 interface GuidelineTemplatesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: 'manage' | 'select';
+  onSelectTemplate?: (template: any) => void;
 }
 
-export function GuidelineTemplatesModal({ open, onOpenChange }: GuidelineTemplatesModalProps) {
+export function GuidelineTemplatesModal({ 
+  open, 
+  onOpenChange,
+  mode = 'manage',
+  onSelectTemplate
+}: GuidelineTemplatesModalProps) {
   const {
     templates,
     loading,
@@ -107,17 +115,19 @@ export function GuidelineTemplatesModal({ open, onOpenChange }: GuidelineTemplat
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-            Orientações Favoritas (Templates)
+            {mode === 'select' ? 'Selecionar Orientação Favorita' : 'Orientações Favoritas (Templates)'}
           </DialogTitle>
           <DialogDescription>
-            Crie orientações que aparecerão automaticamente em todos os novos planos alimentares.
-            Você pode desativar orientações específicas em cada plano individual.
+            {mode === 'select' 
+              ? 'Selecione uma orientação favorita para adicionar ao plano alimentar.'
+              : 'Crie orientações que aparecerão automaticamente em todos os novos planos alimentares. Você pode desativar orientações específicas em cada plano individual.'
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          {/* Botão Criar Novo */}
-          {!isCreating && !editingId && (
+          {/* Botão Criar Novo - Ocultar no modo select */}
+          {!isCreating && !editingId && mode !== 'select' && (
             <Button
               onClick={handleStartCreate}
               className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
@@ -127,8 +137,8 @@ export function GuidelineTemplatesModal({ open, onOpenChange }: GuidelineTemplat
             </Button>
           )}
 
-          {/* Formulário de Criação/Edição */}
-          {(isCreating || editingId) && (
+          {/* Formulário de Criação/Edição - Ocultar no modo select */}
+          {(isCreating || editingId) && mode !== 'select' && (
             <div className="bg-gray-50 rounded-xl p-6 border-2 border-yellow-200 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -252,35 +262,49 @@ export function GuidelineTemplatesModal({ open, onOpenChange }: GuidelineTemplat
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* Switch Ativo/Inativo */}
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={template.is_active}
-                          onCheckedChange={(checked) =>
-                            toggleTemplateActive(template.id, checked)
-                          }
-                        />
-                      </div>
+                      {mode === 'select' ? (
+                        // Modo Select: Mostrar apenas botão Selecionar
+                        <Button
+                          onClick={() => onSelectTemplate?.(template)}
+                          className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Selecionar
+                        </Button>
+                      ) : (
+                        // Modo Manage: Mostrar Switch, Editar e Deletar
+                        <>
+                          {/* Switch Ativo/Inativo */}
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={template.is_active}
+                              onCheckedChange={(checked) =>
+                                toggleTemplateActive(template.id, checked)
+                              }
+                            />
+                          </div>
 
-                      {/* Botão Editar */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleStartEdit(template)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+                          {/* Botão Editar */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStartEdit(template)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
 
-                      {/* Botão Deletar */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(template.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                          {/* Botão Deletar */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(template.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -288,19 +312,21 @@ export function GuidelineTemplatesModal({ open, onOpenChange }: GuidelineTemplat
             </div>
           )}
 
-          {/* Informação sobre uso */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">Como funciona:</p>
-              <ul className="list-disc list-inside space-y-1 text-blue-700">
-                <li>Orientações <strong>ativas</strong> são copiadas automaticamente para novos planos</li>
-                <li>Você pode desativar orientações específicas em cada plano individual</li>
-                <li>Alterações em templates não afetam planos já criados</li>
-                <li>Templates inativos não aparecem em novos planos</li>
-              </ul>
+          {/* Informação sobre uso - Ocultar no modo select */}
+          {mode !== 'select' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-semibold mb-1">Como funciona:</p>
+                <ul className="list-disc list-inside space-y-1 text-blue-700">
+                  <li>Orientações <strong>ativas</strong> são copiadas automaticamente para novos planos</li>
+                  <li>Você pode desativar orientações específicas em cada plano individual</li>
+                  <li>Alterações em templates não afetam planos já criados</li>
+                  <li>Templates inativos não aparecem em novos planos</li>
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

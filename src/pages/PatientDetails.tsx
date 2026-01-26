@@ -151,8 +151,8 @@ export default function PatientDetails() {
         {/* Tabs para organizar informações */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="info">Informações</TabsTrigger>
             <TabsTrigger value="diets">Planos Alimentares</TabsTrigger>
+            <TabsTrigger value="info">Informações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="mt-6">
@@ -217,15 +217,7 @@ export default function PatientDetails() {
           </TabsContent>
 
           <TabsContent value="diets" className="mt-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Planos Alimentares</h2>
-                  <p className="text-slate-400">Gerencie os planos alimentares do paciente</p>
-                </div>
-              </div>
-              <DietPlansList patientId={patient.id} />
-            </div>
+            <DietPlansList patientId={patient.id} />
           </TabsContent>
         </Tabs>
 

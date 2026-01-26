@@ -36,7 +36,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { dietService } from "@/lib/diet-service";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Calculator, Utensils, Clock, Star, Copy, ChevronDown, ChevronUp, GripVertical, BookOpen, RefreshCw, TrendingUp, BarChart3, History, GitCompare, AlertTriangle, Sparkles, Package, MoreVertical, CheckCircle, Eye, Layers, Heart } from "lucide-react";
+import { Plus, Trash2, Calculator, Utensils, Clock, Star, Copy, ChevronDown, ChevronUp, GripVertical, BookOpen, RefreshCw, TrendingUp, BarChart3, History, GitCompare, AlertTriangle, Sparkles, Package, MoreVertical, CheckCircle, Eye, Layers, Heart, X } from "lucide-react";
 import { TMBCalculator } from "./TMBCalculator";
 import { MacroDistributionModal } from "./MacroDistributionModal";
 import { TemplateLibraryModal } from "./TemplateLibraryModal";
@@ -134,6 +134,7 @@ const dietPlanSchema = z.object({
       carbs: z.number().optional(),
       fats: z.number().optional(),
       instructions: z.string().optional(),
+      exclude_from_macros: z.boolean().optional().default(false),
       foods: z.array(
         z.object({
           food_name: z.string().min(1, "Nome do alimento é obrigatório"),
@@ -217,6 +218,7 @@ export function DietPlanForm({
   const [macroDistributionOpen, setMacroDistributionOpen] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
   const [guidelineTemplatesOpen, setGuidelineTemplatesOpen] = useState(false);
+  const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
   const [substitutionsModalOpen, setSubstitutionsModalOpen] = useState(false);
   const [proportionalAdjustmentOpen, setProportionalAdjustmentOpen] = useState(false);
   const [quickPortionAdjustmentOpen, setQuickPortionAdjustmentOpen] = useState(false);
@@ -361,8 +363,28 @@ export function DietPlanForm({
           }
         }
 
+        // Buscar peso mais recente dos check-ins
+        let pesoAtual = data.peso_inicial;
+        try {
+          const { data: checkinData, error: checkinError } = await supabase
+            .from('checkin')
+            .select('peso')
+            .eq('patient_id', patientId)
+            .not('peso', 'is', null)
+            .order('data_checkin', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (!checkinError && checkinData?.peso) {
+            pesoAtual = checkinData.peso;
+          }
+        } catch (checkinError) {
+          // Se não houver check-ins, usar peso_inicial
+          console.log("Nenhum check-in encontrado, usando peso_inicial");
+        }
+
         setPatientData({
-          peso: data.peso_inicial,
+          peso: pesoAtual,
           altura: data.altura_inicial,
           idade,
           sexo,
@@ -631,6 +653,11 @@ export function DietPlanForm({
     let totalFats = 0;
 
     meals.forEach((meal) => {
+      // Pular refeições marcadas para não contar nos macros
+      if (meal.exclude_from_macros) {
+        return;
+      }
+
       if (meal.foods && meal.foods.length > 0) {
         meal.foods.forEach((food) => {
           totalCalories += food.calories || 0;
@@ -664,6 +691,7 @@ export function DietPlanForm({
       carbs: 0,
       fats: 0,
       instructions: "",
+      exclude_from_macros: false,
       foods: [],
     });
   };
@@ -1234,15 +1262,15 @@ export function DietPlanForm({
   const formContent = (
     <>
       <Form {...form}>
-        <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-24">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
                 <TabsTrigger 
                   value="basic"
                   className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Básico
+                  Início
                 </TabsTrigger>
                 <TabsTrigger 
                   value="meals"
@@ -1252,25 +1280,11 @@ export function DietPlanForm({
                   Refeições
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="observations"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Observações
-                </TabsTrigger>
-                <TabsTrigger 
                   value="guidelines"
                   className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Orientações
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="summary"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Resumo
                 </TabsTrigger>
               </TabsList>
               <div className="mt-4 space-y-4">
@@ -1314,241 +1328,212 @@ export function DietPlanForm({
                   />
 
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Macros Totais e Metas em Mini Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {/* Calorias Totais */}
                     <FormField
                       control={form.control}
                       name="total_calories"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-orange-400" />
-                            Calorias Totais
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                              }}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs text-[#777777]">kcal</FormDescription>
+                          <Card className="border-orange-300 bg-orange-50">
+                            <CardContent className="p-3">
+                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                Calorias Totais
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="border-orange-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20 h-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-gray-500 mt-1">kcal</FormDescription>
+                            </CardContent>
+                          </Card>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
+                    {/* Proteína Total */}
                     <FormField
                       control={form.control}
                       name="total_protein"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-400" />
-                            Proteína Total
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              placeholder="0"
-                              className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                              }}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
+                          <Card className="border-blue-300 bg-blue-50">
+                            <CardContent className="p-3">
+                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                Proteínas
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="0"
+                                  className="border-blue-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20 h-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
+                            </CardContent>
+                          </Card>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
+                    {/* Carboidratos Total */}
                     <FormField
                       control={form.control}
                       name="total_carbs"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-purple-400" />
-                            Carboidratos Total
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              placeholder="0"
-                              className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                              }}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
+                          <Card className="border-purple-300 bg-purple-50">
+                            <CardContent className="p-3">
+                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                Carboidratos
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="0"
+                                  className="border-purple-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20 h-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
+                            </CardContent>
+                          </Card>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
+                    {/* Gorduras Total */}
                     <FormField
                       control={form.control}
                       name="total_fats"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                            Gorduras Total
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              placeholder="0"
-                              className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                              }}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
+                          <Card className="border-emerald-300 bg-emerald-50">
+                            <CardContent className="p-3">
+                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Gorduras
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="0"
+                                  className="border-emerald-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-emerald-500 focus:ring-emerald-500/20 h-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
+                            </CardContent>
+                          </Card>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* GET (Gasto Diário) */}
+                    <FormField
+                      control={form.control}
+                      name="target_calories"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Card className="border-cyan-300 bg-cyan-50">
+                            <CardContent className="p-3">
+                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                                <TrendingUp className="w-3 h-3 text-cyan-600" />
+                                GET (Gasto Diário)
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  className="border-cyan-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 h-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs text-gray-500 mt-1">kcal</FormDescription>
+                            </CardContent>
+                          </Card>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
 
-                  <Card className="border-cyan-500/30 bg-cyan-500/5">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-[#222222] flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-cyan-500" />
-                        Metas (Calculadas pelo TMB/GET)
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="target_calories"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-orange-500" />
-                                Calorias Meta
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-[#777777]">kcal</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="target_protein"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                Proteína Meta
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  placeholder="0"
-                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="target_carbs"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-purple-500" />
-                                Carboidratos Meta
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  placeholder="0"
-                                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                }}
-                                value={field.value || ""}
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                        <FormField
-                          control={form.control}
-                          name="target_fats"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[#222222] font-medium flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                Gorduras Meta
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  placeholder="0"
-                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-[#777777]">gramas</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {/* Card de Comparação Calórica (Superávit/Déficit) */}
+                  {(() => {
+                    const totalCalories = form.watch("total_calories") || 0;
+                    const targetCalories = form.watch("target_calories") || 0;
+                    
+                    if (totalCalories > 0 && targetCalories > 0) {
+                      const difference = totalCalories - targetCalories;
+                      const isSurplus = difference > 0;
+                      const isDeficit = difference < 0;
+                      
+                      return (
+                        <div className="mt-3">
+                          <Card className={`border-2 ${isSurplus ? 'border-green-400 bg-green-50' : isDeficit ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <GitCompare className={`w-5 h-5 ${isSurplus ? 'text-green-600' : isDeficit ? 'text-red-600' : 'text-gray-600'}`} />
+                                  <div>
+                                    <p className="text-xs text-gray-600 mb-1">Balanço Calórico</p>
+                                    <p className={`text-lg ${isSurplus ? 'text-green-700' : isDeficit ? 'text-red-700' : 'text-gray-700'}`}>
+                                      {isSurplus && <span className="font-semibold">Superávit Calórico:</span>}
+                                      {isDeficit && <span className="font-semibold">Déficit Calórico:</span>}
+                                      {' '}{Math.abs(difference).toFixed(0)} kcal
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500">Total vs GET</p>
+                                  <p className="text-sm font-semibold text-gray-700">
+                                    {totalCalories.toFixed(0)} / {targetCalories.toFixed(0)} kcal
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <div className="space-y-3">
                     {/* Validação */}
@@ -1854,97 +1839,6 @@ export function DietPlanForm({
                     )}
 
                     </div>
-
-                    {/* Rodapé Fixo com Autosoma - Apenas na aba de Refeições */}
-                    <div className="sticky bottom-0 bg-white border-t-2 border-green-500/30 shadow-lg pt-3 pb-3 z-10 flex-shrink-0 mt-auto">
-                      <div className="flex items-center justify-between gap-4">
-                        {/* Calorias com barra de progresso */}
-                        <div className="flex-[0.33] min-w-[200px]">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-[#222222]">Calorias:</span>
-                            <span className="text-sm text-orange-600 font-medium">
-                              {form.watch('total_calories') || 0}
-                            </span>
-                            {form.watch('target_calories') && form.watch('target_calories') > 0 && (
-                              <>
-                                <span className="text-xs text-[#777777]">/</span>
-                                <span className="text-sm text-[#222222]">
-                                  {form.watch('target_calories')} kcal
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            {(() => {
-                              const totalCalories = form.watch('total_calories') || 0;
-                              const targetCalories = form.watch('target_calories') || 0;
-                              const difference = Math.abs(totalCalories - targetCalories);
-                              
-                              let barColor = 'bg-orange-500';
-                              if (targetCalories > 0) {
-                                if (difference <= 50) {
-                                  barColor = 'bg-green-500'; // Dentro de 50kcal da meta
-                                } else if (totalCalories < targetCalories) {
-                                  barColor = 'bg-yellow-500'; // Abaixo da meta
-                                } else {
-                                  barColor = 'bg-red-500'; // Acima da meta
-                                }
-                              } else {
-                                barColor = 'bg-orange-500/50';
-                              }
-                              
-                              const width = targetCalories > 0 
-                                ? Math.min(100, (totalCalories / targetCalories) * 100)
-                                : (totalCalories > 0 ? 100 : 0);
-                              
-                              return (
-                                <div
-                                  className={`${barColor} h-1.5 rounded-full transition-all duration-300`}
-                                  style={{ width: `${width}%` }}
-                                />
-                              );
-                            })()}
-                          </div>
-                        </div>
-
-                        {/* Macros com g/kg */}
-                        <div className="flex items-center justify-between gap-6">
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="text-xs text-[#222222] font-medium whitespace-nowrap">Proteína:</span>
-                            <span className="text-sm text-blue-600 font-medium whitespace-nowrap">
-                              {form.watch('total_protein') || 0}g
-                            </span>
-                            {patientData?.peso && patientData.peso > 0 && (
-                              <span className="text-xs text-[#777777] whitespace-nowrap">
-                                ({((form.watch('total_protein') || 0) / patientData.peso).toFixed(1)}g/kg)
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="text-xs text-[#222222] font-medium whitespace-nowrap">Carboidrato:</span>
-                            <span className="text-sm text-purple-600 font-medium whitespace-nowrap">
-                              {form.watch('total_carbs') || 0}g
-                            </span>
-                            {patientData?.peso && patientData.peso > 0 && (
-                              <span className="text-xs text-[#777777] whitespace-nowrap">
-                                ({((form.watch('total_carbs') || 0) / patientData.peso).toFixed(1)}g/kg)
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="text-xs text-[#222222] font-medium whitespace-nowrap">Gordura:</span>
-                            <span className="text-sm text-emerald-600 font-medium whitespace-nowrap">
-                              {form.watch('total_fats') || 0}g
-                            </span>
-                            {patientData?.peso && patientData.peso > 0 && (
-                              <span className="text-xs text-[#777777] whitespace-nowrap">
-                                ({((form.watch('total_fats') || 0) / patientData.peso).toFixed(1)}g/kg)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -2224,6 +2118,15 @@ export function DietPlanForm({
                       </Button>
                       <Button 
                         type="button" 
+                        onClick={() => setIsSelectTemplateOpen(true)}
+                        size="sm"
+                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                      >
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Selecionar de Favoritas
+                      </Button>
+                      <Button 
+                        type="button" 
                         onClick={addGuideline} 
                         size="sm"
                         className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
@@ -2428,55 +2331,6 @@ export function DietPlanForm({
 
                       <div>
                         <h4 className="font-semibold mb-4 text-white flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-blue-400" />
-                          Macros Totais
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-lg p-4 hover:from-orange-500/15 hover:to-red-500/15 transition-all duration-300">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 rounded-full bg-orange-400" />
-                              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Calorias</p>
-                            </div>
-                            <p className="text-2xl font-bold text-orange-300">
-                              {form.watch("total_calories") || 0}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">kcal</p>
-                          </div>
-                          <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-lg p-4 hover:from-blue-500/15 hover:to-indigo-500/15 transition-all duration-300">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 rounded-full bg-blue-400" />
-                              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Proteína</p>
-                            </div>
-                            <p className="text-2xl font-bold text-blue-300">
-                              {form.watch("total_protein") || 0}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">gramas</p>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-4 hover:from-purple-500/15 hover:to-pink-500/15 transition-all duration-300">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 rounded-full bg-purple-400" />
-                              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Carboidratos</p>
-                            </div>
-                            <p className="text-2xl font-bold text-purple-300">
-                              {form.watch("total_carbs") || 0}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">gramas</p>
-                          </div>
-                          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-lg p-4 hover:from-emerald-500/15 hover:to-teal-500/15 transition-all duration-300">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Gorduras</p>
-                            </div>
-                            <p className="text-2xl font-bold text-emerald-300">
-                              {form.watch("total_fats") || 0}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">gramas</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold mb-4 text-white flex items-center gap-2">
                           <Utensils className="w-4 h-4 text-orange-400" />
                           Refeições ({form.watch("meals")?.length || 0})
                         </h4>
@@ -2551,23 +2405,6 @@ export function DietPlanForm({
                           ))}
                         </div>
                       </div>
-
-                      {/* Análise Nutricional */}
-                      {form.watch("meals")?.length > 0 && (
-                        <div className="mt-4">
-                          <NutritionalAnalysisCard
-                            plan={{
-                              meals: form.watch("meals")?.map((meal: any) => ({
-                                foods: meal.foods?.map((food: any) => ({
-                                  food_name: food.food_name,
-                                  quantity: food.quantity,
-                                  unit: food.unit,
-                                })),
-                              })),
-                            }}
-                          />
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -2603,6 +2440,86 @@ export function DietPlanForm({
                 {loading ? "Salvando..." : "Salvar Plano"}
               </Button>
             </div>
+
+            {/* Rodapé Fixo com Macros Totais */}
+            <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-slate-800 to-slate-900 border-t-2 border-green-500/30 shadow-2xl z-50 px-6 py-3">
+              <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-green-400" />
+                  <span className="text-sm font-semibold text-white">Totais do Plano:</span>
+                </div>
+                <div className="flex items-center gap-6">
+                  {/* Calorias */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-400"></div>
+                    <span className="text-sm text-slate-300">Calorias:</span>
+                    <span className="text-base font-bold text-white">{Math.round(form.watch('total_calories') || 0)}</span>
+                  </div>
+                  
+                  {/* Proteína */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                    <span className="text-sm text-slate-300">Proteína:</span>
+                    <span className="text-base font-bold text-white">{(form.watch('total_protein') || 0).toFixed(1)}g</span>
+                    {patientData?.peso && (
+                      <span className="text-xs text-slate-400">
+                        ({((form.watch('total_protein') || 0) / patientData.peso).toFixed(1)}g/kg)
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Carboidrato */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+                    <span className="text-sm text-slate-300">Carboidrato:</span>
+                    <span className="text-base font-bold text-white">{(form.watch('total_carbs') || 0).toFixed(1)}g</span>
+                    {patientData?.peso && (
+                      <span className="text-xs text-slate-400">
+                        ({((form.watch('total_carbs') || 0) / patientData.peso).toFixed(1)}g/kg)
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Gordura */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                    <span className="text-sm text-slate-300">Gordura:</span>
+                    <span className="text-base font-bold text-white">{(form.watch('total_fats') || 0).toFixed(1)}g</span>
+                    {patientData?.peso && (
+                      <span className="text-xs text-slate-400">
+                        ({((form.watch('total_fats') || 0) / patientData.peso).toFixed(1)}g/kg)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Balanço Calórico (Superávit/Déficit) */}
+                  {(() => {
+                    const totalCalories = form.watch("total_calories") || 0;
+                    const targetCalories = form.watch("target_calories") || 0;
+                    
+                    if (totalCalories > 0 && targetCalories > 0) {
+                      const difference = totalCalories - targetCalories;
+                      const isSurplus = difference > 0;
+                      const isDeficit = difference < 0;
+                      
+                      return (
+                        <div className="flex items-center gap-2 pl-4 border-l border-slate-600">
+                          <GitCompare className={`w-4 h-4 ${isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-slate-400'}`} />
+                          <span className="text-sm text-slate-300">
+                            {isSurplus && 'Superávit: '}
+                            {isDeficit && 'Déficit: '}
+                          </span>
+                          <span className={`text-base font-bold ${isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-white'}`}>
+                            {Math.abs(difference).toFixed(0)} kcal
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              </div>
+            </div>
           </form>
         </Form>
       </>
@@ -2622,6 +2539,25 @@ export function DietPlanForm({
         <GuidelineTemplatesModal
           open={guidelineTemplatesOpen}
           onOpenChange={setGuidelineTemplatesOpen}
+        />
+
+        <GuidelineTemplatesModal
+          open={isSelectTemplateOpen}
+          onOpenChange={setIsSelectTemplateOpen}
+          mode="select"
+          onSelectTemplate={(template) => {
+            appendGuideline({
+              guideline_type: template.guideline_type,
+              title: template.title,
+              content: template.content,
+              priority: guidelineFields.length,
+            });
+            setIsSelectTemplateOpen(false);
+            toast({
+              title: "Orientação adicionada!",
+              description: `A orientação "${template.title}" foi adicionada ao plano.`,
+            });
+          }}
         />
 
         {form.watch('total_calories') && form.watch('meals')?.length > 0 && (
@@ -3572,7 +3508,7 @@ const MealItemComponent = memo(function MealItemComponent({
                                         <TooltipProvider>
                                           <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <div className="flex items-center gap-3 flex-shrink-0 cursor-help">
+                                              <div className={`flex items-center gap-3 flex-shrink-0 cursor-help ${form.watch(`meals.${mealIndex}.exclude_from_macros`) ? 'opacity-40' : ''}`}>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-red-600" aria-hidden="true"></div>
                                                 <span className="text-sm text-[#111111] font-medium">{mealProtein.toFixed(1)}g</span>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" aria-hidden="true"></div>
@@ -3589,6 +3525,9 @@ const MealItemComponent = memo(function MealItemComponent({
                                                 <p className="text-xs">Carboidratos: {mealCarbs.toFixed(1)}g</p>
                                                 <p className="text-xs">Gorduras: {mealFats.toFixed(1)}g</p>
                                                 <p className="text-xs">Calorias: {mealCalories} Kcal</p>
+                                                {form.watch(`meals.${mealIndex}.exclude_from_macros`) && (
+                                                  <p className="text-xs text-orange-400 font-semibold mt-2">⚠️ Não contabilizada nos totais</p>
+                                                )}
                                           </div>
                                             </TooltipContent>
                                           </Tooltip>
@@ -3651,6 +3590,44 @@ const MealItemComponent = memo(function MealItemComponent({
                                         >
                                           <Plus className="w-4 h-4" />
                                         </Button>
+
+                                        {/* Botão para excluir dos macros */}
+                                        <FormField
+                                          control={form.control}
+                                          name={`meals.${mealIndex}.exclude_from_macros`}
+                                          render={({ field }) => (
+                                            <FormItem className="flex items-center flex-shrink-0">
+                                              <FormControl>
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className={`h-7 w-7 p-0 rounded ${
+                                                          field.value 
+                                                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
+                                                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                                                        }`}
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          field.onChange(!field.value);
+                                                          calculateTotals();
+                                                        }}
+                                                      >
+                                                        <X className="w-4 h-4" />
+                                                      </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-gray-900 text-white text-xs p-2">
+                                                      {field.value ? 'Não contabilizada nos totais' : 'Clique para não contabilizar nos totais'}
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                              </FormControl>
+                                            </FormItem>
+                                          )}
+                                        />
 
                                         {/* Botão duplicar */}
                                         <Button
@@ -3867,7 +3844,7 @@ const MealItemComponent = memo(function MealItemComponent({
                                         <FormItem className="pt-2">
                                       <FormControl>
                                         <Textarea
-                                          placeholder="Instruções específicas para esta refeição..."
+                                          placeholder="Observações específicas para esta refeição..."
                                           className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[60px]"
                                           {...field}
                                         />

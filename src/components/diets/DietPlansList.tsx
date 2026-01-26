@@ -28,6 +28,7 @@ import { WeeklyProgressChart } from './WeeklyProgressChart';
 import { GamificationWidget } from './GamificationWidget';
 import { DailyChallengesWidget } from './DailyChallengesWidget';
 import { PatientEvolutionTab } from './PatientEvolutionTab';
+import { CompactDietPlanCard } from './CompactDietPlanCard';
 
 interface DietPlansListProps {
   patientId: string;
@@ -43,7 +44,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
   const [patientUserId, setPatientUserId] = useState<string | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [templatePlanId, setTemplatePlanId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("active");
   const [activePlan, setActivePlan] = useState<any>(null);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
   const [patientWeight, setPatientWeight] = useState<number | null>(null);
@@ -451,19 +451,8 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Header moderno */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-700/30">
-        <div className="space-y-1">
-          <h2 className="text-3xl font-bold text-white tracking-tight bg-gradient-to-r from-cyan-300 via-cyan-400 to-cyan-500 bg-clip-text text-transparent flex items-center gap-3">
-            <Utensils className="w-8 h-8 text-cyan-400" />
-            Planos Alimentares
-          </h2>
-          <p className="text-slate-400 text-sm">
-            Gerencie e monitore os planos nutricionais do paciente
-          </p>
-        </div>
-        {/* Botões para criar e importar planos */}
-        <div className="flex justify-end gap-2 flex-wrap">
+      {/* Botões para criar e importar planos */}
+      <div className="flex justify-end gap-2 flex-wrap">
         <DietPlanImportModal 
           open={importModalOpen}
           onOpenChange={setImportModalOpen}
@@ -516,7 +505,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        </div>
       </div>
 
       {/* Filtro de Favoritos */}
@@ -541,11 +529,204 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             </Badge>
           )}
         </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Badge variant="outline" className="border-[#00C98A] text-[#00C98A] bg-[#00C98A]/10">
+            <Power className="w-3 h-3 mr-1" />
+            {activePlans.length} Ativo{activePlans.length !== 1 ? 's' : ''}
+          </Badge>
+          <Badge variant="outline" className="border-slate-400 text-slate-400 bg-slate-400/10">
+            <PowerOff className="w-3 h-3 mr-1" />
+            {inactivePlans.length} Inativo{inactivePlans.length !== 1 ? 's' : ''}
+          </Badge>
+        </div>
       </div>
 
-      {/* Tabs para Plano Ativo e Histórico */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+      {/* Lista Unificada de Planos */}
+      <div className="space-y-3">
+        {[...activePlans, ...inactivePlans].length === 0 ? (
+          <Card className="bg-gradient-to-br from-slate-50 to-gray-100 border-gray-200">
+            <CardContent className="p-12 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200 mb-6">
+                <Utensils className="w-10 h-10 text-cyan-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">Nenhum plano alimentar cadastrado ainda</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                Os planos criados via N8N ou manualmente aparecerão aqui. Comece criando seu primeiro plano!
+              </p>
+              <Button
+                onClick={() => navigate(`/patients/${patientId}/diet-plan/new`)}
+                className="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 text-white shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 transition-all duration-300"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeiro Plano
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {[...activePlans, ...inactivePlans].map((plan) => (
+              <CompactDietPlanCard
+                key={plan.id}
+                plan={plan}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onViewDetails={handleViewDetails}
+                onToggleFavorite={async (planId, currentFavorite) => {
+                  try {
+                    await supabase
+                      .from('diet_plans')
+                      .update({ favorite: !currentFavorite })
+                      .eq('id', planId);
+                    
+                    toast({
+                      title: currentFavorite ? 'Removido dos favoritos' : 'Adicionado aos favoritos',
+                    });
+                    refetch();
+                  } catch (err) {
+                    toast({
+                      title: 'Erro',
+                      description: 'Erro ao atualizar favorito',
+                      variant: 'destructive',
+                    });
+                  }
+                }}
+                onToggleStatus={handleToggleStatus}
+                onToggleReleased={handleToggleReleased}
+                onDuplicate={async (plan) => {
+                  try {
+                    const planData = await dietService.getById(plan.id);
+                    if (!planData) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Plano não encontrado',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Usuário não autenticado',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    
+                    const newPlan = {
+                      patient_id: patientId,
+                      user_id: user.id,
+                      name: `${planData.name} (Cópia)`,
+                      notes: planData.notes || null,
+                      total_calories: planData.total_calories || null,
+                      total_protein: planData.total_protein || null,
+                      total_carbs: planData.total_carbs || null,
+                      total_fats: planData.total_fats || null,
+                      status: 'draft' as const,
+                      active: false,
+                    };
+                    
+                    const createdPlan = await dietService.create(newPlan);
+                    
+                    if (!createdPlan || !createdPlan.id) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Falha ao criar plano duplicado',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    
+                    if (planData.diet_meals && planData.diet_meals.length > 0) {
+                      for (const meal of planData.diet_meals) {
+                        const newMeal = {
+                          diet_plan_id: createdPlan.id,
+                          meal_type: meal.meal_type,
+                          meal_name: meal.meal_name,
+                          meal_order: meal.meal_order || 0,
+                          suggested_time: meal.suggested_time || null,
+                          calories: meal.calories || null,
+                          protein: meal.protein || null,
+                          carbs: meal.carbs || null,
+                          fats: meal.fats || null,
+                          instructions: meal.instructions || null,
+                          day_of_week: meal.day_of_week || null,
+                        };
+                        
+                        const createdMeal = await dietService.createMeal(newMeal);
+                        
+                        if (!createdMeal || !createdMeal.id) continue;
+                        
+                        if (meal.diet_foods && meal.diet_foods.length > 0) {
+                          for (const food of meal.diet_foods) {
+                            try {
+                              await dietService.createFood({
+                                meal_id: createdMeal.id,
+                                food_name: food.food_name || food.name || '',
+                                quantity: food.quantity || 0,
+                                unit: food.unit || 'g',
+                                calories: food.calories || null,
+                                protein: food.protein || null,
+                                carbs: food.carbs || null,
+                                fats: food.fats || null,
+                                notes: food.notes || null,
+                                food_order: food.food_order || 0,
+                              });
+                            } catch (foodError) {
+                              console.error('Erro ao criar alimento:', food, foodError);
+                            }
+                          }
+                        }
+                      }
+                    }
+                    
+                    if (planData.diet_guidelines && planData.diet_guidelines.length > 0) {
+                      for (const guideline of planData.diet_guidelines) {
+                        try {
+                          await dietService.createGuideline({
+                            diet_plan_id: createdPlan.id,
+                            guideline_type: guideline.guideline_type,
+                            title: guideline.title,
+                            content: guideline.content,
+                            priority: guideline.priority || 'medium',
+                          });
+                        } catch (guidelineError) {
+                          console.error('Erro ao criar orientação:', guideline, guidelineError);
+                        }
+                      }
+                    }
+                    
+                    toast({
+                      title: 'Plano duplicado!',
+                      description: `Plano "${createdPlan.name}" criado com sucesso.`,
+                    });
+                    
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    await refetch();
+                  } catch (err) {
+                    console.error('Erro ao duplicar plano:', err);
+                    toast({
+                      title: 'Erro ao duplicar plano',
+                      description: err instanceof Error ? err.message : 'Ocorreu um erro ao duplicar o plano.',
+                      variant: 'destructive',
+                    });
+                  }
+                }}
+                onSaveAsTemplate={(planId) => {
+                  setTemplatePlanId(planId);
+                  setSaveTemplateOpen(true);
+                }}
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Tabs para Plano Ativo e Histórico - OCULTO, mantido para compatibilidade com modal de detalhes */}
+      <div style={{ display: 'none' }}>
+      <Tabs value="active" onValueChange={() => {}} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-lg border border-slate-300">
           <TabsTrigger 
             value="active"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00C98A] data-[state=active]:to-[#00A875] data-[state=active]:text-white data-[state=active]:border-transparent data-[state=active]:shadow-lg data-[state=active]:shadow-[#00C98A]/30 transition-all duration-300"
@@ -565,13 +746,13 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
         {/* Tab: Plano Ativo */}
         <TabsContent value="active" className="space-y-4">
           {activePlans.length === 0 ? (
-        <Card className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 border-slate-700/40">
+        <Card className="bg-gradient-to-br from-slate-50 to-gray-100 border-gray-200">
           <CardContent className="p-12 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 mb-6">
-              <Utensils className="w-10 h-10 text-cyan-400" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200 mb-6">
+              <Utensils className="w-10 h-10 text-cyan-600" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Nenhum plano alimentar cadastrado ainda</h3>
-            <p className="text-slate-400 mb-6 max-w-md mx-auto">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Nenhum plano alimentar cadastrado ainda</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
               Os planos criados via N8N ou manualmente aparecerão aqui. Comece criando seu primeiro plano!
             </p>
             <Button
@@ -1091,13 +1272,13 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
         {/* Tab: Histórico */}
         <TabsContent value="history" className="space-y-4">
           {inactivePlans.length === 0 ? (
-            <Card className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 border-slate-700/40">
+            <Card className="bg-gradient-to-br from-slate-50 to-gray-100 border-gray-200">
               <CardContent className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-slate-700/50 to-slate-600/50 border border-slate-600/30 mb-6">
-                  <History className="w-10 h-10 text-slate-400" />
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 mb-6">
+                  <History className="w-10 h-10 text-gray-500" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Nenhum plano no histórico</h3>
-                <p className="text-slate-400 max-w-md mx-auto">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Nenhum plano no histórico</h3>
+                <p className="text-gray-600 max-w-md mx-auto">
                   Planos desativados ou finalizados aparecerão aqui.
                 </p>
               </CardContent>
@@ -1478,6 +1659,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
           )}
         </TabsContent>
       </Tabs>
+      </div>
 
       {/* Modal Salvar como Template */}
       {templatePlanId && (

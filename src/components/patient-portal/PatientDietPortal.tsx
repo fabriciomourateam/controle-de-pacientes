@@ -327,11 +327,11 @@ export function PatientDietPortal({
       <Tabs defaultValue="diet" className="w-full">
         {/* Desktop: abas em linha */}
         <TabsList className="sticky top-0 z-50 hidden sm:grid w-full grid-cols-6 bg-gray-100 p-1 border-b border-gray-200 shadow-sm rounded-t-lg">
-          <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] text-sm py-2.5 rounded-md">
-            Plano Alimentar
-          </TabsTrigger>
           <TabsTrigger value="orientations" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] text-sm py-2.5 rounded-md">
             Orientações
+          </TabsTrigger>
+          <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] text-sm py-2.5 rounded-md">
+            Plano Alimentar
           </TabsTrigger>
           <TabsTrigger value="challenges" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] text-sm py-2.5 rounded-md">
             Metas
@@ -350,13 +350,13 @@ export function PatientDietPortal({
         {/* Mobile: grid 3x2 com ícones */}
         <div className="sticky top-0 z-50 sm:hidden bg-gray-100 p-2 border-b border-gray-200 shadow-sm rounded-t-lg">
           <TabsList className="grid grid-cols-3 gap-2 bg-transparent h-auto">
-            <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm bg-white/50 text-[#777777] text-xs py-3 px-2 rounded-lg flex flex-col items-center gap-1 h-auto">
-              <span className="text-lg">🍽️</span>
-              <span>Plano</span>
-            </TabsTrigger>
             <TabsTrigger value="orientations" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm bg-white/50 text-[#777777] text-xs py-3 px-2 rounded-lg flex flex-col items-center gap-1 h-auto">
               <span className="text-lg">📋</span>
               <span>Orientações</span>
+            </TabsTrigger>
+            <TabsTrigger value="diet" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm bg-white/50 text-[#777777] text-xs py-3 px-2 rounded-lg flex flex-col items-center gap-1 h-auto">
+              <span className="text-lg">🍽️</span>
+              <span>Plano</span>
             </TabsTrigger>
             <TabsTrigger value="challenges" className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm bg-white/50 text-[#777777] text-xs py-3 px-2 rounded-lg flex flex-col items-center gap-1 h-auto">
               <span className="text-lg">🎯</span>

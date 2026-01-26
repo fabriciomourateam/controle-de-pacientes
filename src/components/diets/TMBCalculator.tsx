@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,9 +76,27 @@ export function TMBCalculator({
     gorduras: number;
   } | null>(null);
 
+  // Atualizar campos quando patientData mudar (quando o modal abrir com novos dados)
+  useEffect(() => {
+    if (open && patientData) {
+      // Converter altura para centímetros se vier em metros (< 10)
+      let alturaEmCm = patientData.altura || 0;
+      if (alturaEmCm > 0 && alturaEmCm < 10) {
+        alturaEmCm = alturaEmCm * 100;
+      }
+      
+      setCalculoDados({
+        peso: patientData.peso?.toString() || "",
+        altura: alturaEmCm > 0 ? alturaEmCm.toString() : "",
+        idade: patientData.idade?.toString() || "",
+        sexo: patientData.sexo || "M",
+      });
+    }
+  }, [open, patientData]);
+
   const calcularTMBEMacros = () => {
     const peso = parseFloat(calculoDados.peso);
-    const altura = parseFloat(calculoDados.altura);
+    let altura = parseFloat(calculoDados.altura);
     const idade = parseFloat(calculoDados.idade);
     const sexo = calculoDados.sexo;
 
@@ -89,6 +107,11 @@ export function TMBCalculator({
         variant: "destructive",
       });
       return;
+    }
+
+    // Garantir que altura está em centímetros (converter se vier em metros)
+    if (altura > 0 && altura < 10) {
+      altura = altura * 100;
     }
 
     // Calcular TMB usando Harris-Benedict
@@ -242,95 +265,6 @@ export function TMBCalculator({
                     {resultadoGET?.toFixed(2)} kcal
                   </p>
                   <p className="text-xs text-[#777777] mt-1">TMB × 1.45 (Fator de Atividade)</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Campos de Metas - Aparecem após calcular */}
-          {macrosCalculados && (
-            <div className="space-y-4 pt-4 border-t border-green-500/30">
-              <p className="text-sm font-semibold text-[#222222]">Metas da Dieta</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-[#222222]">Calorias Meta</Label>
-                  <Input
-                    type="number"
-                    value={macrosCalculados.calorias}
-                    onChange={(e) => {
-                      const novasCalorias = parseFloat(e.target.value) || 0;
-                      const peso = parseFloat(calculoDados.peso) || 0;
-
-                      if (peso > 0 && novasCalorias > 0) {
-                        // Recalcular apenas carboidratos mantendo proteína e gordura fixos
-                        const proteinasMeta = peso * 2;
-                        const gordurasMeta = peso * 0.5;
-                        const caloriasProteinas = proteinasMeta * 4;
-                        const caloriasGorduras = gordurasMeta * 9;
-                        const caloriasCarboidratos =
-                          novasCalorias - caloriasProteinas - caloriasGorduras;
-                        const carboidratosMeta = Math.max(0, caloriasCarboidratos / 4);
-
-                        setMacrosCalculados({
-                          calorias: novasCalorias,
-                          proteinas: Math.round(proteinasMeta * 10) / 10,
-                          carboidratos: Math.round(carboidratosMeta * 10) / 10,
-                          gorduras: Math.round(gordurasMeta * 10) / 10,
-                        });
-                      } else {
-                        setMacrosCalculados({
-                          ...macrosCalculados,
-                          calorias: novasCalorias,
-                        });
-                      }
-                    }}
-                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[#222222]">Proteínas Meta (g)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={macrosCalculados.proteinas}
-                    onChange={(e) =>
-                      setMacrosCalculados({
-                        ...macrosCalculados,
-                        proteinas: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[#222222]">Carboidratos Meta (g)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={macrosCalculados.carboidratos}
-                    onChange={(e) =>
-                      setMacrosCalculados({
-                        ...macrosCalculados,
-                        carboidratos: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[#222222]">Gorduras Meta (g)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={macrosCalculados.gorduras}
-                    onChange={(e) =>
-                      setMacrosCalculados({
-                        ...macrosCalculados,
-                        gorduras: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
-                  />
                 </div>
               </div>
             </div>
