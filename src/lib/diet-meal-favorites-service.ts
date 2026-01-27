@@ -5,6 +5,8 @@ export interface FavoriteMeal {
   user_id: string;
   meal_name: string;
   suggested_time?: string;
+  start_time?: string;
+  end_time?: string;
   calories: number;
   protein: number;
   carbs: number;

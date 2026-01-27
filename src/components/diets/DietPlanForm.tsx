@@ -129,6 +129,8 @@ const dietPlanSchema = z.object({
       meal_order: z.number(),
       day_of_week: z.number().nullable().optional(),
       suggested_time: z.string().optional(),
+      start_time: z.string().optional(),
+      end_time: z.string().optional(),
       calories: z.number().optional(),
       protein: z.number().optional(),
       carbs: z.number().optional(),
@@ -336,7 +338,7 @@ export function DietPlanForm({
     try {
       const { data, error } = await supabase
         .from('patients')
-        .select('peso_inicial, altura_inicial, data_nascimento, genero')
+        .select('peso_inicial, altura_inicial, data_nascimento, genero, telefone')
         .eq('id', patientId)
         .single();
       
@@ -365,22 +367,28 @@ export function DietPlanForm({
 
         // Buscar peso mais recente dos check-ins
         let pesoAtual = data.peso_inicial;
-        try {
-          const { data: checkinData, error: checkinError } = await supabase
-            .from('checkin')
-            .select('peso')
-            .eq('patient_id', patientId)
-            .not('peso', 'is', null)
-            .order('data_checkin', { ascending: false })
-            .limit(1)
-            .single();
-          
-          if (!checkinError && checkinData?.peso) {
-            pesoAtual = checkinData.peso;
+        
+        // Só buscar checkin se o paciente tiver telefone
+        if (data.telefone) {
+          try {
+            const { data: checkinData, error: checkinError } = await supabase
+              .from('checkin')
+              .select('peso')
+              .eq('telefone', data.telefone)
+              .not('peso', 'is', null)
+              .order('data_checkin', { ascending: false })
+              .limit(1)
+              .single();
+            
+            if (!checkinError && checkinData?.peso) {
+              pesoAtual = checkinData.peso;
+            }
+          } catch (checkinError) {
+            // Se não houver check-ins, usar peso_inicial
+            console.log("Nenhum check-in encontrado, usando peso_inicial");
           }
-        } catch (checkinError) {
-          // Se não houver check-ins, usar peso_inicial
-          console.log("Nenhum check-in encontrado, usando peso_inicial");
+        } else {
+          console.log("Paciente sem telefone cadastrado, usando peso_inicial");
         }
 
         setPatientData({
@@ -437,12 +445,44 @@ export function DietPlanForm({
         firstFoods: foods?.slice(0, 3).map((f: any) => f.name) || []
       });
       
-      if (foods && foods.length > 0) {
+      // Buscar alimentos customizados do usuário
+      console.log('📡 [DietPlanForm] Buscando alimentos customizados...');
+      const { customFoodsService } = await import("@/lib/custom-foods-service");
+      const customFoods = await customFoodsService.getCustomFoods();
+      console.log('📦 [DietPlanForm] Alimentos customizados:', {
+        count: customFoods?.length || 0,
+      });
+      
+      // Converter alimentos customizados para o formato do banco de dados
+      const customFoodsFormatted = customFoods.map((food) => ({
+        name: food.name,
+        calories_per_100g: food.calories_per_100g,
+        protein_per_100g: food.protein_per_100g,
+        carbs_per_100g: food.carbs_per_100g,
+        fats_per_100g: food.fats_per_100g,
+        fiber_per_100g: food.fiber_per_100g || 0,
+        category: food.category || "Customizado",
+        is_custom: true, // Flag para identificar alimentos customizados
+      }));
+      
+      // Combinar alimentos do banco com alimentos customizados
+      // Alimentos customizados aparecem primeiro (ordenados por favoritos)
+      const customFoodsSorted = customFoodsFormatted.sort((a, b) => {
+        const foodA = customFoods.find(f => f.name === a.name);
+        const foodB = customFoods.find(f => f.name === b.name);
+        if (foodA?.is_favorite && !foodB?.is_favorite) return -1;
+        if (!foodA?.is_favorite && foodB?.is_favorite) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      
+      const allFoods = [...customFoodsSorted, ...(foods || [])];
+      
+      if (allFoods && allFoods.length > 0) {
         console.log('✅ [DietPlanForm] Salvando alimentos no state');
-        setFoodDatabase(foods);
+        setFoodDatabase(allFoods);
         setFoodDatabaseLoaded(true);
         // Salvar no cache
-        FoodCacheService.cacheFoods(foods);
+        FoodCacheService.cacheFoods(allFoods);
         console.log('✅ [DietPlanForm] Alimentos salvos com sucesso');
       } else {
         console.warn('⚠️ [DietPlanForm] Nenhum alimento retornado');
@@ -530,6 +570,8 @@ export function DietPlanForm({
           meal_order: meal.meal_order || 0,
           day_of_week: meal.day_of_week || null,
           suggested_time: meal.suggested_time || undefined,
+          start_time: meal.start_time || undefined,
+          end_time: meal.end_time || undefined,
           calories: meal.calories || undefined,
           protein: meal.protein || undefined,
           carbs: meal.carbs || undefined,
@@ -792,44 +834,76 @@ export function DietPlanForm({
       return;
     }
 
-    // Primeiro, tentar encontrar no banco de dados (busca case-insensitive)
+    const foodKey = `${mealIndex}_${foodIndex}`;
+    let originalQuantity = originalQuantitiesRef.current.get(foodKey);
+    let originalMacros = originalMacrosRef.current.get(foodKey);
+    
+    // Se JÁ temos macros originais armazenados, SEMPRE usar eles para recalcular
+    // Isso garante que o cálculo seja consistente mesmo após mudar o nome
+    if (originalQuantity && originalQuantity > 0 && originalMacros) {
+      // Calcular macros por unidade baseado nos macros originais e quantidade original
+      const macrosPerUnit = {
+        calories: originalMacros.calories / originalQuantity,
+        protein: originalMacros.protein / originalQuantity,
+        carbs: originalMacros.carbs / originalQuantity,
+        fats: originalMacros.fats / originalQuantity,
+      };
+      
+      // Recalcular para a nova quantidade
+      form.setValue(
+        `meals.${mealIndex}.foods.${foodIndex}.calories`,
+        Math.round(macrosPerUnit.calories * currentQuantity)
+      );
+      form.setValue(
+        `meals.${mealIndex}.foods.${foodIndex}.protein`,
+        Math.round(macrosPerUnit.protein * currentQuantity * 10) / 10
+      );
+      form.setValue(
+        `meals.${mealIndex}.foods.${foodIndex}.carbs`,
+        Math.round(macrosPerUnit.carbs * currentQuantity * 10) / 10
+      );
+      form.setValue(
+        `meals.${mealIndex}.foods.${foodIndex}.fats`,
+        Math.round(macrosPerUnit.fats * currentQuantity * 10) / 10
+      );
+      
+      // Recalcular macros da refeição e totais
+      calculateMealMacros(mealIndex);
+      calculateTotals();
+      return;
+    }
+    
+    // Se NÃO temos macros originais, tentar buscar no banco de dados
     const selectedFood = foodDatabase.find((f) => 
       f.name.toLowerCase() === foodName.toLowerCase()
     );
 
     if (selectedFood) {
-      // Alimento encontrado no banco, recalcular baseado nos valores do banco
+      // Alimento encontrado no banco, usar valores do banco
       const multiplier = currentQuantity / 100;
 
-      // Calorias arredondadas para inteiro, macros com 1 casa decimal
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.calories`,
-        Math.round(selectedFood.calories_per_100g * multiplier)
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.protein`,
-        Math.round(selectedFood.protein_per_100g * multiplier * 10) / 10
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.carbs`,
-        Math.round(selectedFood.carbs_per_100g * multiplier * 10) / 10
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.fats`,
-        Math.round(selectedFood.fats_per_100g * multiplier * 10) / 10
-      );
-    } else {
-      // Alimento não está no banco (ex: do n8n)
-      // Recalcular proporcionalmente baseado nos macros originais e quantidade original
-      const foodKey = `${mealIndex}_${foodIndex}`;
-      let originalQuantity = originalQuantitiesRef.current.get(foodKey);
-      let originalMacros = originalMacrosRef.current.get(foodKey);
+      const newCalories = Math.round(selectedFood.calories_per_100g * multiplier);
+      const newProtein = Math.round(selectedFood.protein_per_100g * multiplier * 10) / 10;
+      const newCarbs = Math.round(selectedFood.carbs_per_100g * multiplier * 10) / 10;
+      const newFats = Math.round(selectedFood.fats_per_100g * multiplier * 10) / 10;
+
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, newCalories);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, newProtein);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, newCarbs);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, newFats);
       
-      // Se não temos quantidade original ou macros originais armazenados, armazenar agora
-      // Mas só armazenar se temos macros válidos (pelo menos um > 0)
-      if ((!originalQuantity || originalQuantity <= 0 || !originalMacros) && 
-          (currentCalories > 0 || currentProtein > 0 || currentCarbs > 0 || currentFats > 0)) {
-        // Armazenar os valores atuais como referência original
+      // Armazenar como macros originais
+      originalQuantitiesRef.current.set(foodKey, currentQuantity);
+      originalMacrosRef.current.set(foodKey, {
+        calories: newCalories,
+        protein: newProtein,
+        carbs: newCarbs,
+        fats: newFats,
+      });
+    } else {
+      // Alimento NÃO está no banco E não temos macros originais
+      // Armazenar os valores atuais como referência original
+      if (currentCalories > 0 || currentProtein > 0 || currentCarbs > 0 || currentFats > 0) {
         originalQuantitiesRef.current.set(foodKey, currentQuantity);
         originalMacrosRef.current.set(foodKey, {
           calories: currentCalories,
@@ -837,46 +911,12 @@ export function DietPlanForm({
           carbs: currentCarbs,
           fats: currentFats,
         });
-        // Na primeira vez, não recalcular pois já temos os valores corretos
-        calculateMealMacros(mealIndex);
-        calculateTotals();
-        return;
-      }
-      
-      // Se temos macros originais armazenados, recalcular proporcionalmente
-      if (originalQuantity && originalQuantity > 0 && originalMacros) {
-        // Calcular macros por unidade baseado nos macros originais e quantidade original
-        const macrosPerUnit = {
-          calories: originalMacros.calories / originalQuantity,
-          protein: originalMacros.protein / originalQuantity,
-          carbs: originalMacros.carbs / originalQuantity,
-          fats: originalMacros.fats / originalQuantity,
-        };
-        
-        // Recalcular para a nova quantidade
-        form.setValue(
-          `meals.${mealIndex}.foods.${foodIndex}.calories`,
-          Math.round(macrosPerUnit.calories * currentQuantity)
-        );
-        form.setValue(
-          `meals.${mealIndex}.foods.${foodIndex}.protein`,
-          Math.round(macrosPerUnit.protein * currentQuantity * 10) / 10
-        );
-        form.setValue(
-          `meals.${mealIndex}.foods.${foodIndex}.carbs`,
-          Math.round(macrosPerUnit.carbs * currentQuantity * 10) / 10
-        );
-        form.setValue(
-          `meals.${mealIndex}.foods.${foodIndex}.fats`,
-          Math.round(macrosPerUnit.fats * currentQuantity * 10) / 10
-        );
       }
     }
 
-    // Recalcular macros da refeição e totais (sem delay para melhor performance)
+    // Recalcular macros da refeição e totais
     calculateMealMacros(mealIndex);
     calculateTotals();
-    // validatePlan() já tem debounce, não precisa chamar aqui
   };
 
   const handleFoodSelect = async (mealIndex: number, foodIndex: number, foodName: string) => {
@@ -1017,6 +1057,8 @@ export function DietPlanForm({
             meal_name: meal.meal_name,
             meal_order: meal.meal_order,
             suggested_time: meal.suggested_time || '',
+            start_time: meal.start_time || '',
+            end_time: meal.end_time || '',
             calories: meal.calories,
             protein: meal.protein,
             carbs: meal.carbs,
@@ -1154,6 +1196,8 @@ export function DietPlanForm({
             meal_order: meal.meal_order,
             day_of_week: meal.day_of_week || null,
             suggested_time: meal.suggested_time || null,
+            start_time: meal.start_time || null,
+            end_time: meal.end_time || null,
             calories: meal.calories || null,
             protein: meal.protein || null,
             carbs: meal.carbs || null,
@@ -2862,6 +2906,8 @@ export function DietPlanForm({
                         const mealData = {
                           meal_name: favorite.meal_name,
                           suggested_time: favorite.suggested_time,
+                          start_time: favorite.start_time,
+                          end_time: favorite.end_time,
                           calories: favorite.calories,
                           protein: favorite.protein,
                           carbs: favorite.carbs,
@@ -2924,6 +2970,8 @@ export function DietPlanForm({
                                 const mealData = {
                                   meal_name: favorite.meal_name,
                                   suggested_time: favorite.suggested_time,
+                                  start_time: favorite.start_time,
+                                  end_time: favorite.end_time,
                                   calories: favorite.calories,
                                   protein: favorite.protein,
                                   carbs: favorite.carbs,
@@ -3087,7 +3135,7 @@ const FoodItem = memo(function FoodItem({
             <GripVertical className="w-4 h-4 text-[#777777]" />
           </div>
 
-          {/* Nome do alimento - editável */}
+          {/* Nome do alimento - editável livremente */}
           <FormField
             control={form.control}
             name={`meals.${mealIndex}.foods.${foodIndex}.food_name`}
@@ -3100,14 +3148,9 @@ const FoodItem = memo(function FoodItem({
                     onChange={(e) => {
                       field.onChange(e.target.value);
                     }}
-                    onBlur={() => {
-                      // Quando o usuário termina de editar, recalcular macros se necessário
-                      if (field.value) {
-                        handleFoodSelect(mealIndex, foodIndex, field.value);
-                      }
-                    }}
                     placeholder="Nome do alimento"
                     className="h-8 text-sm border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
+                    title="Edite o nome livremente. Os valores nutricionais são vinculados à quantidade."
                   />
                 </FormControl>
                 <FormMessage />
@@ -3445,8 +3488,8 @@ const MealItemComponent = memo(function MealItemComponent({
                                 <Card className={`border transition-all duration-300 hover:shadow-md ${cardColors}`}>
                                   <CardHeader className="pb-2 pt-3 px-4">
                                     <div className="flex items-center justify-between gap-3">
-                                      {/* Lado esquerdo: Drag handle, horário editável, nome editável, macros compactados */}
-                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                      {/* Lado esquerdo: Drag handle, horários editáveis, nome editável, macros compactados */}
+                                      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 flex-wrap md:flex-nowrap">
                                         {/* Drag handle */}
                                           <div
                                             {...attributes}
@@ -3461,33 +3504,60 @@ const MealItemComponent = memo(function MealItemComponent({
                                           <GripVertical className="w-4 h-4 text-[#555555]" aria-hidden="true" />
                                           </div>
 
-                                        {/* Horário editável */}
-                                        <FormField
-                                          control={form.control}
-                                          name={`meals.${mealIndex}.suggested_time`}
-                                          render={({ field }) => (
-                                            <FormItem className="flex-shrink-0">
-                                              <FormControl>
-                                                <Input
-                                                  type="text"
-                                                  placeholder="09:00"
-                                                  className="h-7 w-20 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none p-0 font-medium"
-                                                  {...field}
-                                                  value={field.value ?? ""}
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  aria-label={`Horário da ${mealName}`}
-                                                />
-                                              </FormControl>
-                                            </FormItem>
-                                          )}
-                                        />
+                                        {/* Container de horários - responsivo */}
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                          {/* Horário inicial */}
+                                          <FormField
+                                            control={form.control}
+                                            name={`meals.${mealIndex}.start_time`}
+                                            render={({ field }) => (
+                                              <FormItem className="flex-shrink-0">
+                                                <FormControl>
+                                                  <Input
+                                                    type="text"
+                                                    placeholder="08:00"
+                                                    className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none p-0 font-medium text-center"
+                                                    {...field}
+                                                    value={field.value ?? ""}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    aria-label={`Horário inicial da ${mealName}`}
+                                                  />
+                                                </FormControl>
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          {/* Separador */}
+                                          <span className="text-xs text-[#666666] font-medium">-</span>
+                                          
+                                          {/* Horário final */}
+                                          <FormField
+                                            control={form.control}
+                                            name={`meals.${mealIndex}.end_time`}
+                                            render={({ field }) => (
+                                              <FormItem className="flex-shrink-0">
+                                                <FormControl>
+                                                  <Input
+                                                    type="text"
+                                                    placeholder="09:00"
+                                                    className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none p-0 font-medium text-center"
+                                                    {...field}
+                                                    value={field.value ?? ""}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    aria-label={`Horário final da ${mealName}`}
+                                                  />
+                                                </FormControl>
+                                              </FormItem>
+                                            )}
+                                          />
+                                        </div>
 
-                                        {/* Nome da refeição editável */}
+                                        {/* Nome da refeição editável - ocupa linha inteira em mobile */}
                                         <FormField
                                           control={form.control}
                                           name={`meals.${mealIndex}.meal_name`}
                                           render={({ field }) => (
-                                            <FormItem className="flex-1 min-w-0">
+                                            <FormItem className="flex-1 min-w-0 w-full md:w-auto">
                                               <FormLabel className="sr-only">Nome da refeição {mealIndex + 1}</FormLabel>
                                               <FormControl>
                                                 <Input
@@ -3504,18 +3574,18 @@ const MealItemComponent = memo(function MealItemComponent({
                                           )}
                                         />
 
-                                        {/* Macros compactados - sempre visíveis com tooltip */}
+                                        {/* Macros compactados - sempre visíveis com tooltip - oculto em mobile pequeno */}
                                         <TooltipProvider>
                                           <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <div className={`flex items-center gap-3 flex-shrink-0 cursor-help ${form.watch(`meals.${mealIndex}.exclude_from_macros`) ? 'opacity-40' : ''}`}>
+                                              <div className={`hidden sm:flex items-center gap-2 md:gap-3 flex-shrink-0 cursor-help ${form.watch(`meals.${mealIndex}.exclude_from_macros`) ? 'opacity-40' : ''}`}>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-red-600" aria-hidden="true"></div>
-                                                <span className="text-sm text-[#111111] font-medium">{mealProtein.toFixed(1)}g</span>
+                                                <span className="text-xs md:text-sm text-[#111111] font-medium">{mealProtein.toFixed(1)}g</span>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" aria-hidden="true"></div>
-                                                <span className="text-sm text-[#111111] font-medium">{mealCarbs.toFixed(1)}g</span>
+                                                <span className="text-xs md:text-sm text-[#111111] font-medium">{mealCarbs.toFixed(1)}g</span>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-600" aria-hidden="true"></div>
-                                                <span className="text-sm text-[#111111] font-medium">{mealFats.toFixed(1)}g</span>
-                                                <span className="text-sm font-semibold text-[#111111] ml-1">{mealCalories} Kcal</span>
+                                                <span className="text-xs md:text-sm text-[#111111] font-medium">{mealFats.toFixed(1)}g</span>
+                                                <span className="text-xs md:text-sm font-semibold text-[#111111] ml-1">{mealCalories} Kcal</span>
                                           </div>
                                             </TooltipTrigger>
                                             <TooltipContent className="bg-gray-900 text-white text-xs p-3 rounded-md shadow-lg">
@@ -3670,6 +3740,8 @@ const MealItemComponent = memo(function MealItemComponent({
                                               await dietMealFavoritesService.saveFavoriteMeal({
                                                 meal_name: mealData.meal_name || `REFEIÇÃO ${mealIndex + 1}`,
                                                 suggested_time: mealData.suggested_time,
+                                                start_time: mealData.start_time,
+                                                end_time: mealData.end_time,
                                                 calories: mealCalories,
                                                 protein: mealProtein,
                                                 carbs: mealCarbs,

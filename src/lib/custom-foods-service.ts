@@ -1,0 +1,218 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export interface CustomFood {
+  id: string;
+  user_id: string;
+  name: string;
+  calories_per_100g: number;
+  protein_per_100g: number;
+  carbs_per_100g: number;
+  fats_per_100g: number;
+  fiber_per_100g?: number;
+  category?: string;
+  notes?: string;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCustomFoodInput {
+  name: string;
+  calories_per_100g: number;
+  protein_per_100g: number;
+  carbs_per_100g: number;
+  fats_per_100g: number;
+  fiber_per_100g?: number;
+  category?: string;
+  notes?: string;
+  is_favorite?: boolean;
+}
+
+export interface UpdateCustomFoodInput extends Partial<CreateCustomFoodInput> {
+  id: string;
+}
+
+class CustomFoodsService {
+  /**
+   * Buscar todos os alimentos customizados do usuário
+   */
+  async getCustomFoods(filters?: {
+    search?: string;
+    category?: string;
+    favoritesOnly?: boolean;
+  }): Promise<CustomFood[]> {
+    try {
+      let query = supabase
+        .from("custom_foods")
+        .select("*")
+        .order("name", { ascending: true });
+
+      // Filtro de busca por nome
+      if (filters?.search) {
+        query = query.ilike("name", `%${filters.search}%`);
+      }
+
+      // Filtro por categoria
+      if (filters?.category) {
+        query = query.eq("category", filters.category);
+      }
+
+      // Filtro de favoritos
+      if (filters?.favoritesOnly) {
+        query = query.eq("is_favorite", true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Erro ao buscar alimentos customizados:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar um alimento customizado por ID
+   */
+  async getCustomFoodById(id: string): Promise<CustomFood | null> {
+    try {
+      const { data, error } = await supabase
+        .from("custom_foods")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Erro ao buscar alimento customizado:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Criar novo alimento customizado
+   */
+  async createCustomFood(input: CreateCustomFoodInput): Promise<CustomFood> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("custom_foods")
+        .insert({
+          user_id: user.id,
+          ...input,
+          is_favorite: input.is_favorite || false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Erro ao criar alimento customizado:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualizar alimento customizado
+   */
+  async updateCustomFood(input: UpdateCustomFoodInput): Promise<CustomFood> {
+    try {
+      const { id, ...updateData } = input;
+
+      const { data, error } = await supabase
+        .from("custom_foods")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Erro ao atualizar alimento customizado:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deletar alimento customizado
+   */
+  async deleteCustomFood(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("custom_foods")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Erro ao deletar alimento customizado:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Alternar favorito
+   */
+  async toggleFavorite(id: string, isFavorite: boolean): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("custom_foods")
+        .update({ is_favorite: isFavorite })
+        .eq("id", id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Erro ao alternar favorito:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar categorias únicas
+   */
+  async getCategories(): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from("custom_foods")
+        .select("category")
+        .not("category", "is", null);
+
+      if (error) throw error;
+
+      // Extrair categorias únicas
+      const categories = [...new Set(data.map((item) => item.category))].filter(Boolean) as string[];
+      return categories.sort();
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Buscar alimento por nome (para integração com sistema de dietas)
+   */
+  async searchByName(name: string): Promise<CustomFood | null> {
+    try {
+      const { data, error } = await supabase
+        .from("custom_foods")
+        .select("*")
+        .ilike("name", name)
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+      return data || null;
+    } catch (error) {
+      console.error("Erro ao buscar alimento por nome:", error);
+      return null;
+    }
+  }
+}
+
+export const customFoodsService = new CustomFoodsService();
