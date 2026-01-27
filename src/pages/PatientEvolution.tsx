@@ -984,9 +984,32 @@ export default function PatientEvolution() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
-                    onClick={() => {
-                      const portalUrl = `${window.location.origin}/portal/${patient?.telefone || telefone}`;
-                      window.open(portalUrl, '_blank');
+                    onClick={async () => {
+                      try {
+                        // Importar dinamicamente o serviço
+                        const { getOrCreatePatientToken, getPortalUrl } = await import('@/lib/patient-portal-service');
+                        
+                        // Gerar ou recuperar token
+                        const result = await getOrCreatePatientToken(patient?.telefone || telefone!);
+                        
+                        if (result) {
+                          const portalUrl = getPortalUrl(result.token);
+                          window.open(portalUrl, '_blank');
+                        } else {
+                          toast({
+                            title: "Erro",
+                            description: "Não foi possível gerar o link do portal",
+                            variant: "destructive"
+                          });
+                        }
+                      } catch (error) {
+                        console.error('Erro ao abrir portal:', error);
+                        toast({
+                          title: "Erro",
+                          description: "Não foi possível abrir o portal",
+                          variant: "destructive"
+                        });
+                      }
                     }}
                     className="text-white hover:bg-slate-700 cursor-pointer"
                   >
