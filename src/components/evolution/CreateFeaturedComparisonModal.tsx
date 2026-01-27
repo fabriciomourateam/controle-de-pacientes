@@ -1,3 +1,6 @@
+// ✅ VERSÃO FINAL - HARD RESET - Timestamp: 2026-01-27T00:45:00Z
+// Copiado EXATAMENTE do PhotoComparisonEditor.tsx que FUNCIONA
+// Usa .forEach() e acessa checkin.foto_1, checkin.foto_2, checkin.foto_3, checkin.foto_4
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +13,7 @@ import { useFeaturedComparison, CreateFeaturedComparisonData } from '@/hooks/use
 import type { Database } from '@/integrations/supabase/types';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
+type Patient = Database['public']['Tables']['patients']['Row'];
 
 interface Photo {
   url: string;
@@ -34,6 +38,7 @@ export function CreateFeaturedComparisonModal({
   onOpenChange,
   telefone,
   checkins,
+  patient,
   onSuccess,
 }: CreateFeaturedComparisonModalProps) {
   const { saveComparison, loading } = useFeaturedComparison(telefone);
@@ -42,46 +47,103 @@ export function CreateFeaturedComparisonModal({
   const [title, setTitle] = useState('Minha Transformação');
   const [description, setDescription] = useState('');
 
-  // Extrair todas as fotos dos check-ins
+  // Extrair todas as fotos disponíveis (MESMA LÓGICA do PhotoComparisonEditor que funciona)
   const allPhotos: Photo[] = [];
-  
-  console.log('🎯 CreateFeaturedComparisonModal: Total de check-ins:', checkins.length);
-  
-  checkins.forEach((checkin, index) => {
-    const checkinAny = checkin as any;
-    console.log(`🎯 Check-in ${index + 1}:`, {
-      id: checkin.id,
-      data: checkin.data_checkin,
-      peso: checkin.peso,
-      foto_frente: checkinAny.foto_frente,
-      foto_costas: checkinAny.foto_costas,
-      foto_lado_esquerdo: checkinAny.foto_lado_esquerdo,
-      foto_lado_direito: checkinAny.foto_lado_direito,
-    });
-    
-    // Tentar múltiplos nomes de campos para compatibilidade
-    const photos = [
-      { url: checkinAny.foto_frente || checkinAny.foto_frontal, angle: 'frente' },
-      { url: checkinAny.foto_costas || checkinAny.foto_traseira, angle: 'costas' },
-      { url: checkinAny.foto_lado_esquerdo || checkinAny.foto_lateral, angle: 'lado_esquerdo' },
-      { url: checkinAny.foto_lado_direito || checkinAny.foto_lateral_direita, angle: 'lado_direito' },
-    ];
 
-    photos.forEach(({ url, angle }) => {
-      if (url) {
-        console.log(`✅ Foto encontrada: ${angle} - ${url.substring(0, 50)}...`);
-        allPhotos.push({
-          url,
-          date: checkin.data_checkin,
-          weight: checkin.peso,
-          checkinId: checkin.id,
-          angle,
-        });
-      }
+  // 1. Fotos iniciais do paciente
+  const patientWithData = patient as any;
+  if (patientWithData?.foto_inicial_frente) {
+    allPhotos.push({
+      url: patientWithData.foto_inicial_frente,
+      date: patientWithData.data_fotos_iniciais 
+        ? new Date(patientWithData.data_fotos_iniciais).toISOString()
+        : new Date().toISOString(),
+      weight: patientWithData.peso_inicial?.toString(),
+      checkinId: 'initial-frente',
+      angle: 'frente',
+      isInitial: true,
     });
+  }
+  if (patientWithData?.foto_inicial_lado) {
+    allPhotos.push({
+      url: patientWithData.foto_inicial_lado,
+      date: patientWithData.data_fotos_iniciais 
+        ? new Date(patientWithData.data_fotos_iniciais).toISOString()
+        : new Date().toISOString(),
+      weight: patientWithData.peso_inicial?.toString(),
+      checkinId: 'initial-lado',
+      angle: 'lado',
+      isInitial: true,
+    });
+  }
+  if (patientWithData?.foto_inicial_lado_2) {
+    allPhotos.push({
+      url: patientWithData.foto_inicial_lado_2,
+      date: patientWithData.data_fotos_iniciais 
+        ? new Date(patientWithData.data_fotos_iniciais).toISOString()
+        : new Date().toISOString(),
+      weight: patientWithData.peso_inicial?.toString(),
+      checkinId: 'initial-lado-2',
+      angle: 'lado_2',
+      isInitial: true,
+    });
+  }
+  if (patientWithData?.foto_inicial_costas) {
+    allPhotos.push({
+      url: patientWithData.foto_inicial_costas,
+      date: patientWithData.data_fotos_iniciais 
+        ? new Date(patientWithData.data_fotos_iniciais).toISOString()
+        : new Date().toISOString(),
+      weight: patientWithData.peso_inicial?.toString(),
+      checkinId: 'initial-costas',
+      angle: 'costas',
+      isInitial: true,
+    });
+  }
+
+  // 2. Fotos dos check-ins (do mais antigo ao mais recente - IGUAL PhotoComparisonEditor)
+  const sortedCheckins = [...checkins].sort((a, b) => 
+    new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
+  );
+
+  sortedCheckins.forEach((checkin) => {
+    if (checkin.foto_1) {
+      allPhotos.push({
+        url: checkin.foto_1,
+        date: checkin.data_checkin,
+        weight: checkin.peso,
+        checkinId: checkin.id,
+        angle: 'frente',
+      });
+    }
+    if (checkin.foto_2) {
+      allPhotos.push({
+        url: checkin.foto_2,
+        date: checkin.data_checkin,
+        weight: checkin.peso,
+        checkinId: checkin.id,
+        angle: 'lado',
+      });
+    }
+    if (checkin.foto_3) {
+      allPhotos.push({
+        url: checkin.foto_3,
+        date: checkin.data_checkin,
+        weight: checkin.peso,
+        checkinId: checkin.id,
+        angle: 'lado_2',
+      });
+    }
+    if (checkin.foto_4) {
+      allPhotos.push({
+        url: checkin.foto_4,
+        date: checkin.data_checkin,
+        weight: checkin.peso,
+        checkinId: checkin.id,
+        angle: 'costas',
+      });
+    }
   });
-
-  console.log('🎯 Total de fotos extraídas:', allPhotos.length);
   
   // Ordenar fotos por data (mais antigas primeiro)
   allPhotos.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -137,10 +199,10 @@ export function CreateFeaturedComparisonModal({
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-center">
               <p className="text-yellow-400 font-medium mb-2">⚠️ Nenhuma foto encontrada</p>
               <p className="text-yellow-300/80 text-sm">
-                Os check-ins não possuem fotos cadastradas. Verifique se as fotos foram enviadas corretamente.
+                Nem os check-ins nem o paciente possuem fotos cadastradas.
               </p>
               <p className="text-yellow-300/60 text-xs mt-2">
-                Campos verificados: foto_frente, foto_costas, foto_lado_esquerdo, foto_lado_direito
+                Campos verificados: foto_inicial_frente, foto_inicial_lado, foto_inicial_lado_2, foto_inicial_costas (paciente) + foto_1, foto_2, foto_3, foto_4 (check-ins)
               </p>
             </div>
           )}
@@ -186,7 +248,7 @@ export function CreateFeaturedComparisonModal({
                 {allPhotos.length === 0 ? (
                   <div className="col-span-2 text-center py-8 text-slate-400">
                     <p className="mb-2">📸 Nenhuma foto disponível</p>
-                    <p className="text-xs">Adicione fotos aos check-ins primeiro</p>
+                    <p className="text-xs">Adicione fotos ao paciente ou check-ins primeiro</p>
                   </div>
                 ) : (
                   allPhotos.map((photo, index) => (
@@ -220,6 +282,9 @@ export function CreateFeaturedComparisonModal({
                             {photo.weight} kg
                           </p>
                         )}
+                        {photo.isInitial && (
+                          <p className="text-yellow-300 text-xs">📸 Inicial</p>
+                        )}
                       </div>
                     </button>
                   ))
@@ -241,7 +306,7 @@ export function CreateFeaturedComparisonModal({
                 {allPhotos.length === 0 ? (
                   <div className="col-span-2 text-center py-8 text-slate-400">
                     <p className="mb-2">📸 Nenhuma foto disponível</p>
-                    <p className="text-xs">Adicione fotos aos check-ins primeiro</p>
+                    <p className="text-xs">Adicione fotos ao paciente ou check-ins primeiro</p>
                   </div>
                 ) : (
                   allPhotos.map((photo, index) => (
@@ -274,6 +339,9 @@ export function CreateFeaturedComparisonModal({
                           <p className="text-slate-300 text-xs">
                             {photo.weight} kg
                           </p>
+                        )}
+                        {photo.isInitial && (
+                          <p className="text-yellow-300 text-xs">📸 Inicial</p>
                         )}
                       </div>
                     </button>

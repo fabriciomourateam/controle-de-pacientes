@@ -70,21 +70,40 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
   };
 
   const handleDeleteConfirm = async () => {
-    if (!checkinToDelete) return;
+    console.log('🗑️ handleDeleteConfirm CHAMADO');
+    
+    if (!checkinToDelete) {
+      console.log('❌ checkinToDelete é null, abortando');
+      return;
+    }
+
+    console.log('🗑️ Tentando deletar checkin:', {
+      id: checkinToDelete.id,
+      data: checkinToDelete.data_checkin,
+      telefone: checkinToDelete.telefone
+    });
 
     setIsDeleting(true);
     try {
+      console.log('🗑️ Chamando checkinService.delete...');
       await checkinService.delete(checkinToDelete.id);
+      console.log('✅ Check-in deletado com sucesso no banco');
+      
       toast.success('Check-in deletado com sucesso');
       setCheckinToDelete(null);
+      
       if (onCheckinUpdated) {
+        console.log('🔄 Chamando onCheckinUpdated para recarregar dados...');
         onCheckinUpdated();
+      } else {
+        console.log('⚠️ onCheckinUpdated não está definido');
       }
     } catch (error) {
-      console.error('Erro ao deletar check-in:', error);
+      console.error('❌ Erro ao deletar check-in:', error);
       toast.error('Erro ao deletar check-in. Tente novamente.');
     } finally {
       setIsDeleting(false);
+      console.log('🗑️ handleDeleteConfirm FINALIZADO');
     }
   };
 

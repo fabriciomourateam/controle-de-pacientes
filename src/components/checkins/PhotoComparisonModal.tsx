@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { processPhotoFile } from '@/lib/heic-converter';
 
 interface PhotoComparisonModalProps {
   checkinId: string;
@@ -294,7 +295,10 @@ export function PhotoComparisonModal({
   // Função para upload de foto
   const uploadPhoto = async (file: File, type: 'initial' | 'previous' | 'current', angle: PhotoAngle): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
+      // Processar arquivo (converte HEIC para JPEG automaticamente se necessário)
+      const processedFile = await processPhotoFile(file);
+      
+      const fileExt = processedFile.name.split('.').pop();
       let fileName = '';
       let filePath = '';
       
@@ -313,7 +317,7 @@ export function PhotoComparisonModal({
 
       const { error: uploadError } = await supabase.storage
         .from('patient-photos')
-        .upload(filePath, file);
+        .upload(filePath, processedFile);
 
       if (uploadError) {
         throw uploadError;

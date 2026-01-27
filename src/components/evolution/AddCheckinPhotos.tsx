@@ -14,6 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { checkinService } from '@/lib/checkin-service';
+import { processPhotoFile } from '@/lib/heic-converter';
 
 interface AddCheckinPhotosProps {
   telefone: string;
@@ -91,9 +92,12 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
 
   const uploadPhoto = async (file: File, path: string): Promise<string | null> => {
     try {
+      // Processar arquivo (converte HEIC para JPEG automaticamente se necessário)
+      const processedFile = await processPhotoFile(file);
+      
       const { data, error } = await supabase.storage
         .from('patient-photos')
-        .upload(path, file, {
+        .upload(path, processedFile, {
           cacheControl: '3600',
           upsert: false
         });

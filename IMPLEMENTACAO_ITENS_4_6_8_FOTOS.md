@@ -1,3 +1,5 @@
+
+
 # Implementação Itens 4, 6 e 8: Sistema de Fotos Editáveis - CONCLUÍDO ✅
 
 ## Objetivo
@@ -135,12 +137,14 @@ No portal do paciente, as fotos são filtradas automaticamente.
 - Zoom para destacar áreas específicas (0.5x a 3.0x)
 - Reposicionamento para melhor enquadramento (-100% a 100%)
 - Preview em tempo real dos ajustes
+- **NOVO:** Toggle global "Ocultar/Mostrar Todas" para controle rápido
 
 ### ✅ Item 6: Ocultar Evolução Fotográfica
 - Se todas as fotos estiverem ocultas, card não aparece
 - Útil quando não há evolução significativa
 - Evita frustração do paciente
 - Controle granular por foto
+- **NOVO:** Botão para ocultar TODAS as fotos de uma vez
 
 ### ✅ Item 8: Controle de Visibilidade
 - Nutricionista controla 100% do que o aluno vê
@@ -148,6 +152,13 @@ No portal do paciente, as fotos são filtradas automaticamente.
 - Mostra apenas fotos que geram valor
 - Configurações salvas no banco de dados
 - Persistência entre sessões
+
+### ✅ Melhorias Adicionais
+- **Evolução Fotográfica sempre expandida por padrão** (não mais minimizada)
+- Estado salvo no sessionStorage (preserva preferência do usuário)
+- Badge mostrando "X de Y fotos visíveis"
+- Indicador visual de fotos com ajustes customizados
+- Botão "Resetar Tudo" para voltar ao padrão global
 
 ## Tecnologias Utilizadas
 - **React Hooks**: useState, useEffect

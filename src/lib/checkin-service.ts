@@ -166,12 +166,26 @@ export const checkinService = {
 
   // Deletar checkin
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    console.log('🗑️ checkinService.delete - Iniciando exclusão do checkin:', id);
+    
+    const { error, data } = await supabase
       .from('checkin')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select(); // Adicionar select para ver o que foi deletado
     
-    if (error) throw error;
+    console.log('🗑️ checkinService.delete - Resposta do Supabase:', { data, error });
+    
+    if (error) {
+      console.error('❌ checkinService.delete - Erro do Supabase:', error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn('⚠️ checkinService.delete - Nenhum registro foi deletado. Possível problema de RLS ou ID inválido.');
+    } else {
+      console.log('✅ checkinService.delete - Registro deletado:', data);
+    }
   },
 
   // Buscar checkins por período

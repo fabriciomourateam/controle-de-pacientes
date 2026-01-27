@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { processPhotoFile } from '@/lib/heic-converter';
 
 interface CurrentDataInputProps {
   telefone: string;
@@ -172,14 +173,17 @@ export function CurrentDataInput({ telefone, nome, onSuccess, editMode = false, 
 
   const uploadPhoto = async (file: File, type: string): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
+      // Processar arquivo (converte HEIC para JPEG automaticamente se necessário)
+      const processedFile = await processPhotoFile(file);
+      
+      const fileExt = processedFile.name.split('.').pop();
       const fileName = `${telefone}_atual_${type}_${Date.now()}.${fileExt}`;
       // Não incluir o nome do bucket no caminho, pois .from() já especifica o bucket
       const filePath = fileName;
 
       const { error: uploadError } = await supabase.storage
         .from('patient-photos')
-        .upload(filePath, file);
+        .upload(filePath, processedFile);
 
       if (uploadError) {
         console.error('Erro no upload:', uploadError);

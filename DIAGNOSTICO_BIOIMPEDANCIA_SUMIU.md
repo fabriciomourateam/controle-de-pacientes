@@ -1,4 +1,4 @@
-# 🔍 Diagnóstico: Dados de Bioimpedância "Sumiram"
+re# 🔍 Diagnóstico: Dados de Bioimpedância "Sumiram"
 
 ## ❓ O que aconteceu?
 

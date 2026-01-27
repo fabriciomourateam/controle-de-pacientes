@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Drag Melhorado no Comparador de Fotos</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            font-size: 16px;
+        }
+        
+        .demo-section {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .demo-title {
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .photo-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .photo-container {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 250px;
+        }
+        
+        .photo-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .initial-header {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .previous-header {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .current-header {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .photo-area {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(45deg, #374151, #4b5563);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+        
+        .photo-area:hover {
+            background: linear-gradient(45deg, #4b5563, #6b7280);
+            transform: scale(1.02);
+        }
+        
+        .photo-area:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+        }
+        
+        .photo-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.05) 10px,
+                rgba(255, 255, 255, 0.05) 20px
+            );
+        }
+        
+        .drag-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .photo-area:hover .drag-indicator {
+            opacity: 1;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+        }
+        
+        .zoom-btn {
+            background: rgba(51, 65, 85, 0.8);
+            border: 1px solid #64748b;
+            color: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(71, 85, 105, 0.8);
+            border-color: #94a3b8;
+        }
+        
+        .zoom-slider {
+            width: 80px;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .zoom-slider::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 8px;
+            height: 4px;
+            background: #60a5fa;
+            border-radius: 2px;
+            transform: translateX(-50%);
+        }
+        
+        .feature-list {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-list h3 {
+            color: #60a5fa;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .feature-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .check-icon {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .improvement-badge {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .code-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+        
+        .code-comment {
+            color: #22c55e;
+        }
+        
+        .code-function {
+            color: #60a5fa;
+        }
+        
+        .code-string {
+            color: #fbbf24;
+        }
+        
+        .code-keyword {
+            color: #a78bfa;
+        }
+        
+        .demo-instructions {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .demo-instructions h4 {
+            color: #60a5fa;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+        }
+        
+        .demo-instructions p {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖱️ Drag Melhorado - Comparador de Fotos</h1>
+            <p>Demonstração das melhorias implementadas para arrastar fotos com o mouse</p>
+        </div>
+
+        <!-- Instruções de teste -->
+        <div class="demo-instructions">
+            <h4>📋 Como Testar:</h4>
+            <p>Passe o mouse sobre as fotos abaixo e clique e arraste para simular a funcionalidade. Use os controles de zoom para testar diferentes níveis de ampliação.</p>
+        </div>
+
+        <!-- Demonstração das fotos -->
+        <div class="demo-section">
+            <div class="demo-title">
+                🖼️ Simulação do Modal de Comparação
+            </div>
+            
+            <div class="photo-demo">
+                <!-- Foto Inicial -->
+                <div class="photo-container">
+                    <div class="photo-header initial-header">
+                        ⭐ Dados Iniciais
+                    </div>
+                    <div class="photo-area" id="photo-initial">
+                        <div class="drag-indicator">🖱️ Clique e arraste</div>
+                        Foto Inicial<br>
+                        <small>15/01/2024</small>
+                    </div>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" onclick="adjustZoom('initial', -10)">-</button>
+                        <div class="zoom-slider"></div>
+                        <button class="zoom-btn" onclick="adjustZoom('initial', 10)">+</button>
+                        <span id="zoom-initial" style="font-size: 10px; color: #94a3b8;">100%</span>
+                    </div>
+                </div>
+
+                <!-- Foto Anterior -->
+                <div class="photo-container">
+                    <div class="photo-header previous-header">
+                        📅 Check-in Anterior
+                    </div>
+                    <div class="photo-area" id="photo-previous">
+                        <div class="drag-indicator">🖱️ Clique e arraste</div>
+                        Check-in Anterior<br>
+                        <small>15/12/2024</small>
+                    </div>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" onclick="adjustZoom('previous', -10)">-</button>
+                        <div class="zoom-slider"></div>
+                        <button class="zoom-btn" onclick="adjustZoom('previous', 10)">+</button>
+                        <span id="zoom-previous" style="font-size: 10px; color: #94a3b8;">100%</span>
+                    </div>
+                </div>
+
+                <!-- Foto Atual -->
+                <div class="photo-container">
+                    <div class="photo-header current-header">
+                        📸 Check-in Atual
+                    </div>
+                    <div class="photo-area" id="photo-current">
+                        <div class="drag-indicator">🖱️ Clique e arraste</div>
+                        Check-in Atual<br>
+                        <small>15/01/2025</small>
+                    </div>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" onclick="adjustZoom('current', -10)">-</button>
+                        <div class="zoom-slider"></div>
+                        <button class="zoom-btn" onclick="adjustZoom('current', 10)">+</button>
+                        <span id="zoom-current" style="font-size: 10px; color: #94a3b8;">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Melhorias implementadas -->
+        <div class="feature-list">
+            <h3>🚀 Melhorias Implementadas</h3>
+            <ul>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Drag sempre ativo:</strong> Agora é possível arrastar fotos mesmo com zoom 100%
+                    <span class="improvement-badge">NOVO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Cursores intuitivos:</strong> cursor-grab (🖱️) e cursor-grabbing durante o drag
+                    <span class="improvement-badge">MELHORADO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Indicadores visuais:</strong> Tooltips e indicadores de posição em tempo real
+                    <span class="improvement-badge">NOVO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Zoom com scroll:</strong> Use a roda do mouse para fazer zoom nas fotos
+                    <span class="improvement-badge">MANTIDO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Suporte touch:</strong> Funciona perfeitamente em dispositivos móveis
+                    <span class="improvement-badge">MELHORADO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Controles independentes:</strong> Cada coluna tem zoom e posição independentes
+                    <span class="improvement-badge">MANTIDO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Reset automático:</strong> Posição reseta ao fechar modal
+                    <span class="improvement-badge">MANTIDO</span>
+                </li>
+                <li>
+                    <span class="check-icon">✓</span>
+                    <strong>Performance otimizada:</strong> Event listeners globais para melhor responsividade
+                    <span class="improvement-badge">MELHORADO</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Código implementado -->
+        <div class="demo-section">
+            <div class="demo-title">
+                💻 Principais Mudanças no Código
+            </div>
+            
+            <div class="code-block">
+                <div class="code-comment">// ANTES: Drag apenas com zoom > 100%</div>
+                <div><span class="code-keyword">const</span> <span class="code-function">handleMouseDown</span> = (e, column) => {</div>
+                <div style="margin-left: 20px;"><span class="code-keyword">const</span> zoom = getZoom(column);</div>
+                <div style="margin-left: 20px;"><span class="code-keyword">if</span> (zoom <= <span class="code-string">100</span>) <span class="code-keyword">return</span>; <span class="code-comment">// ❌ Limitação removida</span></div>
+                <div>};</div>
+                <br>
+                <div class="code-comment">// DEPOIS: Drag sempre ativo</div>
+                <div><span class="code-keyword">const</span> <span class="code-function">handleMouseDown</span> = (e, column) => {</div>
+                <div style="margin-left: 20px;"><span class="code-comment">// ✅ Permitir arrastar sempre que há uma foto</span></div>
+                <div style="margin-left: 20px;">e.preventDefault();</div>
+                <div style="margin-left: 20px;">setIsDragging(<span class="code-string">true</span>);</div>
+                <div style="margin-left: 20px;">document.body.style.cursor = <span class="code-string">'grabbing'</span>;</div>
+                <div>};</div>
+                <br>
+                <div class="code-comment">// Indicadores visuais melhorados</div>
+                <div><span class="code-keyword">const</span> canDrag = <span class="code-string">true</span>; <span class="code-comment">// Sempre permitir drag</span></div>
+                <div><span class="code-keyword">const</span> cursor = isActiveDrag ? <span class="code-string">'grabbing'</span> : <span class="code-string">'grab'</span>;</div>
+            </div>
+        </div>
+
+        <!-- Instruções de uso -->
+        <div class="demo-section">
+            <div class="demo-title">
+                📖 Como Usar no Sistema
+            </div>
+            
+            <div style="color: #94a3b8; line-height: 1.6;">
+                <p><strong>1. Acesse o Comparador:</strong></p>
+                <p style="margin-left: 20px;">• Vá para a página de Check-ins</p>
+                <p style="margin-left: 20px;">• Clique no botão "Comparar Fotos" em qualquer check-in</p>
+                
+                <p><strong>2. Arraste as Fotos:</strong></p>
+                <p style="margin-left: 20px;">• Clique e arraste qualquer foto para reposicioná-la</p>
+                <p style="margin-left: 20px;">• Funciona com qualquer nível de zoom (50% a 200%)</p>
+                
+                <p><strong>3. Use o Zoom:</strong></p>
+                <p style="margin-left: 20px;">• Roda do mouse para zoom rápido</p>
+                <p style="margin-left: 20px;">• Controles de zoom para ajuste preciso</p>
+                
+                <p><strong>4. Reset:</strong></p>
+                <p style="margin-left: 20px;">• Botão de reset para voltar à posição original</p>
+                <p style="margin-left: 20px;">• Fechar e reabrir modal também reseta</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulação de drag para demonstração
+        let isDragging = false;
+        let currentElement = null;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let zoomLevels = {
+            initial: 100,
+            previous: 100,
+            current: 100
+        };
+
+        // Adicionar event listeners para todas as fotos
+        ['initial', 'previous', 'current'].forEach(type => {
+            const element = document.getElementById(`photo-${type}`);
+            
+            element.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                currentElement = element;
+                startX = e.clientX - currentX;
+                startY = e.clientY - currentY;
+                element.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging || !currentElement) return;
+            
+            e.preventDefault();
+            currentX = e.clientX - startX;
+            currentY = e.clientY - startY;
+            
+            const zoom = zoomLevels[currentElement.id.split('-')[1]] / 100;
+            currentElement.style.transform = `scale(${zoom}) translate(${currentX / zoom}px, ${currentY / zoom}px)`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (currentElement) {
+                currentElement.style.cursor = 'grab';
+            }
+            isDragging = false;
+            currentElement = null;
+        });
+
+        // Função para ajustar zoom
+        function adjustZoom(type, delta) {
+            zoomLevels[type] = Math.max(50, Math.min(200, zoomLevels[type] + delta));
+            const element = document.getElementById(`photo-${type}`);
+            const zoomDisplay = document.getElementById(`zoom-${type}`);
+            
+            const zoom = zoomLevels[type] / 100;
+            element.style.transform = `scale(${zoom}) translate(${currentX / zoom}px, ${currentY / zoom}px)`;
+            zoomDisplay.textContent = `${zoomLevels[type]}%`;
+            
+            // Reset posição se zoom voltar para 100% ou menos
+            if (zoomLevels[type] <= 100) {
+                currentX = 0;
+                currentY = 0;
+                element.style.transform = `scale(${zoom}) translate(0px, 0px)`;
+            }
+        }
+
+        // Zoom com scroll do mouse
+        ['initial', 'previous', 'current'].forEach(type => {
+            const element = document.getElementById(`photo-${type}`);
+            
+            element.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -10 : 10;
+                adjustZoom(type, delta);
+            });
+        });
+    </script>
+</body>
+</html>
