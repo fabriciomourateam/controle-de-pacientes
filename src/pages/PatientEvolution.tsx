@@ -37,12 +37,9 @@ import { ShareButton } from '@/components/evolution/ShareButton';
 import { GoogleDriveImage } from '@/components/ui/google-drive-image';
 import { isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
-import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
 import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
 import { PatientForm } from '@/components/forms/PatientForm';
 import html2canvas from 'html2canvas';
-import { ExamRequestModal } from '@/components/exams/ExamRequestModal';
-import { ExamsHistory } from '@/components/exams/ExamsHistory';
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
 import { migrateCheckinPhotos, isTypebotUrl } from '@/lib/photo-migration-service';
@@ -93,18 +90,15 @@ export default function PatientEvolution() {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
-  const [examRequestModalOpen, setExamRequestModalOpen] = useState(false);
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ field: string; label: string } | null>(null);
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   const [showPhotoComparison, setShowPhotoComparison] = useState(false);
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
   const [addEvolutionDataOpen, setAddEvolutionDataOpen] = useState(false);
-  const [showPortalDialog, setShowPortalDialog] = useState(false);
   
   // Estados para controlar visibilidade dos cards opcionais
   const [showAchievements, setShowAchievements] = useState(false);
-  const [showExams, setShowExams] = useState(false);
   
   // Estado para controlar o limite de bioimpedâncias carregadas
   const [bioLimit, setBioLimit] = useState<number | null>(50); // Padrão: 50 avaliações
@@ -990,15 +984,10 @@ export default function PatientEvolution() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
-                    onClick={() => setExamRequestModalOpen(true)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
-                  >
-                    <FlaskConical className="w-4 h-4 mr-2" />
-                    Solicitar Exame
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setShowPortalDialog(true)}
+                    onClick={() => {
+                      const portalUrl = `${window.location.origin}/portal/${patient?.telefone || telefone}`;
+                      window.open(portalUrl, '_blank');
+                    }}
                     className="text-white hover:bg-slate-700 cursor-pointer"
                   >
                     <Link2 className="w-4 h-4 mr-2 text-blue-400" />
@@ -1007,11 +996,7 @@ export default function PatientEvolution() {
                   <DropdownMenuItem
                     onClick={() => {
                       const shareUrl = `${window.location.origin}/public/portal/${telefone}`;
-                      navigator.clipboard.writeText(shareUrl);
-                      toast({
-                        title: "Link copiado!",
-                        description: "Link público do portal copiado para a área de transferência",
-                      });
+                      window.open(shareUrl, '_blank');
                     }}
                     className="text-white hover:bg-slate-700 cursor-pointer"
                   >
@@ -1042,18 +1027,9 @@ export default function PatientEvolution() {
                   </DropdownMenuItem>
                   
                   {/* Seções ocultas - mostrar apenas se houver alguma oculta */}
-                  {(!showExams || (achievements.length > 0 && !showAchievements)) && (
+                  {(achievements.length > 0 && !showAchievements) && (
                     <>
                       <DropdownMenuSeparator />
-                      {telefone && !showExams && (
-                        <DropdownMenuItem
-                          onClick={() => setShowExams(true)}
-                          className="text-white hover:bg-slate-700 cursor-pointer"
-                        >
-                          <FlaskConical className="w-4 h-4 mr-2 text-cyan-400" />
-                          Mostrar Exames
-                        </DropdownMenuItem>
-                      )}
                       {achievements.length > 0 && !showAchievements && (
                         <DropdownMenuItem
                           onClick={() => setShowAchievements(true)}
@@ -1067,16 +1043,6 @@ export default function PatientEvolution() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              
-              {/* Portal Link Button - Controlado externamente */}
-              <PortalLinkButton 
-                telefone={patient?.telefone || telefone!} 
-                patientName={patient?.nome || 'Paciente'}
-                externalControl={{
-                  isOpen: showPortalDialog,
-                  onOpenChange: setShowPortalDialog
-                }}
-              />
               
               {certificateData && (
                 <CertificateButton
@@ -2137,35 +2103,6 @@ export default function PatientEvolution() {
             />
           </motion.div>
 
-          {/* 3. Histórico de Exames Laboratoriais */}
-          {telefone && showExams && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 z-10 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800"
-                  onClick={() => setShowExams(false)}
-                  title="Ocultar seção"
-                >
-                  <EyeOff className="w-4 h-4" />
-                </Button>
-                <ExamsHistory
-                  patientId={patient?.id}
-                  telefone={telefone}
-                  onUpdate={loadEvolution}
-                  refreshTrigger={chartsRefreshTrigger}
-                  allowDelete={false}
-                  variant="dark"
-                />
-              </div>
-            </motion.div>
-          )}
-
           {/* 4. Timeline Detalhada */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -2260,20 +2197,6 @@ export default function PatientEvolution() {
               setChartsRefreshTrigger(prev => prev + 1);
             }}
             showButton={false}
-          />
-        )}
-
-        {/* Modal de Solicitação de Exame */}
-        {telefone && (
-          <ExamRequestModal
-            open={examRequestModalOpen}
-            onOpenChange={setExamRequestModalOpen}
-            patientId={patient?.id}
-            telefone={telefone}
-            onSuccess={() => {
-              // Forçar atualização do histórico de exames
-              setChartsRefreshTrigger(prev => prev + 1);
-            }}
           />
         )}
 
