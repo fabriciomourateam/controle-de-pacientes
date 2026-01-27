@@ -19,7 +19,6 @@ import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
-import { InstallPWAButton } from '@/components/InstallPWAButton';
 import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
 import { EditableRenewalSection } from '@/components/renewal/EditableRenewalSection';
 import { PatientEvolutionTab } from '@/components/diets/PatientEvolutionTab';
@@ -920,7 +919,21 @@ export default function PatientPortal() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto hide-in-pdf">
-            <InstallPWAButton />
+            {/* Botão Compartilhar - Leva para o portal público */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (patient?.telefone) {
+                  const publicUrl = `${window.location.origin}/public/portal/${patient.telefone}`;
+                  window.open(publicUrl, '_blank');
+                }
+              }}
+              className="border-slate-600 hover:bg-slate-800 text-white min-h-[44px] px-4"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Compartilhar
+            </Button>
             
             {/* Menu de ações: Apenas Evolução e Atualizar - ITEM 9 */}
             <DropdownMenu>

@@ -20,6 +20,11 @@ interface PhotoState {
   y: number;
   isDragging: boolean;
   dragStart: { x: number; y: number };
+  // Touch state
+  isTouching: boolean;
+  touchStart: { x: number; y: number };
+  initialPinchDistance: number | null;
+  initialPinchZoom: number;
 }
 
 interface EditFeaturedComparisonModalProps {
@@ -72,7 +77,11 @@ export function EditFeaturedComparisonModal({
     x: initialBeforeX,
     y: initialBeforeY,
     isDragging: false,
-    dragStart: { x: 0, y: 0 }
+    dragStart: { x: 0, y: 0 },
+    isTouching: false,
+    touchStart: { x: 0, y: 0 },
+    initialPinchDistance: null,
+    initialPinchZoom: 1
   });
 
   const [afterState, setAfterState] = useState<PhotoState>({
@@ -80,7 +89,11 @@ export function EditFeaturedComparisonModal({
     x: initialAfterX,
     y: initialAfterY,
     isDragging: false,
-    dragStart: { x: 0, y: 0 }
+    dragStart: { x: 0, y: 0 },
+    isTouching: false,
+    touchStart: { x: 0, y: 0 },
+    initialPinchDistance: null,
+    initialPinchZoom: 1
   });
 
   const beforeContainerRef = useRef<HTMLDivElement>(null);
@@ -190,6 +203,74 @@ export function EditFeaturedComparisonModal({
     setState(prev => ({ ...prev, isDragging: false }));
   };
 
+  // Touch handlers para mobile
+  const getTouchDistance = (touch1: React.Touch, touch2: React.Touch) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, side: 'before' | 'after') => {
+    const setState = side === 'before' ? setBeforeState : setAfterState;
+    const state = side === 'before' ? beforeState : afterState;
+
+    if (e.touches.length === 1) {
+      // Single touch - drag
+      const touch = e.touches[0];
+      setState(prev => ({
+        ...prev,
+        isTouching: true,
+        touchStart: { x: touch.clientX - prev.x, y: touch.clientY - prev.y }
+      }));
+    } else if (e.touches.length === 2) {
+      // Two touches - pinch zoom
+      const distance = getTouchDistance(e.touches[0], e.touches[1]);
+      setState(prev => ({
+        ...prev,
+        isTouching: true,
+        initialPinchDistance: distance,
+        initialPinchZoom: state.zoom
+      }));
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent, side: 'before' | 'after') => {
+    const state = side === 'before' ? beforeState : afterState;
+    if (!state.isTouching) return;
+
+    const setState = side === 'before' ? setBeforeState : setAfterState;
+
+    if (e.touches.length === 1 && state.initialPinchDistance === null) {
+      // Single touch drag
+      const touch = e.touches[0];
+      setState(prev => ({
+        ...prev,
+        x: touch.clientX - prev.touchStart.x,
+        y: touch.clientY - prev.touchStart.y
+      }));
+    } else if (e.touches.length === 2 && state.initialPinchDistance !== null) {
+      // Pinch zoom
+      e.preventDefault(); // Prevent default pinch zoom behavior
+      const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+      const scale = currentDistance / state.initialPinchDistance;
+      const newZoom = Math.max(0.5, Math.min(3, state.initialPinchZoom * scale));
+      
+      setState(prev => ({
+        ...prev,
+        zoom: newZoom
+      }));
+    }
+  };
+
+  const handleTouchEnd = (side: 'before' | 'after') => {
+    const setState = side === 'before' ? setBeforeState : setAfterState;
+    setState(prev => ({
+      ...prev,
+      isTouching: false,
+      initialPinchDistance: null
+    }));
+  };
+
   // Reset
   const handleReset = (side: 'before' | 'after') => {
     const setState = side === 'before' ? setBeforeState : setAfterState;
@@ -231,15 +312,15 @@ export function EditFeaturedComparisonModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0 bg-slate-900 border-slate-700">
-        <DialogHeader className="p-6 pb-4 border-b border-slate-700 flex-shrink-0">
-          <DialogTitle className="text-2xl text-white">Editar Comparação Antes/Depois</DialogTitle>
-          <p className="text-sm text-slate-400 mt-2">
+      <DialogContent className="max-w-[95vw] md:max-w-6xl h-[95vh] flex flex-col p-0 bg-slate-900 border-slate-700">
+        <DialogHeader className="p-4 md:p-6 pb-3 md:pb-4 border-b border-slate-700 flex-shrink-0">
+          <DialogTitle className="text-xl md:text-2xl text-white">Editar Comparação Antes/Depois</DialogTitle>
+          <p className="text-xs md:text-sm text-slate-400 mt-2">
             Ajuste o zoom e posição das fotos, e personalize o título
           </p>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-4 md:p-6">
           {/* Configurações de Texto */}
           <div className="space-y-4 mb-6">
             <div>
@@ -266,7 +347,7 @@ export function EditFeaturedComparisonModal({
           </div>
 
           {/* Comparação Lado a Lado */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Foto ANTES */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -281,11 +362,14 @@ export function EditFeaturedComparisonModal({
               {/* Container da Foto */}
               <div
                 ref={beforeContainerRef}
-                className="relative w-full h-[400px] bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-700 cursor-move"
+                className="relative w-full h-[300px] md:h-[400px] bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-700 cursor-move touch-none"
                 onMouseDown={(e) => handleMouseDown(e, 'before')}
                 onMouseMove={(e) => handleMouseMove(e, 'before')}
                 onMouseUp={() => handleMouseUp('before')}
                 onMouseLeave={() => handleMouseUp('before')}
+                onTouchStart={(e) => handleTouchStart(e, 'before')}
+                onTouchMove={(e) => handleTouchMove(e, 'before')}
+                onTouchEnd={() => handleTouchEnd('before')}
               >
                 <img
                   src={beforePhoto.url}
@@ -293,7 +377,7 @@ export function EditFeaturedComparisonModal({
                   className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                   style={{
                     transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
-                    transition: beforeState.isDragging ? 'none' : 'transform 0.1s'
+                    transition: (beforeState.isDragging || beforeState.isTouching) ? 'none' : 'transform 0.1s'
                   }}
                   draggable={false}
                 />
@@ -333,11 +417,14 @@ export function EditFeaturedComparisonModal({
               {/* Container da Foto */}
               <div
                 ref={afterContainerRef}
-                className="relative w-full h-[400px] bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-700 cursor-move"
+                className="relative w-full h-[300px] md:h-[400px] bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-700 cursor-move touch-none"
                 onMouseDown={(e) => handleMouseDown(e, 'after')}
                 onMouseMove={(e) => handleMouseMove(e, 'after')}
                 onMouseUp={() => handleMouseUp('after')}
                 onMouseLeave={() => handleMouseUp('after')}
+                onTouchStart={(e) => handleTouchStart(e, 'after')}
+                onTouchMove={(e) => handleTouchMove(e, 'after')}
+                onTouchEnd={() => handleTouchEnd('after')}
               >
                 <img
                   src={afterPhoto.url}
@@ -345,7 +432,7 @@ export function EditFeaturedComparisonModal({
                   className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                   style={{
                     transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
-                    transition: afterState.isDragging ? 'none' : 'transform 0.1s'
+                    transition: (afterState.isDragging || afterState.isTouching) ? 'none' : 'transform 0.1s'
                   }}
                   draggable={false}
                 />
@@ -380,7 +467,7 @@ export function EditFeaturedComparisonModal({
             </h3>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
               <div className="max-w-4xl mx-auto">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {/* Preview ANTES - EXATAMENTE como na página pública */}
                   <div 
                     ref={beforePreviewRef}
@@ -404,7 +491,7 @@ export function EditFeaturedComparisonModal({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
                     </div>
-                    <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs z-10">
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs z-10 hidden md:block">
                       Use scroll para zoom
                     </div>
                   </div>
@@ -432,7 +519,7 @@ export function EditFeaturedComparisonModal({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
                     </div>
-                    <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs z-10">
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs z-10 hidden md:block">
                       Use scroll para zoom
                     </div>
                   </div>
@@ -444,19 +531,21 @@ export function EditFeaturedComparisonModal({
           {/* Dica */}
           <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
             <p className="text-sm text-blue-300">
-              💡 <strong>Dica:</strong> Clique e arraste as fotos para reposicionar. Use o scroll do mouse (em qualquer foto) ou os botões +/- para ajustar o zoom.
-              O preview mostra EXATAMENTE como ficará na página pública. A foto será salva na posição que você deixar!
+              💡 <strong>Dica:</strong> 
+              <span className="hidden md:inline"> Clique e arraste as fotos para reposicionar. Use o scroll do mouse (em qualquer foto) ou os botões +/- para ajustar o zoom.</span>
+              <span className="md:hidden"> Arraste com o dedo para reposicionar. Use dois dedos (pinçar) para dar zoom ou use os botões +/-.</span>
+              {' '}O preview mostra EXATAMENTE como ficará na página pública. A foto será salva na posição que você deixar!
             </p>
           </div>
         </div>
 
         {/* Footer - Fixo na parte inferior */}
-        <div className="p-6 pt-4 border-t border-slate-700 flex justify-between items-center flex-shrink-0 bg-slate-900">
-          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">
+        <div className="p-4 md:p-6 pt-3 md:pt-4 border-t border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-3 flex-shrink-0 bg-slate-900">
+          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white w-full sm:w-auto">
             <X className="w-4 h-4 mr-2" />
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+          <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 w-full sm:w-auto">
             <Save className="w-4 h-4 mr-2" />
             {saving ? 'Salvando...' : 'Salvar Comparação'}
           </Button>

@@ -38,8 +38,6 @@ import { GoogleDriveImage } from '@/components/ui/google-drive-image';
 import { isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { PortalLinkButton } from '@/components/evolution/PortalLinkButton';
-import { WeightInput } from '@/components/evolution/WeightInput';
-import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
 import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
 import { PatientForm } from '@/components/forms/PatientForm';
 import html2canvas from 'html2canvas';
@@ -94,7 +92,6 @@ export default function PatientEvolution() {
   const [zoomedPhoto, setZoomedPhoto] = useState<{ url: string; label: string } | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [migrating, setMigrating] = useState(false);
-  const [weightInputOpen, setWeightInputOpen] = useState(false);
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
   const [examRequestModalOpen, setExamRequestModalOpen] = useState(false);
   const [deletePhotoConfirm, setDeletePhotoConfirm] = useState<{ field: string; label: string } | null>(null);
@@ -106,7 +103,6 @@ export default function PatientEvolution() {
   const [showPortalDialog, setShowPortalDialog] = useState(false);
   
   // Estados para controlar visibilidade dos cards opcionais
-  const [showDailyWeights, setShowDailyWeights] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showExams, setShowExams] = useState(false);
   
@@ -1000,20 +996,6 @@ export default function PatientEvolution() {
                     <FlaskConical className="w-4 h-4 mr-2" />
                     Solicitar Exame
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setWeightInputOpen(true)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
-                  >
-                    <Scale className="w-4 h-4 mr-2" />
-                    Registrar Peso
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => navigate(`/renewal/${telefone}`)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4 mr-2 text-yellow-400" />
-                    Relatório de Evolução
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => setShowPortalDialog(true)}
@@ -1060,7 +1042,7 @@ export default function PatientEvolution() {
                   </DropdownMenuItem>
                   
                   {/* Seções ocultas - mostrar apenas se houver alguma oculta */}
-                  {(!showExams || !showDailyWeights || (achievements.length > 0 && !showAchievements)) && (
+                  {(!showExams || (achievements.length > 0 && !showAchievements)) && (
                     <>
                       <DropdownMenuSeparator />
                       {telefone && !showExams && (
@@ -1070,15 +1052,6 @@ export default function PatientEvolution() {
                         >
                           <FlaskConical className="w-4 h-4 mr-2 text-cyan-400" />
                           Mostrar Exames
-                        </DropdownMenuItem>
-                      )}
-                      {telefone && !showDailyWeights && (
-                        <DropdownMenuItem
-                          onClick={() => setShowDailyWeights(true)}
-                          className="text-white hover:bg-slate-700 cursor-pointer"
-                        >
-                          <Scale className="w-4 h-4 mr-2 text-emerald-400" />
-                          Mostrar Pesos Diários
                         </DropdownMenuItem>
                       )}
                       {achievements.length > 0 && !showAchievements && (
@@ -2216,38 +2189,9 @@ export default function PatientEvolution() {
               patient={patient} 
               onPhotoDeleted={loadEvolution}
               isEditable={true} // Página interna do nutricionista - sempre mostra TODAS as fotos
+              showCreateComparisonButton={false} // Ocultar botão "Criar Comparação" na página de evolução
             />
           </motion.div>
-
-          {/* 6. Lista de Pesos Diários */}
-          {telefone && showDailyWeights && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.45 }}
-            >
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 z-10 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800"
-                  onClick={() => setShowDailyWeights(false)}
-                  title="Ocultar seção"
-                >
-                  <EyeOff className="w-4 h-4" />
-                </Button>
-                <DailyWeightsList
-                  telefone={telefone}
-                  onUpdate={() => {
-                    loadEvolution();
-                    setChartsRefreshTrigger(prev => prev + 1);
-                  }}
-                />
-              </div>
-            </motion.div>
-          )}
-            </>
-          )}
 
           {/* 7. Badges de Conquistas */}
           {achievements.length > 0 && showAchievements && (
@@ -2271,7 +2215,9 @@ export default function PatientEvolution() {
             </motion.div>
           )}
 
-          {/* Gráficos e análises */}
+            </>
+          )}
+
         </motion.div>
 
         {/* Dialog de Zoom da Foto */}
@@ -2301,21 +2247,6 @@ export default function PatientEvolution() {
             )}
           </DialogContent>
         </Dialog>
-
-        {/* Modal de Registro de Peso */}
-        {telefone && (
-          <WeightInput
-            telefone={telefone}
-            open={weightInputOpen}
-            onOpenChange={setWeightInputOpen}
-            onSuccess={() => {
-              // Recarregar dados para atualizar gráficos
-              loadEvolution();
-              // Forçar atualização dos gráficos
-              setChartsRefreshTrigger(prev => prev + 1);
-            }}
-          />
-        )}
 
         {/* Modal de Adicionar Dados de Evolução (aberto pelos botões + dos gráficos e Timeline) */}
         {telefone && patient && (

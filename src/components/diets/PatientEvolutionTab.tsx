@@ -186,6 +186,25 @@ export function PatientEvolutionTab({
   const primeiroCheckin = checkins.length > 0 ? checkins[checkins.length - 1] : null;
   const ultimoCheckin = checkins.length > 0 ? checkins[0] : null;
 
+  // Verificar se há fotos disponíveis (fotos iniciais ou fotos de checkins)
+  const hasPhotos = () => {
+    // Verificar fotos iniciais do paciente
+    const patientWithData = patient as any;
+    const hasInitialPhotos = patientWithData?.foto_inicial_frente || 
+                             patientWithData?.foto_inicial_lado || 
+                             patientWithData?.foto_inicial_lado_2 || 
+                             patientWithData?.foto_inicial_costas;
+    
+    // Verificar fotos nos checkins
+    const hasCheckinPhotos = checkins.some(checkin => {
+      const c = checkin as any;
+      return c.foto_frente || c.foto_lado || c.foto_lado_2 || c.foto_costas ||
+             c.foto_1 || c.foto_2 || c.foto_3 || c.foto_4;
+    });
+    
+    return hasInitialPhotos || hasCheckinPhotos;
+  };
+
   // Calcular dados de peso
   const weightData = [];
   if (patient?.peso_inicial) {
@@ -424,8 +443,8 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* 5. Comparação de Fotos - Ocultar na página pública se houver comparação destacada */}
-      {checkins.length >= 2 && !(isPublicAccess && hasFeaturedComparison) && (
+      {/* 5. Comparação de Fotos - Ocultar se não houver fotos OU se na página pública houver comparação destacada */}
+      {hasPhotos() && checkins.length >= 2 && !(isPublicAccess && hasFeaturedComparison) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -436,6 +455,7 @@ export function PatientEvolutionTab({
             patient={patient}
             onPhotoDeleted={() => setLocalRefreshTrigger(prev => prev + 1)}
             isEditable={!isPublicAccess} // Se público, não pode editar
+            showCreateComparisonButton={!isPublicAccess} // Mostrar botão "Criar Comparação" apenas no portal privado
           />
         </motion.div>
       )}
@@ -447,7 +467,12 @@ export function PatientEvolutionTab({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45 }}
         >
-          <AIInsights checkins={checkins} patient={patient} />
+          <AIInsights 
+            checkins={checkins} 
+            patient={patient}
+            isEditable={!isPublicAccess} // Permite edição apenas no portal privado
+            onRefreshData={loadPortalData} // Callback para recarregar dados
+          />
         </motion.div>
       )}
 

@@ -2,35 +2,159 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sparkles, TrendingUp, AlertTriangle, Target, ChevronDown, ChevronUp } from 'lucide-react';
-import { analyzePatientProgress, type AIAnalysisResult } from '@/lib/ai-analysis-service';
+import { Sparkles, TrendingUp, AlertTriangle, Target, ChevronDown, ChevronUp, RefreshCw, Edit2, Plus, Trash2 } from 'lucide-react';
+import { analyzePatientProgress, type AIAnalysisResult, type AnalysisInsight } from '@/lib/ai-analysis-service';
 import type { Database } from '@/integrations/supabase/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCustomInsights, type CustomInsight, type InsightData } from '@/hooks/use-custom-insights';
+import { EditInsightModal } from './EditInsightModal';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 type Patient = Database['public']['Tables']['patients']['Row'];
 
 interface AIInsightsProps {
   checkins: Checkin[];
-  patient?: Patient | null; // NOVO: recebe patient para considerar peso_inicial
+  patient?: Patient | null;
+  isEditable?: boolean; // Se true, permite editar cards (apenas no portal privado)
+  onRefreshData?: () => Promise<void>; // Callback para recarregar dados do paciente/checkins
 }
 
-export function AIInsights({ checkins, patient }: AIInsightsProps) {
+export function AIInsights({ checkins, patient, isEditable = false, onRefreshData }: AIInsightsProps) {
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
-  const [isMinimized, setIsMinimized] = useState(false); // EXPANDIDO por padrão
+  const [isMinimized, setIsMinimized] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
-    strengths: true, // EXPANDIDO por padrão
+    strengths: true,
     warnings: false,
     suggestions: false,
-    goals: true // EXPANDIDO por padrão
+    goals: true
   });
+
+  // Estados para edição
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInsight, setEditingInsight] = useState<CustomInsight | null>(null);
+  const [editingSection, setEditingSection] = useState<'strengths' | 'warnings' | 'goals'>('strengths');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [aiInsightToCopy, setAiInsightToCopy] = useState<AnalysisInsight | null>(null); // Card da IA sendo copiado
+
+  // Hook de insights customizados
+  const {
+    customInsights,
+    fetchCustomInsights,
+    saveInsight,
+    updateInsight,
+    deleteInsight,
+    hideAIInsight,
+    showAIInsight,
+    isAIInsightHidden
+  } = useCustomInsights(patient?.telefone || '');
 
   useEffect(() => {
     if (checkins.length > 0) {
-      const result = analyzePatientProgress(checkins, patient); // Passa patient
+      const result = analyzePatientProgress(checkins, patient);
       setAnalysis(result);
     }
   }, [checkins, patient]);
+
+  // Função para mesclar insights da IA com customizados (filtrando ocultos)
+  const getMergedInsights = (
+    section: 'strengths' | 'warnings' | 'goals'
+  ): (AnalysisInsight | CustomInsight)[] => {
+    if (!analysis) return [];
+
+    // Insights da IA (filtrar os que foram ocultados)
+    const aiInsights = (analysis[section] || []).filter(
+      (insight) => !isAIInsightHidden(insight as AnalysisInsight)
+    );
+
+    // Insights customizados desta seção
+    const customSectionInsights = customInsights.filter(
+      (insight) => insight.section === section
+    );
+
+    // Mesclar: customizados primeiro (ordenados por order_index), depois IA
+    return [...customSectionInsights, ...aiInsights];
+  };
+
+  // Atualizar análise (recalcular com dados atualizados)
+  const handleRefreshAnalysis = async () => {
+    setIsRefreshing(true);
+    try {
+      // Recarregar dados do paciente/checkins se callback fornecido
+      if (onRefreshData) {
+        await onRefreshData();
+      }
+      
+      // Recalcular análise da IA (useEffect vai fazer isso automaticamente quando checkins/patient mudarem)
+      // Mas vamos forçar aqui também para garantir
+      const result = analyzePatientProgress(checkins, patient);
+      setAnalysis(result);
+
+      // Recarregar insights customizados
+      await fetchCustomInsights();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Abrir modal para criar novo card
+  const handleAddCard = (section: 'strengths' | 'warnings' | 'goals') => {
+    setEditingInsight(null);
+    setEditingSection(section);
+    setShowEditModal(true);
+  };
+
+  // Abrir modal para editar card existente (customizado ou criar cópia de card da IA)
+  const handleEditCard = (insight: CustomInsight | AnalysisInsight, section: 'strengths' | 'warnings' | 'goals') => {
+    const isCustom = isCustomInsight(insight);
+    
+    if (isCustom) {
+      // Editar card customizado existente
+      setEditingInsight(insight);
+      setEditingSection(insight.section); // Usar section do próprio insight
+      setAiInsightToCopy(null);
+    } else {
+      // Criar cópia editável de card da IA
+      setEditingInsight(null); // null = criar novo
+      setEditingSection(section); // Usar section passada como parâmetro
+      setAiInsightToCopy(insight as AnalysisInsight); // Guardar card da IA para pré-preencher modal
+    }
+    
+    setShowEditModal(true);
+  };
+
+  // Salvar card (criar ou atualizar)
+  const handleSaveCard = async (data: InsightData): Promise<boolean> => {
+    if (editingInsight) {
+      // Atualizar existente
+      return await updateInsight(editingInsight.id, data);
+    } else {
+      // Criar novo
+      return await saveInsight(data);
+    }
+  };
+
+  // Excluir card (customizado ou ocultar da IA)
+  const handleDeleteCard = async (insight: CustomInsight | AnalysisInsight, section: 'strengths' | 'warnings' | 'goals') => {
+    const isCustom = isCustomInsight(insight);
+    
+    if (isCustom) {
+      // Excluir card customizado
+      if (confirm(`Tem certeza que deseja excluir o card "${insight.title}"?`)) {
+        await deleteInsight(insight.id);
+      }
+    } else {
+      // Ocultar card da IA
+      if (confirm(`Deseja ocultar este card da IA? Você pode restaurá-lo depois clicando em "Atualizar Análise".`)) {
+        await hideAIInsight(insight as AnalysisInsight, section);
+      }
+    }
+  };
+
+  // Verificar se um insight é customizado
+  const isCustomInsight = (insight: any): insight is CustomInsight => {
+    return 'id' in insight && 'is_manual' in insight;
+  };
 
   if (!analysis || checkins.length === 0) {
     return (
@@ -97,14 +221,50 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
               <span className="text-2xl font-bold">Análise da sua Evolução</span>
             </div>
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="text-slate-300 hover:text-white hover:bg-slate-700/30"
-          >
-            {isMinimized ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Botão Atualizar Análise */}
+            {isEditable && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefreshAnalysis}
+                disabled={isRefreshing}
+                className="text-blue-300 hover:text-blue-200 hover:bg-blue-500/20 transition-colors"
+                title="Recalcular análise com dados atualizados"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Atualizando...' : 'Atualizar Análise'}
+              </Button>
+            )}
+
+            {/* Botão Editar */}
+            {isEditable && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={`transition-colors ${
+                  isEditMode
+                    ? 'text-orange-300 hover:text-orange-200 bg-orange-500/20 hover:bg-orange-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700/30'
+                }`}
+                title={isEditMode ? 'Sair do modo de edição' : 'Ativar modo de edição'}
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                {isEditMode ? 'Concluir Edição' : 'Editar'}
+              </Button>
+            )}
+
+            {/* Botão Minimizar */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="text-slate-300 hover:text-white hover:bg-slate-700/30"
+            >
+              {isMinimized ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       {!isMinimized && (
@@ -112,22 +272,36 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
         {/* GRID: Pontos Fortes e Metas lado a lado */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Pontos Fortes */}
-          {analysis.strengths.length > 0 && (
+          {getMergedInsights('strengths').length > 0 && (
             <div className="space-y-2">
-              <button
-                onClick={() => toggleSection('strengths')}
-                className="w-full flex items-center justify-between text-left group"
-              >
-                <h3 className="text-base font-bold text-emerald-300 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Pontos Fortes
-                </h3>
-                {expandedSections.strengths ? (
-                  <ChevronUp className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => toggleSection('strengths')}
+                  className="flex items-center gap-2 text-left group"
+                >
+                  <h3 className="text-base font-bold text-emerald-300 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Pontos Fortes
+                  </h3>
+                  {expandedSections.strengths ? (
+                    <ChevronUp className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                  )}
+                </button>
+                {/* Botão Adicionar Card */}
+                {isEditable && isEditMode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleAddCard('strengths')}
+                    className="text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/20"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar
+                  </Button>
                 )}
-              </button>
+              </div>
               <AnimatePresence>
                 {expandedSections.strengths && (
                   <motion.div
@@ -136,23 +310,50 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
                     exit={{ height: 0, opacity: 0 }}
                     className="space-y-3"
                   >
-                    {analysis.strengths.map((insight, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-emerald-900/30 border-2 border-emerald-700/40 rounded-xl p-4 hover:bg-emerald-900/40 transition-colors shadow-lg"
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className="text-2xl">{insight.icon}</span>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-white text-base mb-1">{insight.title}</h4>
-                            <p className="text-sm text-slate-200 leading-relaxed">{insight.description}</p>
+                    {getMergedInsights('strengths').map((insight, index) => {
+                      const isCustom = isCustomInsight(insight);
+                      return (
+                        <motion.div
+                          key={isCustom ? insight.id : `ai-${index}`}
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="bg-emerald-900/30 border-2 border-emerald-700/40 rounded-xl p-4 hover:bg-emerald-900/40 transition-colors shadow-lg relative group"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">{insight.icon}</span>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-white text-base mb-1">{insight.title}</h4>
+                              <p className="text-sm text-slate-200 leading-relaxed">{insight.description}</p>
+                            </div>
+                            {/* Botões de Ação */}
+                            {isEditable && isEditMode && (
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditCard(insight, 'strengths')}
+                                  className="h-8 w-8 p-0 text-blue-300 hover:text-blue-200 hover:bg-blue-500/20"
+                                  title={isCustom ? "Editar card" : "Criar cópia editável"}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                {/* Botão excluir em TODOS os cards */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteCard(insight, 'strengths')}
+                                  className="h-8 w-8 p-0 text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                                  title={isCustom ? "Excluir card" : "Ocultar card da IA"}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -160,22 +361,36 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
           )}
 
           {/* Metas Sugeridas */}
-          {analysis.goals.length > 0 && (
+          {getMergedInsights('goals').length > 0 && (
             <div className="space-y-2">
-              <button
-                onClick={() => toggleSection('goals')}
-                className="w-full flex items-center justify-between text-left group"
-              >
-                <h3 className="text-base font-bold text-teal-300 flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Próximas Metas
-                </h3>
-                {expandedSections.goals ? (
-                  <ChevronUp className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => toggleSection('goals')}
+                  className="flex items-center gap-2 text-left group"
+                >
+                  <h3 className="text-base font-bold text-teal-300 flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Próximas Metas
+                  </h3>
+                  {expandedSections.goals ? (
+                    <ChevronUp className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                  )}
+                </button>
+                {/* Botão Adicionar Card */}
+                {isEditable && isEditMode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleAddCard('goals')}
+                    className="text-teal-300 hover:text-teal-200 hover:bg-teal-500/20"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar
+                  </Button>
                 )}
-              </button>
+              </div>
               <AnimatePresence>
                 {expandedSections.goals && (
                   <motion.div
@@ -184,29 +399,56 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
                     exit={{ height: 0, opacity: 0 }}
                     className="space-y-3"
                   >
-                    {analysis.goals.map((insight, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-teal-900/30 border-2 border-teal-700/40 rounded-xl p-4 hover:bg-teal-900/40 transition-colors shadow-lg"
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className="text-2xl">{insight.icon}</span>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-white text-base mb-1">{insight.title}</h4>
-                            <p className="text-sm text-slate-200 leading-relaxed mb-2">{insight.description}</p>
-                            {insight.recommendation && (
-                              <div className="bg-teal-950/60 rounded-lg p-3 mt-2 border border-teal-800/30">
-                                <p className="text-xs text-teal-200 font-bold mb-1">🎯 Plano de ação:</p>
-                                <p className="text-xs text-slate-200 leading-relaxed">{insight.recommendation}</p>
+                    {getMergedInsights('goals').map((insight, index) => {
+                      const isCustom = isCustomInsight(insight);
+                      return (
+                        <motion.div
+                          key={isCustom ? insight.id : `ai-${index}`}
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="bg-teal-900/30 border-2 border-teal-700/40 rounded-xl p-4 hover:bg-teal-900/40 transition-colors shadow-lg relative group"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">{insight.icon}</span>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-white text-base mb-1">{insight.title}</h4>
+                              <p className="text-sm text-slate-200 leading-relaxed mb-2">{insight.description}</p>
+                              {insight.recommendation && (
+                                <div className="bg-teal-950/60 rounded-lg p-3 mt-2 border border-teal-800/30">
+                                  <p className="text-sm text-teal-200 font-bold mb-1">🎯 Plano de ação:</p>
+                                  <p className="text-sm text-slate-200 leading-relaxed">{insight.recommendation}</p>
+                                </div>
+                              )}
+                            </div>
+                            {/* Botões de Ação */}
+                            {isEditable && isEditMode && (
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditCard(insight, 'goals')}
+                                  className="h-8 w-8 p-0 text-blue-300 hover:text-blue-200 hover:bg-blue-500/20"
+                                  title={isCustom ? "Editar card" : "Criar cópia editável"}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                {/* Botão excluir em TODOS os cards */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteCard(insight, 'goals')}
+                                  className="h-8 w-8 p-0 text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                                  title={isCustom ? "Excluir card" : "Ocultar card da IA"}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             )}
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -215,22 +457,36 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
         </div>
 
         {/* Pontos de Atenção */}
-        {analysis.warnings.length > 0 && (
+        {getMergedInsights('warnings').length > 0 && (
           <div className="space-y-2">
-            <button
-              onClick={() => toggleSection('warnings')}
-              className="w-full flex items-center justify-between text-left group"
-            >
-              <h3 className="text-base font-bold text-orange-300 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                Pontos de Atenção
-              </h3>
-              {expandedSections.warnings ? (
-                <ChevronUp className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => toggleSection('warnings')}
+                className="flex items-center gap-2 text-left group"
+              >
+                <h3 className="text-base font-bold text-orange-300 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Pontos de Atenção
+                </h3>
+                {expandedSections.warnings ? (
+                  <ChevronUp className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                )}
+              </button>
+              {/* Botão Adicionar Card */}
+              {isEditable && isEditMode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAddCard('warnings')}
+                  className="text-orange-300 hover:text-orange-200 hover:bg-orange-500/20"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Adicionar
+                </Button>
               )}
-            </button>
+            </div>
             <AnimatePresence>
               {expandedSections.warnings && (
                 <motion.div
@@ -239,36 +495,65 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
                   exit={{ height: 0, opacity: 0 }}
                   className="space-y-3"
                 >
-                  {analysis.warnings.map((insight, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="bg-orange-900/30 border-2 border-orange-700/40 rounded-xl p-4 hover:bg-orange-900/40 transition-colors shadow-lg"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">{insight.icon}</span>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-white text-base mb-1">{insight.title}</h4>
-                          <p className="text-sm text-slate-200 leading-relaxed mb-2">{insight.description}</p>
-                          {insight.recommendation && (
-                            <div className="bg-orange-950/60 rounded-lg p-3 mt-2 border border-orange-800/30">
-                              <p className="text-xs text-orange-200 font-bold mb-1">💡 Recomendação:</p>
-                              <p className="text-xs text-slate-200 leading-relaxed">{insight.recommendation}</p>
-                            </div>
-                          )}
+                  {getMergedInsights('warnings').map((insight, index) => {
+                    const isCustom = isCustomInsight(insight);
+                    return (
+                      <motion.div
+                        key={isCustom ? insight.id : `ai-${index}`}
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-orange-900/30 border-2 border-orange-700/40 rounded-xl p-4 hover:bg-orange-900/40 transition-colors shadow-lg relative group"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">{insight.icon}</span>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-white text-base mb-1">{insight.title}</h4>
+                            <p className="text-sm text-slate-200 leading-relaxed mb-2">{insight.description}</p>
+                            {insight.recommendation && (
+                              <div className="bg-orange-950/60 rounded-lg p-3 mt-2 border border-orange-800/30">
+                                <p className="text-sm text-orange-200 font-bold mb-1">💡 Recomendação:</p>
+                                <p className="text-sm text-slate-200 leading-relaxed">{insight.recommendation}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className={`text-xs px-2 py-1 ${
+                              insight.priority === 'high' ? 'bg-red-600/40 text-red-100 border-red-500/40' :
+                              insight.priority === 'medium' ? 'bg-orange-600/40 text-orange-100 border-orange-500/40' :
+                              'bg-yellow-600/40 text-yellow-100 border-yellow-500/40'
+                            }`}>
+                              {insight.priority === 'high' ? 'Alta' : insight.priority === 'medium' ? 'Média' : 'Baixa'}
+                            </Badge>
+                            {/* Botões de Ação */}
+                            {isEditable && isEditMode && (
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditCard(insight, 'warnings')}
+                                  className="h-8 w-8 p-0 text-blue-300 hover:text-blue-200 hover:bg-blue-500/20"
+                                  title={isCustom ? "Editar card" : "Criar cópia editável"}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                {/* Botão excluir em TODOS os cards */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteCard(insight, 'warnings')}
+                                  className="h-8 w-8 p-0 text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                                  title={isCustom ? "Excluir card" : "Ocultar card da IA"}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <Badge className={`text-xs px-2 py-1 ${
-                          insight.priority === 'high' ? 'bg-red-600/40 text-red-100 border-red-500/40' :
-                          insight.priority === 'medium' ? 'bg-orange-600/40 text-orange-100 border-orange-500/40' :
-                          'bg-yellow-600/40 text-yellow-100 border-yellow-500/40'
-                        }`}>
-                          {insight.priority === 'high' ? 'Alta' : insight.priority === 'medium' ? 'Média' : 'Baixa'}
-                        </Badge>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -331,6 +616,23 @@ export function AIInsights({ checkins, patient }: AIInsightsProps) {
         </div>
 
         </CardContent>
+      )}
+
+      {/* Modal de Edição */}
+      {isEditable && (
+        <EditInsightModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingInsight(null);
+            setAiInsightToCopy(null);
+          }}
+          insight={editingInsight}
+          aiInsightToCopy={aiInsightToCopy} // Passar card da IA para pré-preencher
+          section={editingSection}
+          telefone={patient?.telefone || ''}
+          onSave={handleSaveCard}
+        />
       )}
     </Card>
   );

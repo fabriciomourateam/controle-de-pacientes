@@ -30,6 +30,7 @@ interface PhotoComparisonProps {
   onPhotoDeleted?: () => void; // Callback para recarregar dados após deletar
   isEditable?: boolean; // Se true, mostra botão de configuração (para nutricionista)
   hideInPublic?: boolean; // Se true, oculta o card na página pública (quando há comparação destacada)
+  showCreateComparisonButton?: boolean; // Se true, mostra botão "Criar Comparação" (apenas no portal)
 }
 
 interface PhotoData {
@@ -43,7 +44,7 @@ interface PhotoData {
   angle?: 'frente' | 'lado' | 'lado_2' | 'costas';
 }
 
-export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable = false, hideInPublic = false }: PhotoComparisonProps) {
+export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable = false, hideInPublic = false, showCreateComparisonButton = false }: PhotoComparisonProps) {
   console.log('🚀 PhotoComparison RENDERIZADO!', { checkinsLength: checkins.length, hasPatient: !!patient });
   
   // Se hideInPublic for true, não renderizar nada
@@ -947,7 +948,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
                     </Button>
                   )}
                   {/* ITEM 4, 6, 8: Botões de Edição de Fotos (apenas para nutricionista) */}
-                  {isEditable && (
+                  {isEditable && showCreateComparisonButton && (
                     <>
                       {!isSelectionMode ? (
                         <>
