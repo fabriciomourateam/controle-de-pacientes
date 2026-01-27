@@ -1,28 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { checkinService } from '@/lib/checkin-service';
 import { supabase } from '@/integrations/supabase/client';
 import { EvolutionCharts } from '@/components/evolution/EvolutionCharts';
 import { PhotoComparison } from '@/components/evolution/PhotoComparison';
-import { Timeline } from '@/components/evolution/Timeline';
 import { BodyFatChart } from '@/components/evolution/BodyFatChart';
 import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMetrics';
 import { BioimpedanciaList } from '@/components/evolution/BioimpedanciaList';
 import { AIInsights } from '@/components/evolution/AIInsights';
-import { DailyWeightsList } from '@/components/evolution/DailyWeightsList';
 import { detectAchievements } from '@/lib/achievement-system';
 import { 
   Activity, 
   Calendar,
   TrendingUp,
   Weight,
-  Flame,
-  AlertCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
@@ -37,6 +30,8 @@ interface PatientEvolutionTabProps {
   bodyCompositions?: any[];
   achievements?: any[];
   refreshTrigger?: number; // Trigger para forçar atualização dos gráficos
+  isPublicAccess?: boolean; // Se true, modo somente leitura (sem edição, fotos filtradas)
+  hasFeaturedComparison?: boolean; // Se true, oculta PhotoComparison na página pública
 }
 
 export function PatientEvolutionTab({ 
@@ -45,7 +40,9 @@ export function PatientEvolutionTab({
   patient: propsPatient,
   bodyCompositions: propsBodyCompositions,
   achievements: propsAchievements,
-  refreshTrigger
+  refreshTrigger,
+  isPublicAccess = false,
+  hasFeaturedComparison = false // NOVO: indica se há comparação destacada visível
 }: PatientEvolutionTabProps) {
   const { toast } = useToast();
   const [checkins, setCheckins] = useState<Checkin[]>(propsCheckins || []);
@@ -371,18 +368,7 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* 1. Análise Inteligente com IA (minimizado) */}
-      {checkins.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <AIInsights checkins={checkins} />
-        </motion.div>
-      )}
-
-      {/* 2. Métricas de Composição Corporal */}
+      {/* 1. Métricas de Composição Corporal */}
       {bodyCompositions.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -393,7 +379,7 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* 3. Gráfico de % Gordura */}
+      {/* 2. Gráfico de % Gordura */}
       {bodyCompositions.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -415,6 +401,7 @@ export function PatientEvolutionTab({
                     loadPortalData();
                     setLocalRefreshTrigger(prev => prev + 1);
                   }}
+                  isPublicAccess={isPublicAccess} // NOVO: oculta botões na página pública
                 />
               ) : null
             }
@@ -437,61 +424,30 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* 5. Timeline */}
-      {checkins.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <Timeline checkins={checkins} showEditButton={false} />
-        </motion.div>
-      )}
-
-      {/* 6. Lista de Pesos Diários Registrados */}
-      {patient?.telefone && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-        >
-          <DailyWeightsList
-            telefone={patient.telefone}
-            onUpdate={() => {
-              // Recarregar dados quando um peso for deletado
-              loadPortalData();
-              // Forçar atualização local dos gráficos
-              setLocalRefreshTrigger(prev => prev + 1);
-            }}
-          />
-        </motion.div>
-      )}
-
-      {/* 7. Aviso se houver poucos check-ins */}
-      {checkins.length < 3 && checkins.length > 0 && (
-        <Card className="bg-amber-50 border-amber-200">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-amber-900 font-semibold">Continue Firme!</p>
-                <p className="text-amber-800 text-sm mt-1">
-                  Você possui {checkins.length} check-in{checkins.length > 1 ? 's' : ''}. Continue registrando para ver análises mais detalhadas!
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Comparação de Fotos */}
-      {checkins.length >= 2 && (
+      {/* 5. Comparação de Fotos - Ocultar na página pública se houver comparação destacada */}
+      {checkins.length >= 2 && !(isPublicAccess && hasFeaturedComparison) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <PhotoComparison checkins={checkins} />
+          <PhotoComparison 
+            checkins={checkins} 
+            patient={patient}
+            onPhotoDeleted={() => setLocalRefreshTrigger(prev => prev + 1)}
+            isEditable={!isPublicAccess} // Se público, não pode editar
+          />
+        </motion.div>
+      )}
+
+      {/* 6. ITEM 10: Análise do Progresso - NO FINAL DA PÁGINA, EXPANDIDA */}
+      {checkins.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+        >
+          <AIInsights checkins={checkins} patient={patient} />
         </motion.div>
       )}
 

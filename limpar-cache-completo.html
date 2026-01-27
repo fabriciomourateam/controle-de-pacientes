@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧹 Limpar Cache Completo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 32px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #666;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .status {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .status-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .icon {
+      font-size: 20px;
+    }
+
+    .success {
+      color: #28a745;
+    }
+
+    .pending {
+      color: #ffc107;
+    }
+
+    .error {
+      color: #dc3545;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #856404;
+    }
+
+    .warning strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .instructions {
+      background: #e7f3ff;
+      border: 1px solid #2196F3;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #0d47a1;
+    }
+
+    .instructions strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .instructions ol {
+      margin-left: 20px;
+    }
+
+    .instructions li {
+      margin-bottom: 5px;
+    }
+
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Limpar Cache Completo</h1>
+    <p class="subtitle">Limpe todo o cache do navegador para ver as últimas alterações</p>
+
+    <div class="status" id="status">
+      <div class="status-item">
+        <span class="icon pending">⏳</span>
+        <span>Aguardando ação...</span>
+      </div>
+    </div>
+
+    <button id="clearBtn" onclick="clearEverything()">
+      🚀 Limpar Tudo Agora
+    </button>
+
+    <button onclick="window.location.href='http://localhost:5160'" style="background: #28a745;">
+      ✅ Ir para o Portal
+    </button>
+
+    <div class="warning">
+      <strong>⚠️ Atenção:</strong>
+      Isso vai limpar TODOS os dados do site (localStorage, sessionStorage, cookies, cache, service workers).
+      Você precisará fazer login novamente.
+    </div>
+
+    <div class="instructions">
+      <strong>📋 Depois de limpar:</strong>
+      <ol>
+        <li>Clique em "Ir para o Portal"</li>
+        <li>Faça login novamente</li>
+        <li>Abra o console (F12)</li>
+        <li>Clique em "Criar Antes/Depois"</li>
+        <li>Procure por: <code>🎯 CreateFeaturedComparisonModal: Paciente: ...</code></li>
+        <li>Se aparecer, as fotos devem estar visíveis! 🎉</li>
+      </ol>
+    </div>
+
+    <div class="log" id="log" style="display: none;"></div>
+  </div>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+    const logDiv = document.getElementById('log');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function addLog(message, type = 'info') {
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item';
+      const timestamp = new Date().toLocaleTimeString();
+      logItem.textContent = `[${timestamp}] ${message}`;
+      logDiv.appendChild(logItem);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      logDiv.style.display = 'block';
+    }
+
+    function updateStatus(items) {
+      statusDiv.innerHTML = items.map(item => `
+        <div class="status-item">
+          <span class="icon ${item.type}">${item.icon}</span>
+          <span>${item.text}</span>
+        </div>
+      `).join('');
+    }
+
+    async function clearEverything() {
+      clearBtn.disabled = true;
+      addLog('🚀 Iniciando limpeza completa...');
+
+      const steps = [];
+
+      // 1. LocalStorage
+      try {
+        localStorage.clear();
+        addLog('✅ LocalStorage limpo');
+        steps.push({ icon: '✅', text: 'LocalStorage limpo', type: 'success' });
+      } catch (e) {
+        addLog('❌ Erro ao limpar LocalStorage: ' + e.message);
+        steps.push({ icon: '❌', text: 'Erro no LocalStorage', type: 'error' });
+      }
+
+      updateStatus(steps);
+
+      // 2. SessionStorage
+      try {
+        sessionStorage.clear();
+        addLog('✅ SessionStorage limpo');
+        steps.push({ icon: '✅', text: 'SessionStorage limpo', type: 'success' });
+      } catch (e) {
+        addLog('❌ Erro ao limpar SessionStorage: ' + e.message);
+        steps.push({ icon: '❌', text: 'Erro no SessionStorage', type: 'error' });
+      }
+
+      updateStatus(steps);
+
+      // 3. Cookies
+      try {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+          document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+        }
+        addLog('✅ Cookies limpos');
+        steps.push({ icon: '✅', text: 'Cookies limpos', type: 'success' });
+      } catch (e) {
+        addLog('❌ Erro ao limpar Cookies: ' + e.message);
+        steps.push({ icon: '❌', text: 'Erro nos Cookies', type: 'error' });
+      }
+
+      updateStatus(steps);
+
+      // 4. Cache Storage
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          addLog(`✅ ${cacheNames.length} caches limpos`);
+          steps.push({ icon: '✅', text: `${cacheNames.length} caches limpos`, type: 'success' });
+        } catch (e) {
+          addLog('❌ Erro ao limpar Cache Storage: ' + e.message);
+          steps.push({ icon: '❌', text: 'Erro no Cache Storage', type: 'error' });
+        }
+      } else {
+        addLog('⚠️ Cache Storage não disponível');
+        steps.push({ icon: '⚠️', text: 'Cache Storage não disponível', type: 'pending' });
+      }
+
+      updateStatus(steps);
+
+      // 5. Service Workers
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+          addLog(`✅ ${registrations.length} Service Workers desregistrados`);
+          steps.push({ icon: '✅', text: `${registrations.length} SWs desregistrados`, type: 'success' });
+        } catch (e) {
+          addLog('❌ Erro ao desregistrar Service Workers: ' + e.message);
+          steps.push({ icon: '❌', text: 'Erro nos Service Workers', type: 'error' });
+        }
+      } else {
+        addLog('⚠️ Service Workers não disponíveis');
+        steps.push({ icon: '⚠️', text: 'Service Workers não disponíveis', type: 'pending' });
+      }
+
+      updateStatus(steps);
+
+      // 6. IndexedDB
+      if ('indexedDB' in window) {
+        try {
+          const dbs = await indexedDB.databases();
+          for (const db of dbs) {
+            if (db.name) {
+              indexedDB.deleteDatabase(db.name);
+            }
+          }
+          addLog(`✅ ${dbs.length} IndexedDB limpos`);
+          steps.push({ icon: '✅', text: `${dbs.length} IndexedDB limpos`, type: 'success' });
+        } catch (e) {
+          addLog('⚠️ IndexedDB: ' + e.message);
+          steps.push({ icon: '⚠️', text: 'IndexedDB parcialmente limpo', type: 'pending' });
+        }
+      }
+
+      updateStatus(steps);
+
+      // Finalizar
+      addLog('🎉 Limpeza completa finalizada!');
+      addLog('📌 Agora clique em "Ir para o Portal" e faça login novamente');
+      steps.push({ icon: '🎉', text: 'Limpeza completa!', type: 'success' });
+      updateStatus(steps);
+
+      clearBtn.textContent = '✅ Limpeza Concluída!';
+      clearBtn.style.background = '#28a745';
+
+      // Aguardar 2 segundos e recarregar
+      setTimeout(() => {
+        addLog('🔄 Recarregando página em 3 segundos...');
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 3000);
+      }, 2000);
+    }
+
+    // Verificar se há dados em cache
+    window.addEventListener('load', () => {
+      const hasLocalStorage = localStorage.length > 0;
+      const hasSessionStorage = sessionStorage.length > 0;
+      const hasCookies = document.cookie.length > 0;
+
+      if (hasLocalStorage || hasSessionStorage || hasCookies) {
+        updateStatus([
+          { icon: '⚠️', text: 'Dados em cache detectados', type: 'pending' },
+          { icon: '📦', text: `LocalStorage: ${localStorage.length} itens`, type: 'pending' },
+          { icon: '📦', text: `SessionStorage: ${sessionStorage.length} itens`, type: 'pending' },
+          { icon: '🍪', text: `Cookies: ${document.cookie.split(';').length} itens`, type: 'pending' }
+        ]);
+      } else {
+        updateStatus([
+          { icon: '✅', text: 'Nenhum dado em cache detectado', type: 'success' }
+        ]);
+      }
+    });
+  </script>
+</body>
+</html>

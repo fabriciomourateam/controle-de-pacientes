@@ -1024,6 +1024,20 @@ export default function PatientEvolution() {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
+                      const shareUrl = `${window.location.origin}/public/portal/${telefone}`;
+                      navigator.clipboard.writeText(shareUrl);
+                      toast({
+                        title: "Link copiado!",
+                        description: "Link público do portal copiado para a área de transferência",
+                      });
+                    }}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <Link2 className="w-4 h-4 mr-2 text-emerald-400" />
+                    Compartilhar Evolução
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
                       setEvolutionExportMode('png');
                       setShowEvolutionExport(true);
                     }}
@@ -2127,14 +2141,14 @@ export default function PatientEvolution() {
           {checkins.length > 0 && (
             <>
 
-          {/* 1. Análise Inteligente com IA */}
-          <motion.div
+          {/* 1. Análise Inteligente com IA - OCULTA */}
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <AIInsights checkins={checkins} />
-          </motion.div>
+          </motion.div> */}
 
           {/* 2. Gráficos de Evolução (Peso, Pontuações, Performance) */}
           <motion.div
@@ -2201,6 +2215,7 @@ export default function PatientEvolution() {
               checkins={checkins} 
               patient={patient} 
               onPhotoDeleted={loadEvolution}
+              isEditable={true} // Página interna do nutricionista - sempre mostra TODAS as fotos
             />
           </motion.div>
 

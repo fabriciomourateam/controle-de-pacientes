@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, ChevronRight, ChevronDown, ChevronUp, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2 } from "lucide-react";
+import { Camera, ChevronRight, ChevronDown, ChevronUp, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -16,6 +16,10 @@ import { GoogleDriveImage } from "@/components/ui/google-drive-image";
 import type { Database } from "@/integrations/supabase/types";
 import { AddCheckinPhotos } from "./AddCheckinPhotos";
 import { CheckinPhotoComparison } from "./CheckinPhotoComparison";
+import { PhotoVisibilityModal } from "./PhotoVisibilityModal";
+import { EditFeaturedComparisonModal } from "./EditFeaturedComparisonModal";
+import { usePhotoVisibility } from "@/hooks/use-photo-visibility";
+import { useFeaturedComparison, CreateFeaturedComparisonData } from "@/hooks/use-featured-comparison";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -24,6 +28,8 @@ interface PhotoComparisonProps {
   checkins: Checkin[];
   patient?: Patient | null;
   onPhotoDeleted?: () => void; // Callback para recarregar dados após deletar
+  isEditable?: boolean; // Se true, mostra botão de configuração (para nutricionista)
+  hideInPublic?: boolean; // Se true, oculta o card na página pública (quando há comparação destacada)
 }
 
 interface PhotoData {
@@ -37,8 +43,13 @@ interface PhotoData {
   angle?: 'frente' | 'lado' | 'lado_2' | 'costas';
 }
 
-export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComparisonProps) {
+export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable = false, hideInPublic = false }: PhotoComparisonProps) {
   console.log('🚀 PhotoComparison RENDERIZADO!', { checkinsLength: checkins.length, hasPatient: !!patient });
+  
+  // Se hideInPublic for true, não renderizar nada
+  if (hideInPublic) {
+    return null;
+  }
   
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoData | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -48,6 +59,16 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   const [selectedAfterIndex, setSelectedAfterIndex] = useState<number | null>(null);
   const [photoToDelete, setPhotoToDelete] = useState<PhotoData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showVisibilityModal, setShowVisibilityModal] = useState(false);
+  
+  // Modo de seleção para criar comparação Antes/Depois
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedBeforePhoto, setSelectedBeforePhoto] = useState<PhotoData | null>(null);
+  const [selectedAfterPhoto, setSelectedAfterPhoto] = useState<PhotoData | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Hook de visibilidade de fotos
+  const { isPhotoVisible, getSetting } = usePhotoVisibility(patient?.telefone);
   
   // Usar sessionStorage para preservar estado de minimização entre renderizações
   // Chave única baseada no telefone do paciente
@@ -58,10 +79,11 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
     try {
       const stored = sessionStorage.getItem(storageKey);
       // stored === 'false' significa que NÃO está minimizado (card está aberto)
-      // stored === 'true' ou null significa que está minimizado (card está fechado)
-      return stored !== null ? stored === 'true' : true; // true = minimizado (padrão)
+      // stored === 'true' significa que está minimizado (card está fechado)
+      // null = primeira vez, usar padrão EXPANDIDO (false)
+      return stored !== null ? stored === 'true' : false; // false = expandido (padrão)
     } catch {
-      return true;
+      return false; // Padrão: expandido
     }
   };
   
@@ -70,6 +92,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   const [showComparisonModal, setShowComparisonModal] = useState(false);
   const [isUpdatingAngle, setIsUpdatingAngle] = useState(false);
   const { toast } = useToast();
+  const { saveComparison, loading: savingComparison } = useFeaturedComparison(patient?.telefone || '');
 
   // Sincronizar estado do sessionStorage quando o telefone mudar (mudança de paciente)
   const prevTelefoneRef = useRef(patient?.telefone);
@@ -434,8 +457,21 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   
   console.log('📸 allPhotos final:', allPhotos.length, allPhotos);
 
+  // ITEM 6 e 8: Filtrar fotos visíveis (apenas para pacientes, nutricionista vê todas)
+  const visiblePhotos = isEditable 
+    ? allPhotos // Nutricionista vê todas
+    : allPhotos.filter(photo => {
+        // Criar ID único para cada foto
+        const photoId = photo.isInitial 
+          ? `initial-${photo.angle}`
+          : `checkin-${photo.checkinId}-foto-${photo.photoNumber}`;
+        return isPhotoVisible(photoId);
+      });
+
+  console.log('👁️ Fotos visíveis:', visiblePhotos.length, 'de', allPhotos.length);
+
   // Agrupar fotos por data (do mais recente para o mais antigo)
-  const photosByDate = allPhotos.reduce((acc, photo) => {
+  const photosByDate = visiblePhotos.reduce((acc, photo) => {
     const dateKey = photo.date;
     if (!acc[dateKey]) {
       acc[dateKey] = [];
@@ -462,9 +498,9 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
     return dateB.getTime() - dateA.getTime(); // Mais recente primeiro
   });
 
-  // Inicializar índice "Depois" quando allPhotos mudar
-  if (selectedAfterIndex === null && allPhotos.length > 1) {
-    setSelectedAfterIndex(allPhotos.length - 1);
+  // Inicializar índice "Depois" quando visiblePhotos mudar
+  if (selectedAfterIndex === null && visiblePhotos.length > 1) {
+    setSelectedAfterIndex(visiblePhotos.length - 1);
   }
 
   const handleZoomPhoto = (photo: PhotoData) => {
@@ -473,8 +509,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
   };
 
   // Obter fotos selecionadas pelos índices
-  const firstPhoto = allPhotos[selectedBeforeIndex] || allPhotos[0];
-  const lastPhoto = allPhotos[selectedAfterIndex ?? allPhotos.length - 1] || allPhotos[allPhotos.length - 1];
+  const firstPhoto = visiblePhotos[selectedBeforeIndex] || visiblePhotos[0];
+  const lastPhoto = visiblePhotos[selectedAfterIndex ?? visiblePhotos.length - 1] || visiblePhotos[visiblePhotos.length - 1];
 
   // Função para formatar label da foto
   const getPhotoLabel = (photo: PhotoData, index: number) => {
@@ -700,7 +736,95 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
     }
   };
 
-  if (allPhotos.length === 0) {
+  // Funções para modo de seleção de Antes/Depois
+  const handleStartSelection = () => {
+    setIsSelectionMode(true);
+    setSelectedBeforePhoto(null);
+    setSelectedAfterPhoto(null);
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedBeforePhoto(null);
+    setSelectedAfterPhoto(null);
+  };
+
+  const handleSelectPhoto = (photo: PhotoData) => {
+    if (!selectedBeforePhoto) {
+      setSelectedBeforePhoto(photo);
+      toast({
+        title: "Foto ANTES selecionada",
+        description: "Agora selecione a foto DEPOIS",
+      });
+    } else if (!selectedAfterPhoto) {
+      setSelectedAfterPhoto(photo);
+    }
+  };
+
+  const handleSaveComparison = async () => {
+    if (!selectedBeforePhoto || !selectedAfterPhoto || !patient?.telefone) return;
+
+    // Abrir modal de edição ao invés de salvar diretamente
+    setShowEditModal(true);
+  };
+
+  const handleSaveFromEditor = async (editorData: {
+    title: string;
+    description?: string;
+    beforeZoom: number;
+    beforeX: number;
+    beforeY: number;
+    afterZoom: number;
+    afterX: number;
+    afterY: number;
+  }) => {
+    if (!selectedBeforePhoto || !selectedAfterPhoto || !patient?.telefone) return;
+
+    // Converter data de DD/MM/YYYY para YYYY-MM-DD (ISO)
+    const convertToISO = (dateStr: string): string => {
+      // Se já está em formato ISO, retornar
+      if (dateStr.includes('-') && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return dateStr.split('T')[0];
+      }
+      
+      // Converter de DD/MM/YYYY para YYYY-MM-DD
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      // Fallback: retornar data atual
+      return new Date().toISOString().split('T')[0];
+    };
+
+    const data: CreateFeaturedComparisonData = {
+      telefone: patient.telefone,
+      before_photo_url: selectedBeforePhoto.url,
+      before_photo_date: convertToISO(selectedBeforePhoto.date),
+      before_weight: selectedBeforePhoto.weight ? parseFloat(selectedBeforePhoto.weight) : undefined,
+      after_photo_url: selectedAfterPhoto.url,
+      after_photo_date: convertToISO(selectedAfterPhoto.date),
+      after_weight: selectedAfterPhoto.weight ? parseFloat(selectedAfterPhoto.weight) : undefined,
+      title: editorData.title,
+      description: editorData.description,
+      is_visible: true,
+      // Adicionar dados de zoom e posição
+      before_zoom: editorData.beforeZoom,
+      before_position_x: editorData.beforeX,
+      before_position_y: editorData.beforeY,
+      after_zoom: editorData.afterZoom,
+      after_position_x: editorData.afterX,
+      after_position_y: editorData.afterY,
+    };
+
+    await saveComparison(data);
+    handleCancelSelection();
+    setShowEditModal(false);
+    if (onPhotoDeleted) onPhotoDeleted(); // Recarregar dados
+  };
+
+  if (visiblePhotos.length === 0) {
     const patientWithData = patient as any;
     const hasPhotoUrls = patientWithData?.foto_inicial_frente || 
                          patientWithData?.foto_inicial_lado || 
@@ -799,7 +923,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                 Evolução Fotográfica
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Comparação visual da evolução - {allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'} disponíveis
+                Comparação visual da evolução - {isEditable ? `${visiblePhotos.length} de ${allPhotos.length} fotos visíveis` : `${visiblePhotos.length} ${visiblePhotos.length === 1 ? 'foto' : 'fotos'} disponíveis`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -821,6 +945,51 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                       <Camera className="w-4 h-4 mr-2" />
                       Comparar Fotos
                     </Button>
+                  )}
+                  {/* ITEM 4, 6, 8: Botões de Edição de Fotos (apenas para nutricionista) */}
+                  {isEditable && (
+                    <>
+                      {!isSelectionMode ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleStartSelection}
+                            className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200"
+                            title="Selecione 2 fotos para criar comparação Antes/Depois"
+                          >
+                            <Camera className="w-4 h-4 mr-2" />
+                            Criar Antes/Depois
+                          </Button>
+                          {/* Botão "Gerenciar Fotos" removido conforme solicitação do usuário */}
+                        </>
+                      ) : (
+                        <>
+                          <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                            {!selectedBeforePhoto ? '1️⃣ Selecione foto ANTES' : 
+                             !selectedAfterPhoto ? '2️⃣ Selecione foto DEPOIS' : 
+                             '✅ Fotos selecionadas'}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveComparison}
+                            disabled={!selectedBeforePhoto || !selectedAfterPhoto || savingComparison}
+                            className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200"
+                          >
+                            {savingComparison ? 'Salvando...' : 'Salvar Comparação'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelSelection}
+                            className="border-red-500/30 hover:bg-red-500/10 text-red-300 hover:text-red-200"
+                          >
+                            Cancelar
+                          </Button>
+                        </>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -1119,7 +1288,31 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
                       
                       return (
                         <div key={`${photo.checkinId}-${photo.photoNumber}`} className="space-y-2">
-                          <div className="relative group">
+                          <div 
+                            className={`relative group ${isSelectionMode ? 'cursor-pointer' : ''}`}
+                            onClick={() => isSelectionMode && handleSelectPhoto(photo)}
+                          >
+                            {/* Indicador de Seleção */}
+                            {isSelectionMode && (
+                              <div className={`absolute inset-0 rounded-lg border-4 z-20 pointer-events-none transition-all ${
+                                selectedBeforePhoto?.url === photo.url 
+                                  ? 'border-red-500 bg-red-500/20' 
+                                  : selectedAfterPhoto?.url === photo.url 
+                                  ? 'border-emerald-500 bg-emerald-500/20' 
+                                  : 'border-transparent hover:border-white/30'
+                              }`}>
+                                {selectedBeforePhoto?.url === photo.url && (
+                                  <div className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
+                                    ANTES
+                                  </div>
+                                )}
+                                {selectedAfterPhoto?.url === photo.url && (
+                                  <div className="absolute top-2 right-2 bg-emerald-500 text-white px-3 py-1 rounded-full font-bold text-sm">
+                                    DEPOIS
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {photo.isVideo ? (
                               <video 
                                 src={photo.url} 
@@ -1402,6 +1595,32 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted }: PhotoComp
           onOpenChange={setShowComparisonModal}
         />
       )}
+
+      {/* ITEM 4, 6, 8: Modal de Configuração de Visibilidade */}
+      {patient && (
+        <PhotoVisibilityModal
+          open={showVisibilityModal}
+          onClose={() => setShowVisibilityModal(false)}
+          patient={patient}
+          checkins={checkins}
+          onSaved={() => {
+            // Recarregar dados após salvar
+            if (onPhotoDeleted) onPhotoDeleted();
+          }}
+        />
+      )}
+
+      {/* Modal de Edição da Comparação Antes/Depois */}
+      {selectedBeforePhoto && selectedAfterPhoto && (
+        <EditFeaturedComparisonModal
+          open={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          beforePhoto={selectedBeforePhoto}
+          afterPhoto={selectedAfterPhoto}
+          onSave={handleSaveFromEditor}
+        />
+      )}
+
     </>
   );
 }

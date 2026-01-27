@@ -46,6 +46,7 @@ interface BioimpedanciaListProps {
   pesoInicial?: number | null;
   sexo: string | null;
   onUpdate: () => void;
+  isPublicAccess?: boolean; // NOVO: oculta botões na página pública
 }
 
 export function BioimpedanciaList({
@@ -55,7 +56,8 @@ export function BioimpedanciaList({
   altura,
   pesoInicial,
   sexo,
-  onUpdate
+  onUpdate,
+  isPublicAccess = false // NOVO: padrão false
 }: BioimpedanciaListProps) {
   const { toast } = useToast();
   const [bioimpedancias, setBioimpedancias] = useState<Bioimpedancia[]>([]);
@@ -153,8 +155,8 @@ export function BioimpedanciaList({
     onUpdate();
   };
 
-  if (loading || bioimpedancias.length === 0) {
-    return null;
+  if (loading || bioimpedancias.length === 0 || isPublicAccess) {
+    return null; // Oculta completamente na página pública
   }
 
   return (

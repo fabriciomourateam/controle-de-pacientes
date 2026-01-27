@@ -41,7 +41,7 @@ const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
-const RenewalPresentation = lazy(() => import("./pages/RenewalPresentation"));
+const PublicPortal = lazy(() => import("./pages/PublicPortal"));
 
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
@@ -130,14 +130,9 @@ const App = () => (
                 <PatientEvolutionWrapper />
               </Suspense>
           } />
-          <Route path="/renewal/:telefone" element={
+          <Route path="/public/portal/:telefone" element={
             <Suspense fallback={<PageLoader />}>
-                <RenewalPresentation />
-              </Suspense>
-          } />
-          <Route path="/public/renewal/:telefone" element={
-            <Suspense fallback={<PageLoader />}>
-                <RenewalPresentation />
+                <PublicPortal />
               </Suspense>
           } />
           <Route path="/plans" element={

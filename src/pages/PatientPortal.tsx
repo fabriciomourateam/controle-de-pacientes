@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import * as domtoimage from 'dom-to-image-more';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -21,12 +20,18 @@ import { BodyCompositionMetrics } from '@/components/evolution/BodyCompositionMe
 import { detectAchievements } from '@/lib/achievement-system';
 import { analyzeTrends } from '@/lib/trends-analysis';
 import { InstallPWAButton } from '@/components/InstallPWAButton';
-import { PatientDietPortal } from '@/components/patient-portal/PatientDietPortal';
 import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
+import { EditableRenewalSection } from '@/components/renewal/EditableRenewalSection';
+import { PatientEvolutionTab } from '@/components/diets/PatientEvolutionTab';
 import { dietService } from '@/lib/diet-service';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
 import { DietPDFGenerator } from '@/lib/diet-pdf-generator';
 import { DietPremiumPDFGenerator } from '@/lib/diet-pdf-premium-generator';
+import { useFeaturedComparison } from '@/hooks/use-featured-comparison';
+import { FeaturedComparison } from '@/components/evolution/FeaturedComparison';
+import { CreateFeaturedComparisonModal } from '@/components/evolution/CreateFeaturedComparisonModal';
+import { EditFeaturedComparisonModal } from '@/components/evolution/EditFeaturedComparisonModal';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { 
   Activity, 
   Calendar,
@@ -39,11 +44,11 @@ import {
   Flame,
   Smartphone,
   FileText,
-  Scale,
   MoreVertical,
   Eye,
   FileImage,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -52,7 +57,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { WeightInput } from '@/components/evolution/WeightInput';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -117,13 +121,107 @@ export default function PatientPortal() {
   const [exporting, setExporting] = useState(false);
   const [patientId, setPatientId] = useState<string | null>(null);
   const portalRef = useRef<HTMLDivElement>(null);
-  const [weightInputOpen, setWeightInputOpen] = useState(false);
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
 
+  // Hook para comparação destacada
+  const { comparison, toggleVisibility, deleteComparison, refetch, updateComparison } = useFeaturedComparison(patient?.telefone);
+  const [showCreateComparisonModal, setShowCreateComparisonModal] = useState(false);
+  const [showEditComparisonModal, setShowEditComparisonModal] = useState(false);
+
   // Calcular dados
   const achievements = checkins.length > 0 ? detectAchievements(checkins, bodyCompositions) : [];
+
+  // ITEM 2: Gerar conteúdo padrão para "Sua Evolução"
+  const generateDefaultEvolutionContent = () => {
+    if (checkins.length === 0) {
+      return `
+        <h3>Bem-vindo ao seu acompanhamento!</h3>
+        <p>Estamos começando sua jornada de transformação. Em breve você verá aqui um resumo completo da sua evolução.</p>
+      `;
+    }
+
+    // Ordenar checkins do mais antigo para o mais recente para garantir ordem correta
+    const sortedCheckins = [...checkins].sort((a, b) => 
+      new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
+    );
+    
+    const firstCheckin = sortedCheckins[0]; // Primeiro check-in cronologicamente
+    const lastCheckin = sortedCheckins[sortedCheckins.length - 1]; // Último check-in cronologicamente
+    
+    // CORREÇÃO: Usar peso_inicial do paciente se disponível (campo existe mas TypeScript não reconhece)
+    const patientWithInitialData = patient as any;
+    const pesoInicial = patientWithInitialData?.peso_inicial 
+      ? parseFloat(patientWithInitialData.peso_inicial.toString()) 
+      : parseFloat(firstCheckin.peso || '0');
+    const pesoAtual = parseFloat(lastCheckin.peso || '0');
+    const perdaPeso = pesoInicial - pesoAtual;
+    
+    // Calcular tempo de acompanhamento - DO INÍCIO DO ACOMPANHAMENTO (tabela patients) ATÉ AGORA
+    // Prioridade: inicio_acompanhamento > primeiro check-in > created_at
+    let dataInicio: Date;
+    if (patient?.inicio_acompanhamento) {
+      dataInicio = new Date(patient.inicio_acompanhamento);
+    } else if (firstCheckin?.data_checkin) {
+      dataInicio = new Date(firstCheckin.data_checkin);
+    } else if (patient?.created_at) {
+      dataInicio = new Date(patient.created_at);
+    } else {
+      dataInicio = new Date(); // Fallback
+    }
+    
+    const dataAtual = new Date(); // Data atual, não último check-in
+    const diasAcompanhamento = Math.floor((dataAtual.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
+    const mesesAcompanhamento = Math.floor(diasAcompanhamento / 30);
+    const semanasAcompanhamento = Math.floor(diasAcompanhamento / 7);
+    
+    let tempoTexto = '';
+    if (mesesAcompanhamento > 0) {
+      tempoTexto = `${mesesAcompanhamento} ${mesesAcompanhamento === 1 ? 'mês' : 'meses'}`;
+    } else if (semanasAcompanhamento > 0) {
+      tempoTexto = `${semanasAcompanhamento} ${semanasAcompanhamento === 1 ? 'semana' : 'semanas'}`;
+    } else {
+      tempoTexto = `${diasAcompanhamento} ${diasAcompanhamento === 1 ? 'dia' : 'dias'}`;
+    }
+
+    // Calcular redução de medidas (se disponível)
+    let medidasTexto = '';
+    const cinturaInicial = parseFloat((firstCheckin as any).cintura || '0');
+    const cinturaAtual = parseFloat((lastCheckin as any).cintura || '0');
+    if (cinturaInicial > 0 && cinturaAtual > 0) {
+      const reducaoCintura = cinturaInicial - cinturaAtual;
+      if (reducaoCintura > 0) {
+        medidasTexto = `<li>✨ <strong>${reducaoCintura.toFixed(1)} cm</strong> de redução na cintura</li>`;
+      }
+    }
+
+    // Texto motivacional baseado nos dados e gênero do paciente
+    const genero = patient?.genero?.toLowerCase() || '';
+    const isFeminino = genero === 'feminino' || genero === 'f';
+    const pronome = isFeminino ? 'a' : 'o';
+    
+    let textoMotivacional = '';
+    if (perdaPeso > 0) {
+      textoMotivacional = `Sua dedicação está transformando seu corpo! A redução de ${Math.abs(perdaPeso).toFixed(1)}kg em ${tempoTexto} é apenas o começo - o mais importante é a recomposição corporal que está acontecendo. Você está perdendo gordura e ganhando definição muscular, o que significa um corpo mais forte, saudável e funcional. Continue focad${pronome} e consistente - cada treino e cada refeição equilibrada está moldando a melhor versão de você! 💪✨`;
+    } else if (perdaPeso < 0) {
+      textoMotivacional = `Excelente progresso na construção muscular! O ganho de ${Math.abs(perdaPeso).toFixed(1)}kg em ${tempoTexto} mostra que sua recomposição corporal está no caminho certo. Você está construindo massa magra de qualidade, o que acelera seu metabolismo e transforma sua silhueta. Seu comprometimento com treino e nutrição está criando um corpo mais forte e definido. Mantenha o foco - a transformação real vai muito além da balança! 🚀💪`;
+    } else {
+      textoMotivacional = `Você está mantendo seu peso de forma consistente em ${tempoTexto} de acompanhamento, o que demonstra controle e disciplina. Mas lembre-se: a verdadeira transformação está na recomposição corporal - trocar gordura por músculo, ganhar definição e força. Seu corpo está mudando por dentro, mesmo que a balança não mostre. Continue firme no processo - músculos pesam mais que gordura, e é isso que te deixa com aquele corpo definido e saudável que você busca! 🎯✨`;
+    }
+
+    return `
+      <h3>🎯 Sua Jornada de Transformação</h3>
+      <p><strong>Peso inicial:</strong> ${pesoInicial.toFixed(1)}kg | <strong>Peso atual:</strong> ${pesoAtual.toFixed(1)}kg</p>
+      <p>Em <strong>${tempoTexto}</strong> de acompanhamento, você já conquistou:</p>
+      <ul>
+        <li>💪 <strong>${Math.abs(perdaPeso).toFixed(1)} kg</strong> ${perdaPeso > 0 ? 'perdidos' : perdaPeso < 0 ? 'ganhos' : 'mantidos'}</li>
+        ${medidasTexto}
+        <li>📊 <strong>${checkins.length}</strong> check-ins realizados com dedicação</li>
+      </ul>
+      <p>${textoMotivacional}</p>
+    `;
+  };
 
   // Calcular idade do paciente
   const calcularIdade = (dataNascimento: string | null) => {
@@ -743,36 +841,39 @@ export default function PatientPortal() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <DashboardLayout>
+        <div className="space-y-6">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (unauthorized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
-        <Card className="max-w-md w-full glass-card border-slate-700">
-          <CardContent className="p-8 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
-              <Lock className="w-8 h-8 text-red-400" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Acesso Negado</h1>
-            <p className="text-slate-400">
-              Este link de acesso é inválido ou expirou. Entre em contato com seu treinador para obter um novo link.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+          <Card className="max-w-md w-full glass-card border-slate-700">
+            <CardContent className="p-8 text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
+                <Lock className="w-8 h-8 text-red-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-white">Acesso Negado</h1>
+              <p className="text-slate-400">
+                Este link de acesso é inválido ou expirou. Entre em contato com seu treinador para obter um novo link.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div ref={portalRef} className="min-h-screen relative overflow-hidden">
+    <DashboardLayout>
+      <div ref={portalRef} className="min-h-screen relative overflow-hidden">
       {/* Background Premium Moderno */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         {/* Gradiente radial para profundidade */}
@@ -803,7 +904,7 @@ export default function PatientPortal() {
       {/* Conteúdo com z-index */}
       <div className="relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Header do Portal */}
+        {/* Header do Portal - ITEM 9: Dropdown Limpo */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -812,7 +913,7 @@ export default function PatientPortal() {
         >
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
-              📊 Meu Acompanhamento
+              📊 {patient?.nome || 'Meu Acompanhamento'}
             </h1>
             <p className="text-sm sm:text-base text-slate-400 mt-1">
               Acompanhe seu progresso e conquistas
@@ -820,16 +921,8 @@ export default function PatientPortal() {
           </div>
           <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto hide-in-pdf">
             <InstallPWAButton />
-            <Button
-              onClick={() => setWeightInputOpen(true)}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all whitespace-nowrap flex-1 sm:flex-none min-h-[44px] text-sm sm:text-base"
-            >
-              <Scale className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Registrar Peso</span>
-              <span className="sm:hidden">Peso</span>
-            </Button>
             
-            {/* Menu de ações: Dieta, Evolução e Atualizar */}
+            {/* Menu de ações: Apenas Evolução e Atualizar - ITEM 9 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -841,24 +934,6 @@ export default function PatientPortal() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white w-56">
-                <DropdownMenuItem
-                  onClick={handleExportDietPremiumPDF}
-                  disabled={exporting}
-                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {exporting ? 'Gerando...' : 'Baixar Dieta PDF'}
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem
-                  onClick={handleExportDietPDF}
-                  disabled={exporting}
-                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {exporting ? 'Gerando...' : 'Baixar Dieta (Impressão)'}
-                </DropdownMenuItem>
-                
                 {/* Opções de Evolução */}
                 {patient && (
                   <>
@@ -898,43 +973,44 @@ export default function PatientPortal() {
           </div>
         </motion.div>
 
-        {/* Card de Informações do Paciente */}
+        {/* Card de Cabeçalho - Minha Evolução */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="bg-slate-800/60 backdrop-blur-sm border-slate-700/50 shadow-xl">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <Avatar className="w-14 h-14 sm:w-20 sm:h-20 border-4 border-blue-500/30 flex-shrink-0">
-                  <AvatarFallback className="bg-blue-500/20 text-blue-300 text-lg sm:text-2xl font-bold">
-                    {patient?.nome?.charAt(0) || 'P'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h2 className="text-lg sm:text-2xl font-bold text-white truncate">{patient?.nome || 'Seu Nome'}</h2>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-2 sm:mt-3">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <Activity className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <span className="text-xs sm:text-sm">{checkins.length} check-ins</span>
-                    </div>
-                    {checkins.length > 0 && (
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Calendar className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                        <span className="text-xs sm:text-sm truncate">
-                          Desde {new Date(checkins[checkins.length - 1]?.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+          <Card className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 backdrop-blur-sm border-slate-700/50 shadow-xl">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col gap-4">
+                {/* Título Principal */}
+                <div className="text-center">
+                  <h1 className="text-3xl sm:text-4xl font-bold text-white">
+                    Minha Evolução
+                  </h1>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* ITEM 2: Seção "Sua Evolução" - Texto Editável */}
+        {patient?.telefone && checkins.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+          >
+            <EditableRenewalSection
+              patientTelefone={patient.telefone}
+              sectionKey="summary_content"
+              title="Sua Evolução"
+              icon={<Sparkles className="w-6 h-6 text-yellow-400" />}
+              defaultContent={generateDefaultEvolutionContent()}
+              placeholder="Descreva a evolução do paciente de forma personalizada..."
+              isPublicAccess={false}
+            />
+          </motion.div>
+        )}
 
 
         {/* Controle de Limite de Bioimpedância - Se houver dados */}
@@ -1035,16 +1111,36 @@ export default function PatientPortal() {
           </motion.div>
         )}
 
-        {/* Plano Alimentar, Metas e Progresso */}
+        {/* Comparação Destacada Antes/Depois */}
+        {comparison && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <FeaturedComparison
+              comparison={comparison}
+              isEditable={true}
+              onToggleVisibility={toggleVisibility}
+              onEdit={() => setShowEditComparisonModal(true)}
+              onDelete={async () => {
+                await deleteComparison();
+                refetch();
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* ITEM 3: Conteúdo de Evolução (sem abas) */}
         {patientId && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
+            className="space-y-6"
           >
-            <PatientDietPortal 
-              patientId={patientId} 
-              patientName={patient?.nome || 'Paciente'}
+            <PatientEvolutionTab 
+              patientId={patientId}
               checkins={checkins}
               patient={patient}
               bodyCompositions={bodyCompositions}
@@ -1061,19 +1157,7 @@ export default function PatientPortal() {
         </div>
       </div>
 
-      {/* Modal de Registro de Peso */}
-      {patient?.telefone && (
-        <WeightInput
-          telefone={patient.telefone}
-          open={weightInputOpen}
-          onOpenChange={setWeightInputOpen}
-          onSuccess={() => {
-            loadPortalData(); // Recarregar dados para atualizar gráficos
-            // Forçar atualização dos gráficos
-            setChartsRefreshTrigger(prev => prev + 1);
-          }}
-        />
-      )}
+      {/* ITEM 7: Modal de Registro de Peso REMOVIDO */}
 
       {/* Modal de Exportação da Evolução */}
       {showEvolutionExport && patient && (
@@ -1086,7 +1170,59 @@ export default function PatientPortal() {
           onDirectExport={handleDirectEvolutionExport}
         />
       )}
-    </div>
+
+      {/* Modal de Criação/Edição de Comparação */}
+      {showCreateComparisonModal && patient && (
+        <CreateFeaturedComparisonModal
+          open={showCreateComparisonModal}
+          onOpenChange={setShowCreateComparisonModal}
+          telefone={patient.telefone}
+          checkins={checkins}
+          patient={patient}
+          onSuccess={refetch}
+        />
+      )}
+
+      {/* Modal de Edição de Comparação Existente */}
+      {showEditComparisonModal && comparison && patient && (
+        <EditFeaturedComparisonModal
+          open={showEditComparisonModal}
+          onClose={() => setShowEditComparisonModal(false)}
+          beforePhoto={{
+            url: comparison.before_photo_url,
+            date: new Date(comparison.before_photo_date).toLocaleDateString('pt-BR'),
+            weight: comparison.before_weight?.toString() || ''
+          }}
+          afterPhoto={{
+            url: comparison.after_photo_url,
+            date: new Date(comparison.after_photo_date).toLocaleDateString('pt-BR'),
+            weight: comparison.after_weight?.toString() || ''
+          }}
+          initialTitle={comparison.title}
+          initialDescription={comparison.description || ''}
+          initialBeforeZoom={comparison.before_zoom || 1}
+          initialBeforeX={comparison.before_position_x || 0}
+          initialBeforeY={comparison.before_position_y || 0}
+          initialAfterZoom={comparison.after_zoom || 1}
+          initialAfterX={comparison.after_position_x || 0}
+          initialAfterY={comparison.after_position_y || 0}
+          onSave={async (data) => {
+            await updateComparison({
+              title: data.title,
+              description: data.description,
+              before_zoom: data.beforeZoom,
+              before_position_x: data.beforeX,
+              before_position_y: data.beforeY,
+              after_zoom: data.afterZoom,
+              after_position_x: data.afterX,
+              after_position_y: data.afterY,
+            });
+            await refetch();
+          }}
+        />
+      )}
+      </div>
+    </DashboardLayout>
   );
 }
 

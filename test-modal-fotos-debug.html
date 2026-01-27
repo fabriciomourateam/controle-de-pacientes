@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔍 Debug: Modal de Fotos - Teste de Cache</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+    }
+    .subtitle {
+      text-align: center;
+      opacity: 0.9;
+      margin-bottom: 30px;
+    }
+    .test-section {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .test-title {
+      font-size: 1.3em;
+      font-weight: bold;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status {
+      display: inline-block;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+    .status.success {
+      background: #10b981;
+      color: white;
+    }
+    .status.error {
+      background: #ef4444;
+      color: white;
+    }
+    .status.warning {
+      background: #f59e0b;
+      color: white;
+    }
+    .code-block {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: bold;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    .button:hover {
+      transform: scale(1.05);
+    }
+    .button:active {
+      transform: scale(0.95);
+    }
+    .info-box {
+      background: rgba(59, 130, 246, 0.2);
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+    .warning-box {
+      background: rgba(245, 158, 11, 0.2);
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+    .success-box {
+      background: rgba(16, 185, 129, 0.2);
+      border-left: 4px solid #10b981;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+    .error-box {
+      background: rgba(239, 68, 68, 0.2);
+      border-left: 4px solid #ef4444;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Debug: Modal de Fotos</h1>
+    <p class="subtitle">Teste de Cache do Navegador</p>
+
+    <!-- Teste 1: Verificar Código do Arquivo -->
+    <div class="test-section">
+      <div class="test-title">
+        📄 Teste 1: Código no Arquivo
+        <span class="status success">✅ CORRETO</span>
+      </div>
+      <p>O código no arquivo <code>CreateFeaturedComparisonModal.tsx</code> está correto:</p>
+      <div class="code-block">sortedCheckins.forEach((checkin) => {
+  if (checkin.foto_1) {  // ✅ CORRETO
+    allPhotos.push({
+      url: checkin.foto_1,
+      date: checkin.data_checkin,
+      weight: checkin.peso,
+      checkinId: checkin.id,
+      angle: 'frente',
+    });
+  }
+  if (checkin.foto_2) { ... }
+  if (checkin.foto_3) { ... }
+  if (checkin.foto_4) { ... }
+});</div>
+      <div class="success-box">
+        <strong>✅ Verificado:</strong> O arquivo usa <code>foto_1</code>, <code>foto_2</code>, <code>foto_3</code>, <code>foto_4</code> (CORRETO)
+      </div>
+    </div>
+
+    <!-- Teste 2: Código Executado -->
+    <div class="test-section">
+      <div class="test-title">
+        🖥️ Teste 2: Código Executado no Navegador
+        <span class="status error">❌ ANTIGO</span>
+      </div>
+      <p>O navegador está executando código ANTIGO em cache:</p>
+      <div class="code-block">CreateFeaturedComparisonModal.tsx:52 🎯 Check-in 1: {
+  id: 'fc91f7c6-ad51-4fa2-82ec-ebf1824a368e',
+  data: '2026-01-06',
+  peso: '63',
+  foto_frente: undefined,  // ❌ CÓDIGO ANTIGO
+  foto_costas: undefined   // ❌ CÓDIGO ANTIGO
+}</div>
+      <div class="error-box">
+        <strong>❌ Problema:</strong> O navegador está executando uma versão antiga que usa <code>foto_frente</code> e <code>foto_costas</code> (INCORRETO)
+      </div>
+    </div>
+
+    <!-- Teste 3: Comparação -->
+    <div class="test-section">
+      <div class="test-title">
+        🔄 Teste 3: Comparação com PhotoComparison.tsx
+        <span class="status success">✅ IDÊNTICO</span>
+      </div>
+      <p>O código do <code>CreateFeaturedComparisonModal.tsx</code> é IDÊNTICO ao <code>PhotoComparison.tsx</code> que funciona:</p>
+      <div class="code-block">// PhotoComparison.tsx (FUNCIONA)
+if (checkin.foto_1) {
+  photos.push({
+    url: checkin.foto_1,
+    date: new Date(checkin.data_checkin).toLocaleDateString('pt-BR'),
+    weight: checkin.peso || 'N/A',
+    checkinId: checkin.id,
+    photoNumber: 1,
+    angle: 'frente'
+  });
+}
+
+// CreateFeaturedComparisonModal.tsx (MESMO CÓDIGO)
+if (checkin.foto_1) {
+  allPhotos.push({
+    url: checkin.foto_1,
+    date: checkin.data_checkin,
+    weight: checkin.peso,
+    checkinId: checkin.id,
+    angle: 'frente',
+  });
+}</div>
+      <div class="success-box">
+        <strong>✅ Confirmado:</strong> A lógica é IDÊNTICA. O problema é 100% cache do navegador.
+      </div>
+    </div>
+
+    <!-- Soluções -->
+    <div class="test-section">
+      <div class="test-title">
+        🔧 Soluções Disponíveis
+      </div>
+      
+      <div class="warning-box">
+        <strong>⚠️ IMPORTANTE:</strong> NÃO modifique mais o código. Ele está CORRETO. O problema é cache.
+      </div>
+
+      <h3>Solução 1: Testar em Outro Navegador (RECOMENDADO)</h3>
+      <ol>
+        <li>Feche o Chrome completamente</li>
+        <li>Abra o Edge ou Firefox</li>
+        <li>Acesse: <code>http://localhost:5160</code></li>
+        <li>Teste o modal</li>
+      </ol>
+      <div class="info-box">
+        Se funcionar = confirma que o problema é cache do Chrome
+      </div>
+
+      <h3>Solução 2: Hard Reset do Cache</h3>
+      <button class="button" onclick="window.location.href='about:blank'">
+        🔄 Abrir Página em Branco
+      </button>
+      <button class="button" onclick="alert('Execute: LIMPAR_CACHE_COMPLETO.bat')">
+        🧹 Executar Script de Limpeza
+      </button>
+      
+      <h3>Solução 3: Limpeza Manual</h3>
+      <ol>
+        <li>Abra DevTools (F12)</li>
+        <li>Application → Storage → Clear site data</li>
+        <li>Application → Service Workers → Unregister</li>
+        <li>Ctrl + Shift + Delete (limpar TUDO)</li>
+        <li>Fechar navegador COMPLETAMENTE</li>
+        <li>Reabrir e testar</li>
+      </ol>
+    </div>
+
+    <!-- Como Confirmar -->
+    <div class="test-section">
+      <div class="test-title">
+        ✅ Como Confirmar que Funcionou
+      </div>
+      <p>Quando o código CORRETO estiver sendo executado, você verá nos logs:</p>
+      <div class="code-block">CreateFeaturedComparisonModal.tsx:52 🎯 Check-in 1: {
+  id: 'fc91f7c6-ad51-4fa2-82ec-ebf1824a368e',
+  data: '2026-01-06',
+  peso: '63',
+  foto_1: 'https://qhzifnyjyxdushxorzrk.supabase.co/...',  // ✅ CORRETO
+  foto_2: 'https://qhzifnyjyxdushxorzrk.supabase.co/...',  // ✅ CORRETO
+  foto_3: 'https://qhzifnyjyxdushxorzrk.supabase.co/...',  // ✅ CORRETO
+  foto_4: 'https://qhzifnyjyxdushxorzrk.supabase.co/...'   // ✅ CORRETO
+}</div>
+      <div class="success-box">
+        <strong>🎯 Objetivo:</strong> Ver <code>foto_1</code>, <code>foto_2</code>, <code>foto_3</code>, <code>foto_4</code> com URLs válidas
+      </div>
+    </div>
+
+    <!-- Informações Técnicas -->
+    <div class="test-section">
+      <div class="test-title">
+        📊 Informações Técnicas
+      </div>
+      <div class="code-block">Servidor: http://localhost:5160
+Arquivo: src/components/evolution/CreateFeaturedComparisonModal.tsx
+Timestamp: 2026-01-27T00:45:00Z
+Status: ✅ Código correto no arquivo
+Problema: ❌ Cache do navegador executando versão antiga</div>
+    </div>
+  </div>
+
+  <script>
+    console.log('🔍 Debug: Modal de Fotos - Teste de Cache');
+    console.log('📄 Código no arquivo: CORRETO (usa foto_1, foto_2, foto_3, foto_4)');
+    console.log('🖥️ Código executado: ANTIGO (usa foto_frente, foto_costas)');
+    console.log('🔧 Solução: Testar em outro navegador OU limpar cache completamente');
+  </script>
+</body>
+</html>

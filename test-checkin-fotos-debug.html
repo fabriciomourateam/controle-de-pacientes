@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug - Fotos dos Check-ins</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #10b981;
+      border-bottom: 2px solid #10b981;
+      padding-bottom: 10px;
+    }
+    .section {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .success {
+      color: #10b981;
+      font-weight: bold;
+    }
+    .error {
+      color: #ef4444;
+      font-weight: bold;
+    }
+    .warning {
+      color: #f59e0b;
+      font-weight: bold;
+    }
+    pre {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 15px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #059669;
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .photo-item {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 10px;
+      text-align: center;
+    }
+    .photo-item img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    .photo-label {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Debug - Fotos dos Check-ins</h1>
+  
+  <div class="section">
+    <h2>📋 Configuração</h2>
+    <label for="telefone">Telefone do Paciente:</label>
+    <input type="text" id="telefone" value="5511961454215" style="width: 300px; padding: 8px; margin: 10px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 4px;">
+    <br>
+    <button onclick="buscarDados()">🔍 Buscar Dados</button>
+    <button onclick="limparResultados()">🗑️ Limpar</button>
+  </div>
+
+  <div id="resultado"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const supabaseUrl = 'https://qhzifnyjyxdushxorzrk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoemlmbmp5eXhkdXNoeG9yenJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI1NTk5NzcsImV4cCI6MjA0ODEzNTk3N30.FwxYnKs2DuJEgEnvk56xfVmmetuquFtn';
+    
+    window.supabase = createClient(supabaseUrl, supabaseKey);
+
+    window.buscarDados = async function() {
+      const telefone = document.getElementById('telefone').value;
+      const resultado = document.getElementById('resultado');
+      
+      resultado.innerHTML = '<div class="section"><p class="warning">⏳ Buscando dados...</p></div>';
+
+      try {
+        // Buscar paciente
+        const { data: patient, error: patientError } = await window.supabase
+          .from('patients')
+          .select('*')
+          .eq('telefone', telefone)
+          .single();
+
+        if (patientError) throw patientError;
+
+        // Buscar check-ins
+        const { data: checkins, error: checkinsError } = await window.supabase
+          .from('checkin')
+          .select('*')
+          .eq('telefone', telefone)
+          .order('data_checkin', { ascending: false });
+
+        if (checkinsError) throw checkinsError;
+
+        // Montar resultado
+        let html = '';
+
+        // Seção 1: Fotos Iniciais do Paciente
+        html += '<div class="section">';
+        html += '<h2>📸 Fotos Iniciais do Paciente</h2>';
+        
+        const fotosIniciais = {
+          foto_inicial_frente: patient.foto_inicial_frente,
+          foto_inicial_lado: patient.foto_inicial_lado,
+          foto_inicial_lado_2: patient.foto_inicial_lado_2,
+          foto_inicial_costas: patient.foto_inicial_costas
+        };
+
+        let countIniciais = 0;
+        html += '<div class="photo-grid">';
+        for (const [campo, url] of Object.entries(fotosIniciais)) {
+          if (url) {
+            countIniciais++;
+            html += `
+              <div class="photo-item">
+                <img src="${url}" alt="${campo}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23ef4444%22 width=%22150%22 height=%22150%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2214%22%3EERRO%3C/text%3E%3C/svg%3E'">
+                <div class="photo-label">${campo}</div>
+              </div>
+            `;
+          }
+        }
+        html += '</div>';
+
+        if (countIniciais === 0) {
+          html += '<p class="error">❌ Nenhuma foto inicial encontrada</p>';
+        } else {
+          html += `<p class="success">✅ ${countIniciais} fotos iniciais encontradas</p>`;
+        }
+
+        html += '<details><summary>Ver JSON completo</summary><pre>' + JSON.stringify(fotosIniciais, null, 2) + '</pre></details>';
+        html += '</div>';
+
+        // Seção 2: Check-ins
+        html += '<div class="section">';
+        html += '<h2>📋 Check-ins (' + checkins.length + ' encontrados)</h2>';
+
+        if (checkins.length === 0) {
+          html += '<p class="error">❌ Nenhum check-in encontrado</p>';
+        } else {
+          checkins.forEach((checkin, index) => {
+            html += '<div style="background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 15px; margin: 10px 0;">';
+            html += `<h3>Check-in #${index + 1} - ${checkin.data_checkin}</h3>`;
+            html += `<p><strong>ID:</strong> ${checkin.id}</p>`;
+            html += `<p><strong>Peso:</strong> ${checkin.peso || 'N/A'}</p>`;
+
+            // Verificar campos de fotos
+            const camposFotos = {
+              foto_1: checkin.foto_1,
+              foto_2: checkin.foto_2,
+              foto_3: checkin.foto_3,
+              foto_4: checkin.foto_4
+            };
+
+            let countFotos = 0;
+            html += '<div class="photo-grid">';
+            for (const [campo, url] of Object.entries(camposFotos)) {
+              if (url) {
+                countFotos++;
+                html += `
+                  <div class="photo-item">
+                    <img src="${url}" alt="${campo}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23ef4444%22 width=%22150%22 height=%22150%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2214%22%3EERRO%3C/text%3E%3C/svg%3E'">
+                    <div class="photo-label">${campo}</div>
+                  </div>
+                `;
+              }
+            }
+            html += '</div>';
+
+            if (countFotos === 0) {
+              html += '<p class="error">❌ Nenhuma foto neste check-in</p>';
+            } else {
+              html += `<p class="success">✅ ${countFotos} fotos neste check-in</p>`;
+            }
+
+            // Verificar campos ERRADOS (antigos)
+            const camposErrados = {
+              foto_frente: checkin.foto_frente,
+              foto_costas: checkin.foto_costas,
+              foto_lado_esquerdo: checkin.foto_lado_esquerdo,
+              foto_lado_direito: checkin.foto_lado_direito
+            };
+
+            let temCamposErrados = false;
+            for (const [campo, valor] of Object.entries(camposErrados)) {
+              if (valor !== undefined && valor !== null) {
+                temCamposErrados = true;
+                html += `<p class="warning">⚠️ Campo antigo encontrado: ${campo} = ${valor}</p>`;
+              }
+            }
+
+            if (!temCamposErrados) {
+              html += '<p class="success">✅ Nenhum campo antigo (foto_frente, foto_costas, etc.) encontrado</p>';
+            }
+
+            html += '<details><summary>Ver JSON completo</summary><pre>' + JSON.stringify(checkin, null, 2) + '</pre></details>';
+            html += '</div>';
+          });
+        }
+
+        html += '</div>';
+
+        // Seção 3: Resumo
+        const totalFotos = countIniciais + checkins.reduce((acc, c) => {
+          return acc + [c.foto_1, c.foto_2, c.foto_3, c.foto_4].filter(Boolean).length;
+        }, 0);
+
+        html += '<div class="section">';
+        html += '<h2>📊 Resumo</h2>';
+        html += `<p><strong>Total de fotos iniciais:</strong> <span class="success">${countIniciais}</span></p>`;
+        html += `<p><strong>Total de check-ins:</strong> <span class="success">${checkins.length}</span></p>`;
+        html += `<p><strong>Total de fotos:</strong> <span class="success">${totalFotos}</span></p>`;
+        
+        if (totalFotos === 0) {
+          html += '<p class="error">❌ PROBLEMA: Nenhuma foto encontrada! O modal não terá fotos para exibir.</p>';
+        } else {
+          html += '<p class="success">✅ Fotos encontradas! O modal DEVERIA exibir essas fotos.</p>';
+          html += '<p class="warning">⚠️ Se o modal não exibe as fotos, o problema é CACHE do navegador/Vite!</p>';
+        }
+
+        html += '</div>';
+
+        resultado.innerHTML = html;
+
+      } catch (error) {
+        resultado.innerHTML = `
+          <div class="section">
+            <h2 class="error">❌ Erro ao buscar dados</h2>
+            <pre>${error.message}</pre>
+          </div>
+        `;
+      }
+    };
+
+    window.limparResultados = function() {
+      document.getElementById('resultado').innerHTML = '';
+    };
+  </script>
+</body>
+</html>

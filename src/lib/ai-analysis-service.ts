@@ -1,6 +1,7 @@
 import type { Database } from '@/integrations/supabase/types';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
+type Patient = Database['public']['Tables']['patients']['Row'];
 
 export interface AnalysisInsight {
   type: 'strength' | 'warning' | 'suggestion' | 'goal';
@@ -22,8 +23,9 @@ export interface AIAnalysisResult {
 
 /**
  * Analisa os check-ins do paciente e gera insights inteligentes
+ * CONSIDERA TODO O PERÍODO: desde peso_inicial até o último checkin
  */
-export function analyzePatientProgress(checkins: Checkin[]): AIAnalysisResult {
+export function analyzePatientProgress(checkins: Checkin[], patient?: Patient | null): AIAnalysisResult {
   if (checkins.length === 0) {
     return {
       strengths: [],
@@ -49,8 +51,8 @@ export function analyzePatientProgress(checkins: Checkin[]): AIAnalysisResult {
   const avgLibido = calculateAverage(checkins, 'pontos_libido');
   const avgTotal = calculateAverage(checkins, 'total_pontuacao');
 
-  // Analisar evolução de peso e composição corporal
-  const weightAnalysis = analyzeWeightTrend(checkins);
+  // Analisar evolução de peso e composição corporal - AGORA CONSIDERA PESO_INICIAL
+  const weightAnalysis = analyzeWeightTrend(checkins, patient);
   if (weightAnalysis) {
     if (weightAnalysis.trend === 'losing') {
       strengths.push({
@@ -257,20 +259,26 @@ function calculateAverage(checkins: Checkin[], field: keyof Checkin): number {
 }
 
 /**
- * Analisa tendência de peso
+ * Analisa tendência de peso - CONSIDERA PESO_INICIAL DO PACIENTE
  */
-function analyzeWeightTrend(checkins: Checkin[]) {
+function analyzeWeightTrend(checkins: Checkin[], patient?: Patient | null) {
   // Ordenar checkins do mais antigo para o mais recente para análise correta
   const sortedCheckins = [...checkins]
     .filter(c => c.peso)
     .sort((a, b) => new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime());
 
-  const weights = sortedCheckins.map(c => parseFloat(c.peso || '0'));
+  if (sortedCheckins.length === 0) return null;
 
-  if (weights.length < 2) return null;
-
-  const firstWeight = weights[0];
-  const lastWeight = weights[weights.length - 1];
+  // PESO INICIAL: prioriza peso_inicial do paciente, senão usa primeiro checkin
+  const patientWithInitialData = patient as any;
+  const firstWeight = patientWithInitialData?.peso_inicial 
+    ? parseFloat(patientWithInitialData.peso_inicial.toString())
+    : parseFloat(sortedCheckins[0].peso || '0');
+  
+  // PESO ATUAL: último checkin
+  const lastWeight = parseFloat(sortedCheckins[sortedCheckins.length - 1].peso || '0');
+  
+  // MUDANÇA TOTAL: do início até hoje
   const change = lastWeight - firstWeight;
 
   return {
@@ -323,7 +331,7 @@ function generateGoals(
       goals.push({
         type: 'goal',
         icon: '🎯',
-        title: 'Otimizar composição corporal',
+        title: 'Otimizar composição corporal nos próximos 60-90 dias',
         description: 'Reduzir percentual de gordura mantendo/aumentando massa muscular',
         recommendation: 'Déficit calórico moderado (300-500 kcal), proteína 2-2.5g/kg, treino de força 4x/semana com progressão de carga, descanso 60-90s entre séries para preservar músculo',
         priority: 'high'
@@ -333,7 +341,7 @@ function generateGoals(
         type: 'goal',
         icon: '💪',
         title: 'Preservar massa muscular magra',
-        description: 'Continuar reduzindo gordura sem perder músculo',
+        description: 'Continuar reduzindo gordura sem perder músculo ao longo do próximo ciclo',
         recommendation: 'Proteína alta (2.5g/kg), treino de força intenso com progressão de carga, descanso adequado 60-90s, não reduzir calorias drasticamente para manter força e músculo',
         priority: 'high'
       });
@@ -341,8 +349,8 @@ function generateGoals(
       goals.push({
         type: 'goal',
         icon: '⚖️',
-        title: 'Recomposição corporal',
-        description: 'Ganhar massa muscular enquanto reduz gordura',
+        title: 'Recomposição corporal sustentável',
+        description: 'Ganhar massa muscular enquanto reduz gordura de forma gradual',
         recommendation: 'Calorias de manutenção, proteína alta (2-2.5g/kg), treino intenso com progressão de carga semanal (2-5%), descanso 60-90s entre séries, foco em compostos',
         priority: 'high'
       });
@@ -353,7 +361,7 @@ function generateGoals(
       type: 'goal',
       icon: '🎯',
       title: 'Melhorar composição corporal',
-      description: 'Foco em ganho de massa muscular e redução de gordura',
+      description: 'Foco em ganho de massa muscular e redução de gordura de forma consistente',
       recommendation: 'Treino de força com progressão de carga semanal, descanso adequado 60-90s entre séries, proteína 2-2.5g/kg, acompanhar medidas e força nos exercícios',
       priority: 'high'
     });
@@ -365,7 +373,7 @@ function generateGoals(
       type: 'goal',
       icon: '💪',
       title: 'Maximizar ganho de massa muscular',
-      description: `Elevar consistência de treinos de ${avgWorkout.toFixed(1)} para 8.5+`,
+      description: `Elevar consistência de treinos de ${avgWorkout.toFixed(1)} para 8.5+ ao longo dos próximos meses`,
       recommendation: 'Progressão de carga semanal (2-5%), descanso 60-90s entre séries, 8-12 reps até falha técnica, foco em exercícios compostos (agachamento, supino, terra)',
       priority: 'high'
     });
@@ -374,7 +382,7 @@ function generateGoals(
       type: 'goal',
       icon: '🔥',
       title: 'Manter hipertrofia e definição',
-      description: 'Continuar com treinos intensos para preservar/ganhar músculo',
+      description: 'Continuar com treinos intensos para preservar/ganhar músculo de forma sustentável',
       recommendation: 'Progressão de carga constante (aumentar 2-5% semanalmente), descanso adequado 60-90s entre séries, variar rep ranges (6-15 reps), priorizar exercícios compostos',
       priority: 'medium'
     });
@@ -386,7 +394,7 @@ function generateGoals(
       type: 'goal',
       icon: '😴',
       title: 'Otimizar recuperação e síntese proteica',
-      description: `Melhorar sono de ${avgSleep.toFixed(1)} para 8+ (crucial para ganho muscular)`,
+      description: `Melhorar qualidade do sono de ${avgSleep.toFixed(1)} para 8+ de forma consistente`,
       recommendation: '7-9 horas por noite para máxima recuperação muscular e liberação de hormônio do crescimento. Descanso adequado = mais força e hipertrofia nos treinos',
       priority: 'high'
     });
@@ -397,7 +405,7 @@ function generateGoals(
     type: 'goal',
     icon: '🥗',
     title: 'Nutrição estratégica para hipertrofia',
-    description: 'Otimizar macronutrientes para maximizar ganho muscular',
+    description: 'Otimizar macronutrientes para maximizar ganho muscular de forma sustentável',
     recommendation: 'Proteína: 2-2.5g/kg (essencial para síntese proteica), carboidratos pré/pós-treino (energia e recuperação), superávit calórico leve 200-300kcal para ganho muscular limpo',
     priority: 'high'
   });
@@ -407,7 +415,7 @@ function generateGoals(
     type: 'goal',
     icon: '🏆',
     title: 'Meta de transformação física',
-    description: 'Alcançar melhor relação músculo/gordura nos próximos 30 dias',
+    description: 'Alcançar melhor relação músculo/gordura de forma progressiva',
     recommendation: 'Treino: progressão de carga semanal + descanso 60-90s | Nutrição: proteína alta + timing correto | Recuperação: 7-9h sono + controle de stress para otimizar hipertrofia',
     priority: 'high'
   });
