@@ -64,11 +64,19 @@ class CustomFoodsService {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      // Se a tabela não existir (erro 404), retornar array vazio
+      if (error) {
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('404')) {
+          console.warn("Tabela custom_foods não existe ainda. Execute o script SQL create-custom-foods-system.sql");
+          return [];
+        }
+        throw error;
+      }
       return data || [];
     } catch (error) {
       console.error("Erro ao buscar alimentos customizados:", error);
-      throw error;
+      // Retornar array vazio em caso de erro para não quebrar o sistema
+      return [];
     }
   }
 
@@ -109,7 +117,13 @@ class CustomFoodsService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Se a tabela não existir, mostrar mensagem mais clara
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('404')) {
+          throw new Error("A tabela de alimentos personalizados não foi criada. Execute o script SQL: create-custom-foods-system.sql no Supabase");
+        }
+        throw error;
+      }
       return data;
     } catch (error) {
       console.error("Erro ao criar alimento customizado:", error);
@@ -181,12 +195,20 @@ class CustomFoodsService {
       const { data, error } = await supabase
         .from("custom_foods")
         .select("category")
-        .not("category", "is", null);
+        .not("category", "is", null)
+        .limit(1000);
 
-      if (error) throw error;
+      // Se a tabela não existir (erro 404), retornar array vazio
+      if (error) {
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('404')) {
+          console.warn("Tabela custom_foods não existe ainda. Execute o script SQL create-custom-foods-system.sql");
+          return [];
+        }
+        throw error;
+      }
 
       // Extrair categorias únicas
-      const categories = [...new Set(data.map((item) => item.category))].filter(Boolean) as string[];
+      const categories = [...new Set(data?.map((item) => item.category) || [])].filter(Boolean) as string[];
       return categories.sort();
     } catch (error) {
       console.error("Erro ao buscar categorias:", error);

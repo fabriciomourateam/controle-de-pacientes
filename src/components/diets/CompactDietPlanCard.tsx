@@ -138,84 +138,85 @@ export function CompactDietPlanCard({
           </div>
           
           {/* Ações */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleFavorite(plan.id, plan.favorite)}
-              className="h-8 w-8 p-0 hover:bg-slate-100"
-            >
-              <Star className={`w-4 h-4 ${plan.favorite ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400'}`} />
-            </Button>
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onToggleFavorite(plan.id, plan.favorite)}
+                className="h-8 w-8 p-0 hover:bg-slate-100"
+              >
+                <Star className={`w-4 h-4 ${plan.favorite ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400'}`} />
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 hover:bg-slate-100 border border-slate-300 bg-slate-50"
+                  >
+                    <MoreVertical className="w-4 h-4 text-slate-600" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => onViewDetails(plan)}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Detalhes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSaveAsTemplate(plan.id)}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar como Template
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onToggleStatus(plan.id, plan.name, plan.status)}
+                  >
+                    {isActive ? (
+                      <>
+                        <PowerOff className="w-4 h-4 mr-2" />
+                        Desativar Plano
+                      </>
+                    ) : (
+                      <>
+                        <Power className="w-4 h-4 mr-2" />
+                        Ativar Plano
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(plan.id, plan.name)}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Deletar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 hover:bg-slate-100 border border-slate-300 bg-slate-50"
-                >
-                  <MoreVertical className="w-4 h-4 text-slate-600" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => onViewDetails(plan)}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Detalhes
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(plan)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDuplicate(plan)}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Duplicar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSaveAsTemplate(plan.id)}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar como Template
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onToggleReleased(plan.id, plan.name, plan.is_released)}
-                >
-                  {plan.is_released ? (
-                    <>
-                      <X className="w-4 h-4 mr-2" />
-                      Ocultar do Portal
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Liberar no Portal
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onToggleStatus(plan.id, plan.name, plan.status)}
-                >
-                  {isActive ? (
-                    <>
-                      <PowerOff className="w-4 h-4 mr-2" />
-                      Desativar Plano
-                    </>
-                  ) : (
-                    <>
-                      <Power className="w-4 h-4 mr-2" />
-                      Ativar Plano
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onDelete(plan.id, plan.name)}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Deletar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Botões de Editar e Duplicar separados */}
+            <div className="flex flex-col items-end gap-1 w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onDuplicate(plan)}
+                className="h-7 w-full text-xs border-gray-300 text-gray-700 hover:bg-gray-100 bg-white shadow-sm justify-center"
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Duplicar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(plan)}
+                className="h-7 w-full text-xs border-gray-300 text-gray-700 hover:bg-gray-100 bg-white shadow-sm justify-center"
+              >
+                <Edit className="w-3 h-3 mr-1" />
+                Editar
+              </Button>
+            </div>
           </div>
         </div>
       </div>

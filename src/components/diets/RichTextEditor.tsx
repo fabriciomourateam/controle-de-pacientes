@@ -92,7 +92,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
   };
 
   return (
-    <div className={`border border-gray-300 rounded-md bg-white ${className}`}>
+    <div className={`border border-green-500/30 rounded-md bg-white ${className}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
         <Button
@@ -172,7 +172,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
                   placeholder="Ex: Clique aqui"
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
               <div>
@@ -184,7 +184,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
                   placeholder="Ex: https://exemplo.com"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -230,7 +230,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
         contentEditable
         onInput={handleInput}
         onMouseDown={handleMouseDown}
-        className={`min-h-[100px] p-3 text-[#222222] focus:outline-none focus:ring-0 bg-white ${resizable ? 'resize-y overflow-auto' : ''}`}
+        className={`min-h-[100px] p-3 text-[#222222] focus:outline-none focus:ring-0 focus-visible:ring-0 bg-white ${resizable ? 'resize-y overflow-auto' : ''}`}
         data-placeholder={placeholder}
         style={{
           wordWrap: 'break-word',

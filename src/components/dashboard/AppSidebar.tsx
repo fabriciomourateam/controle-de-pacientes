@@ -16,8 +16,7 @@ import {
   Target,
   AlertTriangle,
   LineChart,
-  Shield,
-  Utensils
+  Shield
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -46,7 +45,6 @@ const mainNavItems = [
   { title: "Retenção", url: "/retention", icon: AlertTriangle },
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
   { title: "Planos de Acompanhamento", url: "/plans", icon: Calendar, ownerOnly: true }, // Apenas owner
-  { title: "Alimentos Customizados", url: "/custom-foods", icon: Utensils },
   { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },
   { title: "Métricas Comerciais", url: "/commercial-metrics", icon: Target },
   { title: "Workspace", url: "/workspace", icon: Monitor },

@@ -112,7 +112,14 @@ export default function PatientDetails() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="relative min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
+        {/* Capa com gradiente claro sobrepondo o fundo preto */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pointer-events-none rounded-3xl" 
+             style={{ 
+               background: 'linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, rgba(239, 246, 255, 0.98) 50%, rgba(238, 242, 255, 0.98) 100%)',
+             }} />
+        
+        <div className="relative z-10 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -124,8 +131,8 @@ export default function PatientDetails() {
               Voltar
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-white">{patient.nome || 'Paciente'}</h1>
-              <p className="text-slate-400">Detalhes do paciente</p>
+              <h1 className="text-3xl font-bold text-slate-800">{patient.nome || 'Paciente'}</h1>
+              <p className="text-slate-600">Detalhes do paciente</p>
             </div>
           </div>
           
@@ -133,14 +140,14 @@ export default function PatientDetails() {
             <Button
               variant="outline"
               onClick={() => setIsRenewModalOpen(true)}
-              className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 bg-white/80 backdrop-blur-sm"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Renovar Plano
             </Button>
             <Button
               onClick={() => setIsEditModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
             >
               <Edit className="w-4 h-4 mr-2" />
               Editar
@@ -158,47 +165,47 @@ export default function PatientDetails() {
           <TabsContent value="info" className="mt-6">
             {/* Patient Details - Conteúdo direto na página */}
             <div className="space-y-6">
-              <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+              <Card className="bg-white/90 backdrop-blur-sm border-slate-200 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg text-white">Informações do Paciente</CardTitle>
+                  <CardTitle className="text-lg text-slate-800">Informações do Paciente</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Nome</label>
-                      <p className="text-lg font-semibold">{patient.nome || 'Não informado'}</p>
+                      <label className="text-sm font-medium text-slate-600">Nome</label>
+                      <p className="text-lg font-semibold text-slate-900">{patient.nome || 'Não informado'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Telefone</label>
-                      <p className="text-sm">{patient.telefone || 'Não informado'}</p>
+                      <label className="text-sm font-medium text-slate-600">Telefone</label>
+                      <p className="text-sm text-slate-700">{patient.telefone || 'Não informado'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Email</label>
-                      <p className="text-sm">{patient.email || 'Não informado'}</p>
+                      <label className="text-sm font-medium text-slate-600">Email</label>
+                      <p className="text-sm text-slate-700">{patient.email || 'Não informado'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">CPF</label>
-                      <p className="text-sm">{patient.cpf || 'Não informado'}</p>
+                      <label className="text-sm font-medium text-slate-600">CPF</label>
+                      <p className="text-sm text-slate-700">{patient.cpf || 'Não informado'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Gênero</label>
-                      <p className="text-sm">{patient.genero || 'Não informado'}</p>
+                      <label className="text-sm font-medium text-slate-600">Gênero</label>
+                      <p className="text-sm text-slate-700">{patient.genero || 'Não informado'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Data de Nascimento</label>
-                      <p className="text-sm">
+                      <label className="text-sm font-medium text-slate-600">Data de Nascimento</label>
+                      <p className="text-sm text-slate-700">
                         {patient.data_nascimento 
                           ? new Date(patient.data_nascimento).toLocaleDateString('pt-BR')
                           : 'Não informado'}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Plano</label>
-                      <p className="text-sm">{patient.plano || 'Não informado'}</p>
+                      <label className="text-sm font-medium text-slate-600">Plano</label>
+                      <p className="text-sm text-slate-700">{patient.plano || 'Não informado'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Vencimento</label>
-                      <p className="text-sm">
+                      <label className="text-sm font-medium text-slate-600">Vencimento</label>
+                      <p className="text-sm text-slate-700">
                         {patient.vencimento 
                           ? new Date(patient.vencimento).toLocaleDateString('pt-BR')
                           : 'Não informado'}
@@ -207,8 +214,8 @@ export default function PatientDetails() {
                   </div>
                   {patient.observacao && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Observações</label>
-                      <p className="text-sm mt-1">{patient.observacao}</p>
+                      <label className="text-sm font-medium text-slate-600">Observações</label>
+                      <p className="text-sm mt-1 text-slate-700">{patient.observacao}</p>
                     </div>
                   )}
                 </CardContent>
@@ -237,6 +244,7 @@ export default function PatientDetails() {
           onClose={() => setIsRenewModalOpen(false)}
           onRenew={handleRenewPlan}
         />
+        </div>
       </div>
     </DashboardLayout>
   );

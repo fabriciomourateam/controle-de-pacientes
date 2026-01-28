@@ -112,9 +112,16 @@ export function FoodSubstitutionsModal({
       setCustomUnitNames(namesMap);
       
       loadFoodDatabase();
-      loadOriginalFoodData();
     }
   }, [open, initialSubstitutions, originalFoodQuantity, originalFoodUnit]);
+
+  // Carregar dados do alimento original após o foodDatabase ser carregado
+  useEffect(() => {
+    if (open && foodDatabase.length > 0 && originalFoodName) {
+      loadOriginalFoodData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, foodDatabase.length, originalFoodName]);
 
   // Filtrar alimentos quando digita
   useEffect(() => {
@@ -149,14 +156,36 @@ export function FoodSubstitutionsModal({
 
   const loadFoodDatabase = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar alimentos do banco principal
+      const { data: dbFoods, error: dbError } = await supabase
         .from('food_database')
         .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
         .eq('is_active', true)
         .order('name');
 
-      if (error) throw error;
-      setFoodDatabase(data || []);
+      if (dbError) throw dbError;
+
+      // Buscar alimentos customizados
+      let customFoods: any[] = [];
+      try {
+        const { customFoodsService } = await import("@/lib/custom-foods-service");
+        customFoods = await customFoodsService.getCustomFoods();
+      } catch (error) {
+        console.warn('Não foi possível carregar alimentos customizados:', error);
+      }
+
+      // Converter alimentos customizados para o formato esperado
+      const customFoodsFormatted = customFoods.map((food) => ({
+        name: food.name,
+        calories_per_100g: food.calories_per_100g,
+        protein_per_100g: food.protein_per_100g,
+        carbs_per_100g: food.carbs_per_100g,
+        fats_per_100g: food.fats_per_100g,
+      }));
+
+      // Combinar alimentos do banco com alimentos customizados
+      const allFoods = [...customFoodsFormatted, ...(dbFoods || [])];
+      setFoodDatabase(allFoods);
     } catch (error) {
       console.error('Erro ao carregar banco de alimentos:', error);
     }
@@ -164,7 +193,17 @@ export function FoodSubstitutionsModal({
 
   const loadOriginalFoodData = async () => {
     try {
-      // Tentar busca exata primeiro
+      // Primeiro, tentar buscar no foodDatabase já carregado (inclui customizados)
+      const foundInDatabase = foodDatabase.find(
+        (food) => food.name.toLowerCase() === originalFoodName.toLowerCase()
+      );
+
+      if (foundInDatabase) {
+        setOriginalFoodData(foundInDatabase);
+        return;
+      }
+
+      // Se não encontrou, tentar busca exata no banco principal
       let { data, error } = await supabase
         .from('food_database')
         .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
@@ -190,6 +229,26 @@ export function FoodSubstitutionsModal({
         error = result.error;
       }
 
+      // Se ainda não encontrou, tentar buscar em custom_foods
+      if (!data || error) {
+        try {
+          const { customFoodsService } = await import("@/lib/custom-foods-service");
+          const customFood = await customFoodsService.searchByName(originalFoodName);
+          if (customFood) {
+            setOriginalFoodData({
+              name: customFood.name,
+              calories_per_100g: customFood.calories_per_100g,
+              protein_per_100g: customFood.protein_per_100g,
+              carbs_per_100g: customFood.carbs_per_100g,
+              fats_per_100g: customFood.fats_per_100g,
+            });
+            return;
+          }
+        } catch (customError) {
+          console.warn('Erro ao buscar alimento customizado:', customError);
+        }
+      }
+
       if (!error && data) {
         setOriginalFoodData(data);
       } else {
@@ -202,17 +261,118 @@ export function FoodSubstitutionsModal({
 
   const loadSubstitutionFoodData = async (index: number, foodName: string) => {
     try {
-      const { data, error } = await supabase
+      const cleanFoodName = foodName.trim();
+      if (!cleanFoodName) return;
+
+      // Primeiro, tentar buscar no foodDatabase já carregado (inclui customizados)
+      // Busca exata primeiro
+      let foundInDatabase = foodDatabase.find(
+        (food) => food.name.toLowerCase().trim() === cleanFoodName.toLowerCase()
+      );
+
+      // Se não encontrou exato, tentar busca parcial (contém)
+      if (!foundInDatabase) {
+        foundInDatabase = foodDatabase.find(
+          (food) => food.name.toLowerCase().trim().includes(cleanFoodName.toLowerCase()) ||
+                   cleanFoodName.toLowerCase().includes(food.name.toLowerCase().trim())
+        );
+      }
+
+      // Se ainda não encontrou, tentar busca pela primeira palavra
+      if (!foundInDatabase) {
+        const firstWord = cleanFoodName.split(' ')[0].toLowerCase();
+        foundInDatabase = foodDatabase.find(
+          (food) => food.name.toLowerCase().trim().startsWith(firstWord) ||
+                   food.name.toLowerCase().trim().split(' ')[0] === firstWord
+        );
+      }
+
+      if (foundInDatabase) {
+        setSubstitutionsFoodData(prev => {
+          const newMap = new Map(prev);
+          newMap.set(index, foundInDatabase!);
+          return newMap;
+        });
+        return;
+      }
+
+      // Se não encontrou, tentar busca exata no banco principal
+      let { data, error } = await supabase
         .from('food_database')
         .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
-        .ilike('name', `%${foodName}%`)
+        .ilike('name', foodName)
+        .eq('is_active', true)
         .limit(1)
         .maybeSingle();
+
+      // Se não encontrar, tentar busca parcial
+      if (!data || error) {
+        const cleanName = foodName.split(/[,\(]/)[0].trim();
+        const firstWords = cleanName.split(' ').slice(0, 2).join(' ');
+        
+        const result = await supabase
+          .from('food_database')
+          .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
+          .ilike('name', `%${firstWords}%`)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+        
+        data = result.data;
+        error = result.error;
+      }
+
+      // Se ainda não encontrou, tentar buscar em custom_foods
+      if (!data || error) {
+        try {
+          const { customFoodsService } = await import("@/lib/custom-foods-service");
+          // Tentar busca exata primeiro
+          let customFood = await customFoodsService.searchByName(foodName);
+          
+          // Se não encontrou, tentar busca parcial
+          if (!customFood) {
+            const cleanName = foodName.split(/[,\(]/)[0].trim();
+            const firstWord = cleanName.split(' ')[0];
+            // Buscar todos os custom foods e filtrar
+            const allCustomFoods = await customFoodsService.getCustomFoods();
+            customFood = allCustomFoods.find(f => 
+              f.name.toLowerCase() === foodName.toLowerCase() ||
+              f.name.toLowerCase().includes(foodName.toLowerCase()) ||
+              f.name.toLowerCase().startsWith(firstWord.toLowerCase())
+            ) || null;
+          }
+          
+          if (customFood) {
+            const foodData = {
+              name: customFood.name,
+              calories_per_100g: customFood.calories_per_100g,
+              protein_per_100g: customFood.protein_per_100g,
+              carbs_per_100g: customFood.carbs_per_100g,
+              fats_per_100g: customFood.fats_per_100g,
+            };
+            setSubstitutionsFoodData(prev => {
+              const newMap = new Map(prev);
+              newMap.set(index, foodData);
+              return newMap;
+            });
+            return;
+          }
+        } catch (customError) {
+          console.warn('Erro ao buscar alimento customizado:', customError);
+        }
+      }
 
       if (!error && data) {
         setSubstitutionsFoodData(prev => {
           const newMap = new Map(prev);
           newMap.set(index, data);
+          return newMap;
+        });
+      } else {
+        // Se não encontrou em lugar nenhum, definir como null para não mostrar macros
+        setSubstitutionsFoodData(prev => {
+          const newMap = new Map(prev);
+          newMap.set(index, null as any);
           return newMap;
         });
       }
@@ -435,7 +595,7 @@ export function FoodSubstitutionsModal({
                             value={sub.food_name}
                             onChange={(e) => updateSubstitution(index, 'food_name', e.target.value)}
                             onBlur={() => loadSubstitutionFoodData(index, sub.food_name)}
-                            className="border-gray-300 bg-white text-[#222222] h-8 text-sm"
+                            className="border-gray-300 bg-white text-[#222222] h-8 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
                           />
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -447,7 +607,7 @@ export function FoodSubstitutionsModal({
                                 min="0"
                                 value={sub.quantity}
                                 onChange={(e) => updateSubstitution(index, 'quantity', parseFloat(e.target.value) || 0)}
-                                className="border-gray-300 bg-white text-[#222222] h-8 w-16 text-sm text-center"
+                                className="border-gray-300 bg-white text-[#222222] h-8 w-16 text-sm text-center focus-visible:ring-0 focus-visible:ring-offset-0"
                               />
                               <Select
                                 value={sub.unit}
@@ -458,7 +618,7 @@ export function FoodSubstitutionsModal({
                                   }
                                 }}
                               >
-                                <SelectTrigger className="border-gray-300 bg-white text-[#222222] h-8 w-24 text-xs">
+                                <SelectTrigger className="border-gray-300 bg-white text-[#222222] h-8 w-24 text-xs focus:ring-0 focus:ring-offset-0">
                                   <SelectValue>
                                     {sub.unit === 'medida personalizada' && (customUnitNames.get(index) || sub.custom_unit_name)
                                       ? (customUnitNames.get(index) || sub.custom_unit_name)
@@ -486,7 +646,7 @@ export function FoodSubstitutionsModal({
                                       newMap.set(index, e.target.value);
                                       setCustomUnitNames(newMap);
                                     }}
-                                    className="border-green-300 bg-white text-[#222222] h-7 w-28 text-xs"
+                                    className="border-green-300 bg-white text-[#222222] h-7 w-28 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
                                   />
                                 )}
                                 <Input
@@ -500,7 +660,7 @@ export function FoodSubstitutionsModal({
                                     newMap.set(index, parseFloat(e.target.value) || 0);
                                     setCustomUnitGrams(newMap);
                                   }}
-                                  className="border-green-300 bg-white text-[#222222] h-7 w-16 text-xs text-center"
+                                  className="border-green-300 bg-white text-[#222222] h-7 w-16 text-xs text-center focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                                 <span className="text-xs text-[#777777]">g</span>
                               </div>
@@ -589,7 +749,7 @@ export function FoodSubstitutionsModal({
                         }
                       }}
                       placeholder="Digite para buscar alimentos..."
-                      className="pl-10 border-green-300 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/20"
+                      className="pl-10 border-green-300 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                   
@@ -659,7 +819,7 @@ export function FoodSubstitutionsModal({
                   onChange={(e) => {
                     setNewSubstitution({ ...newSubstitution, quantity: parseFloat(e.target.value) || 0 });
                   }}
-                  className="border-green-300 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/20"
+                  className="border-green-300 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -671,7 +831,7 @@ export function FoodSubstitutionsModal({
                     setNewSubstitution({ ...newSubstitution, unit: value });
                   }}
                 >
-                  <SelectTrigger className="border-green-300 bg-white text-[#222222] focus:border-green-500 focus:ring-green-500/20">
+                  <SelectTrigger className="border-green-300 bg-white text-[#222222] focus:border-green-500 focus:ring-0 focus:ring-offset-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">

@@ -946,6 +946,70 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                   )}
                 </div>
               </div>
+              {/* Dropdown no header - apenas para outras ações, SEM Editar e Duplicar */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-gray-500 hover:bg-gray-100"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      try {
+                        await supabase
+                          .from('diet_plans')
+                          .update({ favorite: !plan.favorite })
+                          .eq('id', plan.id);
+                        
+                        toast({
+                          title: plan.favorite ? 'Removido dos favoritos!' : 'Adicionado aos favoritos!',
+                          description: plan.favorite 
+                            ? 'O plano foi removido dos favoritos.' 
+                            : 'O plano foi adicionado aos favoritos.',
+                        });
+                        refetch();
+                      } catch (err) {
+                        toast({
+                          title: 'Erro',
+                          description: 'Erro ao atualizar favorito',
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                    className={plan.favorite ? "text-yellow-400" : ""}
+                  >
+                    <Star className={`w-4 h-4 mr-2 ${plan.favorite ? 'fill-yellow-400' : ''}`} />
+                    {plan.favorite ? 'Remover dos Favoritos' : 'Favoritar'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setTemplatePlanId(plan.id);
+                      setSaveTemplateOpen(true);
+                    }}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar como Template
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Detalhes
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => handleDelete(plan.id, plan.name)}
+                    className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Deletar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardHeader>
           <CardContent>
@@ -975,7 +1039,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-lg p-4 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-xl p-5 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-purple-400" />
                         <p className="text-xs font-medium text-[#777777]">Carboidratos</p>
@@ -985,7 +1049,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-lg p-4 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-xl p-5 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-emerald-400" />
                         <p className="text-xs font-medium text-[#777777]">Gorduras</p>
@@ -1046,14 +1110,6 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
 
                 {/* Botões de Ação */}
                 <div className="flex flex-wrap gap-2">
-              <Button 
-                size="sm" 
-                onClick={() => handleEdit(plan)}
-                className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -1103,7 +1159,36 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                     <Save className="w-4 h-4 mr-2" />
                     Salvar como Template
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => {
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Detalhes
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => handleDelete(plan.id, plan.name)}
+                    className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Deletar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Botões de Editar e Duplicar abaixo do dropdown */}
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleEdit(plan)}
+                className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-100 bg-white shadow-sm"
+              >
+                <Edit className="w-3 h-3 mr-1.5" />
+                Editar
+              </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={async () => {
                     try {
                       // Buscar dados completos do plano
                       const planData = await dietService.getById(plan.id);
@@ -1239,26 +1324,13 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                         variant: 'destructive',
                       });
                     }
-                  }}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Duplicar
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Ver Detalhes
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => handleDelete(plan.id, plan.name)}
-                    className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Deletar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-                </div>
+                  }}
+                  className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-100 bg-white shadow-sm"
+                >
+                  <Copy className="w-3 h-3 mr-1.5" />
+                  Duplicar
+                </Button>
+            </div>
             </div>
             </div>
           </CardContent>
@@ -1427,9 +1499,9 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
             return (
         <Card 
           key={plan.id}
-          className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden opacity-90 hover:opacity-100"
+          className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden opacity-90 hover:opacity-100 rounded-2xl shadow-lg"
         >
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 pb-4">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 pb-5 px-6 pt-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -1449,6 +1521,17 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                         Favorito
                       </Badge>
                     )}
+                </div>
+                {/* Botão de Editar no header do card */}
+                <div className="mt-3">
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleEdit(plan)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
                 </div>
                 {plan.notes && (
                   <CardDescription className="text-sm text-[#777777] line-clamp-2">
@@ -1497,7 +1580,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-lg p-4 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10 rounded-xl p-5 hover:from-purple-500/10 hover:to-pink-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-purple-400" />
                         <p className="text-xs font-medium text-[#777777]">Carboidratos</p>
@@ -1507,7 +1590,7 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
                       </p>
                       <p className="text-xs text-[#777777] mt-1">gramas</p>
                     </div>
-                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-lg p-4 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300">
+                    <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 rounded-xl p-5 hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-emerald-400" />
                         <p className="text-xs font-medium text-[#777777]">Gorduras</p>
@@ -1568,88 +1651,92 @@ export function DietPlansList({ patientId }: DietPlansListProps) {
 
                 {/* Botões de Ação */}
                 <div className="flex flex-wrap gap-2">
-                <Button 
-                  size="sm" 
-                    onClick={() => handleEdit(plan)}
-                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar
-                </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                      ><MoreVertical className="w-4 h-4 mr-2" />
+                        Ações
+                        <ChevronDown className="w-4 h-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          try {
+                            await supabase
+                              .from('diet_plans')
+                              .update({ favorite: !plan.favorite })
+                              .eq('id', plan.id);
+                            
+                            toast({
+                              title: plan.favorite ? 'Removido dos favoritos!' : 'Adicionado aos favoritos!',
+                              description: plan.favorite 
+                                ? 'O plano foi removido dos favoritos.' 
+                                : 'O plano foi adicionado aos favoritos.',
+                            });
+                            refetch();
+                          } catch (err) {
+                            toast({
+                              title: 'Erro',
+                              description: 'Erro ao atualizar favorito',
+                              variant: 'destructive',
+                            });
+                          }
+                        }}
+                        className={plan.favorite ? "text-yellow-400" : ""}
+                      >
+                        <Star className={`w-4 h-4 mr-2 ${plan.favorite ? 'fill-yellow-400' : ''}`} />
+                        {plan.favorite ? 'Remover dos Favoritos' : 'Favoritar'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setTemplatePlanId(plan.id);
+                          setSaveTemplateOpen(true);
+                        }}
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar como Template
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(plan.id, plan.name)}
+                        className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Deletar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  {/* Botões de Editar e Duplicar abaixo do dropdown */}
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="bg-gradient-to-r from-[#00C98A] to-[#00A875] hover:from-[#00A875] hover:to-[#00C98A] text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                  ><MoreVertical className="w-4 h-4 mr-2" />
-                    Ações
-                    <ChevronDown className="w-4 h-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem
-                    onClick={async () => {
-                      try {
-                        await supabase
-                          .from('diet_plans')
-                          .update({ favorite: !plan.favorite })
-                          .eq('id', plan.id);
-                        
-                        toast({
-                          title: plan.favorite ? 'Removido dos favoritos!' : 'Adicionado aos favoritos!',
-                          description: plan.favorite 
-                            ? 'O plano foi removido dos favoritos.' 
-                            : 'O plano foi adicionado aos favoritos.',
-                        });
-                        refetch();
-                      } catch (err) {
-                        toast({
-                          title: 'Erro',
-                          description: 'Erro ao atualizar favorito',
-                          variant: 'destructive',
-                        });
-                      }
-                    }}
-                    className={plan.favorite ? "text-yellow-400" : ""}
+                    onClick={() => handleEdit(plan)}
+                    className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-100 bg-white shadow-sm"
                   >
-                    <Star className={`w-4 h-4 mr-2 ${plan.favorite ? 'fill-yellow-400' : ''}`} />
-                    {plan.favorite ? 'Remover dos Favoritos' : 'Favoritar'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setTemplatePlanId(plan.id);
-                      setSaveTemplateOpen(true);
-                    }}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar como Template
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDuplicatePlanInactive}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Duplicar
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Ver Detalhes
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleEdit(plan)}>
-                    <Edit className="w-4 h-4 mr-2" />
+                    <Edit className="w-3 h-3 mr-1.5" />
                     Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => handleDelete(plan.id, plan.name)}
-                    className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleDuplicatePlanInactive}
+                    className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-100 bg-white shadow-sm"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Deletar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <Copy className="w-3 h-3 mr-1.5" />
+                    Duplicar
+                  </Button>
                 </div>
-            </div>
+              </div>
             </div>
           </CardContent>
         </Card>

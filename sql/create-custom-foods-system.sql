@@ -3,7 +3,7 @@
 
 -- 1. Criar tabela de alimentos customizados
 CREATE TABLE IF NOT EXISTS custom_foods (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   calories_per_100g NUMERIC(10, 2) NOT NULL DEFAULT 0,

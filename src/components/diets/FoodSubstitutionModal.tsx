@@ -23,6 +23,7 @@ interface Food {
   protein_per_100g: number;
   carbs_per_100g: number;
   fats_per_100g: number;
+  is_custom?: boolean;
 }
 
 interface FoodSubstitutionModalProps {

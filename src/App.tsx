@@ -42,7 +42,6 @@ const TeamMeetings = lazy(() => import("./pages/TeamMeetings"));
 const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
 const PublicPortal = lazy(() => import("./pages/PublicPortal"));
-const CustomFoods = lazy(() => import("./pages/CustomFoods"));
 
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
@@ -215,11 +214,6 @@ const App = () => (
           <Route path="/patients/:patientId/diet-plan/:planId/edit" element={
             <Suspense fallback={<PageLoader />}>
                 <DietPlanEditor />
-              </Suspense>
-          } />
-          <Route path="/custom-foods" element={
-            <Suspense fallback={<PageLoader />}>
-                <CustomFoods />
               </Suspense>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

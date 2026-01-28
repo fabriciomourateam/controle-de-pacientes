@@ -128,29 +128,34 @@ export function CustomFoodModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border-green-500/30 bg-white text-[#222222]">
+        <DialogHeader className="pb-4 border-b border-gray-200">
+          <DialogTitle className="text-[#222222]">
             {food ? "Editar Alimento" : "Adicionar Alimento"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[#777777]">
             {food
               ? "Atualize as informações do alimento customizado."
               : "Adicione um novo alimento ao seu banco de dados pessoal."}
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto min-h-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-1">
             {/* Nome */}
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Alimento *</FormLabel>
+                  <FormLabel className="text-[#222222]">Nome do Alimento *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Frango Grelhado Caseiro" {...field} />
+                    <Input 
+                      placeholder="Ex: Frango Grelhado Caseiro" 
+                      className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -164,9 +169,15 @@ export function CustomFoodModal({
                 name="calories_per_100g"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Calorias (por 100g) *</FormLabel>
+                    <FormLabel className="text-[#222222]">Calorias (por 100g) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="165" {...field} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="165" 
+                        className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -178,9 +189,15 @@ export function CustomFoodModal({
                 name="protein_per_100g"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proteínas (g/100g) *</FormLabel>
+                    <FormLabel className="text-[#222222]">Proteínas (g/100g) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="31" {...field} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="31" 
+                        className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,9 +209,15 @@ export function CustomFoodModal({
                 name="carbs_per_100g"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Carboidratos (g/100g) *</FormLabel>
+                    <FormLabel className="text-[#222222]">Carboidratos (g/100g) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0" {...field} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0" 
+                        className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -206,9 +229,15 @@ export function CustomFoodModal({
                 name="fats_per_100g"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gorduras (g/100g) *</FormLabel>
+                    <FormLabel className="text-[#222222]">Gorduras (g/100g) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="3.6" {...field} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="3.6" 
+                        className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -220,11 +249,17 @@ export function CustomFoodModal({
                 name="fiber_per_100g"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fibras (g/100g)</FormLabel>
+                    <FormLabel className="text-[#222222]">Fibras (g/100g)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0" {...field} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0" 
+                        className="border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        {...field} 
+                      />
                     </FormControl>
-                    <FormDescription>Opcional</FormDescription>
+                    <FormDescription className="text-[#777777]">Opcional</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -235,22 +270,22 @@ export function CustomFoodModal({
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoria</FormLabel>
+                    <FormLabel className="text-[#222222]">Categoria</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="border-green-500/30 bg-white text-[#222222] focus:border-green-500 focus:ring-0 focus:ring-offset-0">
                           <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-white border-green-500/30">
                         {allCategories.map((category) => (
-                          <SelectItem key={category} value={category}>
+                          <SelectItem key={category} value={category} className="text-[#222222] focus:bg-green-500/10">
                             {category}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription>Opcional</FormDescription>
+                    <FormDescription className="text-[#777777]">Opcional</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -263,16 +298,16 @@ export function CustomFoodModal({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notas/Observações</FormLabel>
+                  <FormLabel className="text-[#222222]">Notas/Observações</FormLabel>
                   <FormControl>
-                    <Textarea
+                      <Textarea
                       placeholder="Ex: Preparado sem óleo, apenas grelhado"
-                      className="resize-none"
+                      className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                       rows={3}
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>Opcional</FormDescription>
+                  <FormDescription className="text-[#777777]">Opcional</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -283,10 +318,10 @@ export function CustomFoodModal({
               control={form.control}
               name="is_favorite"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-green-500/30 p-4 bg-white">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Marcar como Favorito</FormLabel>
-                    <FormDescription>
+                    <FormLabel className="text-base text-[#222222]">Marcar como Favorito</FormLabel>
+                    <FormDescription className="text-[#777777]">
                       Alimentos favoritos aparecem no topo da lista
                     </FormDescription>
                   </div>
@@ -297,20 +332,24 @@ export function CustomFoodModal({
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="pt-4 border-t border-gray-200 mt-4">
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
               >
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button 
+                type="submit"
+                className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
+              >
                 {food ? "Atualizar" : "Adicionar"}
               </Button>
             </DialogFooter>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

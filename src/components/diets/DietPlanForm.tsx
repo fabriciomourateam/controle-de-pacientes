@@ -445,13 +445,20 @@ export function DietPlanForm({
         firstFoods: foods?.slice(0, 3).map((f: any) => f.name) || []
       });
       
-      // Buscar alimentos customizados do usuário
-      console.log('📡 [DietPlanForm] Buscando alimentos customizados...');
-      const { customFoodsService } = await import("@/lib/custom-foods-service");
-      const customFoods = await customFoodsService.getCustomFoods();
-      console.log('📦 [DietPlanForm] Alimentos customizados:', {
-        count: customFoods?.length || 0,
-      });
+      // Buscar alimentos customizados do usuário (se a tabela existir)
+      let customFoods: any[] = [];
+      try {
+        console.log('📡 [DietPlanForm] Buscando alimentos customizados...');
+        const { customFoodsService } = await import("@/lib/custom-foods-service");
+        customFoods = await customFoodsService.getCustomFoods();
+        console.log('📦 [DietPlanForm] Alimentos customizados:', {
+          count: customFoods?.length || 0,
+        });
+      } catch (error: any) {
+        // Se a tabela não existir, continuar sem alimentos customizados
+        console.warn('⚠️ [DietPlanForm] Não foi possível carregar alimentos customizados (tabela pode não existir):', error.message);
+        customFoods = [];
+      }
       
       // Converter alimentos customizados para o formato do banco de dados
       const customFoodsFormatted = customFoods.map((food) => ({
@@ -874,9 +881,20 @@ export function DietPlanForm({
     }
     
     // Se NÃO temos macros originais, tentar buscar no banco de dados
-    const selectedFood = foodDatabase.find((f) => 
+    // Busca flexível: exata primeiro, depois parcial
+    let selectedFood = foodDatabase.find((f) => 
       f.name.toLowerCase() === foodName.toLowerCase()
     );
+
+    // Se não encontrou exato, tentar busca parcial (primeira palavra)
+    if (!selectedFood) {
+      const cleanName = foodName.split(/[,\(]/)[0].trim();
+      const firstWord = cleanName.split(' ')[0];
+      selectedFood = foodDatabase.find((f) => 
+        f.name.toLowerCase().startsWith(firstWord.toLowerCase()) ||
+        f.name.toLowerCase().includes(cleanName.toLowerCase())
+      );
+    }
 
     if (selectedFood) {
       // Alimento encontrado no banco, usar valores do banco
@@ -902,14 +920,25 @@ export function DietPlanForm({
       });
     } else {
       // Alimento NÃO está no banco E não temos macros originais
-      // Armazenar os valores atuais como referência original
+      // Se temos macros atuais, usar eles como referência para recalcular proporcionalmente
       if (currentCalories > 0 || currentProtein > 0 || currentCarbs > 0 || currentFats > 0) {
+        // Se já temos uma quantidade original armazenada, recalcular proporcionalmente
+        const storedQuantity = originalQuantitiesRef.current.get(foodKey);
+        if (storedQuantity && storedQuantity > 0) {
+          const ratio = currentQuantity / storedQuantity;
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, Math.round(currentCalories * ratio));
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, Math.round(currentProtein * ratio * 10) / 10);
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, Math.round(currentCarbs * ratio * 10) / 10);
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, Math.round(currentFats * ratio * 10) / 10);
+        }
+        
+        // Armazenar os valores atuais como referência original
         originalQuantitiesRef.current.set(foodKey, currentQuantity);
         originalMacrosRef.current.set(foodKey, {
-          calories: currentCalories,
-          protein: currentProtein,
-          carbs: currentCarbs,
-          fats: currentFats,
+          calories: form.getValues(`meals.${mealIndex}.foods.${foodIndex}.calories`),
+          protein: form.getValues(`meals.${mealIndex}.foods.${foodIndex}.protein`),
+          carbs: form.getValues(`meals.${mealIndex}.foods.${foodIndex}.carbs`),
+          fats: form.getValues(`meals.${mealIndex}.foods.${foodIndex}.fats`),
         });
       }
     }
@@ -920,33 +949,51 @@ export function DietPlanForm({
   };
 
   const handleFoodSelect = async (mealIndex: number, foodIndex: number, foodName: string) => {
-    const selectedFood = foodDatabase.find((f) => f.name === foodName);
+    // Busca flexível: exata primeiro, depois parcial
+    let selectedFood = foodDatabase.find((f) => f.name === foodName);
+    
+    // Se não encontrou exato, tentar busca case-insensitive
+    if (!selectedFood) {
+      selectedFood = foodDatabase.find((f) => f.name.toLowerCase() === foodName.toLowerCase());
+    }
+    
+    // Se ainda não encontrou, tentar busca parcial
+    if (!selectedFood) {
+      const cleanName = foodName.split(/[,\(]/)[0].trim();
+      const firstWord = cleanName.split(' ')[0];
+      selectedFood = foodDatabase.find((f) => 
+        f.name.toLowerCase().startsWith(firstWord.toLowerCase()) ||
+        f.name.toLowerCase().includes(cleanName.toLowerCase())
+      );
+    }
+    
     if (selectedFood) {
       const quantity = form.watch(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 100;
       const multiplier = quantity / 100;
 
       // Armazenar quantidade original quando alimento é selecionado do banco
       const foodKey = `${mealIndex}_${foodIndex}`;
-      originalQuantitiesRef.current.set(foodKey, quantity);
+      
+      // Calorias arredondadas para inteiro, macros com 1 casa decimal
+      const newCalories = Math.round(selectedFood.calories_per_100g * multiplier);
+      const newProtein = Math.round(selectedFood.protein_per_100g * multiplier * 10) / 10;
+      const newCarbs = Math.round(selectedFood.carbs_per_100g * multiplier * 10) / 10;
+      const newFats = Math.round(selectedFood.fats_per_100g * multiplier * 10) / 10;
 
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.food_name`, selectedFood.name);
-      // Calorias arredondadas para inteiro, macros com 1 casa decimal
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.calories`,
-        Math.round(selectedFood.calories_per_100g * multiplier)
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.protein`,
-        Math.round(selectedFood.protein_per_100g * multiplier * 10) / 10
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.carbs`,
-        Math.round(selectedFood.carbs_per_100g * multiplier * 10) / 10
-      );
-      form.setValue(
-        `meals.${mealIndex}.foods.${foodIndex}.fats`,
-        Math.round(selectedFood.fats_per_100g * multiplier * 10) / 10
-      );
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, newCalories);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, newProtein);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, newCarbs);
+      form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, newFats);
+
+      // Armazenar macros originais para recalcular quando quantidade mudar
+      originalQuantitiesRef.current.set(foodKey, quantity);
+      originalMacrosRef.current.set(foodKey, {
+        calories: newCalories,
+        protein: newProtein,
+        carbs: newCarbs,
+        fats: newFats,
+      });
 
       // Registrar uso e favorito
       try {
@@ -2853,19 +2900,8 @@ export function DietPlanForm({
             }
           }}
           onFoodSaved={async () => {
-            // Recarregar banco de alimentos
-            try {
-              const { data } = await supabase
-                .from('food_database')
-                .select('*')
-                .eq('is_active', true)
-                .order('name');
-              if (data) {
-                setFoodDatabase(data);
-              }
-            } catch (error) {
-              console.error('Erro ao recarregar banco de alimentos:', error);
-            }
+            // Recarregar banco de alimentos (incluindo customizados)
+            await loadFoodDatabase(true);
           }}
         />
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Save, X } from 'lucide-react';
+import { Search, Loader2, Save, X, Plus, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { foodSuggestionsService } from '@/lib/diet-food-suggestions-service';
 import { Sparkles } from 'lucide-react';
 import FoodCacheService from '@/lib/food-cache-service';
+import { CustomFoodModal } from '@/components/diets/CustomFoodModal';
+import { CustomFoodsImportModal } from '@/components/diets/CustomFoodsImportModal';
+import { customFoodsService, CreateCustomFoodInput } from '@/lib/custom-foods-service';
 
 interface Food {
   id?: string;
@@ -22,6 +25,7 @@ interface Food {
   protein_per_100g: number;
   carbs_per_100g: number;
   fats_per_100g: number;
+  is_custom?: boolean;
 }
 
 interface FoodSelectionModalProps {
@@ -58,6 +62,9 @@ export function FoodSelectionModal({
   const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [customFoodModalOpen, setCustomFoodModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -67,12 +74,59 @@ export function FoodSelectionModal({
       setFilteredFoods([]);
       // Carregar sugestões inteligentes quando o modal abrir
       loadSuggestions();
+      // Carregar categorias para o modal de alimentos personalizados
+      loadCategories();
       // Focar no input quando o modal abrir
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
   }, [open, mealType, existingFoods, targetCalories, targetProtein, targetCarbs, targetFats]);
+
+  const loadCategories = async () => {
+    try {
+      const cats = await customFoodsService.getCategories();
+      setCategories(cats);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
+
+  const handleCreateCustomFood = async (data: CreateCustomFoodInput) => {
+    try {
+      await customFoodsService.createCustomFood(data);
+      toast({
+        title: 'Alimento personalizado criado!',
+        description: `${data.name} foi adicionado à sua lista.`,
+      });
+      setCustomFoodModalOpen(false);
+      onFoodSaved?.();
+      
+      // Recarregar o banco de alimentos para incluir o novo alimento
+      // O componente pai precisa recarregar a foodDatabase
+      if (onFoodSaved) {
+        onFoodSaved();
+      }
+    } catch (error: any) {
+      console.error('Erro ao criar alimento personalizado:', error);
+      const errorMessage = error.message || 'Não foi possível criar o alimento personalizado';
+      
+      // Verificar se é erro de tabela não existente
+      if (errorMessage.includes('não foi criada') || errorMessage.includes('does not exist') || errorMessage.includes('404')) {
+        toast({
+          title: 'Tabela não encontrada',
+          description: 'A tabela de alimentos personalizados precisa ser criada. Execute o script SQL: create-custom-foods-system.sql no Supabase.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Erro ao criar alimento',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
+    }
+  };
 
   const loadSuggestions = async () => {
     if (!mealType) return;
@@ -218,10 +272,35 @@ export function FoodSelectionModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border-green-500/30 bg-white text-[#222222]">
         <DialogHeader className="pb-4 border-b border-gray-200">
-          <DialogTitle className="text-[#222222]">Selecionar Alimento</DialogTitle>
-          <DialogDescription className="text-[#777777]">
-            Digite o nome do alimento para buscar ou criar um novo
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-[#222222]">Selecionar Alimento</DialogTitle>
+              <DialogDescription className="text-[#777777]">
+                Digite o nome do alimento para buscar ou criar um novo
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => setImportModalOpen(true)}
+                variant="outline"
+                size="sm"
+                className="border-green-500/30 text-[#00C98A] hover:bg-green-50"
+                title="Importar alimentos do Excel"
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setCustomFoodModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Personalizado
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col min-h-0">
@@ -276,7 +355,7 @@ export function FoodSelectionModal({
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                  <div className="font-medium text-[#222222] flex items-center gap-2">
+                                  <div className="font-medium text-[#222222] flex items-center gap-2 flex-wrap">
                                     {food.name}
                                     <span className="text-xs font-normal text-[#00C98A] bg-green-500/10 px-2 py-0.5 rounded">
                                       {suggestion.match_score}% match
@@ -386,6 +465,26 @@ export function FoodSelectionModal({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Modal de Criar Alimento Personalizado */}
+      <CustomFoodModal
+        open={customFoodModalOpen}
+        onOpenChange={setCustomFoodModalOpen}
+        onSubmit={handleCreateCustomFood}
+        categories={categories}
+      />
+
+      {/* Modal de Importar Alimentos do Excel */}
+      <CustomFoodsImportModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImportSuccess={() => {
+          onFoodSaved?.();
+          if (onFoodSaved) {
+            onFoodSaved();
+          }
+        }}
+      />
     </Dialog>
   );
 }
