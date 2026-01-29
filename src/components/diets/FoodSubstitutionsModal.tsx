@@ -203,34 +203,8 @@ export function FoodSubstitutionsModal({
         return;
       }
 
-      // Se não encontrou, tentar busca exata no banco principal
-      let { data, error } = await supabase
-        .from('food_database')
-        .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
-        .ilike('name', originalFoodName)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
-
-      // Se não encontrar, tentar busca parcial com primeira palavra
-      if (!data || error) {
-        const cleanName = originalFoodName.split(/[,\(]/)[0].trim();
-        const firstWords = cleanName.split(' ').slice(0, 2).join(' ');
-        
-        const result = await supabase
-          .from('food_database')
-          .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
-          .ilike('name', `%${firstWords}%`)
-          .eq('is_active', true)
-          .limit(1)
-          .maybeSingle();
-        
-        data = result.data;
-        error = result.error;
-      }
-
-      // Se ainda não encontrou, tentar buscar em custom_foods
-      if (!data || error) {
+      // Se ainda não encontrou, tentar buscar em custom_foods primeiro (mais seguro)
+      if (!foundInDatabase) {
         try {
           const { customFoodsService } = await import("@/lib/custom-foods-service");
           const customFood = await customFoodsService.searchByName(originalFoodName);
@@ -249,9 +223,30 @@ export function FoodSubstitutionsModal({
         }
       }
 
-      if (!error && data) {
-        setOriginalFoodData(data);
-      } else {
+      // Se ainda não encontrou, tentar busca exata no banco principal (apenas se necessário)
+      if (!foundInDatabase) {
+        try {
+          // Escapar caracteres especiais para evitar erro 406
+          const escapedName = originalFoodName.replace(/[+()]/g, '\\$&');
+          const { data, error } = await supabase
+            .from('food_database')
+            .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
+            .ilike('name', escapedName)
+            .eq('is_active', true)
+            .limit(1)
+            .maybeSingle();
+
+          if (!error && data) {
+            setOriginalFoodData(data);
+            return;
+          }
+        } catch (dbError) {
+          console.warn('Erro ao buscar no food_database:', dbError);
+        }
+      }
+
+      // Se não encontrou em lugar nenhum, definir como null
+      if (!foundInDatabase) {
         setOriginalFoodData(null);
       }
     } catch (error) {
@@ -296,34 +291,8 @@ export function FoodSubstitutionsModal({
         return;
       }
 
-      // Se não encontrou, tentar busca exata no banco principal
-      let { data, error } = await supabase
-        .from('food_database')
-        .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
-        .ilike('name', foodName)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
-
-      // Se não encontrar, tentar busca parcial
-      if (!data || error) {
-        const cleanName = foodName.split(/[,\(]/)[0].trim();
-        const firstWords = cleanName.split(' ').slice(0, 2).join(' ');
-        
-        const result = await supabase
-          .from('food_database')
-          .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
-          .ilike('name', `%${firstWords}%`)
-          .eq('is_active', true)
-          .limit(1)
-          .maybeSingle();
-        
-        data = result.data;
-        error = result.error;
-      }
-
-      // Se ainda não encontrou, tentar buscar em custom_foods
-      if (!data || error) {
+      // Se ainda não encontrou, tentar buscar em custom_foods primeiro (mais seguro)
+      if (!foundInDatabase) {
         try {
           const { customFoodsService } = await import("@/lib/custom-foods-service");
           // Tentar busca exata primeiro
@@ -362,14 +331,34 @@ export function FoodSubstitutionsModal({
         }
       }
 
-      if (!error && data) {
-        setSubstitutionsFoodData(prev => {
-          const newMap = new Map(prev);
-          newMap.set(index, data);
-          return newMap;
-        });
-      } else {
-        // Se não encontrou em lugar nenhum, definir como null para não mostrar macros
+      // Se ainda não encontrou, tentar busca no banco principal (apenas se necessário)
+      if (!foundInDatabase) {
+        try {
+          // Escapar caracteres especiais para evitar erro 406
+          const escapedName = foodName.replace(/[+()]/g, '\\$&');
+          const { data, error } = await supabase
+            .from('food_database')
+            .select('name, calories_per_100g, protein_per_100g, carbs_per_100g, fats_per_100g')
+            .ilike('name', escapedName)
+            .eq('is_active', true)
+            .limit(1)
+            .maybeSingle();
+
+          if (!error && data) {
+            setSubstitutionsFoodData(prev => {
+              const newMap = new Map(prev);
+              newMap.set(index, data);
+              return newMap;
+            });
+            return;
+          }
+        } catch (dbError) {
+          console.warn('Erro ao buscar no food_database:', dbError);
+        }
+      }
+
+      // Se não encontrou em lugar nenhum, definir como null para não mostrar macros
+      if (!foundInDatabase) {
         setSubstitutionsFoodData(prev => {
           const newMap = new Map(prev);
           newMap.set(index, null as any);

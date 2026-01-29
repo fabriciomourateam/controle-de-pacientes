@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from './auth-helpers';
 
 export interface UserPreferences {
   id?: string;
@@ -31,8 +32,15 @@ export interface PatientViewPreferences {
 }
 
 class UserPreferencesService {
-  // Gerar um ID único do usuário baseado no navegador/sessão
-  private getUserId(): string {
+  // Obter o ID do usuário autenticado do Supabase
+  // Se não estiver autenticado, usa fallback para localStorage (compatibilidade)
+  private async getUserId(): Promise<string> {
+    const supabaseUserId = await getCurrentUserId();
+    if (supabaseUserId) {
+      return supabaseUserId;
+    }
+    
+    // Fallback para desenvolvimento ou quando não há autenticação
     let userId = localStorage.getItem('user_session_id');
     if (!userId) {
       userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -43,28 +51,179 @@ class UserPreferencesService {
 
   // Buscar preferências do usuário
   async getUserPreferences(): Promise<UserPreferences | null> {
-    const userId = this.getUserId();
+    const supabaseUserId = await getCurrentUserId();
+    const localStorageUserId = localStorage.getItem('user_session_id');
+    
+    console.log('🔍 [UserPreferences] Buscando preferências:', {
+      supabaseUserId,
+      localStorageUserId
+    });
     
     try {
-      // Primeiro tenta buscar sem .single() para ver se a tabela existe
-      const { data: allData, error: listError } = await supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', userId);
+      // Primeiro tenta buscar com o user_id do Supabase (novo formato)
+      if (supabaseUserId) {
+        const { data: supabaseData, error: supabaseError } = await supabase
+          .from('user_preferences')
+          .select('*')
+          .eq('user_id', supabaseUserId);
 
-      if (listError) {
-        console.error('Erro na consulta da tabela user_preferences:', listError);
-        throw listError;
+        if (!supabaseError && supabaseData && supabaseData.length > 0) {
+          const prefs = supabaseData[0];
+          const hasRenewals = prefs?.filters?.sent_renewals && prefs.filters.sent_renewals.length > 0;
+          
+          console.log('✅ [UserPreferences] Encontradas preferências com Supabase user_id:', {
+            user_id: prefs.user_id,
+            sent_renewals_count: prefs?.filters?.sent_renewals?.length || 0,
+            sent_renewals: prefs?.filters?.sent_renewals || [],
+            filters_keys: Object.keys(prefs?.filters || {}),
+            hasRenewals
+          });
+          
+          // Se não tem renovações, buscar em outras preferências do mesmo usuário
+          if (!hasRenewals) {
+            console.log('🔍 [UserPreferences] Nenhuma renovação encontrada, buscando em outras preferências...');
+            
+            // Buscar todas as preferências que tenham sent_renewals (pode ser de user_id antigo)
+            const { data: allPrefsWithRenewals, error: searchError } = await supabase
+              .from('user_preferences')
+              .select('*')
+              .not('filters->sent_renewals', 'is', null);
+            
+            if (!searchError && allPrefsWithRenewals && allPrefsWithRenewals.length > 0) {
+              console.log('🔍 [UserPreferences] Encontradas outras preferências com sent_renewals:', {
+                count: allPrefsWithRenewals.length,
+                user_ids: allPrefsWithRenewals.map(p => p.user_id),
+                renewals_counts: allPrefsWithRenewals.map(p => p?.filters?.sent_renewals?.length || 0)
+              });
+              
+              // Tentar encontrar preferências que possam ser do mesmo usuário
+              // (por exemplo, se o user_id antigo está relacionado de alguma forma)
+              for (const otherPref of allPrefsWithRenewals) {
+                if (otherPref.user_id !== supabaseUserId && otherPref.filters?.sent_renewals?.length > 0) {
+                  console.log('🔄 [UserPreferences] Encontradas renovações em outro user_id, migrando...', {
+                    other_user_id: otherPref.user_id,
+                    renewals_count: otherPref.filters.sent_renewals.length
+                  });
+                  
+                  // Mesclar renovações
+                  const mergedRenewals = [
+                    ...(prefs?.filters?.sent_renewals || []),
+                    ...(otherPref.filters.sent_renewals || [])
+                  ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicatas
+                  
+                  const mergedFilters = {
+                    ...prefs.filters,
+                    sent_renewals: mergedRenewals
+                  };
+                  
+                  const { data: updatedPrefs, error: updateError } = await supabase
+                    .from('user_preferences')
+                    .update({
+                      filters: mergedFilters,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', supabaseUserId)
+                    .select()
+                    .single();
+                  
+                  if (!updateError && updatedPrefs) {
+                    console.log('✅ [UserPreferences] Renovações migradas com sucesso:', {
+                      total_renewals: mergedRenewals.length
+                    });
+                    return updatedPrefs;
+                  }
+                }
+              }
+            }
+          }
+          
+          return prefs;
+        }
+
+        console.log('⚠️ [UserPreferences] Nenhuma preferência encontrada com Supabase user_id, tentando localStorage...');
+
+        // Se não encontrou com Supabase ID, tenta buscar com localStorage ID (dados antigos)
+        if (localStorageUserId) {
+          const { data: oldData, error: oldError } = await supabase
+            .from('user_preferences')
+            .select('*')
+            .eq('user_id', localStorageUserId);
+
+          if (!oldError && oldData && oldData.length > 0) {
+            console.log('🔄 [UserPreferences] Encontradas preferências antigas, migrando...', {
+              oldUserId: localStorageUserId,
+              newUserId: supabaseUserId,
+              sent_renewals: oldData[0]?.filters?.sent_renewals?.length || 0
+            });
+            
+            const oldPreferences = oldData[0];
+            
+            // Criar/atualizar com o novo user_id, mesclando com dados existentes se houver
+            const { data: existingNewData } = await supabase
+              .from('user_preferences')
+              .select('*')
+              .eq('user_id', supabaseUserId)
+              .maybeSingle();
+
+            // Mesclar dados antigos com novos (se existirem)
+            const mergedFilters = {
+              ...(existingNewData?.filters || {}),
+              ...oldPreferences.filters,
+              // Garantir que sent_renewals seja mesclado (união de arrays)
+              sent_renewals: [
+                ...(existingNewData?.filters?.sent_renewals || []),
+                ...(oldPreferences.filters?.sent_renewals || [])
+              ].filter((v, i, a) => a.indexOf(v) === i) // Remove duplicatas
+            };
+
+            const { data: migratedData, error: migrateError } = await supabase
+              .from('user_preferences')
+              .upsert({
+                user_id: supabaseUserId,
+                filters: mergedFilters,
+                sorting: oldPreferences.sorting || existingNewData?.sorting,
+                visible_columns: oldPreferences.visible_columns || existingNewData?.visible_columns,
+                page_size: oldPreferences.page_size || existingNewData?.page_size,
+                read_notifications: oldPreferences.read_notifications || existingNewData?.read_notifications,
+                updated_at: new Date().toISOString()
+              }, {
+                onConflict: 'user_id'
+              })
+              .select()
+              .single();
+
+            if (!migrateError && migratedData) {
+              console.log('✅ [UserPreferences] Migração concluída:', {
+                sent_renewals: migratedData?.filters?.sent_renewals?.length || 0
+              });
+              return migratedData;
+            } else if (migrateError) {
+              console.error('❌ [UserPreferences] Erro na migração:', migrateError);
+            }
+          } else {
+            console.log('ℹ️ [UserPreferences] Nenhuma preferência encontrada com localStorage user_id');
+          }
+        }
+      } else {
+        console.log('⚠️ [UserPreferences] Usuário não autenticado, usando localStorage user_id');
+        // Se não há Supabase user_id, usar localStorage (fallback)
+        if (localStorageUserId) {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('user_preferences')
+            .select('*')
+            .eq('user_id', localStorageUserId);
+
+          if (!fallbackError && fallbackData && fallbackData.length > 0) {
+            return fallbackData[0];
+          }
+        }
       }
 
-      if (!allData || allData.length === 0) {
-        return null;
-      }
-
-      const data = allData[0]; // Pega o primeiro resultado
-      return data;
+      // Se não encontrou nada, retorna null
+      console.log('ℹ️ [UserPreferences] Nenhuma preferência encontrada');
+      return null;
     } catch (error) {
-      console.error('Erro na consulta de preferências:', error);
+      console.error('❌ [UserPreferences] Erro na consulta de preferências:', error);
       return null;
     }
   }
@@ -92,16 +251,24 @@ class UserPreferencesService {
 
   // Criar ou atualizar preferências
   async upsertUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
-    const userId = this.getUserId();
+    const supabaseUserId = await getCurrentUserId();
+    const userId = supabaseUserId || await this.getUserId(); // Usar Supabase ID se disponível
+    
+    // Primeiro, buscar preferências existentes (isso também faz a migração se necessário)
+    const existingPrefs = await this.getUserPreferences();
     
     try {
+      // Mesclar preferências existentes com as novas
+      const mergedPreferences = {
+        ...(existingPrefs || {}),
+        ...preferences,
+        user_id: userId, // Garantir que sempre use o user_id correto
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('user_preferences')
-        .upsert({
-          user_id: userId,
-          ...preferences,
-          updated_at: new Date().toISOString()
-        }, {
+        .upsert(mergedPreferences, {
           onConflict: 'user_id'
         })
         .select()

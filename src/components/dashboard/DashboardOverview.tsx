@@ -13,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PatientForm } from "@/components/forms/PatientForm";
 import { AutoSyncManager } from "@/components/auto-sync/AutoSyncManager";
 import { InteractiveChart } from "./InteractiveChart";
@@ -38,7 +45,9 @@ import {
   Save,
   Plus,
   FileText,
-  Trash2
+  Trash2,
+  MoreVertical,
+  CheckCircle2
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
@@ -82,6 +91,7 @@ export function DashboardOverview() {
   const [isSendingRenewal, setIsSendingRenewal] = useState(false);
   const [sentRenewals, setSentRenewals] = useState<Set<string>>(new Set());
   const [isLoadingRenewals, setIsLoadingRenewals] = useState(true);
+  const [hideSentRenewals, setHideSentRenewals] = useState(false);
   
   // Estados para múltiplos templates de renovação
   const [renewalTemplates, setRenewalTemplates] = useState<RenewalTemplate[]>([]);
@@ -102,13 +112,27 @@ export function DashboardOverview() {
         setIsLoadingRenewals(true);
         const preferences = await userPreferencesService.getUserPreferences();
         
+        console.log('📋 [DashboardOverview] Preferências carregadas:', {
+          hasPreferences: !!preferences,
+          hasFilters: !!preferences?.filters,
+          filtersKeys: preferences?.filters ? Object.keys(preferences.filters) : [],
+          sent_renewals: preferences?.filters?.sent_renewals,
+          sent_renewals_count: preferences?.filters?.sent_renewals?.length || 0
+        });
+        
         if (preferences?.filters) {
           // Carregar lista de renovações enviadas
           if (preferences.filters.sent_renewals) {
             const renewalsArray = Array.isArray(preferences.filters.sent_renewals) 
               ? preferences.filters.sent_renewals 
               : [];
+            console.log('✅ [DashboardOverview] Carregando renovações enviadas:', {
+              arrayLength: renewalsArray.length,
+              renewals: renewalsArray
+            });
             setSentRenewals(new Set(renewalsArray));
+          } else {
+            console.log('⚠️ [DashboardOverview] Nenhuma renovação enviada encontrada em preferences.filters.sent_renewals');
           }
           
           // Carregar templates de renovação
@@ -321,6 +345,30 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
     const defaultMessage = await getDefaultRenewalMessage(patient.nome || '');
     setRenewalMessage(defaultMessage);
     setRenewalModalOpen(true);
+  };
+
+  // Função para marcar como enviado manualmente (sem enviar mensagem)
+  const handleMarkAsSent = async (patientId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevenir navegação ao clicar no botão
+    
+    try {
+      // Marcar como enviado e salvar no banco
+      const updatedRenewals = new Set(sentRenewals).add(patientId);
+      setSentRenewals(updatedRenewals);
+      await saveSentRenewals(updatedRenewals);
+      
+      toast({
+        title: "Sucesso",
+        description: "Paciente marcado como enviado!",
+      });
+    } catch (error) {
+      console.error('Erro ao marcar como enviado:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível marcar como enviado. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Função para enviar renovação
@@ -628,13 +676,28 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
         {/* Ações Necessárias */}
         <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:border-amber-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
-              Ação Necessária
-            </CardTitle>
-            <CardDescription className="text-slate-400">
-              Pacientes vencidos e expirando nos próximos 7 dias
-            </CardDescription>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+                  Ação Necessária
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Pacientes vencidos e expirando nos próximos 7 dias
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <Label htmlFor="hide-sent-renewals" className="text-sm text-slate-400 cursor-pointer">
+                  Ocultar enviados
+                </Label>
+                <Switch
+                  id="hide-sent-renewals"
+                  checked={hideSentRenewals}
+                  onCheckedChange={setHideSentRenewals}
+                  className="data-[state=checked]:bg-emerald-600"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {expiringLoading ? (
@@ -642,13 +705,24 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                 <div className="animate-spin w-8 h-8 mx-auto mb-2 border-2 border-primary border-t-transparent rounded-full"></div>
                 Carregando...
               </div>
-            ) : expiringPatients.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle className="w-8 h-8 mx-auto mb-2 text-success" />
-                Nenhuma ação necessária no momento!
-              </div>
-            ) : (
-              expiringPatients.map((patient) => (
+            ) : (() => {
+              // Filtrar pacientes baseado no filtro de ocultar enviados
+              const filteredPatients = hideSentRenewals 
+                ? expiringPatients.filter(patient => !sentRenewals.has(patient.id))
+                : expiringPatients;
+              
+              if (filteredPatients.length === 0) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-success" />
+                    {hideSentRenewals 
+                      ? "Nenhuma ação necessária (renovações enviadas ocultas)!" 
+                      : "Nenhuma ação necessária no momento!"}
+                  </div>
+                );
+              }
+              
+              return filteredPatients.map((patient) => (
                 <div 
                   key={patient.id} 
                   onClick={() => handlePatientClick(patient.id)}
@@ -695,20 +769,43 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                         Enviado
                       </Button>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-blue-600/60 text-blue-200 border-blue-500 hover:bg-blue-600/80 hover:text-blue-100 font-semibold"
-                        onClick={(e) => handleOpenRenewalModal(patient, e)}
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1" />
-                        Renovação
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-blue-600/60 text-blue-200 border-blue-500 hover:bg-blue-600/80 hover:text-blue-100 font-semibold"
+                          onClick={(e) => handleOpenRenewalModal(patient, e)}
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Renovação
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700/50"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                            <DropdownMenuItem
+                              onClick={(e) => handleMarkAsSent(patient.id, e)}
+                              className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Marcar como enviado
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     )}
                   </div>
                 </div>
-              ))
-            )}
+              ));
+            })()}
           </CardContent>
         </Card>
 

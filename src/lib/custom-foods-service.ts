@@ -221,15 +221,61 @@ class CustomFoodsService {
    */
   async searchByName(name: string): Promise<CustomFood | null> {
     try {
-      const { data, error } = await supabase
-        .from("custom_foods")
-        .select("*")
-        .ilike("name", name)
-        .limit(1)
-        .single();
+      const cleanName = name.trim();
+      if (!cleanName) return null;
 
-      if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
-      return data || null;
+      // Primeiro, tentar busca exata (case-insensitive)
+      try {
+        const { data: exactData, error: exactError } = await supabase
+          .from("custom_foods")
+          .select("*")
+          .ilike("name", cleanName)
+          .limit(1)
+          .maybeSingle();
+
+        if (!exactError && exactData) {
+          return exactData;
+        }
+      } catch (exactErr) {
+        // Continuar para busca parcial se busca exata falhar
+      }
+
+      // Se não encontrou exato, tentar busca parcial (contém)
+      try {
+        const { data: partialData, error: partialError } = await supabase
+          .from("custom_foods")
+          .select("*")
+          .ilike("name", `%${cleanName}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (!partialError && partialData) {
+          return partialData;
+        }
+      } catch (partialErr) {
+        // Continuar para busca por primeira palavra se busca parcial falhar
+      }
+
+      // Se ainda não encontrou, tentar busca pela primeira palavra
+      const firstWord = cleanName.split(' ')[0];
+      if (firstWord && firstWord.length >= 3) {
+        try {
+          const { data: wordData, error: wordError } = await supabase
+            .from("custom_foods")
+            .select("*")
+            .ilike("name", `${firstWord}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (!wordError && wordData) {
+            return wordData;
+          }
+        } catch (wordErr) {
+          // Se todas as buscas falharem, retornar null
+        }
+      }
+
+      return null;
     } catch (error) {
       console.error("Erro ao buscar alimento por nome:", error);
       return null;
