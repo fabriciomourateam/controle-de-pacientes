@@ -73,7 +73,7 @@ export function DashboardOverview() {
   const { data: expiringPatients = [], isLoading: expiringLoading } = useExpiringPatients();
   const { data: recentCheckinsFromHook = [], isLoading: checkinsLoadingFromHook } = useRecentFeedbacks();
   const { data: recentCheckins = [], isLoading: checkinsLoading } = useCheckinsWithPatient();
-  
+
   const metrics = metricsData || {
     totalPatients: 0,
     activePatients: 0,
@@ -84,7 +84,7 @@ export function DashboardOverview() {
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinWithPatient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLegendMinimized, setIsLegendMinimized] = useState(true);
-  
+
   // Estados para modal de renovação
   const [renewalModalOpen, setRenewalModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
@@ -93,7 +93,7 @@ export function DashboardOverview() {
   const [sentRenewals, setSentRenewals] = useState<Set<string>>(new Set());
   const [isLoadingRenewals, setIsLoadingRenewals] = useState(true);
   const [hideSentRenewals, setHideSentRenewals] = useState(true);
-  
+
   // Estados para múltiplos templates de renovação
   const [renewalTemplates, setRenewalTemplates] = useState<RenewalTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -113,7 +113,7 @@ export function DashboardOverview() {
       try {
         setIsLoadingRenewals(true);
         const preferences = await userPreferencesService.getUserPreferences();
-        
+
         console.log('📋 [DashboardOverview] Preferências carregadas:', {
           hasPreferences: !!preferences,
           hasFilters: !!preferences?.filters,
@@ -121,12 +121,12 @@ export function DashboardOverview() {
           sent_renewals: preferences?.filters?.sent_renewals,
           sent_renewals_count: preferences?.filters?.sent_renewals?.length || 0
         });
-        
+
         if (preferences?.filters) {
           // Carregar lista de renovações enviadas
           if (preferences.filters.sent_renewals) {
-            const renewalsArray = Array.isArray(preferences.filters.sent_renewals) 
-              ? preferences.filters.sent_renewals 
+            const renewalsArray = Array.isArray(preferences.filters.sent_renewals)
+              ? preferences.filters.sent_renewals
               : [];
             console.log('✅ [DashboardOverview] Carregando renovações enviadas:', {
               arrayLength: renewalsArray.length,
@@ -136,7 +136,7 @@ export function DashboardOverview() {
           } else {
             console.log('⚠️ [DashboardOverview] Nenhuma renovação enviada encontrada em preferences.filters.sent_renewals');
           }
-          
+
           // Carregar templates de renovação (várias chaves possíveis nas preferências)
           const rawTemplates = preferences.filters.renewal_templates
             ?? preferences.filters.renewal_message_templates
@@ -171,10 +171,10 @@ export function DashboardOverview() {
             }
           }
           if (templates.length > 0) setRenewalTemplates(templates);
-          
+
           // Migrar template antigo para novo formato se existir
-          if (preferences.filters.renewal_message_template && 
-              (!preferences.filters.renewal_templates || preferences.filters.renewal_templates.length === 0)) {
+          if (preferences.filters.renewal_message_template &&
+            (!preferences.filters.renewal_templates || preferences.filters.renewal_templates.length === 0)) {
             const legacyTemplate: RenewalTemplate = {
               id: crypto.randomUUID(),
               title: "Mensagem Padrão",
@@ -200,7 +200,7 @@ export function DashboardOverview() {
     try {
       const preferences = await userPreferencesService.getUserPreferences();
       const currentFilters = preferences?.filters || {};
-      
+
       await userPreferencesService.upsertUserPreferences({
         filters: {
           ...currentFilters,
@@ -217,7 +217,7 @@ export function DashboardOverview() {
     try {
       const preferences = await userPreferencesService.getUserPreferences();
       const currentFilters = preferences?.filters || {};
-      
+
       await userPreferencesService.upsertUserPreferences({
         filters: {
           ...currentFilters,
@@ -253,22 +253,22 @@ export function DashboardOverview() {
       // Salvar template no banco (usando placeholder {nome} para o primeiro nome)
       const firstName = selectedPatient?.nome?.split(' ')[0] || '{nome}';
       const template = renewalMessage.replace(new RegExp(firstName, 'gi'), '{nome}');
-      
+
       const newTemplate: RenewalTemplate = {
         id: crypto.randomUUID(),
         title: newTemplateTitle.trim(),
         message: template
       };
-      
+
       const updatedTemplates = [...renewalTemplates, newTemplate];
       setRenewalTemplates(updatedTemplates);
       await saveRenewalTemplates(updatedTemplates);
-      
+
       // Limpar campos e fechar seção
       setNewTemplateTitle("");
       setShowSaveTemplate(false);
       setSelectedTemplateId(newTemplate.id);
-      
+
       toast({
         title: "Sucesso",
         description: `Template "${newTemplate.title}" salvo com sucesso!`,
@@ -335,11 +335,11 @@ export function DashboardOverview() {
       const updatedTemplates = renewalTemplates.filter(t => t.id !== templateId);
       setRenewalTemplates(updatedTemplates);
       await saveRenewalTemplates(updatedTemplates);
-      
+
       if (selectedTemplateId === templateId) {
         setSelectedTemplateId("");
       }
-      
+
       toast({
         title: "Sucesso",
         description: "Template excluído com sucesso!",
@@ -357,13 +357,13 @@ export function DashboardOverview() {
   // Selecionar template
   const handleSelectTemplate = (templateId: string) => {
     setSelectedTemplateId(templateId);
-    
+
     if (templateId === "new") {
       // Carregar mensagem padrão para novo template
       getDefaultRenewalMessage(selectedPatient?.nome || '').then(setRenewalMessage);
       return;
     }
-    
+
     const template = renewalTemplates.find(t => t.id === templateId);
     if (template) {
       const firstName = selectedPatient?.nome?.split(' ')[0] || 'amigo';
@@ -375,10 +375,10 @@ export function DashboardOverview() {
   // Função para obter mensagem padrão (do banco ou padrão do código)
   const getDefaultRenewalMessage = async (patientName: string): Promise<string> => {
     const firstName = patientName?.split(' ')[0] || 'amigo';
-    
+
     try {
       const preferences = await userPreferencesService.getUserPreferences();
-      
+
       // Tentar carregar do banco
       if (preferences?.filters?.renewal_message_template) {
         const template = preferences.filters.renewal_message_template;
@@ -388,7 +388,7 @@ export function DashboardOverview() {
     } catch (error) {
       console.error('Erro ao carregar template do banco:', error);
     }
-    
+
     // Mensagem padrão do código
     return `Falaaa ${firstName}, como vc ta?
 
@@ -416,7 +416,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
     e.stopPropagation(); // Prevenir navegação ao clicar no botão
     setSelectedPatient(patient);
     setEditingTemplateId(null);
-    
+
     // Carregar mensagem padrão do banco
     const defaultMessage = await getDefaultRenewalMessage(patient.nome || '');
     setRenewalMessage(defaultMessage);
@@ -426,13 +426,13 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
   // Função para marcar como enviado manualmente (sem enviar mensagem)
   const handleMarkAsSent = async (patientId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevenir navegação ao clicar no botão
-    
+
     try {
       // Marcar como enviado e salvar no banco
       const updatedRenewals = new Set(sentRenewals).add(patientId);
       setSentRenewals(updatedRenewals);
       await saveSentRenewals(updatedRenewals);
-      
+
       toast({
         title: "Sucesso",
         description: "Paciente marcado como enviado!",
@@ -481,7 +481,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
       const updatedRenewals = new Set(sentRenewals).add(selectedPatient.id);
       setSentRenewals(updatedRenewals);
       await saveSentRenewals(updatedRenewals);
-      
+
       toast({
         title: "Sucesso",
         description: "Mensagem de renovação enviada com sucesso!",
@@ -572,7 +572,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.1s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-0.5 group" style={{ animationDelay: '0.1s' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Pacientes Ativos</CardTitle>
             <Activity className="h-4 w-4 text-green-400 group-hover:scale-110 transition-transform" />
@@ -588,7 +588,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.2s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/20 hover:-translate-y-0.5 group" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Expirando (30 dias)</CardTitle>
             <AlertTriangle className="h-4 w-4 text-amber-400 animate-pulse group-hover:scale-110 transition-transform" />
@@ -603,7 +603,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-red-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.3s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-red-500/20 hover:-translate-y-0.5 group" style={{ animationDelay: '0.3s' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Checkins Pendentes</CardTitle>
             <MessageSquare className="h-4 w-4 text-red-400 animate-pulse group-hover:scale-110 transition-transform" />
@@ -618,7 +618,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-0.5 group" style={{animationDelay: '0.4s'}}>
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700/40 hover:from-slate-700/60 hover:to-slate-800/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-0.5 group" style={{ animationDelay: '0.4s' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Score Médio</CardTitle>
             <Star className="h-4 w-4 text-purple-400 group-hover:scale-110 transition-transform" />
@@ -675,42 +675,42 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                       dataKey="value"
                     >
                       {safePlanDistribution.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
+                        <Cell
+                          key={`cell-${index}`}
                           fill={entry.color}
                           stroke="rgba(255, 255, 255, 0.1)"
                           strokeWidth={1}
                         />
                       ))}
                     </Pie>
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'rgba(0, 0, 0, 0.95)',
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      borderRadius: '12px',
-                      color: '#ffffff !important',
-                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.7)',
-                      backdropFilter: 'blur(10px)'
-                    }}
-                    formatter={(value: any, name: any) => [
-                      `${value} pacientes`,
-                      name
-                    ]}
-                    labelStyle={{
-                      color: '#ffffff !important',
-                      fontWeight: '700',
-                      fontSize: '15px'
-                    }}
-                    itemStyle={{
-                      color: '#ffffff !important'
-                    }}
-                    cursor={{ fill: 'rgba(59, 130, 246, 0.2)' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '12px',
+                        color: '#ffffff !important',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.7)',
+                        backdropFilter: 'blur(10px)'
+                      }}
+                      formatter={(value: any, name: any) => [
+                        `${value} pacientes`,
+                        name
+                      ]}
+                      labelStyle={{
+                        color: '#ffffff !important',
+                        fontWeight: '700',
+                        fontSize: '15px'
+                      }}
+                      itemStyle={{
+                        color: '#ffffff !important'
+                      }}
+                      cursor={{ fill: 'rgba(59, 130, 246, 0.2)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               )}
             </div>
-            
+
             {/* Legenda personalizada */}
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
@@ -728,13 +728,13 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                   )}
                 </Button>
               </div>
-              
+
               {!isLegendMinimized && planDistribution && planDistribution.length > 0 && (
                 <div className="grid grid-cols-2 gap-2">
                   {planDistribution.map((entry, index) => (
                     <div key={`legend-${entry.name}-${index}`} className="flex items-center gap-2 text-sm">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
+                      <div
+                        className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: entry.color }}
                       />
                       <span className="text-slate-300 truncate">{entry.name}</span>
@@ -783,25 +783,31 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
               </div>
             ) : (() => {
               // Filtrar pacientes baseado no filtro de ocultar enviados
-              const filteredPatients = hideSentRenewals 
+              const filteredPatients = hideSentRenewals
                 ? expiringPatients.filter(patient => !sentRenewals.has(patient.id))
                 : expiringPatients;
-              
+
               if (filteredPatients.length === 0) {
                 return (
                   <div className="text-center py-8 text-muted-foreground">
                     <CheckCircle className="w-8 h-8 mx-auto mb-2 text-success" />
-                    {hideSentRenewals 
-                      ? "Nenhuma ação necessária (renovações enviadas ocultas)!" 
+                    {hideSentRenewals
+                      ? "Nenhuma ação necessária (renovações enviadas ocultas)!"
                       : "Nenhuma ação necessária no momento!"}
                   </div>
                 );
               }
-              
+
               return filteredPatients.map((patient) => (
-                <div 
-                  key={patient.id} 
-                  onClick={() => handlePatientClick(patient.id)}
+                <div
+                  key={patient.id}
+                  onClick={() => {
+                    if (patient.telefone) {
+                      navigate(`/checkins/evolution/${patient.telefone}`);
+                    } else {
+                      handlePatientClick(patient.id);
+                    }
+                  }}
                   className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-md hover:shadow-amber-500/10"
                 >
                   <div className="flex items-center gap-3">
@@ -818,17 +824,17 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={
-                        patient.dias_para_vencer <= 0 
-                          ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                        patient.dias_para_vencer <= 0
+                          ? "bg-red-500/20 text-red-400 border-red-500/30"
                           : "bg-amber-500/20 text-amber-400 border-amber-500/30"
                       }
                     >
-                      {patient.dias_para_vencer === 0 
-                        ? 'Vencido hoje' 
-                        : patient.dias_para_vencer < 0 
+                      {patient.dias_para_vencer === 0
+                        ? 'Vencido hoje'
+                        : patient.dias_para_vencer < 0
                           ? `${Math.abs(patient.dias_para_vencer)}d atrasado`
                           : `${patient.dias_para_vencer}d restantes`
                       }
@@ -909,8 +915,8 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
               </div>
             ) : (
               recentCheckins.slice(0, 5).map((checkin, index) => (
-                <div 
-                  key={checkin.id} 
+                <div
+                  key={checkin.id}
                   className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-xl hover:from-slate-600/40 hover:to-slate-700/40 transition-all duration-300 border border-slate-600/30 hover:border-blue-500/40 hover:scale-[1.02] hover:shadow-md hover:shadow-blue-500/10 cursor-pointer"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
@@ -925,21 +931,21 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                         {checkin.patient?.nome || 'Paciente não informado'}
                       </p>
                       <p className="text-xs text-slate-400">
-                        {checkin.data_preenchimento ? new Date(checkin.data_preenchimento).toLocaleDateString('pt-BR') : 
-                         checkin.data_checkin ? new Date(checkin.data_checkin).toLocaleDateString('pt-BR') : 'Data não informada'}
+                        {checkin.data_preenchimento ? new Date(checkin.data_preenchimento).toLocaleDateString('pt-BR') :
+                          checkin.data_checkin ? new Date(checkin.data_checkin).toLocaleDateString('pt-BR') : 'Data não informada'}
                         {checkin.peso && ` • Peso: ${checkin.peso}kg`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                     >
                       {checkin.total_pontuacao ? `${checkin.total_pontuacao} pts` : 'N/A'}
                     </Badge>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="ghost"
                       onClick={() => handleViewCheckin(checkin)}
                       className="text-slate-400 hover:text-white hover:bg-slate-700/50"
@@ -1000,8 +1006,8 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                       </span>
                     </SelectItem>
                     {renewalTemplates.map((template) => (
-                      <SelectItem 
-                        key={template.id} 
+                      <SelectItem
+                        key={template.id}
                         value={template.id}
                         className="text-white hover:bg-slate-700"
                       >

@@ -5,13 +5,13 @@ import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { 
-  Settings, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X, 
+import {
+  Settings,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
   Check,
   Sparkles,
   Eye
@@ -66,16 +66,8 @@ Nome: {patientName}
 - Seja direto e enxuto, sem repetir demais as mesmas informações;
 - IMPORTANTE - Hidratação (Água): Considere que 2,5 litros ou mais já está adequado. Só reforce para melhorar quando estiver em 2 litros ou menos.
 - IMPORTANTE - Sono: Considere que 6 horas ou mais já está adequado. Só reforce para melhorar quando estiver abaixo de 6 horas.
-- IMPORTANTE - Formatação: Quebre as frases em linhas separadas. Cada frase deve terminar com ponto final e começar em uma nova linha. Não coloque múltiplas frases na mesma linha. Exemplo: ao invés de "Cara, evolução top heim! Peso desceu 4kg bixo, e ainda melhorou nas medidas pra caramba - perdeu 3cm! Parabéns mano, literalmente outro físico!", escreva:
-Cara, evolução top heim! 
-Peso desceu 4kg bixo, e ainda melhorou nas medidas pra caramba - perdeu 3cm! 
-Parabéns mano, literalmente outro físico!
-- Não repita métricas já ditas (exemplo: quantos treinos e cardios fez, quantas refeições livres fez, quanto de água bebeu, quanto tempo de sono);
-- Não descreva alimentos específicos, apenas estratégias;
-- Não dê sugestões sobre os treinos e cardios;
-- Use gírias leves que eu costumo usar: show, top, perfeito;
-- Evite termos: arrasou, tentar, acho;
-- Dê espaçamento de linhas a cada duas frases com pontos finais.
+- IMPORTANTE - Formatação: Organize o texto em parágrafos curtos e fluídos. Não quebre a linha em cada frase individual; em vez disso, agrupe ideias relacionadas em parágrafos de 2 a 3 frases para garantir uma leitura agradável no celular.
+- Use espaçamento duplo apenas entre seções ou parágrafos distintos.
 
 *Formato de saída esperado:*
 📌 *FEEDBACK DO CHECK-IN*
@@ -176,11 +168,10 @@ Se tiver alguma dúvida pode me mandar aqui`
             {templates.map((template) => (
               <div
                 key={template.id}
-                className={`p-4 rounded-lg border transition-colors ${
-                  template.is_active 
-                    ? 'bg-blue-900/30 border-blue-500/50' 
+                className={`p-4 rounded-lg border transition-colors ${template.is_active
+                    ? 'bg-blue-900/30 border-blue-500/50'
                     : 'bg-slate-700/30 border-slate-600/50 hover:bg-slate-700/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -239,7 +230,7 @@ Se tiver alguma dúvida pode me mandar aqui`
                 </div>
               </div>
             ))}
-            
+
             <Button
               onClick={handleCreateNew}
               variant="outline"
@@ -262,7 +253,7 @@ Se tiver alguma dúvida pode me mandar aqui`
                 Configure seu template de prompt personalizado para gerar feedbacks únicos.
               </DialogDescription>
             </DialogHeader>
-            
+
             {editingTemplate && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -377,7 +368,7 @@ Se tiver alguma dúvida pode me mandar aqui`
                       </>
                     )}
                   </Button>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       onClick={() => setIsModalOpen(false)}

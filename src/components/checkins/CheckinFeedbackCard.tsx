@@ -315,6 +315,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     checkPreviousPhotos();
   }, [previousCheckinId]);
 
+  // Função para limpar excesso de quebras de linha no feedback
+  const cleanFeedback = useCallback((text: string): string => {
+    return text
+      .replace(/\n{3,}/g, '\n\n') // Substituir 3 ou mais quebras por apenas 2
+      .replace(/[ \t]{2,}/g, ' ') // Substituir espaços/tabs múltiplos por um único espaço
+      .trim();
+  }, []);
+
   const handleGenerateFeedback = useCallback(async () => {
     if (!activeTemplate) {
       toast.error('Nenhum template ativo encontrado');
@@ -329,9 +337,9 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     );
 
     if (feedback) {
-      setGeneratedFeedback(feedback);
+      setGeneratedFeedback(cleanFeedback(feedback));
     }
-  }, [activeTemplate, checkin.patient?.nome, observedImprovements, dietAdjustments, generateFeedback]);
+  }, [activeTemplate, checkin.patient?.nome, observedImprovements, dietAdjustments, generateFeedback, cleanFeedback]);
 
   const handleSaveAnnotations = useCallback(async () => {
     if (!checkin || !patientId) {
@@ -830,8 +838,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         size="sm"
                         onClick={() => setShowAproveitamento(!showAproveitamento)}
                         className={`text-xs h-7 px-3 font-semibold border transition-all ${showAproveitamento
-                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:text-amber-300 hover:bg-amber-500/30 hover:border-amber-500/50 shadow-sm shadow-amber-500/10'
-                            : 'bg-slate-700/30 text-slate-400 border-slate-600/30 hover:text-slate-300 hover:bg-slate-700/50 hover:border-slate-600/50'
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:text-amber-300 hover:bg-amber-500/30 hover:border-amber-500/50 shadow-sm shadow-amber-500/10'
+                          : 'bg-slate-700/30 text-slate-400 border-slate-600/30 hover:text-slate-300 hover:bg-slate-700/50 hover:border-slate-600/50'
                           }`}
                         title={showAproveitamento ? "Ocultar linha de Aproveitamento" : "Mostrar linha de Aproveitamento"}
                       >
@@ -1767,8 +1775,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                       )}
                                     </td>
                                     <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.tempo_treino_diferenca !== null && evolutionData.tempo_treino_diferenca !== undefined
-                                        ? (evolutionData.tempo_treino_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
-                                        : 'text-slate-400'
+                                      ? (evolutionData.tempo_treino_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
+                                      : 'text-slate-400'
                                       }`}>
                                       {evolutionData.tempo_treino_diferenca !== null && evolutionData.tempo_treino_diferenca !== undefined
                                         ? (evolutionData.tempo_treino_diferenca !== 0
@@ -1896,8 +1904,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                       )}
                                     </td>
                                     <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.tempo_cardio_diferenca !== null && evolutionData.tempo_cardio_diferenca !== undefined
-                                        ? (evolutionData.tempo_cardio_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
-                                        : 'text-slate-400'
+                                      ? (evolutionData.tempo_cardio_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
+                                      : 'text-slate-400'
                                       }`}>
                                       {evolutionData.tempo_cardio_diferenca !== null && evolutionData.tempo_cardio_diferenca !== undefined
                                         ? (evolutionData.tempo_cardio_diferenca !== 0
@@ -2026,8 +2034,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                     </td>
                                     {/* Coluna de evolução */}
                                     <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.descanso_diferenca !== null && evolutionData.descanso_diferenca !== undefined
-                                        ? (evolutionData.descanso_diferenca > 0 ? 'text-green-400' : evolutionData.descanso_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
-                                        : 'text-slate-400'
+                                      ? (evolutionData.descanso_diferenca > 0 ? 'text-green-400' : evolutionData.descanso_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
+                                      : 'text-slate-400'
                                       }`}>
                                       {evolutionData.descanso_diferenca !== null && evolutionData.descanso_diferenca !== undefined
                                         ? (evolutionData.descanso_diferenca !== 0
@@ -2558,8 +2566,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                             }
                                           }}
                                           className={`text-[10px] h-5 px-1.5 ${hasPhotos
-                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                              : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
+                                            ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                            : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
                                             }`}
                                           title={hasPhotos ? `Ver fotos de ${new Date(historicCheckin.data_checkin).toLocaleDateString('pt-BR')}` : 'Sem fotos'}
                                         >
@@ -2586,8 +2594,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                             }
                                           }}
                                           className={`text-xs h-6 px-2 ${hasInitialPhotos
-                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                              : 'text-slate-500 cursor-not-allowed opacity-50'
+                                            ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                            : 'text-slate-500 cursor-not-allowed opacity-50'
                                             }`}
                                           disabled={!hasInitialPhotos}
                                           title={hasInitialPhotos ? 'Ver fotos iniciais' : 'Sem fotos iniciais'}
@@ -2614,8 +2622,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                             }
                                           }}
                                           className={`text-xs h-6 px-2 ${previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4
-                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                            ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                                             }`}
                                           title="Ver fotos do check-in anterior"
                                         >
@@ -2647,8 +2655,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                             }
                                           }}
                                           className={`text-xs h-6 px-2 ${previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4
-                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                              : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
+                                            ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                            : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
                                             }`}
                                           title="Ver fotos do penúltimo check-in"
                                         >
@@ -2673,8 +2681,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                             }
                                           }}
                                           className={`text-xs h-6 px-2 ${hasPreviousPhotos
-                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                            ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                                             }`}
                                           title={hasPreviousPhotos ? "Ver fotos do check-in anterior (há fotos)" : "Ver fotos do check-in anterior"}
                                         >
@@ -2698,8 +2706,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                         setShowPhotosViewer(true);
                                       }}
                                       className={`text-xs h-6 px-2 ${hasCurrentPhotos
-                                          ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                                         }`}
                                       title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
                                     >
@@ -2833,8 +2841,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                       )}
                                     </td>
                                     <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.peso_diferenca !== null && evolutionData.peso_diferenca !== undefined
-                                        ? (evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
-                                        : 'text-slate-400'
+                                      ? (evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
+                                      : 'text-slate-400'
                                       }`}>
                                       {evolutionData.peso_diferenca !== null && evolutionData.peso_diferenca !== undefined
                                         ? `${evolutionData.peso_diferenca > 0 ? '+' : ''}${evolutionData.peso_diferenca}kg`
@@ -2921,8 +2929,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                       )}
                                     </td>
                                     <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cintura_diferenca !== null && evolutionData.cintura_diferenca !== undefined
-                                        ? (evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
-                                        : 'text-slate-400'
+                                      ? (evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
+                                      : 'text-slate-400'
                                       }`}>
                                       {evolutionData.cintura_diferenca !== null && evolutionData.cintura_diferenca !== undefined
                                         ? `${evolutionData.cintura_diferenca > 0 ? '+' : ''}${evolutionData.cintura_diferenca}cm`
@@ -3005,8 +3013,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                       )}
                                     </td>
                                     <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.quadril_diferenca !== null && evolutionData.quadril_diferenca !== undefined
-                                        ? (evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
-                                        : 'text-slate-400'
+                                      ? (evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
+                                      : 'text-slate-400'
                                       }`}>
                                       {evolutionData.quadril_diferenca !== null && evolutionData.quadril_diferenca !== undefined
                                         ? `${evolutionData.quadril_diferenca > 0 ? '+' : ''}${evolutionData.quadril_diferenca}cm`
@@ -3466,8 +3474,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                         setShowPhotosViewer(true);
                                       }}
                                       className={`text-xs h-6 px-2 ${hasInitialPhotos
-                                          ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                                         }`}
                                       title={hasInitialPhotos ? "Ver fotos dos dados iniciais (há fotos)" : "Ver fotos dos dados iniciais"}
                                     >
@@ -3484,8 +3492,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                                         setShowPhotosViewer(true);
                                       }}
                                       className={`text-xs h-6 px-2 ${hasCurrentPhotos
-                                          ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                                         }`}
                                       title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
                                     >

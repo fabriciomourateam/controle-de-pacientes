@@ -16,6 +16,8 @@ interface PromptTemplate {
   ai_model: string;
   max_tokens: number;
   temperature: number;
+  is_active?: boolean;
+  is_default?: boolean;
 }
 
 // Cache para economizar tokens - Versão híbrida (memória + localStorage)
@@ -28,19 +30,19 @@ interface CacheEntry {
 class FeedbackCache {
   // Cache em memória para acesso rápido
   private memoryCache = new Map<string, CacheEntry>();
-  
+
   // Configurações
   private readonly STORAGE_KEY = 'checkin_feedback_cache_v1';
   private readonly CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 dias
   private readonly MAX_CACHE_SIZE = 100; // Limitar a 100 entradas
-  
+
   // Flag para carregar do localStorage apenas uma vez
   private storageCacheLoaded = false;
 
   generateHash(data: any): string {
     // Usar hash mais robusto e longo (32 caracteres) para evitar colisões
     const str = JSON.stringify(data);
-    
+
     // Primeira passada (esquerda para direita)
     let hash1 = 0;
     for (let i = 0; i < str.length; i++) {
@@ -48,7 +50,7 @@ class FeedbackCache {
       hash1 = ((hash1 << 5) - hash1) + char;
       hash1 = hash1 & hash1; // Convert to 32bit integer
     }
-    
+
     // Segunda passada (direita para esquerda) para mais robustez
     let hash2 = 0;
     for (let i = str.length - 1; i >= 0; i--) {
@@ -56,7 +58,7 @@ class FeedbackCache {
       hash2 = ((hash2 << 5) - hash2) + char;
       hash2 = hash2 & hash2;
     }
-    
+
     // Combinar hashes e retornar 32 caracteres
     const combined = Math.abs(hash1).toString(36) + Math.abs(hash2).toString(36);
     return combined.slice(0, 32).padEnd(32, '0');
@@ -109,7 +111,7 @@ class FeedbackCache {
   // Carregar cache do localStorage para memória (só uma vez)
   private loadStorageCacheToMemory(): void {
     if (this.storageCacheLoaded) return;
-    
+
     try {
       if (typeof window === 'undefined' || !window.localStorage) {
         this.storageCacheLoaded = true;
@@ -158,12 +160,12 @@ class FeedbackCache {
 
         const stored = localStorage.getItem(this.STORAGE_KEY);
         const data: Record<string, CacheEntry> = stored ? JSON.parse(stored) : {};
-        
+
         // Atualizar entrada
         data[hash] = entry;
 
         // Limitar tamanho (manter apenas os mais recentes)
-        const entries = Object.entries(data)
+        const entries: [string, CacheEntry][] = Object.entries(data)
           .sort((a, b) => b[1].timestamp - a[1].timestamp)
           .slice(0, this.MAX_CACHE_SIZE);
 
@@ -222,7 +224,7 @@ class FeedbackCache {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return;
 
-      const data = JSON.parse(stored);
+      const data: Record<string, CacheEntry> = JSON.parse(stored);
       const entries = Object.entries(data)
         .sort((a, b) => b[1].timestamp - a[1].timestamp)
         .slice(0, Math.floor(this.MAX_CACHE_SIZE / 2)); // Manter só metade
@@ -262,7 +264,7 @@ class FeedbackCache {
 
   getStats(): { size: number; oldestEntry: number | null; newestEntry: number | null } {
     const timestamps = Array.from(this.memoryCache.values()).map(e => e.timestamp);
-    
+
     return {
       size: this.memoryCache.size,
       oldestEntry: timestamps.length > 0 ? Math.min(...timestamps) : null,
@@ -274,15 +276,15 @@ class FeedbackCache {
 class CheckinFeedbackAI {
   private anthropic: Anthropic;
   private cache = new FeedbackCache();
-  
+
   constructor() {
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    
+
     if (!apiKey) {
       console.error('VITE_ANTHROPIC_API_KEY não está configurada. Configure a variável de ambiente.');
       throw new Error('Chave da API do Anthropic não configurada. Configure VITE_ANTHROPIC_API_KEY no arquivo .env.local ou nas variáveis de ambiente da Vercel.');
     }
-    
+
     this.anthropic = new Anthropic({
       apiKey: apiKey,
       dangerouslyAllowBrowser: true, // Permitir uso no browser
@@ -297,7 +299,7 @@ class CheckinFeedbackAI {
       'claude-sonnet-4-5-20250929': 'claude-sonnet-4-5-20250929',
       'claude-sonnet-4.5': 'claude-sonnet-4-5-20250929',
       'claude-sonnet-4-5': 'claude-sonnet-4-5-20250929',
-      
+
       // Modelos anteriores (migrar para Sonnet 4.5)
       'claude-3-7-sonnet-20250219': 'claude-sonnet-4-5-20250929',
       'claude-3-5-sonnet-20241022': 'claude-sonnet-4-5-20250929',
@@ -305,28 +307,28 @@ class CheckinFeedbackAI {
       'claude-3-5-sonnet': 'claude-sonnet-4-5-20250929',
       'claude-sonnet-4-20250514': 'claude-sonnet-4-5-20250929',
     };
-    
+
     // Se for um modelo Sonnet, usar o formato mais recente
     if (model.includes('sonnet')) {
       return modelMap[model] || 'claude-sonnet-4-5-20250929';
     }
-    
+
     // Manter outros modelos como estão
     return model;
   }
 
   async generateFeedback(
-    data: CheckinFeedbackData, 
+    data: CheckinFeedbackData,
     template: PromptTemplate
   ): Promise<string> {
     // Extrair identificadores únicos para garantir hash único por paciente + check-in
     const checkinId = data.checkinData?.id || data.checkinData?.checkin_id || 'no-id';
     const patientName = data.patientName || 'unknown';
     const checkinDate = data.checkinData?.data_checkin || '';
-    
+
     // Criar chave de cache com identificadores explícitos para evitar colisões
     // IMPORTANTE: Incluir o conteúdo do prompt no hash para invalidar cache quando o prompt for editado
-    const cacheKey = this.cache.generateHash({ 
+    const cacheKey = this.cache.generateHash({
       patient: patientName,
       checkinId: checkinId,
       checkinDate: checkinDate,
@@ -340,21 +342,21 @@ class CheckinFeedbackAI {
       templateMaxTokens: template.max_tokens, // ✅ Invalida cache se configurações mudarem
       templateTemperature: template.temperature // ✅ Invalida cache se temperatura mudar
     });
-    
+
     const cachedResult = this.cache.get(cacheKey);
-    
+
     if (cachedResult) {
       console.log('Usando feedback do cache');
       return cachedResult;
     }
 
     const prompt = this.buildPromptFromTemplate(data, template);
-    
+
     // Normalizar modelo para garantir que seja válido
     let normalizedModel = this.normalizeModel(template.ai_model);
     const originalModel = template.ai_model;
     const isSonnet = originalModel.includes('sonnet');
-    
+
     try {
       const response = await this.anthropic.messages.create({
         model: normalizedModel,
@@ -371,12 +373,12 @@ class CheckinFeedbackAI {
       if (firstContent.type !== 'text') {
         throw new Error('Resposta da IA não contém texto');
       }
-      
+
       const feedback = firstContent.text;
-      
+
       // Salvar no cache
       this.cache.set(cacheKey, feedback);
-      
+
       return feedback;
     } catch (error: any) {
       console.error('Erro ao gerar feedback:', error);
@@ -386,16 +388,16 @@ class CheckinFeedbackAI {
 
   private buildPromptFromTemplate(data: CheckinFeedbackData, template: PromptTemplate): string {
     let prompt = template.prompt_template;
-    
+
     // Substituir variáveis no template
     prompt = prompt.replace(/{patientName}/g, data.patientName || 'Paciente');
     prompt = prompt.replace(/{checkinData}/g, this.formatCheckinData(data.checkinData));
     prompt = prompt.replace(/{evolutionData}/g, this.formatEvolutionData(data.evolutionData));
-    
+
     // Enfatizar observações e ajustes quando preenchidos para garantir que a IA os use
     const hasObservations = data.observedImprovements && data.observedImprovements.trim().length > 0;
     const hasDietAdjustments = data.dietAdjustments && data.dietAdjustments.trim().length > 0;
-    
+
     if (hasObservations) {
       // Enfatizar observações quando preenchidas
       const emphasizedObservations = `\n⚠️ **ATENÇÃO - OBSERVAÇÕES IMPORTANTES DO NUTRICIONISTA:**\n${data.observedImprovements}\n\n*IMPORTANTE: Estas observações devem ser REFLETIDAS e MENCIONADAS no feedback, especialmente na seção de Progresso e Evolução e Pontos de Melhoria.*\n`;
@@ -403,7 +405,7 @@ class CheckinFeedbackAI {
     } else {
       prompt = prompt.replace(/{observedImprovements}/g, 'Nenhuma observação específica registrada.');
     }
-    
+
     if (hasDietAdjustments) {
       // Enfatizar ajustes quando preenchidos
       const emphasizedAdjustments = `\n⚠️ **ATENÇÃO - AJUSTES REALIZADOS NA DIETA:**\n${data.dietAdjustments}\n\n*IMPORTANTE: Estes ajustes devem ser DESTACADOS na seção "Ajustes no Planejamento" do feedback, explicando o motivo e em quais refeições foram feitas as modificações.*\n`;
@@ -411,22 +413,22 @@ class CheckinFeedbackAI {
     } else {
       prompt = prompt.replace(/{dietAdjustments}/g, 'Nenhum ajuste específico realizado.');
     }
-    
+
     // Adicionar instrução final reforçando o uso das observações e ajustes
     if (hasObservations || hasDietAdjustments) {
       const reinforcement = `\n\n*INSTRUÇÃO FINAL CRÍTICA:*\n- Se houver observações de melhoras preenchidas acima, elas DEVEM ser mencionadas e refletidas no feedback.\n- Se houver ajustes na dieta preenchidos acima, eles DEVEM ser destacados na seção de ajustes do feedback.\n- Não ignore ou omita essas informações - elas são essenciais para o feedback completo.\n`;
       prompt += reinforcement;
     }
-    
+
     return prompt;
   }
 
   private formatCheckinData(data: any): string {
     if (!data) return 'Dados do check-in não disponíveis.';
-    
+
     try {
       const formatted = [];
-      
+
       if (data.peso) {
         const peso = typeof data.peso === 'string' ? data.peso.replace(',', '.') : data.peso;
         formatted.push(`Peso: ${peso}kg`);
@@ -447,7 +449,7 @@ class CheckinFeedbackAI {
       if (data.stress) formatted.push(`Nível de stress: ${data.stress}`);
       if (data.total_pontuacao) formatted.push(`Pontuação total: ${data.total_pontuacao} pontos`);
       if (data.percentual_aproveitamento) formatted.push(`Aproveitamento: ${data.percentual_aproveitamento}%`);
-      
+
       // Novos campos alimentares
       if (data.oq_comeu_ref_livre) formatted.push(`O que comeu na refeição livre: ${data.oq_comeu_ref_livre}`);
       if (data.oq_beliscou) formatted.push(`O que beliscou: ${data.oq_beliscou}`);
@@ -455,7 +457,7 @@ class CheckinFeedbackAI {
       if (data.fome_horario) formatted.push(`Fome em algum horário: ${data.fome_horario}`);
       if (data.alimento_incluir) formatted.push(`Alimento para incluir: ${data.alimento_incluir}`);
       if (data.quais_pontos) formatted.push(`Quais pontos melhoraram: ${data.quais_pontos}`);
-      
+
       return formatted.length > 0 ? formatted.join('\n') : JSON.stringify(data, null, 2);
     } catch (error) {
       return JSON.stringify(data, null, 2);
@@ -464,24 +466,24 @@ class CheckinFeedbackAI {
 
   private formatEvolutionData(data: any): string {
     if (!data) return 'Dados comparativos não disponíveis.';
-    
+
     try {
       const formatted = [];
-      
+
       if (data.peso_diferenca !== undefined) {
         const sinal = data.peso_diferenca > 0 ? '+' : '';
         formatted.push(`Variação de peso: ${sinal}${data.peso_diferenca}kg`);
       }
-      
+
       if (data.cintura_diferenca !== undefined) {
         const sinal = data.cintura_diferenca > 0 ? '+' : '';
         formatted.push(`Variação medida: ${sinal}${data.cintura_diferenca}cm`);
       }
-      
+
       if (data.aderencia !== undefined) {
         formatted.push(`Aproveitamento geral: ${data.aderencia}%`);
       }
-      
+
       return formatted.length > 0 ? formatted.join('\n') : JSON.stringify(data, null, 2);
     } catch (error) {
       return JSON.stringify(data, null, 2);
