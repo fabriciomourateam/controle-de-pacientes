@@ -898,6 +898,7 @@ export type Database = {
           carbs: number | null
           fats: number | null
           instructions: string | null
+          exclude_from_macros: boolean | null
           created_at: string | null
         }
         Insert: {
@@ -912,6 +913,7 @@ export type Database = {
           carbs?: number | null
           fats?: number | null
           instructions?: string | null
+          exclude_from_macros?: boolean | null
           created_at?: string | null
         }
         Update: {
@@ -926,6 +928,7 @@ export type Database = {
           carbs?: number | null
           fats?: number | null
           instructions?: string | null
+          exclude_from_macros?: boolean | null
           created_at?: string | null
         }
         Relationships: []

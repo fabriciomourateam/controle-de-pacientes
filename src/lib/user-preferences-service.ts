@@ -68,7 +68,7 @@ class UserPreferencesService {
           .eq('user_id', supabaseUserId);
 
         if (!supabaseError && supabaseData && supabaseData.length > 0) {
-          const prefs = supabaseData[0];
+          let prefs = supabaseData[0];
           const hasRenewals = prefs?.filters?.sent_renewals && prefs.filters.sent_renewals.length > 0;
           
           console.log('✅ [UserPreferences] Encontradas preferências com Supabase user_id:', {
@@ -111,9 +111,17 @@ class UserPreferencesService {
                     ...(otherPref.filters.sent_renewals || [])
                   ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicatas
                   
+                  // Preservar renewal_templates de ambos (preferir o que tiver mais)
+                  const prefsTemplates = prefs?.filters?.renewal_templates;
+                  const otherTemplates = otherPref.filters?.renewal_templates;
+                  const mergedTemplates = Array.isArray(prefsTemplates) && prefsTemplates.length > 0
+                    ? prefsTemplates
+                    : (Array.isArray(otherTemplates) && otherTemplates.length > 0 ? otherTemplates : prefsTemplates || []);
+                  
                   const mergedFilters = {
                     ...prefs.filters,
-                    sent_renewals: mergedRenewals
+                    sent_renewals: mergedRenewals,
+                    renewal_templates: mergedTemplates
                   };
                   
                   const { data: updatedPrefs, error: updateError } = await supabase
@@ -134,6 +142,75 @@ class UserPreferencesService {
                   }
                 }
               }
+            }
+          }
+          
+          // Extrair templates de um objeto filters (qualquer chave que seja array ou objeto de modelos)
+          const extractTemplatesFromFilters = (filters: any): any[] => {
+            if (!filters || typeof filters !== 'object') return [];
+            const out: any[] = [];
+            for (const key of Object.keys(filters)) {
+              const val = filters[key];
+              if (Array.isArray(val)) {
+                for (const t of val) {
+                  if (!t || typeof t !== 'object') continue;
+                  const message = (t.message ?? t.content ?? t.text ?? t.body ?? '').toString().trim();
+                  const title = (t.title ?? t.name ?? t.label ?? '').toString().trim();
+                  if (message || title) out.push({ id: t.id || crypto.randomUUID(), title: title || 'Sem título', message });
+                }
+              } else if (val && typeof val === 'object' && !Array.isArray(val) && (val.message ?? val.content ?? val.title ?? val.name ?? val.body)) {
+                const message = (val.message ?? val.content ?? val.text ?? val.body ?? '').toString().trim();
+                const title = (val.title ?? val.name ?? val.label ?? '').toString().trim();
+                if (message || title) out.push({ id: val.id || crypto.randomUUID(), title: title || 'Sem título', message });
+              }
+            }
+            return out;
+          };
+
+          // Mesclar templates da própria linha (todas as chaves de filters que parecem templates)
+          const fromCurrentRow = extractTemplatesFromFilters(prefs.filters);
+          // Log para debug: quais chaves existem em filters (ajuda a achar onde os modelos estão)
+          const filterKeys = Object.keys(prefs.filters || {});
+          if (filterKeys.length) {
+            const keyInfo = filterKeys.map((k) => {
+              const v = (prefs.filters as any)[k];
+              const typ = Array.isArray(v) ? `array[${v.length}]` : typeof v;
+              return `${k}: ${typ}`;
+            });
+            console.log('📋 [UserPreferences] Chaves em filters:', keyInfo.join(', '));
+          }
+          const seen = new Set<string>();
+          const merged: any[] = [];
+          for (const t of fromCurrentRow) {
+            const key = `${t.title}|${t.message}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push(t);
+          }
+
+          // Também buscar em outras linhas (se RLS permitir)
+          const { data: allPrefs } = await supabase.from('user_preferences').select('user_id, filters');
+          if (allPrefs?.length) {
+            for (const row of allPrefs) {
+              const fromRow = extractTemplatesFromFilters(row.filters);
+              for (const t of fromRow) {
+                const key = `${t.title}|${t.message}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                merged.push(t);
+              }
+            }
+          }
+
+          const currentCount = Array.isArray(prefs.filters?.renewal_templates) ? prefs.filters.renewal_templates.length : 0;
+          if (merged.length > 0) {
+            const mergedFilters = { ...prefs.filters, renewal_templates: merged };
+            prefs = { ...prefs, filters: mergedFilters };
+            if (merged.length > currentCount) {
+              await supabase.from('user_preferences').update({
+                filters: mergedFilters,
+                updated_at: new Date().toISOString()
+              }).eq('user_id', supabaseUserId);
             }
           }
           

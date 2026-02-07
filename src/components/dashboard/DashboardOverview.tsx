@@ -47,7 +47,8 @@ import {
   FileText,
   Trash2,
   MoreVertical,
-  CheckCircle2
+  CheckCircle2,
+  Pencil
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
@@ -91,13 +92,14 @@ export function DashboardOverview() {
   const [isSendingRenewal, setIsSendingRenewal] = useState(false);
   const [sentRenewals, setSentRenewals] = useState<Set<string>>(new Set());
   const [isLoadingRenewals, setIsLoadingRenewals] = useState(true);
-  const [hideSentRenewals, setHideSentRenewals] = useState(false);
+  const [hideSentRenewals, setHideSentRenewals] = useState(true);
   
   // Estados para múltiplos templates de renovação
   const [renewalTemplates, setRenewalTemplates] = useState<RenewalTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [newTemplateTitle, setNewTemplateTitle] = useState("");
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
 
   const { monthlyData, planDistribution } = chartData || { monthlyData: [], planDistribution: [] };
 
@@ -135,13 +137,40 @@ export function DashboardOverview() {
             console.log('⚠️ [DashboardOverview] Nenhuma renovação enviada encontrada em preferences.filters.sent_renewals');
           }
           
-          // Carregar templates de renovação
-          if (preferences.filters.renewal_templates) {
-            const templates = Array.isArray(preferences.filters.renewal_templates)
-              ? preferences.filters.renewal_templates
-              : [];
-            setRenewalTemplates(templates);
+          // Carregar templates de renovação (várias chaves possíveis nas preferências)
+          const rawTemplates = preferences.filters.renewal_templates
+            ?? preferences.filters.renewal_message_templates
+            ?? preferences.filters.message_templates;
+          let templates: RenewalTemplate[] = [];
+          if (rawTemplates && Array.isArray(rawTemplates)) {
+            templates = rawTemplates.map((t: any) => ({
+              id: t.id || crypto.randomUUID(),
+              title: (t.title ?? t.name ?? 'Sem título').toString().trim(),
+              message: (t.message ?? t.content ?? '').toString().trim()
+            })).filter((t: RenewalTemplate) => t.message || t.title !== 'Sem título');
           }
+          // Fallback: procurar em TODAS as chaves de filters que tenham array de objetos com title/message e mesclar
+          if (templates.length === 0 && preferences.filters && typeof preferences.filters === 'object') {
+            const seen = new Set<string>();
+            for (const key of Object.keys(preferences.filters)) {
+              const val = (preferences.filters as any)[key];
+              if (!Array.isArray(val) || val.length === 0) continue;
+              const maybeTemplates = val.filter((x: any) => x && typeof x === 'object' && ((x.message ?? x.content ?? x.body ?? x.text ?? '') || (x.title ?? x.name ?? '')));
+              for (const t of maybeTemplates) {
+                const title = (t.title ?? t.name ?? 'Sem título').toString().trim();
+                const message = (t.message ?? t.content ?? t.body ?? t.text ?? '').toString().trim();
+                const key = `${title}|${message}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                templates.push({
+                  id: t.id || crypto.randomUUID(),
+                  title: title || 'Sem título',
+                  message
+                });
+              }
+            }
+          }
+          if (templates.length > 0) setRenewalTemplates(templates);
           
           // Migrar template antigo para novo formato se existir
           if (preferences.filters.renewal_message_template && 
@@ -254,6 +283,52 @@ export function DashboardOverview() {
     }
   };
 
+  // Editar template (abre o formulário de edição com título e mensagem atuais)
+  const handleStartEditTemplate = (templateId: string) => {
+    const template = renewalTemplates.find(t => t.id === templateId);
+    if (!template) return;
+    setEditingTemplateId(templateId);
+    setNewTemplateTitle(template.title);
+    const firstName = selectedPatient?.nome?.split(' ')[0] || 'amigo';
+    setRenewalMessage(template.message.replace(/\{nome\}/g, firstName));
+  };
+
+  // Salvar alterações no template em edição
+  const handleSaveEditTemplate = async () => {
+    if (!editingTemplateId || !newTemplateTitle.trim() || !renewalMessage.trim()) {
+      toast({
+        title: "Erro",
+        description: "Preencha o título e a mensagem.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const firstName = selectedPatient?.nome?.split(' ')[0] || '{nome}';
+    const messageToSave = renewalMessage.replace(new RegExp(firstName, 'gi'), '{nome}');
+    try {
+      const updatedTemplates = renewalTemplates.map(t =>
+        t.id === editingTemplateId
+          ? { ...t, title: newTemplateTitle.trim(), message: messageToSave }
+          : t
+      );
+      setRenewalTemplates(updatedTemplates);
+      await saveRenewalTemplates(updatedTemplates);
+      setEditingTemplateId(null);
+      setNewTemplateTitle("");
+      toast({
+        title: "Sucesso",
+        description: "Template atualizado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar template:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o template.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Deletar template
   const handleDeleteTemplate = async (templateId: string) => {
     try {
@@ -340,6 +415,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
   const handleOpenRenewalModal = async (patient: any, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevenir navegação ao clicar no botão
     setSelectedPatient(patient);
+    setEditingTemplateId(null);
     
     // Carregar mensagem padrão do banco
     const defaultMessage = await getDefaultRenewalMessage(patient.nome || '');
@@ -935,15 +1011,26 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                   </SelectContent>
                 </Select>
                 {selectedTemplateId && selectedTemplateId !== "new" && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleDeleteTemplate(selectedTemplateId)}
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                    title="Excluir template"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleStartEditTemplate(selectedTemplateId)}
+                      className="border-slate-500/50 text-slate-300 hover:bg-slate-700 hover:text-white"
+                      title="Editar template"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                      title="Excluir template"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -962,26 +1049,19 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
               />
             </div>
 
-            {/* Seção de Salvar Template (colapsável) */}
-            {!showSaveTemplate ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSaveTemplate(true)}
-                className="text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 w-full justify-start"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Salvar como novo template
-              </Button>
-            ) : (
-              <div className="bg-slate-900/50 rounded-lg p-3 space-y-3 border border-slate-700">
+            {/* Seção de Editar Template (quando editingTemplateId está definido) */}
+            {editingTemplateId ? (
+              <div className="bg-slate-900/50 rounded-lg p-3 space-y-3 border border-amber-500/30">
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-300 text-sm">Salvar como Template</Label>
+                  <Label className="text-slate-300 text-sm flex items-center gap-2">
+                    <Pencil className="w-4 h-4" />
+                    Editar template
+                  </Label>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setShowSaveTemplate(false);
+                      setEditingTemplateId(null);
                       setNewTemplateTitle("");
                     }}
                     className="text-slate-400 hover:text-slate-200 h-6 w-6 p-0"
@@ -993,19 +1073,67 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                   <Input
                     value={newTemplateTitle}
                     onChange={(e) => setNewTemplateTitle(e.target.value)}
-                    placeholder="Título do template (ex: Renovação VIP)"
+                    placeholder="Título do template"
                     className="flex-1 bg-slate-900 border-slate-600 text-white placeholder:text-slate-500"
                   />
                   <Button
-                    onClick={handleSaveNewTemplate}
+                    onClick={handleSaveEditTemplate}
                     disabled={!renewalMessage.trim() || !newTemplateTitle.trim()}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Salvar
+                    Salvar alterações
                   </Button>
                 </div>
               </div>
+            ) : (
+              <>
+                {/* Seção de Salvar Template (colapsável) */}
+                {!showSaveTemplate ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSaveTemplate(true)}
+                    className="text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 w-full justify-start"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Salvar como novo template
+                  </Button>
+                ) : (
+                  <div className="bg-slate-900/50 rounded-lg p-3 space-y-3 border border-slate-700">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-slate-300 text-sm">Salvar como Template</Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowSaveTemplate(false);
+                          setNewTemplateTitle("");
+                        }}
+                        className="text-slate-400 hover:text-slate-200 h-6 w-6 p-0"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newTemplateTitle}
+                        onChange={(e) => setNewTemplateTitle(e.target.value)}
+                        placeholder="Título do template (ex: Renovação VIP)"
+                        className="flex-1 bg-slate-900 border-slate-600 text-white placeholder:text-slate-500"
+                      />
+                      <Button
+                        onClick={handleSaveNewTemplate}
+                        disabled={!renewalMessage.trim() || !newTemplateTitle.trim()}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Info do Paciente */}
@@ -1024,6 +1152,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
                 setSelectedTemplateId("");
                 setShowSaveTemplate(false);
                 setNewTemplateTitle("");
+                setEditingTemplateId(null);
               }}
               className="border-slate-600 text-slate-300 hover:bg-slate-700"
             >

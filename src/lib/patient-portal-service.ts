@@ -81,11 +81,20 @@ export async function getOrCreatePatientToken(telefone: string): Promise<{ token
 }
 
 /**
- * Verificar se um token é válido e retornar o telefone do paciente
+ * Verificar se um token é válido e retornar o telefone do paciente.
+ * Usa RPC get_phone_from_portal_token para token do banco (anon não lê patient_portal_tokens por RLS).
  */
 export async function validateToken(token: string): Promise<string | null> {
   try {
-    // Verificar se é um token temporário do login (formato: base64 de "telefone:timestamp")
+    // 1) Token do banco (link enviado pelo nutri): validar via RPC (não lê patient_portal_tokens)
+    const { data: phoneFromRpc, error: rpcError } = await supabase.rpc('get_phone_from_portal_token', {
+      portal_token: token
+    });
+    if (!rpcError && phoneFromRpc && typeof phoneFromRpc === 'string') {
+      return phoneFromRpc;
+    }
+
+    // 2) Token temporário do login por telefone (formato: base64 de "telefone:timestamp")
     try {
       const decoded = atob(token);
       const [phone, timestamp] = decoded.split(':');
@@ -97,7 +106,7 @@ export async function validateToken(token: string): Promise<string | null> {
         
         // Token válido por 30 dias (para PWA funcionar bem)
         if (daysDiff < 30) {
-          // Verificar se o paciente existe
+          // Verificar se o paciente existe (RLS: só vê se telefone tem token ativo)
           const { data: patient } = await supabase
             .from('patients')
             .select('telefone')
@@ -110,54 +119,10 @@ export async function validateToken(token: string): Promise<string | null> {
         }
       }
     } catch (e) {
-      // Não é um token temporário, continuar com validação normal
+      // Não é um token temporário
     }
 
-    // Validação normal do token do banco
-    const { data, error } = await supabase
-      .from('patient_portal_tokens')
-      .select('telefone, expires_at, is_active')
-      .eq('token', token)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-
-    // Verificar se está ativo
-    if (!data.is_active) {
-      return null;
-    }
-
-    // Verificar expiração
-    if (data.expires_at) {
-      const expiresAt = new Date(data.expires_at);
-      if (expiresAt < new Date()) {
-        return null;
-      }
-    }
-
-    // Atualizar estatísticas de acesso (buscar o count atual primeiro)
-    try {
-      const { data: currentToken } = await supabase
-        .from('patient_portal_tokens')
-        .select('access_count')
-        .eq('token', token)
-        .single();
-      
-      await supabase
-        .from('patient_portal_tokens')
-        .update({
-          last_accessed_at: new Date().toISOString(),
-          access_count: (currentToken?.access_count || 0) + 1
-        })
-        .eq('token', token);
-    } catch (updateError) {
-      // Ignorar erro de update (não crítico)
-      console.warn('Não foi possível atualizar estatísticas de acesso:', updateError);
-    }
-
-    return data.telefone;
+    return null;
   } catch (error) {
     console.error('Erro ao validar token:', error);
     return null;

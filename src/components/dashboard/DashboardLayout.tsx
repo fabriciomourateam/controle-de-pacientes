@@ -50,18 +50,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return null;
   }
 
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        
-        {/* Modal de bloqueio de assinatura - não mostrar na página de pricing */}
+  const isBlockedBySubscription = showBlockedModal && !isPricingPage;
+
+  // Quando assinatura inativa: não mostrar sidebar nem conteúdo do dashboard (evitar vazar dados de outro usuário)
+  if (isBlockedBySubscription) {
+    return (
+      <div className="min-h-screen w-full bg-slate-950 flex items-center justify-center">
         <SubscriptionBlockedModal
-          open={showBlockedModal && !isPricingPage}
+          open={true}
           reason={status?.reason}
           isTrial={status?.isTrial}
           daysRemaining={status?.daysRemaining}
         />
+      </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
         
         <div className="flex-1 flex flex-col">
           {/* Header */}

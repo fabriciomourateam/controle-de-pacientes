@@ -584,6 +584,7 @@ export function DietPlanForm({
           carbs: meal.carbs || undefined,
           fats: meal.fats || undefined,
           instructions: meal.instructions || "",
+          exclude_from_macros: meal.exclude_from_macros ?? false,
           foods: (meal.diet_foods || []).map((food: any, foodIndex: number) => {
             // Tentar parsear substituições do campo notes se existir
             let substitutions = [];
@@ -1111,6 +1112,7 @@ export function DietPlanForm({
             carbs: meal.carbs,
             fats: meal.fats,
             instructions: meal.instructions || '',
+            exclude_from_macros: meal.exclude_from_macros ?? false,
             foods: meal.diet_foods?.map((food: any) => ({
               food_name: food.food_name,
               quantity: food.quantity,
@@ -1250,6 +1252,7 @@ export function DietPlanForm({
             carbs: meal.carbs || null,
             fats: meal.fats || null,
             instructions: meal.instructions || null,
+            exclude_from_macros: meal.exclude_from_macros ?? false,
           };
 
           const newMeal = await dietService.createMeal(mealData);

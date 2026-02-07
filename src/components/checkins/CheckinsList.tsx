@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDebounce } from "@/hooks/use-auto-save";
-import { 
-  Search, 
+import {
+  Search,
   Calendar,
   Star,
   TrendingUp,
@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCheckinsWithScheduledRefetch, useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { getNextScheduledUpdate } from "@/hooks/use-scheduled-refetch";
@@ -118,7 +119,7 @@ const saveCheckinPreferences = async (prefs: Partial<CheckinPreferences>) => {
       .single();
 
     const currentFilters = (existing?.filters as any) || {};
-    
+
     // Atualizar apenas as preferências de checkins
     const updatedFilters = {
       ...currentFilters,
@@ -147,7 +148,7 @@ const saveCheckinPreferences = async (prefs: Partial<CheckinPreferences>) => {
 export function CheckinsList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   // Estados iniciais (serão atualizados quando as preferências carregarem)
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<CheckinStatus[]>(['pendente', 'em_analise']);
@@ -163,19 +164,21 @@ export function CheckinsList() {
   const [filterWithBioimpedance, setFilterWithBioimpedance] = useState(false);
   const [patientsWithBioimpedance, setPatientsWithBioimpedance] = useState<Set<string>>(new Set());
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
-  
+
   // Estado para controlar o limite de checkins carregados
   const [checkinLimit, setCheckinLimit] = useState<number | null>(200); // Padrão: 200 checkins
   const [showLimitControl, setShowLimitControl] = useState(false);
-  
-  // Estado para controlar quais check-ins estão expandidos
-  const [expandedCheckins, setExpandedCheckins] = useState<Set<string>>(new Set());
+
+  // Estado para controlar qual check-in está aberto no Sheet lateral
+  const [selectedCheckinForSheet, setSelectedCheckinForSheet] = useState<CheckinWithPatient | null>(null);
+
+
 
   // Hook para buscar checkins com dados do paciente e limite customizado
   // Usa o hook com atualização programada, mas com limite customizado
   const { data: recentCheckins = [], isLoading: checkinsLoading, refetch, isFetching } = useCheckinsWithScheduledRefetch(checkinLimit);
   const { teamMembers, loading: teamMembersLoading } = useCheckinManagement();
-  
+
   // Estado para última atualização e próxima atualização programada
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const nextUpdate = getNextScheduledUpdate();
@@ -188,7 +191,7 @@ export function CheckinsList() {
         setShowLimitControl(false);
       }
     };
-    
+
     if (showLimitControl) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -198,7 +201,7 @@ export function CheckinsList() {
   // Carregar preferências do banco de dados ao montar o componente
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    
+
     async function loadPreferences() {
       try {
         // Timeout de segurança: se demorar mais de 5 segundos, marcar como carregado
@@ -206,10 +209,10 @@ export function CheckinsList() {
           console.warn('Timeout ao carregar preferências, continuando sem elas');
           setPreferencesLoaded(true);
         }, 5000);
-        
+
         const savedPrefs = await loadCheckinPreferences();
         clearTimeout(timeoutId);
-        
+
         if (savedPrefs.searchTerm !== undefined) setSearchTerm(savedPrefs.searchTerm);
         if (savedPrefs.selectedStatuses) setSelectedStatuses(savedPrefs.selectedStatuses);
         if (savedPrefs.selectedResponsibles) setSelectedResponsibles(savedPrefs.selectedResponsibles);
@@ -225,9 +228,9 @@ export function CheckinsList() {
         setPreferencesLoaded(true);
       }
     }
-    
+
     loadPreferences();
-    
+
     // Cleanup: limpar timeout se componente desmontar
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -256,7 +259,7 @@ export function CheckinsList() {
   // Carregar lista de telefones que têm bioimpedância
   // Otimizado: usa React Query com cache
   const { data: patientsWithBioimpedanceData } = usePatientsWithBioimpedance();
-  
+
   useEffect(() => {
     if (patientsWithBioimpedanceData) {
       setPatientsWithBioimpedance(patientsWithBioimpedanceData);
@@ -270,17 +273,17 @@ export function CheckinsList() {
   // ⚡ OTIMIZAÇÃO: Processar apenas últimos 50 checkins ao invés de todos
   const scoreEvolutionData = useMemo(() => {
     if (recentCheckins.length === 0) return [];
-    
+
     // Limitar a 50 checkins mais recentes para performance
     const checkinsToProcess = recentCheckins.slice(0, 50);
-    
+
     // Agrupar checkins por data e calcular médias
     const groupedByDate = checkinsToProcess.reduce((acc, checkin) => {
       const date = checkin.data_preenchimento || checkin.data_checkin;
       if (!date) return acc;
-      
+
       const dateKey = new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-      
+
       if (!acc[dateKey]) {
         acc[dateKey] = {
           date: dateKey,
@@ -291,23 +294,23 @@ export function CheckinsList() {
           overall: []
         };
       }
-      
+
       // Converter strings para números
       const workout = parseFloat(checkin.pontos_treinos || '0');
       const cardio = parseFloat(checkin.pontos_cardios || '0');
       const sleep = parseFloat(checkin.pontos_sono || '0');
       const water = parseFloat(checkin.pontos_agua || '0');
       const overall = parseFloat(checkin.total_pontuacao || '0');
-      
+
       if (!isNaN(workout)) acc[dateKey].workout.push(workout);
       if (!isNaN(cardio)) acc[dateKey].cardio.push(cardio);
       if (!isNaN(sleep)) acc[dateKey].sleep.push(sleep);
       if (!isNaN(water)) acc[dateKey].water.push(water);
       if (!isNaN(overall)) acc[dateKey].overall.push(overall);
-      
+
       return acc;
     }, {} as any);
-    
+
     // Calcular médias e ordenar por data
     return Object.values(groupedByDate)
       .map((group: any) => ({
@@ -326,10 +329,10 @@ export function CheckinsList() {
   // ⚡ OTIMIZAÇÃO: Processar apenas últimos 50 checkins ao invés de todos
   const categoryRadarData = useMemo(() => {
     if (recentCheckins.length === 0) return [];
-    
+
     // Limitar a 50 checkins mais recentes para performance
     const checkinsToProcess = recentCheckins.slice(0, 50);
-    
+
     const categories = [
       { key: 'pontos_treinos', name: 'Treino' },
       { key: 'pontos_cardios', name: 'Cardio' },
@@ -338,16 +341,16 @@ export function CheckinsList() {
       { key: 'pontos_stress', name: 'Stress' },
       { key: 'pontos_libido', name: 'Libido' }
     ];
-    
+
     return categories.map(category => {
       const scores = checkinsToProcess
         .map(c => parseFloat((c as any)[category.key] || '0'))
         .filter(score => !isNaN(score) && score > 0);
-      
-      const avgScore = scores.length > 0 
-        ? scores.reduce((a, b) => a + b, 0) / scores.length 
+
+      const avgScore = scores.length > 0
+        ? scores.reduce((a, b) => a + b, 0) / scores.length
         : 0;
-      
+
       return {
         category: category.name,
         score: parseFloat(avgScore.toFixed(1)),
@@ -377,24 +380,24 @@ export function CheckinsList() {
         const matchesSearch = checkin.patient?.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
         if (!matchesSearch) return false; // Early return
       }
-      
+
       // Filtro de status
       if (selectedStatuses.length > 0) {
         const checkinStatus = (checkin.status as CheckinStatus) || 'pendente';
         if (!selectedStatuses.includes(checkinStatus)) return false; // Early return
       }
-      
+
       // Filtro de responsável
       if (selectedResponsibles.length > 0) {
         if (!selectedResponsibles.includes(checkin.assigned_to || 'unassigned')) return false; // Early return
       }
-      
+
       // Filtro de bioimpedância
       if (filterWithBioimpedance) {
         const telefoneCheckin = checkin.telefone || checkin.patient?.telefone;
         if (!telefoneCheckin || !patientsWithBioimpedance.has(telefoneCheckin)) return false; // Early return
       }
-      
+
       return true;
     });
   }, [recentCheckins, debouncedSearchTerm, selectedStatuses, selectedResponsibles, filterWithBioimpedance, patientsWithBioimpedance]);
@@ -403,13 +406,13 @@ export function CheckinsList() {
   const sortedCheckins = useMemo(() => {
     const sorted = [...filteredCheckins].sort((a, b) => {
       let comparison = 0;
-      
+
       if (sortBy === 'date') {
         // Usar data_preenchimento (data/hora de envio) primeiro para ordenar por quando foi enviado
         const dateA = new Date(a.data_preenchimento || a.data_checkin || 0).getTime();
         const dateB = new Date(b.data_preenchimento || b.data_checkin || 0).getTime();
         comparison = dateA - dateB;
-        
+
         // REGRA ESPECIAL: Quando filtro de pendentes está ativo, sempre ordenar ascendente (mais antigos primeiro)
         const isPendingFilterActive = selectedStatuses.length === 1 && selectedStatuses.includes('pendente');
         if (isPendingFilterActive) {
@@ -428,10 +431,10 @@ export function CheckinsList() {
         const scoreB = parseFloat(b.total_pontuacao || '0');
         comparison = scoreA - scoreB;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-    
+
     return sorted;
   }, [filteredCheckins, sortBy, sortOrder, selectedStatuses]);
 
@@ -446,7 +449,7 @@ export function CheckinsList() {
   // Salvar preferências quando mudarem (apenas após carregar as preferências iniciais)
   useEffect(() => {
     if (!preferencesLoaded) return; // Não salvar antes de carregar as preferências iniciais
-    
+
     saveCheckinPreferences({
       searchTerm,
       selectedStatuses,
@@ -494,24 +497,24 @@ export function CheckinsList() {
   // ⚡ OTIMIZAÇÃO: Memoizar métricas do header para evitar recálculos
   const headerMetrics = useMemo(() => {
     const now = new Date();
-    
+
     return {
       total: recentCheckins.length,
       thisMonth: recentCheckins.filter(c => {
         const dateToCheck = c.data_preenchimento || c.data_checkin;
         if (!dateToCheck) return false;
-        
+
         const checkinDate = new Date(dateToCheck);
         if (isNaN(checkinDate.getTime())) return false;
-        
-        return checkinDate.getMonth() === now.getMonth() && 
-               checkinDate.getFullYear() === now.getFullYear();
+
+        return checkinDate.getMonth() === now.getMonth() &&
+          checkinDate.getFullYear() === now.getFullYear();
       }).length,
-      avgScore: recentCheckins.length > 0 
+      avgScore: recentCheckins.length > 0
         ? (recentCheckins.reduce((acc, c) => {
-            const score = parseFloat(c.total_pontuacao || '0');
-            return acc + (isNaN(score) ? 0 : score);
-          }, 0) / recentCheckins.length).toFixed(1)
+          const score = parseFloat(c.total_pontuacao || '0');
+          return acc + (isNaN(score) ? 0 : score);
+        }, 0) / recentCheckins.length).toFixed(1)
         : '0.0',
       activePatients: new Set(recentCheckins.map(c => c.patient?.id).filter(Boolean)).size
     };
@@ -636,7 +639,7 @@ export function CheckinsList() {
                 Histórico detalhado dos checkins dos pacientes
               </CardDescription>
             </div>
-            
+
             {/* Botão de atualização e informações */}
             <div className="flex flex-col items-end gap-2 relative">
               <div className="flex gap-2">
@@ -686,7 +689,7 @@ export function CheckinsList() {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              
+
               {/* Menu de controle de limite */}
               {showLimitControl && (
                 <Card className="limit-control-menu absolute z-50 mt-10 bg-slate-800 border-slate-600 shadow-lg min-w-[200px]">
@@ -765,16 +768,8 @@ export function CheckinsList() {
                   </CardContent>
                 </Card>
               )}
-              
-              <div className="flex flex-col items-end text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Atualizado: {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <span>
-                  Próxima: {nextUpdate.time}{!nextUpdate.isToday && ' (amanhã)'}
-                </span>
-              </div>
+
+
             </div>
           </div>
         </CardHeader>
@@ -813,45 +808,35 @@ export function CheckinsList() {
           ) : (
             displayedCheckins.map((checkin) => {
               // Obter total de check-ins para este paciente (já calculado anteriormente)
-              const totalPatientCheckins = checkin.patient?.id 
+              const totalPatientCheckins = checkin.patient?.id
                 ? (patientCheckinsCount.get(checkin.patient.id) || 0)
                 : 0;
-              
+
               // Obter cor do responsável (com suporte a cores personalizadas)
               const assigneeColor = assigneeColorsService.getAssigneeCardColor(checkin.assigned_to, teamMembers);
-              
+
               return (
-                <div key={checkin.id} className={`px-2.5 pt-3 pb-1 backdrop-blur-sm rounded-lg border border-slate-700/50 transition-all duration-300 ease-out ${
-                  assigneeColor
-                    ? `${assigneeColor.border} ${assigneeColor.hoverBorder}`
-                    : 'hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60'
-                } bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:shadow-lg hover:shadow-slate-900/20`}>
+                <div key={checkin.id} className={`px-2.5 py-3 backdrop-blur-sm rounded-lg border border-slate-700/50 transition-all duration-300 ease-out ${assigneeColor
+                  ? `${assigneeColor.border} ${assigneeColor.hoverBorder}`
+                  : 'hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60'
+                  } bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:shadow-lg hover:shadow-slate-900/20`}>
                   <div className="grid grid-cols-[1fr_140px_160px_120px] gap-3 items-center">
                     {/* Informações do Paciente - Coluna flexível */}
-                    <div 
+                    <div
                       className="flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={(e) => {
-                        // Prevenir expansão se o clique vier de dentro dos controles (status, responsável, ações)
+                        // Prevenir abertura se o clique vier de dentro dos controles (status, responsável, ações)
                         const target = e.target as HTMLElement;
                         if (target.closest('[data-no-expand]')) {
                           return;
                         }
-                        // Prevenir expansão se o clique vier de um link ou botão
+                        // Prevenir abertura se o clique vier de um link ou botão
                         if (target.closest('a') || target.closest('button') || target.closest('[role="button"]')) {
                           return;
                         }
                         e.stopPropagation();
-                        const isCurrentlyExpanded = expandedCheckins.has(checkin.id);
-                        // Toggle do estado de expansão
-                        setExpandedCheckins(prev => {
-                          const newSet = new Set(prev);
-                          if (isCurrentlyExpanded) {
-                            newSet.delete(checkin.id);
-                          } else {
-                            newSet.add(checkin.id);
-                          }
-                          return newSet;
-                        });
+                        // Abrir Sheet com os dados do check-in
+                        setSelectedCheckinForSheet(checkin);
                       }}
                     >
                       <Avatar className="w-8 h-8 flex-shrink-0">
@@ -863,7 +848,7 @@ export function CheckinsList() {
                         <h4 className="font-semibold text-white text-lg truncate leading-tight">{checkin.patient?.nome || 'Paciente não informado'}</h4>
                       </div>
                     </div>
-                    
+
                     {/* Status - Coluna fixa */}
                     <div className="flex-shrink-0" data-no-expand>
                       <CheckinQuickControls
@@ -874,7 +859,7 @@ export function CheckinsList() {
                         showOnlyStatus={true}
                       />
                     </div>
-                    
+
                     {/* Responsável - Coluna fixa */}
                     <div className="flex-shrink-0" data-no-expand>
                       <CheckinQuickControls
@@ -885,9 +870,9 @@ export function CheckinsList() {
                         showOnlyResponsible={true}
                       />
                     </div>
-                    
+
                     {/* Ações - Coluna fixa */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0 justify-end w-full" data-no-expand>
+                    <div className="flex items-center gap-1 flex-shrink-0 justify-end w-full" data-no-expand>
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}
@@ -900,7 +885,7 @@ export function CheckinsList() {
                           <TooltipTrigger asChild>
                             <Link
                               to={`/checkins/evolution/${checkin.telefone}`}
-                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-6 w-6 p-0"
+                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-7 w-7 p-0"
                               onContextMenu={(e) => {
                                 // Permite o menu de contexto padrão do navegador
                                 // O navegador já oferece "Abrir em nova aba" no menu de contexto
@@ -917,11 +902,11 @@ export function CheckinsList() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="ghost"
                               onClick={() => handleViewCheckin(checkin)}
-                              className="h-6 w-6 p-0"
+                              className="h-7 w-7 p-0 hover:bg-slate-700/50"
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -934,11 +919,11 @@ export function CheckinsList() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="ghost"
                               onClick={() => handleEditCheckin(checkin)}
-                              className="h-6 w-6 p-0"
+                              className="h-7 w-7 p-0 hover:bg-slate-700/50"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -951,31 +936,12 @@ export function CheckinsList() {
                     </div>
                   </div>
 
-                   {/* Feedback */}
-                   <div className="mt-0.5">
-                     <CheckinFeedbackCard
-                       checkin={checkin}
-                       totalCheckins={totalPatientCheckins}
-                       onUpdate={refetch}
-                       expanded={expandedCheckins.has(checkin.id)}
-                       onExpandedChange={(expanded) => {
-                         setExpandedCheckins(prev => {
-                           const newSet = new Set(prev);
-                           if (expanded) {
-                             newSet.add(checkin.id);
-                           } else {
-                             newSet.delete(checkin.id);
-                           }
-                           return newSet;
-                         });
-                       }}
-                     />
-                   </div>
+
                 </div>
               );
             })
           )}
-          
+
           {/* Botão Carregar Mais */}
           {hasMore && !checkinsLoading && (
             <div className="flex justify-center pt-4">
@@ -1023,7 +989,7 @@ export function CheckinsList() {
                     <Line type="monotone" dataKey="water" stroke="#3b82f6" strokeWidth={2} name="Hidratação" />
                   </LineChart>
                 </ResponsiveContainer>
-                
+
                 {/* Legenda */}
                 <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
                   <div className="flex items-center gap-2">
@@ -1101,6 +1067,31 @@ export function CheckinsList() {
         onOpenChange={setIsEditModalOpen}
         onSuccess={handleEditSuccess}
       />
+
+      {/* Sheet para Feedback e Detalhes do Checkin */}
+      <Sheet open={!!selectedCheckinForSheet} onOpenChange={(open) => !open && setSelectedCheckinForSheet(null)}>
+        <SheetContent className="w-full sm:max-w-[700px] md:max-w-[800px] lg:max-w-[1000px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Check-in de {selectedCheckinForSheet?.patient?.nome}</SheetTitle>
+            <SheetDescription>
+              Detalhes e feedback do check-in realizado em {selectedCheckinForSheet?.created_at ? new Date(selectedCheckinForSheet.created_at).toLocaleDateString('pt-BR') : ''}
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedCheckinForSheet && (
+            <div className="mt-6">
+              <CheckinFeedbackCard
+                checkin={selectedCheckinForSheet}
+                totalCheckins={selectedCheckinForSheet.patient?.id
+                  ? (patientCheckinsCount.get(selectedCheckinForSheet.patient.id) || 0)
+                  : 0}
+                onUpdate={refetch}
+                isSheet={true}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

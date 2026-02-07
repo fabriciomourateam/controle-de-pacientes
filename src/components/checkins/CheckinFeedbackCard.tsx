@@ -26,6 +26,7 @@ interface CheckinFeedbackCardProps {
   onUpdate?: () => void;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  isSheet?: boolean; // Quando true, renderiza em modo Sheet (sempre expandido, sem botão de colapsar)
 }
 
 const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
@@ -33,20 +34,22 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   totalCheckins = 0,
   onUpdate,
   expanded: externalExpanded,
-  onExpandedChange
+  onExpandedChange,
+  isSheet = false
 }) => {
   const [internalExpanded, setInternalExpanded] = useState(false);
-  
+
   // Se externalExpanded está definido, usar ele; caso contrário, usar o estado interno
-  const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;
-  
+  // Modo Sheet: sempre expandido
+  const isExpanded = isSheet ? true : (externalExpanded !== undefined ? externalExpanded : internalExpanded);
+
   // Sincronizar estado interno quando externalExpanded mudar
   React.useEffect(() => {
     if (externalExpanded !== undefined) {
       setInternalExpanded(externalExpanded);
     }
   }, [externalExpanded]);
-  
+
   const setIsExpanded = (value: boolean) => {
     // Se há controle externo, sempre chamar o callback
     if (externalExpanded !== undefined && onExpandedChange) {
@@ -100,20 +103,20 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   const [showAllCheckinsColumns, setShowAllCheckinsColumns] = useState(false);
   const [showBioimpedanciaModal, setShowBioimpedanciaModal] = useState(false);
   const [showAproveitamento, setShowAproveitamento] = useState(false); // Oculto por padrão
-  
+
   // Ref para evitar múltiplas execuções do download
   const isExportingRef = React.useRef(false);
 
   const { activeTemplate } = useFeedbackTemplates();
   const { updateCheckinStatus } = useCheckinManagement();
-  
+
   // ⚡ OTIMIZAÇÃO: Só buscar checkins anteriores quando expandido
   const { previousCheckins, loading: loadingAllCheckins } = useAllCheckins(
-    checkin.telefone, 
+    checkin.telefone,
     checkin.id,
     isExpanded // Só busca quando expandido
   );
-  
+
   // Debug: Log para verificar quantos check-ins anteriores existem
   React.useEffect(() => {
     if (isExpanded && checkin.telefone === '5511995844506') {
@@ -133,18 +136,18 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     if (feedbackAnalysis) {
       // Só atualizar se os dados vierem do mesmo check-in
       if (feedbackAnalysis.checkin_id === checkin.id) {
-      setObservedImprovements(feedbackAnalysis.observed_improvements || '');
-      setDietAdjustments(feedbackAnalysis.diet_adjustments || '');
-      setGeneratedFeedback(feedbackAnalysis.generated_feedback || '');
-    }
+        setObservedImprovements(feedbackAnalysis.observed_improvements || '');
+        setDietAdjustments(feedbackAnalysis.diet_adjustments || '');
+        setGeneratedFeedback(feedbackAnalysis.generated_feedback || '');
+      }
     }
   }, [feedbackAnalysis, checkin.id]);
-  
+
   // Carregar análise específica deste check-in quando o componente montar ou check-in mudar
   React.useEffect(() => {
     const loadAnalysisForCheckin = async () => {
       if (!checkin?.id) return;
-      
+
       // Buscar análise específica deste check-in por checkin_id (mais preciso)
       try {
         const { data, error } = await supabase
@@ -152,14 +155,14 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
           .select('*')
           .eq('checkin_id', checkin.id)
           .maybeSingle();
-        
+
         if (error && error.code !== 'PGRST116') {
           if (process.env.NODE_ENV === 'development') {
             console.error('Erro ao buscar análise:', error);
           }
           return;
         }
-        
+
         if (data) {
           setObservedImprovements(data.observed_improvements || '');
           setDietAdjustments(data.diet_adjustments || '');
@@ -178,7 +181,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   // Verificar se há fotos iniciais do paciente - SÓ QUANDO EXPANDIDO
   React.useEffect(() => {
     if (!isExpanded) return; // ⚡ OTIMIZAÇÃO
-    
+
     const checkInitialPhotos = async () => {
       try {
         const { data: patient } = await supabase
@@ -203,7 +206,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   // Verificar se há bioimpedância do paciente - SÓ QUANDO EXPANDIDO
   React.useEffect(() => {
     if (!isExpanded) return; // ⚡ OTIMIZAÇÃO
-    
+
     const checkBioimpedancia = async () => {
       try {
         const { data: bioData, error } = await supabase
@@ -243,7 +246,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
             .eq('telefone', checkin.telefone)
             .eq('data_checkin', evolutionData.checkin_anterior_data)
             .maybeSingle();
-          
+
           if (!error && data) {
             setPreviousCheckinId(data.id);
           }
@@ -253,7 +256,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
           }
         }
       };
-      
+
       fetchPreviousCheckinId();
     } else {
       setPreviousCheckinId(null);
@@ -263,9 +266,9 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   // Verificar se há fotos no check-in atual
   React.useEffect(() => {
     const hasPhotos = !!(
-      checkin?.foto_1 || 
-      checkin?.foto_2 || 
-      checkin?.foto_3 || 
+      checkin?.foto_1 ||
+      checkin?.foto_2 ||
+      checkin?.foto_3 ||
       checkin?.foto_4
     );
     setHasCurrentPhotos(hasPhotos);
@@ -295,9 +298,9 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
         }
 
         const hasPhotos = !!(
-          data?.foto_1 || 
-          data?.foto_2 || 
-          data?.foto_3 || 
+          data?.foto_1 ||
+          data?.foto_2 ||
+          data?.foto_3 ||
           data?.foto_4
         );
         setHasPreviousPhotos(hasPhotos);
@@ -341,18 +344,18 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       const result = await saveFeedbackAnalysis({
         // Se já existe uma análise salva, incluir o ID para fazer UPDATE ao invés de INSERT
         ...(feedbackAnalysis?.id && { id: feedbackAnalysis.id }),
-      patient_id: patientId!,
+        patient_id: patientId!,
         checkin_id: checkin.id,
-      checkin_date: checkin.data_checkin?.split('T')[0] || new Date().toISOString().split('T')[0],
-      checkin_data: checkin,
-      evolution_data: evolutionData,
-      observed_improvements: observedImprovements,
-      diet_adjustments: dietAdjustments,
-      generated_feedback: generatedFeedback,
+        checkin_date: checkin.data_checkin?.split('T')[0] || new Date().toISOString().split('T')[0],
+        checkin_data: checkin,
+        evolution_data: evolutionData,
+        observed_improvements: observedImprovements,
+        diet_adjustments: dietAdjustments,
+        generated_feedback: generatedFeedback,
         feedback_status: feedbackAnalysis?.feedback_status || 'draft', // Manter status se já existir
-      prompt_template_id: activeTemplate?.id || null
-    });
-      
+        prompt_template_id: activeTemplate?.id || null
+      });
+
       if (result) {
         toast.success('Anotações e feedback salvos com sucesso!');
       }
@@ -368,7 +371,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
   const handleCopyFeedback = useCallback(async () => {
     if (!generatedFeedback) return;
-    
+
     try {
       await navigator.clipboard.writeText(generatedFeedback);
       toast.success('Feedback copiado para área de transferência!');
@@ -383,7 +386,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       toast.error('Telefone não disponível');
       return;
     }
-    
+
     try {
       await navigator.clipboard.writeText(telefone);
       toast.success('Telefone copiado!');
@@ -395,18 +398,18 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
   const handleOpenWhatsApp = useCallback(async () => {
     if (!generatedFeedback) return;
-    
+
     const encodedMessage = encodeURIComponent(generatedFeedback);
     const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
-    
+
     // Atualizar status do check-in para enviado
     await updateCheckinStatus(checkin.id, 'enviado');
     onUpdate?.();
-    
+
     // Marcar feedback como enviado também
     markFeedbackAsSent('whatsapp');
-    
+
     // Minimizar o card automaticamente após enviar via WhatsApp
     setIsExpanded(false);
   }, [generatedFeedback, checkin.id, updateCheckinStatus, onUpdate, markFeedbackAsSent, setIsExpanded]);
@@ -414,7 +417,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
   // Função helper para pegar valor de métrica de um check-in específico
   const getCheckinMetricValue = useCallback((checkinData: any, metric: string): string | null => {
     if (!checkinData) return null;
-    
+
     switch (metric) {
       case 'peso':
         return checkinData.peso ? `${checkinData.peso}kg` : null;
@@ -518,11 +521,11 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
         if (error) throw error;
 
         toast.success('Dados iniciais atualizados com sucesso!');
-        
+
         // Recarregar dados
         await refreshData();
         onUpdate?.();
-        
+
         // Restaurar posição de scroll
         setTimeout(() => {
           if (elementToRestore) {
@@ -531,7 +534,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
             window.scrollTo({ top: scrollPosition, behavior: 'auto' });
           }
         }, 100);
-        
+
         setEditingField(null);
         setEditValue('');
         setEditingInitialData(false);
@@ -625,11 +628,11 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       if (error) throw error;
 
       toast.success('Valor atualizado com sucesso!');
-      
+
       // Recarregar dados
       await refreshData();
       onUpdate?.(); // Atualizar lista
-      
+
       // Restaurar posição de scroll após um pequeno delay para garantir que o DOM foi atualizado
       setTimeout(() => {
         if (elementToRestore) {
@@ -638,7 +641,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
           window.scrollTo({ top: scrollPosition, behavior: 'auto' });
         }
       }, 100);
-      
+
       setEditingField(null);
       setEditValue('');
       setEditingPrevious(false);
@@ -656,17 +659,17 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     try {
       // Atualizar status do check-in para enviado
       const success = await updateCheckinStatus(checkin.id, 'enviado');
-      
+
       if (success) {
         toast.success('Check-in marcado como enviado!');
         onUpdate?.(); // Notificar componente pai para atualizar lista
-        
+
         // Minimizar o card automaticamente após marcar como enviado
         setIsExpanded(false);
       } else {
         toast.error('Erro ao atualizar status do check-in');
       }
-      
+
       // Marcar feedback como enviado também (se existir)
       if (feedbackAnalysis) {
         markFeedbackAsSent('manual');
@@ -685,15 +688,15 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       toast.error('Erro', { description: 'Telefone do paciente não disponível' });
       return;
     }
-    
+
     // Abrir página de evolução em nova aba com parâmetros de auto-export
     const exportFormat = format === 'jpeg' ? 'png' : format;
     const url = `/checkins/evolution/${checkin.telefone}?autoExport=${exportFormat}&autoClose=true`;
-    
+
     toast.success('Abrindo página de evolução...', {
       description: 'O download iniciará automaticamente'
     });
-    
+
     // Abrir em nova aba
     window.open(url, '_blank');
   };
@@ -702,29 +705,48 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
 
   return (
     <div>
-      {/* Botão de Expandir/Colapsar */}
-      <div className={`flex items-center justify-between ${isExpanded ? 'mb-1' : 'mb-0'}`}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700/50 w-full ${isExpanded ? 'justify-start h-8' : 'justify-between h-5'}`}
-        >
-          {isExpanded ? (
-            <>
-              <Bot className="text-slate-200 w-4 h-4" />
-              <span className="font-medium flex-1 text-left text-sm">Feedback</span>
-              <ChevronUp className="w-4 h-4" />
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-3 h-3" />
-              <Bot className="text-slate-200 w-3 h-3" />
-            </>
+      {/* Botão de Expandir/Colapsar - Oculto em modo Sheet */}
+      {!isSheet && (
+        <div className={`flex items-center justify-between ${isExpanded ? 'mb-1' : 'mb-0'}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-700/50 w-full ${isExpanded ? 'justify-start h-8' : 'justify-between h-5'}`}
+          >
+            {isExpanded ? (
+              <>
+                <Bot className="text-slate-200 w-4 h-4" />
+                <span className="font-medium flex-1 text-left text-sm">Feedback</span>
+                <ChevronUp className="w-4 h-4" />
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3 h-3" />
+                <Bot className="text-slate-200 w-3 h-3" />
+              </>
+            )}
+          </Button>
+
+          {isExpanded && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPromptEditor(!showPromptEditor);
+              }}
+              className="text-slate-400 hover:text-white h-8 ml-2"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
           )}
-        </Button>
-        
-        {isExpanded && (
+        </div>
+      )}
+
+      {/* Botão de Configurações no modo Sheet */}
+      {isSheet && (
+        <div className="flex items-center justify-end mb-2">
           <Button
             variant="ghost"
             size="sm"
@@ -732,12 +754,13 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
               e.stopPropagation();
               setShowPromptEditor(!showPromptEditor);
             }}
-            className="text-slate-400 hover:text-white h-8 ml-2"
+            className="text-slate-400 hover:text-white h-8"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4 mr-2" />
+            Configurações
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Conteúdo Expandido */}
       <AnimatePresence>
@@ -762,7 +785,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
               )}
 
               {/* Evolução Comparativa - Tabela */}
-                <Card className="bg-slate-800/30 border-slate-700/50">
+              <Card className="bg-slate-800/30 border-slate-700/50">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -780,7 +803,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         )}
                       </Button>
                       <TrendingUp className="w-4 h-4 text-green-400" />
-                      <Badge 
+                      <Badge
                         className="text-xs font-medium text-slate-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg cursor-pointer transition-all duration-200 px-2.5 py-1 border-0"
                         onClick={() => handleExportEvolution('png')}
                         title="Clique para baixar a evolução do paciente (PNG)"
@@ -806,11 +829,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowAproveitamento(!showAproveitamento)}
-                        className={`text-xs h-7 px-3 font-semibold border transition-all ${
-                          showAproveitamento 
-                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:text-amber-300 hover:bg-amber-500/30 hover:border-amber-500/50 shadow-sm shadow-amber-500/10' 
+                        className={`text-xs h-7 px-3 font-semibold border transition-all ${showAproveitamento
+                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:text-amber-300 hover:bg-amber-500/30 hover:border-amber-500/50 shadow-sm shadow-amber-500/10'
                             : 'bg-slate-700/30 text-slate-400 border-slate-600/30 hover:text-slate-300 hover:bg-slate-700/50 hover:border-slate-600/50'
-                        }`}
+                          }`}
                         title={showAproveitamento ? "Ocultar linha de Aproveitamento" : "Mostrar linha de Aproveitamento"}
                       >
                         🎯 {showAproveitamento ? 'Ocultar' : 'Mostrar'} Aproveitamento
@@ -845,7 +867,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       )}
                     </div>
                   </div>
-                  
+
                   <AnimatePresence>
                     {isEvolutionExpanded && (
                       <motion.div
@@ -857,2649 +879,2635 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         {evolutionData?.tem_checkin_anterior && evolutionData ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-white/20 bg-slate-800/60">
-                            <th className="text-left py-1.5 px-2 text-slate-300 font-medium sticky left-0 z-10">Métrica</th>
-                            {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                            {showAllCheckinsColumns && previousCheckins.map((checkin, index) => (
-                              <th key={checkin.id} className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/60">
-                                {new Date(checkin.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                              </th>
-                            ))}
-                            {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
-                            {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                              <>
-                                {/* Coluna de dados iniciais */}
-                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                                  Dados Iniciais
-                                </th>
-                                {/* Coluna do único check-in anterior */}
-                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                                  {new Date(previousCheckins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                </th>
-                              </>
-                            )}
-                            {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
-                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                              <>
-                                {/* Coluna do penúltimo check-in */}
-                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                                  {new Date(previousCheckins[previousCheckins.length - 2].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                </th>
-                                {/* Coluna do último check-in */}
-                                <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                                  {new Date(previousCheckins[previousCheckins.length - 1].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                </th>
-                              </>
-                            )}
-                            {/* Coluna do check-in atual */}
-                            <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
-                              {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                            </th>
-                            <th className="text-center py-1.5 px-2 text-slate-300 font-medium sticky right-0 z-10">Evolução</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* Peso */}
-                          {evolutionData.peso_anterior !== undefined && evolutionData.peso_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Peso</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'peso') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <>
-                                  {/* Coluna com dados iniciais do paciente */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400 text-xs">
-                                      {evolutionData.peso_inicial ? `${evolutionData.peso_inicial}kg` : '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna do único check-in anterior */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    {editingField === 'peso' && editingPrevious ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit('peso');
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                          }}
-                                        />
-                                        <span className="text-xs text-slate-400">kg</span>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
-                                          <Check className="h-3 w-3" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span 
-                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                        onClick={() => handleStartEdit('peso', getCheckinMetricValue(previousCheckins[0], 'peso')?.replace('kg', ''), true)}
-                                        title="Clique para editar"
-                                      >
-                                        {getCheckinMetricValue(previousCheckins[0], 'peso') || '-'}
-                                      </span>
+                              <thead>
+                                <tr className="border-b border-white/20 bg-slate-800/60">
+                                  <th className="text-left py-1.5 px-2 text-slate-300 font-medium sticky left-0 z-10">Métrica</th>
+                                  {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                  {showAllCheckinsColumns && previousCheckins.map((checkin, index) => (
+                                    <th key={checkin.id} className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/60">
+                                      {new Date(checkin.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                    </th>
+                                  ))}
+                                  {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                                  {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                    <>
+                                      {/* Coluna de dados iniciais */}
+                                      <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                        Dados Iniciais
+                                      </th>
+                                      {/* Coluna do único check-in anterior */}
+                                      <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                        {new Date(previousCheckins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                      </th>
+                                    </>
+                                  )}
+                                  {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                                  {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                    <>
+                                      {/* Coluna do penúltimo check-in */}
+                                      <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                        {new Date(previousCheckins[previousCheckins.length - 2].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                      </th>
+                                      {/* Coluna do último check-in */}
+                                      <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                        {new Date(previousCheckins[previousCheckins.length - 1].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                      </th>
+                                    </>
+                                  )}
+                                  {/* Coluna do check-in atual */}
+                                  <th className="text-center py-1.5 px-1.5 text-slate-400 font-medium text-xs bg-slate-800/95 z-10">
+                                    {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                  </th>
+                                  <th className="text-center py-1.5 px-2 text-slate-300 font-medium sticky right-0 z-10">Evolução</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {/* Peso */}
+                                {evolutionData.peso_anterior !== undefined && evolutionData.peso_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Peso</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'peso') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <>
+                                        {/* Coluna com dados iniciais do paciente */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400 text-xs">
+                                            {evolutionData.peso_inicial ? `${evolutionData.peso_inicial}kg` : '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna do único check-in anterior */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          {editingField === 'peso' && editingPrevious ? (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveEdit('peso');
+                                                  if (e.key === 'Escape') handleCancelEdit();
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-400">kg</span>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                              onClick={() => handleStartEdit('peso', getCheckinMetricValue(previousCheckins[0], 'peso')?.replace('kg', ''), true)}
+                                              title="Clique para editar"
+                                            >
+                                              {getCheckinMetricValue(previousCheckins[0], 'peso') || '-'}
+                                            </span>
+                                          )}
+                                        </td>
+                                      </>
                                     )}
-                                  </td>
-                                </>
-                              )}
-                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <>
-                                  {/* Coluna penúltimo */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400">
-                                      {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'peso') || '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna último */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    {editingField === 'peso' && editingPrevious ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit('peso');
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                          }}
-                                        />
-                                        <span className="text-xs text-slate-400">kg</span>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
-                                          <Check className="h-3 w-3" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span 
-                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                        onClick={() => handleStartEdit('peso', evolutionData.peso_anterior, true)}
-                                        title="Clique para editar"
-                                      >
-                                        {evolutionData.peso_anterior || '-'}kg
-                                      </span>
+                                    {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <>
+                                        {/* Coluna penúltimo */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400">
+                                            {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'peso') || '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna último */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          {editingField === 'peso' && editingPrevious ? (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveEdit('peso');
+                                                  if (e.key === 'Escape') handleCancelEdit();
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-400">kg</span>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                              onClick={() => handleStartEdit('peso', evolutionData.peso_anterior, true)}
+                                              title="Clique para editar"
+                                            >
+                                              {evolutionData.peso_anterior || '-'}kg
+                                            </span>
+                                          )}
+                                        </td>
+                                      </>
                                     )}
-                                  </td>
-                                </>
-                              )}
-                              {/* Coluna atual (sempre visível) */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'peso' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      step="0.1"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('peso');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">kg</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.peso_atual || '-'}kg
-                                  </span>
+                                    {/* Coluna atual (sempre visível) */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'peso' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            step="0.1"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('peso');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">kg</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.peso_atual || '-'}kg
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.peso_diferenca > 0 ? '+' : ''}{evolutionData.peso_diferenca}kg
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.peso_diferenca > 0 ? '+' : ''}{evolutionData.peso_diferenca}kg
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Cintura */}
-                          {(evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined) || 
-                           (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Cintura</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'cintura') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <>
-                                  {/* Coluna com dados iniciais do paciente */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400 text-xs">
-                                      {evolutionData.cintura_inicial ? `${evolutionData.cintura_inicial}cm` : '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna do único check-in anterior */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    {editingField === 'cintura' && editingPrevious ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit('cintura');
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                          }}
-                                        />
-                                        <span className="text-xs text-slate-400">cm</span>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
-                                          <Check className="h-3 w-3" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span 
-                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                        onClick={() => handleStartEdit('cintura', getCheckinMetricValue(previousCheckins[0], 'cintura')?.replace('cm', ''), true)}
-                                        title="Clique para editar"
-                                      >
-                                        {getCheckinMetricValue(previousCheckins[0], 'cintura') || '-'}
-                                      </span>
-                                    )}
-                                  </td>
-                                </>
-                              )}
-                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <>
-                                  {/* Coluna penúltimo */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400">
-                                      {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'cintura') || '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna último */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    {editingField === 'cintura' && editingPrevious ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit('cintura');
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                          }}
-                                        />
-                                        <span className="text-xs text-slate-400">cm</span>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
-                                          <Check className="h-3 w-3" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span 
-                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                        onClick={() => handleStartEdit('cintura', evolutionData.cintura_anterior, true)}
-                                        title="Clique para editar"
-                                      >
-                                        {evolutionData.cintura_anterior || '-'}cm
-                                      </span>
-                                    )}
-                                  </td>
-                                </>
-                              )}
-                              {/* Coluna atual (sempre visível) */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'cintura' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      step="0.1"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('cintura');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">cm</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('cintura', evolutionData.cintura_atual, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.cintura_atual || '-'}cm
-                                  </span>
-                                )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.cintura_diferenca !== undefined && evolutionData.cintura_diferenca !== 0
-                                  ? `${evolutionData.cintura_diferenca > 0 ? '+' : ''}${evolutionData.cintura_diferenca}cm`
-                                  : '0cm'}
-                              </td>
-                            </tr>
-                          ) : null}
-                          
-                          {/* Quadril */}
-                          {(evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined) || 
-                           (evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined) ? (
-                            <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Quadril</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'quadril') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <>
-                                  {/* Coluna com dados iniciais do paciente */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400 text-xs">
-                                      {evolutionData.quadril_inicial ? `${evolutionData.quadril_inicial}cm` : '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna do único check-in anterior */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    {editingField === 'quadril' && editingPrevious ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit('quadril');
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                          }}
-                                        />
-                                        <span className="text-xs text-slate-400">cm</span>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
-                                          <Check className="h-3 w-3" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span 
-                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                        onClick={() => handleStartEdit('quadril', getCheckinMetricValue(previousCheckins[0], 'quadril')?.replace('cm', ''), true)}
-                                        title="Clique para editar"
-                                      >
-                                        {getCheckinMetricValue(previousCheckins[0], 'quadril') || '-'}
-                                      </span>
-                                    )}
-                                  </td>
-                                </>
-                              )}
-                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <>
-                                  {/* Coluna penúltimo */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400">
-                                      {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'quadril') || '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna último */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    {editingField === 'quadril' && editingPrevious ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          step="0.1"
-                                          value={editValue}
-                                          onChange={(e) => setEditValue(e.target.value)}
-                                          className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit('quadril');
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                          }}
-                                        />
-                                        <span className="text-xs text-slate-400">cm</span>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
-                                          <Check className="h-3 w-3" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span 
-                                        className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                        onClick={() => handleStartEdit('quadril', evolutionData.quadril_anterior, true)}
-                                        title="Clique para editar"
-                                      >
-                                        {evolutionData.quadril_anterior || '-'}cm
-                                      </span>
-                                    )}
-                                  </td>
-                                </>
-                              )}
-                              {/* Coluna atual (sempre visível) */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'quadril' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      step="0.1"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('quadril');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">cm</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('quadril', evolutionData.quadril_atual, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.quadril_atual || '-'}cm
-                                  </span>
-                                )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.quadril_diferenca !== undefined && evolutionData.quadril_diferenca !== 0
-                                  ? `${evolutionData.quadril_diferenca > 0 ? '+' : ''}${evolutionData.quadril_diferenca}cm`
-                                  : '0cm'}
-                              </td>
-                            </tr>
-                          ) : null}
-                          
-                          {/* Aproveitamento - não editável, calculado automaticamente */}
-                          {showAproveitamento && evolutionData.aderencia_anterior !== undefined && evolutionData.aderencia_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {historicCheckin.percentual_aproveitamento ? `${historicCheckin.percentual_aproveitamento}%` : '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais (vazio) + último */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <>
-                                  {/* Coluna vazia (não há dados iniciais de aproveitamento) */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-500 text-xs">-</span>
-                                  </td>
-                                  {/* Coluna do único check-in anterior */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400">
-                                      {previousCheckins[0].percentual_aproveitamento ? `${previousCheckins[0].percentual_aproveitamento}%` : '-'}
-                                    </span>
-                                  </td>
-                                </>
-                              )}
-                              {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <>
-                                  {/* Coluna penúltimo */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400">
-                                      {previousCheckins[previousCheckins.length - 2].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 2].percentual_aproveitamento}%` : '-'}
-                                    </span>
-                                  </td>
-                                  {/* Coluna último */}
-                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                    <span className="text-slate-400">
-                                      {previousCheckins[previousCheckins.length - 1].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 1].percentual_aproveitamento}%` : '-'}
-                                    </span>
-                                  </td>
-                                </>
-                              )}
-                              {/* Coluna atual (sempre visível) */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10 text-slate-200">{evolutionData.aderencia_atual || 0}%</td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.aderencia_diferenca > 0 ? 'text-green-400' : evolutionData.aderencia_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.aderencia_diferenca !== 0
-                                  ? `${evolutionData.aderencia_diferenca > 0 ? '+' : ''}${evolutionData.aderencia_diferenca}%`
-                                  : '0%'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Treinos */}
-                          {evolutionData.treino_anterior !== undefined && evolutionData.treino_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'treino') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar coluna vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs"></span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'treino') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'treino' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('treino');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('treino')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                    </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('treino', evolutionData.treino_anterior ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.treino_anterior || 0}
-                                  </span>
-                                )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'treino' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('treino');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('treino')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('treino', evolutionData.treino_atual ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.treino_atual ?? 0}
-                                  </span>
-                                )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.treino_diferenca > 0 ? 'text-green-400' : evolutionData.treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.treino_diferenca !== 0
-                                  ? `${evolutionData.treino_diferenca > 0 ? '+' : ''}${evolutionData.treino_diferenca}`
-                                  : '0'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Cardio */}
-                          {evolutionData.cardio_anterior !== undefined && evolutionData.cardio_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'cardio') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'cardio') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'cardio' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('cardio');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('cardio')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                    </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('cardio', evolutionData.cardio_anterior ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.cardio_anterior || 0}
-                          </span>
-                                )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'cardio' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('cardio');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('cardio')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                        </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('cardio', evolutionData.cardio_atual ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.cardio_atual ?? 0}
-                                  </span>
-                                )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cardio_diferenca > 0 ? 'text-green-400' : evolutionData.cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.cardio_diferenca !== 0
-                                  ? `${evolutionData.cardio_diferenca > 0 ? '+' : ''}${evolutionData.cardio_diferenca}`
-                                  : '0'}
-                              </td>
-                            </tr>
-                          )}
 
-                          {/* Tempo de Treino */}
-                          {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {historicCheckin.tempo || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {previousCheckins[previousCheckins.length - 1].tempo || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'tempo_treino' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: 60 a 70 min"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('tempo_treino');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('tempo_treino')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_anterior_text ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).tempo_treino_anterior_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'tempo_treino' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('tempo_treino');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">min</span>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('tempo_treino')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_atual_text ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).tempo_treino_atual_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${
-                                evolutionData.tempo_treino_diferenca !== null && evolutionData.tempo_treino_diferenca !== undefined
-                                  ? (evolutionData.tempo_treino_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
-                                  : 'text-slate-400'
-                              }`}>
-                                {evolutionData.tempo_treino_diferenca !== null && evolutionData.tempo_treino_diferenca !== undefined
-                                  ? (evolutionData.tempo_treino_diferenca !== 0
-                                      ? `${evolutionData.tempo_treino_diferenca > 0 ? '+' : ''}${evolutionData.tempo_treino_diferenca}`
-                                      : '0')
-                                  : '-'}
-                              </td>
-                            </tr>
-                          )}
+                                {/* Cintura */}
+                                {(evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined) ||
+                                  (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) ? (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Cintura</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'cintura') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <>
+                                        {/* Coluna com dados iniciais do paciente */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400 text-xs">
+                                            {evolutionData.cintura_inicial ? `${evolutionData.cintura_inicial}cm` : '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna do único check-in anterior */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          {editingField === 'cintura' && editingPrevious ? (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveEdit('cintura');
+                                                  if (e.key === 'Escape') handleCancelEdit();
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-400">cm</span>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                              onClick={() => handleStartEdit('cintura', getCheckinMetricValue(previousCheckins[0], 'cintura')?.replace('cm', ''), true)}
+                                              title="Clique para editar"
+                                            >
+                                              {getCheckinMetricValue(previousCheckins[0], 'cintura') || '-'}
+                                            </span>
+                                          )}
+                                        </td>
+                                      </>
+                                    )}
+                                    {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <>
+                                        {/* Coluna penúltimo */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400">
+                                            {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'cintura') || '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna último */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          {editingField === 'cintura' && editingPrevious ? (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveEdit('cintura');
+                                                  if (e.key === 'Escape') handleCancelEdit();
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-400">cm</span>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                              onClick={() => handleStartEdit('cintura', evolutionData.cintura_anterior, true)}
+                                              title="Clique para editar"
+                                            >
+                                              {evolutionData.cintura_anterior || '-'}cm
+                                            </span>
+                                          )}
+                                        </td>
+                                      </>
+                                    )}
+                                    {/* Coluna atual (sempre visível) */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'cintura' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            step="0.1"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('cintura');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">cm</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('cintura', evolutionData.cintura_atual, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.cintura_atual || '-'}cm
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.cintura_diferenca !== undefined && evolutionData.cintura_diferenca !== 0
+                                        ? `${evolutionData.cintura_diferenca > 0 ? '+' : ''}${evolutionData.cintura_diferenca}cm`
+                                        : '0cm'}
+                                    </td>
+                                  </tr>
+                                ) : null}
 
-                          {/* Tempo de Cardio */}
-                          {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {historicCheckin.tempo_cardio || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {previousCheckins[previousCheckins.length - 1].tempo_cardio || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'tempo_cardio' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: 30 minutos"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('tempo_cardio')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_anterior_text ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).tempo_cardio_anterior_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'tempo_cardio' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: 30 minutos"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('tempo_cardio')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_atual_text ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).tempo_cardio_atual_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${
-                                evolutionData.tempo_cardio_diferenca !== null && evolutionData.tempo_cardio_diferenca !== undefined
-                                  ? (evolutionData.tempo_cardio_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
-                                  : 'text-slate-400'
-                              }`}>
-                                {evolutionData.tempo_cardio_diferenca !== null && evolutionData.tempo_cardio_diferenca !== undefined
-                                  ? (evolutionData.tempo_cardio_diferenca !== 0
-                                      ? `${evolutionData.tempo_cardio_diferenca > 0 ? '+' : ''}${evolutionData.tempo_cardio_diferenca}`
-                                      : '0')
-                                  : '-'}
-                              </td>
-                            </tr>
-                          )}
+                                {/* Quadril */}
+                                {(evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined) ||
+                                  (evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined) ? (
+                                  <tr className="border-b border-white/20">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Quadril</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'quadril') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais + último */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <>
+                                        {/* Coluna com dados iniciais do paciente */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400 text-xs">
+                                            {evolutionData.quadril_inicial ? `${evolutionData.quadril_inicial}cm` : '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna do único check-in anterior */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          {editingField === 'quadril' && editingPrevious ? (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveEdit('quadril');
+                                                  if (e.key === 'Escape') handleCancelEdit();
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-400">cm</span>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                              onClick={() => handleStartEdit('quadril', getCheckinMetricValue(previousCheckins[0], 'quadril')?.replace('cm', ''), true)}
+                                              title="Clique para editar"
+                                            >
+                                              {getCheckinMetricValue(previousCheckins[0], 'quadril') || '-'}
+                                            </span>
+                                          )}
+                                        </td>
+                                      </>
+                                    )}
+                                    {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <>
+                                        {/* Coluna penúltimo */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400">
+                                            {getCheckinMetricValue(previousCheckins[previousCheckins.length - 2], 'quadril') || '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna último */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          {editingField === 'quadril' && editingPrevious ? (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') handleSaveEdit('quadril');
+                                                  if (e.key === 'Escape') handleCancelEdit();
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-400">cm</span>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                              onClick={() => handleStartEdit('quadril', evolutionData.quadril_anterior, true)}
+                                              title="Clique para editar"
+                                            >
+                                              {evolutionData.quadril_anterior || '-'}cm
+                                            </span>
+                                          )}
+                                        </td>
+                                      </>
+                                    )}
+                                    {/* Coluna atual (sempre visível) */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'quadril' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            step="0.1"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('quadril');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">cm</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('quadril', evolutionData.quadril_atual, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.quadril_atual || '-'}cm
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.quadril_diferenca !== undefined && evolutionData.quadril_diferenca !== 0
+                                        ? `${evolutionData.quadril_diferenca > 0 ? '+' : ''}${evolutionData.quadril_diferenca}cm`
+                                        : '0cm'}
+                                    </td>
+                                  </tr>
+                                ) : null}
 
-                          {/* Descanso entre Séries */}
-                          {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
-                            <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'descanso') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'descanso') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'descanso' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: Mais de um minuto"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('descanso');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('descanso')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_anterior_text ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).descanso_anterior_text || '-'}
-                                  </span>
+                                {/* Aproveitamento - não editável, calculado automaticamente */}
+                                {showAproveitamento && evolutionData.aderencia_anterior !== undefined && evolutionData.aderencia_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {historicCheckin.percentual_aproveitamento ? `${historicCheckin.percentual_aproveitamento}%` : '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 2 colunas: dados iniciais (vazio) + último */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <>
+                                        {/* Coluna vazia (não há dados iniciais de aproveitamento) */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-500 text-xs">-</span>
+                                        </td>
+                                        {/* Coluna do único check-in anterior */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400">
+                                            {previousCheckins[0].percentual_aproveitamento ? `${previousCheckins[0].percentual_aproveitamento}%` : '-'}
+                                          </span>
+                                        </td>
+                                      </>
+                                    )}
+                                    {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <>
+                                        {/* Coluna penúltimo */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400">
+                                            {previousCheckins[previousCheckins.length - 2].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 2].percentual_aproveitamento}%` : '-'}
+                                          </span>
+                                        </td>
+                                        {/* Coluna último */}
+                                        <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                          <span className="text-slate-400">
+                                            {previousCheckins[previousCheckins.length - 1].percentual_aproveitamento ? `${previousCheckins[previousCheckins.length - 1].percentual_aproveitamento}%` : '-'}
+                                          </span>
+                                        </td>
+                                      </>
+                                    )}
+                                    {/* Coluna atual (sempre visível) */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10 text-slate-200">{evolutionData.aderencia_atual || 0}%</td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.aderencia_diferenca > 0 ? 'text-green-400' : evolutionData.aderencia_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.aderencia_diferenca !== 0
+                                        ? `${evolutionData.aderencia_diferenca > 0 ? '+' : ''}${evolutionData.aderencia_diferenca}%`
+                                        : '0%'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'descanso' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: Mais de um minuto"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('descanso');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('descanso')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_atual_text ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).descanso_atual_text || '-'}
-                                  </span>
+
+                                {/* Treinos */}
+                                {evolutionData.treino_anterior !== undefined && evolutionData.treino_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'treino') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar coluna vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs"></span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'treino') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'treino' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('treino');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('treino')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                            onClick={() => handleStartEdit('treino', evolutionData.treino_anterior ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {evolutionData.treino_anterior || 0}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'treino' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('treino');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('treino')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('treino', evolutionData.treino_atual ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.treino_atual ?? 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.treino_diferenca > 0 ? 'text-green-400' : evolutionData.treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.treino_diferenca !== 0
+                                        ? `${evolutionData.treino_diferenca > 0 ? '+' : ''}${evolutionData.treino_diferenca}`
+                                        : '0'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${
-                                evolutionData.descanso_diferenca !== null && evolutionData.descanso_diferenca !== undefined
-                                  ? (evolutionData.descanso_diferenca > 0 ? 'text-green-400' : evolutionData.descanso_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
-                                  : 'text-slate-400'
-                              }`}>
-                                {evolutionData.descanso_diferenca !== null && evolutionData.descanso_diferenca !== undefined
-                                  ? (evolutionData.descanso_diferenca !== 0
-                                      ? `${evolutionData.descanso_diferenca > 0 ? '+' : ''}${evolutionData.descanso_diferenca}`
-                                      : '0')
-                                  : '-'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Água */}
-                          {evolutionData.agua_anterior !== undefined && evolutionData.agua_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">💧 Água</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'agua') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'agua') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'agua' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('agua');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('agua')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('agua', evolutionData.agua_anterior ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.agua_anterior || 0}
-                          </span>
+
+                                {/* Cardio */}
+                                {evolutionData.cardio_anterior !== undefined && evolutionData.cardio_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'cardio') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'cardio') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'cardio' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('cardio');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('cardio')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                            onClick={() => handleStartEdit('cardio', evolutionData.cardio_anterior ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {evolutionData.cardio_anterior || 0}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'cardio' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('cardio');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('cardio')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('cardio', evolutionData.cardio_atual ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.cardio_atual ?? 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cardio_diferenca > 0 ? 'text-green-400' : evolutionData.cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.cardio_diferenca !== 0
+                                        ? `${evolutionData.cardio_diferenca > 0 ? '+' : ''}${evolutionData.cardio_diferenca}`
+                                        : '0'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'agua' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('agua');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('agua')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                        </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('agua', evolutionData.agua_atual ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.agua_atual ?? 0}
-                                  </span>
+
+                                {/* Tempo de Treino */}
+                                {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {historicCheckin.tempo || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {previousCheckins[previousCheckins.length - 1].tempo || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'tempo_treino' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="text"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              placeholder="Ex: 60 a 70 min"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('tempo_treino');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('tempo_treino')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                            onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_anterior_text ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {(evolutionData as any).tempo_treino_anterior_text || '-'}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'tempo_treino' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('tempo_treino');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">min</span>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('tempo_treino')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                          onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_atual_text ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {(evolutionData as any).tempo_treino_atual_text || '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.tempo_treino_diferenca !== null && evolutionData.tempo_treino_diferenca !== undefined
+                                        ? (evolutionData.tempo_treino_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_treino_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
+                                        : 'text-slate-400'
+                                      }`}>
+                                      {evolutionData.tempo_treino_diferenca !== null && evolutionData.tempo_treino_diferenca !== undefined
+                                        ? (evolutionData.tempo_treino_diferenca !== 0
+                                          ? `${evolutionData.tempo_treino_diferenca > 0 ? '+' : ''}${evolutionData.tempo_treino_diferenca}`
+                                          : '0')
+                                        : '-'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.agua_diferenca > 0 ? 'text-green-400' : evolutionData.agua_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.agua_diferenca !== 0
-                                  ? `${evolutionData.agua_diferenca > 0 ? '+' : ''}${evolutionData.agua_diferenca}`
-                                  : '0'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Sono */}
-                          {evolutionData.sono_anterior !== undefined && evolutionData.sono_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">😴 Sono</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'sono') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'sono') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'sono' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('sono');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('sono')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('sono', evolutionData.sono_anterior ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.sono_anterior || 0}
-                          </span>
+
+                                {/* Tempo de Cardio */}
+                                {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {historicCheckin.tempo_cardio || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {previousCheckins[previousCheckins.length - 1].tempo_cardio || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'tempo_cardio' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="text"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              placeholder="Ex: 30 minutos"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('tempo_cardio')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                            onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_anterior_text ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {(evolutionData as any).tempo_cardio_anterior_text || '-'}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'tempo_cardio' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            placeholder="Ex: 30 minutos"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('tempo_cardio')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                          onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_atual_text ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {(evolutionData as any).tempo_cardio_atual_text || '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.tempo_cardio_diferenca !== null && evolutionData.tempo_cardio_diferenca !== undefined
+                                        ? (evolutionData.tempo_cardio_diferenca > 0 ? 'text-green-400' : evolutionData.tempo_cardio_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
+                                        : 'text-slate-400'
+                                      }`}>
+                                      {evolutionData.tempo_cardio_diferenca !== null && evolutionData.tempo_cardio_diferenca !== undefined
+                                        ? (evolutionData.tempo_cardio_diferenca !== 0
+                                          ? `${evolutionData.tempo_cardio_diferenca > 0 ? '+' : ''}${evolutionData.tempo_cardio_diferenca}`
+                                          : '0')
+                                        : '-'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'sono' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('sono');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('sono')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                        </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('sono', evolutionData.sono_atual ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.sono_atual ?? 0}
-                                  </span>
+
+                                {/* Descanso entre Séries */}
+                                {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
+                                  <tr className="border-b border-white/20">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'descanso') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'descanso') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'descanso' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="text"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              placeholder="Ex: Mais de um minuto"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('descanso');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('descanso')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                            onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_anterior_text ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {(evolutionData as any).descanso_anterior_text || '-'}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'descanso' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            placeholder="Ex: Mais de um minuto"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('descanso');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('descanso')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                          onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_atual_text ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {(evolutionData as any).descanso_atual_text || '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.descanso_diferenca !== null && evolutionData.descanso_diferenca !== undefined
+                                        ? (evolutionData.descanso_diferenca > 0 ? 'text-green-400' : evolutionData.descanso_diferenca < 0 ? 'text-red-400' : 'text-slate-400')
+                                        : 'text-slate-400'
+                                      }`}>
+                                      {evolutionData.descanso_diferenca !== null && evolutionData.descanso_diferenca !== undefined
+                                        ? (evolutionData.descanso_diferenca !== 0
+                                          ? `${evolutionData.descanso_diferenca > 0 ? '+' : ''}${evolutionData.descanso_diferenca}`
+                                          : '0')
+                                        : '-'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.sono_diferenca > 0 ? 'text-green-400' : evolutionData.sono_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.sono_diferenca !== 0
-                                  ? `${evolutionData.sono_diferenca > 0 ? '+' : ''}${evolutionData.sono_diferenca}`
-                                  : '0'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Refeições Livres */}
-                          {evolutionData.ref_livre_anterior !== undefined && evolutionData.ref_livre_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'refeicoes') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'refeicoes') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'ref_livre' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('ref_livre');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('ref_livre')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_anterior ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.ref_livre_anterior || 0}
-                              </span>
-                            )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'ref_livre' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('ref_livre');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('ref_livre')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                          </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_atual ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.ref_livre_atual ?? 0}
-                                  </span>
+
+                                {/* Água */}
+                                {evolutionData.agua_anterior !== undefined && evolutionData.agua_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">💧 Água</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'agua') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'agua') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'agua' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('agua');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('agua')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                            onClick={() => handleStartEdit('agua', evolutionData.agua_anterior ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {evolutionData.agua_anterior || 0}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'agua' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('agua');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('agua')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('agua', evolutionData.agua_atual ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.agua_atual ?? 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.agua_diferenca > 0 ? 'text-green-400' : evolutionData.agua_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.agua_diferenca !== 0
+                                        ? `${evolutionData.agua_diferenca > 0 ? '+' : ''}${evolutionData.agua_diferenca}`
+                                        : '0'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.ref_livre_diferenca > 0 ? 'text-green-400' : evolutionData.ref_livre_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.ref_livre_diferenca !== 0
-                                  ? `${evolutionData.ref_livre_diferenca > 0 ? '+' : ''}${evolutionData.ref_livre_diferenca}`
-                                  : '0'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Beliscos */}
-                          {evolutionData.beliscos_anterior !== undefined && evolutionData.beliscos_atual !== undefined && (
-                            <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
-                              {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
-                              {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
-                                  {getCheckinMetricValue(historicCheckin, 'beliscos') || '-'}
-                                </td>
-                              ))}
-                              {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
-                              {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-500 text-xs">-</span>
-                                </td>
-                              )}
-                              {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
-                              {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <span className="text-slate-400">
-                                    {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'beliscos') || '-'}
-                                  </span>
-                                </td>
-                              )}
-                              {/* Coluna penúltimo (se não estiver mostrando todas) */}
-                              {!showAllCheckinsColumns && (
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'beliscos' && editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('beliscos');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('beliscos')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                        </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_anterior ?? null, true)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.beliscos_anterior || 0}
-                                  </span>
+
+                                {/* Sono */}
+                                {evolutionData.sono_anterior !== undefined && evolutionData.sono_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">😴 Sono</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'sono') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'sono') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'sono' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('sono');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('sono')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                            onClick={() => handleStartEdit('sono', evolutionData.sono_anterior ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {evolutionData.sono_anterior || 0}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'sono' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('sono');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('sono')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('sono', evolutionData.sono_atual ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.sono_atual ?? 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.sono_diferenca > 0 ? 'text-green-400' : evolutionData.sono_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.sono_diferenca !== 0
+                                        ? `${evolutionData.sono_diferenca > 0 ? '+' : ''}${evolutionData.sono_diferenca}`
+                                        : '0'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              )}
-                              {/* Coluna atual */}
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'beliscos' && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('beliscos');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('beliscos')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                        </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_atual ?? null, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.beliscos_atual ?? 0}
-                                  </span>
+
+                                {/* Refeições Livres */}
+                                {evolutionData.ref_livre_anterior !== undefined && evolutionData.ref_livre_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'refeicoes') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'refeicoes') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'ref_livre' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('ref_livre');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('ref_livre')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                            onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_anterior ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {evolutionData.ref_livre_anterior || 0}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'ref_livre' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('ref_livre');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('ref_livre')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_atual ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.ref_livre_atual ?? 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.ref_livre_diferenca > 0 ? 'text-green-400' : evolutionData.ref_livre_diferenca < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.ref_livre_diferenca !== 0
+                                        ? `${evolutionData.ref_livre_diferenca > 0 ? '+' : ''}${evolutionData.ref_livre_diferenca}`
+                                        : '0'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              {/* Coluna de evolução */}
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.beliscos_diferenca < 0 ? 'text-green-400' : evolutionData.beliscos_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                                {evolutionData.beliscos_diferenca !== 0
-                                  ? `${evolutionData.beliscos_diferenca > 0 ? '+' : ''}${evolutionData.beliscos_diferenca}`
-                                  : '0'}
-                              </td>
-                            </tr>
-                          )}
-                          {/* Linha de botões de fotos */}
-                          <tr className="border-b border-slate-700/30">
-                            <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">📷 Fotos</td>
-                            
-                            {/* Colunas históricas de fotos (quando expandido) - mostra TODOS os check-ins anteriores */}
-                            {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => {
-                              const hasPhotos = !!(
-                                historicCheckin.foto_1 || 
-                                historicCheckin.foto_2 || 
-                                historicCheckin.foto_3 || 
-                                historicCheckin.foto_4
-                              );
-                              
-                              return (
-                                <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center bg-blue-500/5">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (hasPhotos) {
-                                        // Abrir visualizador simples mostrando SOMENTE as fotos deste check-in específico
-                                        setSelectedHistoricCheckinId(historicCheckin.id);
-                                        setPhotoViewerSource('current'); // Mostrar SOMENTE fotos deste check-in
-                                        setShowPhotosViewer(true);
-                                      } else {
-                                        toast.info('Sem fotos neste check-in');
-                                      }
-                                    }}
-                                    className={`text-[10px] h-5 px-1.5 ${
-                                      hasPhotos
-                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                        : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
-                                    }`}
-                                    title={hasPhotos ? `Ver fotos de ${new Date(historicCheckin.data_checkin).toLocaleDateString('pt-BR')}` : 'Sem fotos'}
-                                  >
-                                    <Camera className={`w-2.5 h-2.5 ${hasPhotos ? 'text-slate-200' : ''}`} />
-                                  </Button>
-                                </td>
-                              );
-                            })}
-                            
-                            {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 3 colunas: dados iniciais + anterior + atual */}
-                            {!showAllCheckinsColumns && previousCheckins.length === 1 && (
-                              <>
-                                {/* Coluna de fotos iniciais do paciente */}
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (hasInitialPhotos) {
-                                        setPhotoViewerSource('initial');
-                                        setShowPhotosViewer(true);
-                                      } else {
-                                        toast.info('Sem fotos iniciais');
-                                      }
-                                    }}
-                                    className={`text-xs h-6 px-2 ${
-                                      hasInitialPhotos
-                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                        : 'text-slate-500 cursor-not-allowed opacity-50'
-                                    }`}
-                                    disabled={!hasInitialPhotos}
-                                    title={hasInitialPhotos ? 'Ver fotos iniciais' : 'Sem fotos iniciais'}
-                                  >
-                                    <Camera className={`w-3 h-3 mr-1 ${hasInitialPhotos ? 'text-slate-200' : ''}`} />
-                                    {hasInitialPhotos ? 'Ver' : '-'}
-                                  </Button>
-                                </td>
-                                {/* Coluna do único check-in anterior */}
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      const ultimoCheckin = previousCheckins[0];
-                                      const hasPhotos = !!(ultimoCheckin.foto_1 || ultimoCheckin.foto_2 || ultimoCheckin.foto_3 || ultimoCheckin.foto_4);
-                                      
-                                      if (hasPhotos) {
-                                        setSelectedHistoricCheckinId(ultimoCheckin.id);
+
+                                {/* Beliscos */}
+                                {evolutionData.beliscos_anterior !== undefined && evolutionData.beliscos_atual !== undefined && (
+                                  <tr className="border-b border-white/20">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
+                                    {/* Colunas históricas - quando expandido, mostra TODOS os check-ins anteriores */}
+                                    {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center text-slate-400 text-[10px] bg-purple-500/5">
+                                        {getCheckinMetricValue(historicCheckin, 'beliscos') || '-'}
+                                      </td>
+                                    ))}
+                                    {/* Quando há exatamente 1 check-in anterior, mostrar célula vazia (dados iniciais) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-500 text-xs">-</span>
+                                      </td>
+                                    )}
+                                    {/* Coluna do check-in anterior (quando há 2+ check-ins anteriores) */}
+                                    {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <span className="text-slate-400">
+                                          {getCheckinMetricValue(previousCheckins[previousCheckins.length - 1], 'beliscos') || '-'}
+                                        </span>
+                                      </td>
+                                    )}
+                                    {/* Coluna penúltimo (se não estiver mostrando todas) */}
+                                    {!showAllCheckinsColumns && (
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        {editingField === 'beliscos' && editingPrevious ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit('beliscos');
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                              onClick={() => handleSaveEdit('beliscos')}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                              onClick={handleCancelEdit}
+                                              disabled={isUpdatingCheckin}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                            onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_anterior ?? null, true)}
+                                            title="Clique para editar"
+                                          >
+                                            {evolutionData.beliscos_anterior || 0}
+                                          </span>
+                                        )}
+                                      </td>
+                                    )}
+                                    {/* Coluna atual */}
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'beliscos' && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('beliscos');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('beliscos')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_atual ?? null, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.beliscos_atual ?? 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    {/* Coluna de evolução */}
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.beliscos_diferenca < 0 ? 'text-green-400' : evolutionData.beliscos_diferenca > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                      {evolutionData.beliscos_diferenca !== 0
+                                        ? `${evolutionData.beliscos_diferenca > 0 ? '+' : ''}${evolutionData.beliscos_diferenca}`
+                                        : '0'}
+                                    </td>
+                                  </tr>
+                                )}
+                                {/* Linha de botões de fotos */}
+                                <tr className="border-b border-slate-700/30">
+                                  <td className="py-1.5 px-2 text-slate-200 sticky left-0 z-10">📷 Fotos</td>
+
+                                  {/* Colunas históricas de fotos (quando expandido) - mostra TODOS os check-ins anteriores */}
+                                  {showAllCheckinsColumns && previousCheckins.map((historicCheckin) => {
+                                    const hasPhotos = !!(
+                                      historicCheckin.foto_1 ||
+                                      historicCheckin.foto_2 ||
+                                      historicCheckin.foto_3 ||
+                                      historicCheckin.foto_4
+                                    );
+
+                                    return (
+                                      <td key={historicCheckin.id} className="py-1.5 px-1.5 text-center bg-blue-500/5">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            if (hasPhotos) {
+                                              // Abrir visualizador simples mostrando SOMENTE as fotos deste check-in específico
+                                              setSelectedHistoricCheckinId(historicCheckin.id);
+                                              setPhotoViewerSource('current'); // Mostrar SOMENTE fotos deste check-in
+                                              setShowPhotosViewer(true);
+                                            } else {
+                                              toast.info('Sem fotos neste check-in');
+                                            }
+                                          }}
+                                          className={`text-[10px] h-5 px-1.5 ${hasPhotos
+                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                              : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
+                                            }`}
+                                          title={hasPhotos ? `Ver fotos de ${new Date(historicCheckin.data_checkin).toLocaleDateString('pt-BR')}` : 'Sem fotos'}
+                                        >
+                                          <Camera className={`w-2.5 h-2.5 ${hasPhotos ? 'text-slate-200' : ''}`} />
+                                        </Button>
+                                      </td>
+                                    );
+                                  })}
+
+                                  {/* Quando há exatamente 1 check-in anterior (2 no total), mostrar 3 colunas: dados iniciais + anterior + atual */}
+                                  {!showAllCheckinsColumns && previousCheckins.length === 1 && (
+                                    <>
+                                      {/* Coluna de fotos iniciais do paciente */}
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            if (hasInitialPhotos) {
+                                              setPhotoViewerSource('initial');
+                                              setShowPhotosViewer(true);
+                                            } else {
+                                              toast.info('Sem fotos iniciais');
+                                            }
+                                          }}
+                                          className={`text-xs h-6 px-2 ${hasInitialPhotos
+                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                              : 'text-slate-500 cursor-not-allowed opacity-50'
+                                            }`}
+                                          disabled={!hasInitialPhotos}
+                                          title={hasInitialPhotos ? 'Ver fotos iniciais' : 'Sem fotos iniciais'}
+                                        >
+                                          <Camera className={`w-3 h-3 mr-1 ${hasInitialPhotos ? 'text-slate-200' : ''}`} />
+                                          {hasInitialPhotos ? 'Ver' : '-'}
+                                        </Button>
+                                      </td>
+                                      {/* Coluna do único check-in anterior */}
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            const ultimoCheckin = previousCheckins[0];
+                                            const hasPhotos = !!(ultimoCheckin.foto_1 || ultimoCheckin.foto_2 || ultimoCheckin.foto_3 || ultimoCheckin.foto_4);
+
+                                            if (hasPhotos) {
+                                              setSelectedHistoricCheckinId(ultimoCheckin.id);
+                                              setPhotoViewerSource('current');
+                                              setShowPhotosViewer(true);
+                                            } else {
+                                              toast.info('Sem fotos neste check-in');
+                                            }
+                                          }}
+                                          className={`text-xs h-6 px-2 ${previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4
+                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                            }`}
+                                          title="Ver fotos do check-in anterior"
+                                        >
+                                          <Camera className={`w-3 h-3 mr-1 ${previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4 ? 'text-slate-200' : ''}`} />
+                                          {new Date(previousCheckins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                        </Button>
+                                      </td>
+                                    </>
+                                  )}
+
+                                  {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
+                                  {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
+                                    <>
+                                      {/* Coluna do penúltimo */}
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            const penultimoCheckin = previousCheckins[previousCheckins.length - 2];
+                                            const hasPhotos = !!(penultimoCheckin.foto_1 || penultimoCheckin.foto_2 || penultimoCheckin.foto_3 || penultimoCheckin.foto_4);
+
+                                            if (hasPhotos) {
+                                              setSelectedHistoricCheckinId(penultimoCheckin.id);
+                                              setPhotoViewerSource('current');
+                                              setShowPhotosViewer(true);
+                                            } else {
+                                              toast.info('Sem fotos neste check-in');
+                                            }
+                                          }}
+                                          className={`text-xs h-6 px-2 ${previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4
+                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                              : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
+                                            }`}
+                                          title="Ver fotos do penúltimo check-in"
+                                        >
+                                          <Camera className="w-3 h-3 mr-1" />
+                                          {previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4 ? 'Ver' : 'Sem fotos'}
+                                        </Button>
+                                      </td>
+                                      {/* Coluna do último */}
+                                      <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            if (previousCheckinId && hasPreviousPhotos) {
+                                              setSelectedHistoricCheckinId(previousCheckinId);
+                                              setPhotoViewerSource('current');
+                                              setShowPhotosViewer(true);
+                                            } else if (previousCheckinId) {
+                                              toast.info('Sem fotos neste check-in');
+                                            } else {
+                                              toast.info('ID do check-in anterior não disponível');
+                                            }
+                                          }}
+                                          className={`text-xs h-6 px-2 ${hasPreviousPhotos
+                                              ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                            }`}
+                                          title={hasPreviousPhotos ? "Ver fotos do check-in anterior (há fotos)" : "Ver fotos do check-in anterior"}
+                                        >
+                                          <Camera className={`w-3 h-3 mr-1 ${hasPreviousPhotos ? 'text-slate-200' : ''}`} />
+                                          {evolutionData.checkin_anterior_data
+                                            ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                            : 'Anterior'}
+                                        </Button>
+                                      </td>
+                                    </>
+                                  )}
+
+                                  {/* Coluna do check-in atual */}
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedHistoricCheckinId(null); // Limpar qualquer check-in histórico selecionado
                                         setPhotoViewerSource('current');
                                         setShowPhotosViewer(true);
-                                      } else {
-                                        toast.info('Sem fotos neste check-in');
-                                      }
-                                    }}
-                                    className={`text-xs h-6 px-2 ${
-                                      previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4
-                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                                    }`}
-                                    title="Ver fotos do check-in anterior"
-                                  >
-                                    <Camera className={`w-3 h-3 mr-1 ${previousCheckins[0].foto_1 || previousCheckins[0].foto_2 || previousCheckins[0].foto_3 || previousCheckins[0].foto_4 ? 'text-slate-200' : ''}`} />
-                                    {new Date(previousCheckins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                  </Button>
-                                </td>
-                              </>
-                            )}
-                            
-                            {/* Quando há 2 ou mais check-ins anteriores, mostrar penúltimo + último normalmente */}
-                            {!showAllCheckinsColumns && previousCheckins.length >= 2 && (
-                              <>
-                                {/* Coluna do penúltimo */}
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      const penultimoCheckin = previousCheckins[previousCheckins.length - 2];
-                                      const hasPhotos = !!(penultimoCheckin.foto_1 || penultimoCheckin.foto_2 || penultimoCheckin.foto_3 || penultimoCheckin.foto_4);
-                                      
-                                      if (hasPhotos) {
-                                        setSelectedHistoricCheckinId(penultimoCheckin.id);
-                                        setPhotoViewerSource('current');
-                                        setShowPhotosViewer(true);
-                                      } else {
-                                        toast.info('Sem fotos neste check-in');
-                                      }
-                                    }}
-                                    className={`text-xs h-6 px-2 ${
-                                      previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4
-                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
-                                        : 'text-slate-500 hover:text-slate-400 hover:bg-slate-700/30'
-                                    }`}
-                                    title="Ver fotos do penúltimo check-in"
-                                  >
-                                    <Camera className="w-3 h-3 mr-1" />
-                                    {previousCheckins[previousCheckins.length - 2].foto_1 || previousCheckins[previousCheckins.length - 2].foto_2 || previousCheckins[previousCheckins.length - 2].foto_3 || previousCheckins[previousCheckins.length - 2].foto_4 ? 'Ver' : 'Sem fotos'}
-                                  </Button>
-                                </td>
-                                {/* Coluna do último */}
-                                <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (previousCheckinId && hasPreviousPhotos) {
-                                        setSelectedHistoricCheckinId(previousCheckinId);
-                                        setPhotoViewerSource('current');
-                                        setShowPhotosViewer(true);
-                                      } else if (previousCheckinId) {
-                                        toast.info('Sem fotos neste check-in');
-                                      } else {
-                                        toast.info('ID do check-in anterior não disponível');
-                                      }
-                                    }}
-                                    className={`text-xs h-6 px-2 ${
-                                      hasPreviousPhotos 
-                                        ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
-                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                                    }`}
-                                    title={hasPreviousPhotos ? "Ver fotos do check-in anterior (há fotos)" : "Ver fotos do check-in anterior"}
-                                  >
-                                    <Camera className={`w-3 h-3 mr-1 ${hasPreviousPhotos ? 'text-slate-200' : ''}`} />
-                                    {evolutionData.checkin_anterior_data 
-                                      ? new Date(evolutionData.checkin_anterior_data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-                                      : 'Anterior'}
-                                  </Button>
-                                </td>
-                              </>
-                            )}
-                            
-                            {/* Coluna do check-in atual */}
-                            <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedHistoricCheckinId(null); // Limpar qualquer check-in histórico selecionado
-                                  setPhotoViewerSource('current');
-                                  setShowPhotosViewer(true);
-                                }}
-                                className={`text-xs h-6 px-2 ${
-                                  hasCurrentPhotos 
-                                    ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                                }`}
-                                title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
-                              >
-                                <Camera className={`w-3 h-3 mr-1 ${hasCurrentPhotos ? 'text-slate-200' : ''}`} />
-                                {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                              </Button>
-                            </td>
-                            
-                            {/* Coluna de Fotos Iniciais (sticky right) */}
-                            <td className="py-1.5 px-2 text-center sticky right-0 z-10">
-                              {hasInitialPhotos ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedHistoricCheckinId(null); // Limpar qualquer check-in histórico selecionado
-                                    setPhotoViewerSource('initial');
-                                    setShowPhotosViewer(true);
-                                  }}
-                                  className="text-xs h-6 px-2 text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30"
-                                  title="Ver fotos iniciais (há fotos)"
-                                >
-                                  <Camera className="w-3 h-3 mr-1 text-slate-200" />
-                                  Iniciais
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedHistoricCheckinId(null); // Limpar qualquer check-in histórico selecionado
-                                    setPhotoViewerSource('initial');
-                                    setShowPhotosViewer(true);
-                                  }}
-                                  className="text-xs h-6 px-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
-                                  title="Adicionar fotos iniciais"
-                                >
-                                  <Camera className="w-3 h-3 mr-1" />
-                                  Iniciais
-                                </Button>
-                              )}
-                            </td>
-                          </tr>
-                        </tbody>
+                                      }}
+                                      className={`text-xs h-6 px-2 ${hasCurrentPhotos
+                                          ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                        }`}
+                                      title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
+                                    >
+                                      <Camera className={`w-3 h-3 mr-1 ${hasCurrentPhotos ? 'text-slate-200' : ''}`} />
+                                      {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                    </Button>
+                                  </td>
+
+                                  {/* Coluna de Fotos Iniciais (sticky right) */}
+                                  <td className="py-1.5 px-2 text-center sticky right-0 z-10">
+                                    {hasInitialPhotos ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedHistoricCheckinId(null); // Limpar qualquer check-in histórico selecionado
+                                          setPhotoViewerSource('initial');
+                                          setShowPhotosViewer(true);
+                                        }}
+                                        className="text-xs h-6 px-2 text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30"
+                                        title="Ver fotos iniciais (há fotos)"
+                                      >
+                                        <Camera className="w-3 h-3 mr-1 text-slate-200" />
+                                        Iniciais
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedHistoricCheckinId(null); // Limpar qualquer check-in histórico selecionado
+                                          setPhotoViewerSource('initial');
+                                          setShowPhotosViewer(true);
+                                        }}
+                                        className="text-xs h-6 px-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                                        title="Adicionar fotos iniciais"
+                                      >
+                                        <Camera className="w-3 h-3 mr-1" />
+                                        Iniciais
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              </tbody>
                             </table>
                           </div>
                         ) : evolutionData ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-white/20 bg-slate-800/60">
-                            <th className="text-left py-1.5 px-2 text-slate-300 font-medium sticky left-0 z-10">Métrica</th>
-                            <th className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/95 z-10">
-                              {evolutionData?.usando_dados_iniciais ? 'Dados Iniciais' : 'Anterior'}
-                            </th>
-                            <th className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/95 z-10">
-                              {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                            </th>
-                            <th className="text-center py-1.5 px-2 text-slate-300 font-medium sticky right-0 z-10">Evolução</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* Peso */}
-                          {evolutionData?.peso_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Peso</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'peso' && editingInitialData ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('peso');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">kg</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('peso', evolutionData.peso_anterior || null, false, true)}
-                                    title="Clique para editar ou adicionar"
-                                  >
-                                    {evolutionData.peso_anterior !== null && evolutionData.peso_anterior !== undefined 
-                                      ? `${evolutionData.peso_anterior}kg` 
-                                      : '-'}
-                                  </span>
+                              <thead>
+                                <tr className="border-b border-white/20 bg-slate-800/60">
+                                  <th className="text-left py-1.5 px-2 text-slate-300 font-medium sticky left-0 z-10">Métrica</th>
+                                  <th className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/95 z-10">
+                                    {evolutionData?.usando_dados_iniciais ? 'Dados Iniciais' : 'Anterior'}
+                                  </th>
+                                  <th className="text-center py-1.5 px-1.5 text-slate-300 font-medium text-xs bg-slate-800/95 z-10">
+                                    {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                  </th>
+                                  <th className="text-center py-1.5 px-2 text-slate-300 font-medium sticky right-0 z-10">Evolução</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {/* Peso */}
+                                {evolutionData?.peso_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Peso</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'peso' && editingInitialData ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('peso');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">kg</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('peso', evolutionData.peso_anterior || null, false, true)}
+                                          title="Clique para editar ou adicionar"
+                                        >
+                                          {evolutionData.peso_anterior !== null && evolutionData.peso_anterior !== undefined
+                                            ? `${evolutionData.peso_anterior}kg`
+                                            : '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'peso' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('peso');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">kg</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.peso_atual || 0}kg
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.peso_diferenca !== null && evolutionData.peso_diferenca !== undefined
+                                        ? (evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
+                                        : 'text-slate-400'
+                                      }`}>
+                                      {evolutionData.peso_diferenca !== null && evolutionData.peso_diferenca !== undefined
+                                        ? `${evolutionData.peso_diferenca > 0 ? '+' : ''}${evolutionData.peso_diferenca}kg`
+                                        : '-'}
+                                    </td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'peso' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('peso');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">kg</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('peso')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('peso', evolutionData.peso_atual, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.peso_atual || 0}kg
-                                  </span>
+
+                                {/* Cintura */}
+                                {(evolutionData?.cintura_anterior !== null && evolutionData?.cintura_anterior !== undefined) ||
+                                  (evolutionData?.cintura_atual !== null && evolutionData?.cintura_atual !== undefined) ? (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Cintura</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'cintura' && editingInitialData ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('cintura');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">cm</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('cintura', evolutionData.cintura_anterior || null, false, true)}
+                                          title="Clique para editar ou adicionar"
+                                        >
+                                          {evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined
+                                            ? `${evolutionData.cintura_anterior}cm`
+                                            : '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'cintura' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('cintura');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">cm</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className={`text-slate-200 ${evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined ? 'cursor-pointer hover:text-slate-200 hover:underline font-medium' : ''}`}
+                                          onClick={() => {
+                                            if (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) {
+                                              handleStartEdit('cintura', evolutionData.cintura_atual, false, false);
+                                            }
+                                          }}
+                                          title={evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined ? "Clique para editar" : ""}
+                                        >
+                                          {evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined
+                                            ? `${evolutionData.cintura_atual}cm`
+                                            : '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.cintura_diferenca !== null && evolutionData.cintura_diferenca !== undefined
+                                        ? (evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
+                                        : 'text-slate-400'
+                                      }`}>
+                                      {evolutionData.cintura_diferenca !== null && evolutionData.cintura_diferenca !== undefined
+                                        ? `${evolutionData.cintura_diferenca > 0 ? '+' : ''}${evolutionData.cintura_diferenca}cm`
+                                        : '-'}
+                                    </td>
+                                  </tr>
+                                ) : null}
+
+                                {/* Quadril */}
+                                {(evolutionData?.quadril_anterior !== null && evolutionData?.quadril_anterior !== undefined) ||
+                                  (evolutionData?.quadril_atual !== null && evolutionData?.quadril_atual !== undefined) ? (
+                                  <tr className="border-b border-white/20">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Quadril</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'quadril' && editingInitialData ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('quadril');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">cm</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
+                                          onClick={() => handleStartEdit('quadril', evolutionData.quadril_anterior || null, false, true)}
+                                          title="Clique para editar ou adicionar"
+                                        >
+                                          {evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined
+                                            ? `${evolutionData.quadril_anterior}cm`
+                                            : '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'quadril' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('quadril');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">cm</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('quadril', evolutionData.quadril_atual || null, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined
+                                            ? `${evolutionData.quadril_atual}cm`
+                                            : '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${evolutionData.quadril_diferenca !== null && evolutionData.quadril_diferenca !== undefined
+                                        ? (evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
+                                        : 'text-slate-400'
+                                      }`}>
+                                      {evolutionData.quadril_diferenca !== null && evolutionData.quadril_diferenca !== undefined
+                                        ? `${evolutionData.quadril_diferenca > 0 ? '+' : ''}${evolutionData.quadril_diferenca}cm`
+                                        : '-'}
+                                    </td>
+                                  </tr>
+                                ) : null}
+
+                                {/* Aproveitamento */}
+                                {showAproveitamento && evolutionData?.aderencia_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'aderencia' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('aderencia');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <span className="text-xs text-slate-400">%</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('aderencia')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-blue-300 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('aderencia', evolutionData.aderencia_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.aderencia_atual || 0}%
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${
-                                evolutionData.peso_diferenca !== null && evolutionData.peso_diferenca !== undefined
-                                  ? (evolutionData.peso_diferenca < 0 ? 'text-green-400' : evolutionData.peso_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
-                                  : 'text-slate-400'
-                              }`}>
-                                {evolutionData.peso_diferenca !== null && evolutionData.peso_diferenca !== undefined
-                                  ? `${evolutionData.peso_diferenca > 0 ? '+' : ''}${evolutionData.peso_diferenca}kg`
-                                  : '-'}
-                              </td>
-                            </tr>
-                          )}
-                          
-                          {/* Cintura */}
-                          {(evolutionData?.cintura_anterior !== null && evolutionData?.cintura_anterior !== undefined) || 
-                           (evolutionData?.cintura_atual !== null && evolutionData?.cintura_atual !== undefined) ? (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Cintura</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'cintura' && editingInitialData ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('cintura');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">cm</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('cintura', evolutionData.cintura_anterior || null, false, true)}
-                                    title="Clique para editar ou adicionar"
-                                  >
-                                    {evolutionData.cintura_anterior !== null && evolutionData.cintura_anterior !== undefined 
-                                      ? `${evolutionData.cintura_anterior}cm` 
-                                      : '-'}
-                                  </span>
+
+                                {/* Treinos */}
+                                {evolutionData?.treino_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'treino' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('treino');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('treino')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('treino', evolutionData.treino_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.treino_atual || 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'cintura' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('cintura');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">cm</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cintura')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className={`text-slate-200 ${evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined ? 'cursor-pointer hover:text-slate-200 hover:underline font-medium' : ''}`}
-                                    onClick={() => {
-                                      if (evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined) {
-                                        handleStartEdit('cintura', evolutionData.cintura_atual, false, false);
-                                      }
-                                    }}
-                                    title={evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined ? "Clique para editar" : ""}
-                                  >
-                                    {evolutionData.cintura_atual !== null && evolutionData.cintura_atual !== undefined 
-                                      ? `${evolutionData.cintura_atual}cm` 
-                                      : '-'}
-                                  </span>
+
+                                {/* Cardio */}
+                                {evolutionData?.cardio_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'cardio' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('cardio');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cardio')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('cardio', evolutionData.cardio_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.cardio_atual || 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${
-                                evolutionData.cintura_diferenca !== null && evolutionData.cintura_diferenca !== undefined
-                                  ? (evolutionData.cintura_diferenca < 0 ? 'text-green-400' : evolutionData.cintura_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
-                                  : 'text-slate-400'
-                              }`}>
-                                {evolutionData.cintura_diferenca !== null && evolutionData.cintura_diferenca !== undefined
-                                  ? `${evolutionData.cintura_diferenca > 0 ? '+' : ''}${evolutionData.cintura_diferenca}cm`
-                                  : '-'}
-                              </td>
-                            </tr>
-                          ) : null}
-                          
-                          {/* Quadril */}
-                          {(evolutionData?.quadril_anterior !== null && evolutionData?.quadril_anterior !== undefined) || 
-                           (evolutionData?.quadril_atual !== null && evolutionData?.quadril_atual !== undefined) ? (
-                            <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">Quadril</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'quadril' && editingInitialData ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('quadril');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">cm</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-400 cursor-pointer hover:text-slate-200 hover:underline"
-                                    onClick={() => handleStartEdit('quadril', evolutionData.quadril_anterior || null, false, true)}
-                                    title="Clique para editar ou adicionar"
-                                  >
-                                    {evolutionData.quadril_anterior !== null && evolutionData.quadril_anterior !== undefined 
-                                      ? `${evolutionData.quadril_anterior}cm` 
-                                      : '-'}
-                                  </span>
+
+                                {/* Tempo de Treino */}
+                                {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'tempo_treino' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            placeholder="Ex: 60 a 70 min"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('tempo_treino');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('tempo_treino')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                          onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_atual_text ?? null, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {(evolutionData as any).tempo_treino_atual_text || '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'quadril' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('quadril');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">cm</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('quadril')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('quadril', evolutionData.quadril_atual || null, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.quadril_atual !== null && evolutionData.quadril_atual !== undefined 
-                                      ? `${evolutionData.quadril_atual}cm` 
-                                      : '-'}
-                                  </span>
+
+                                {/* Tempo de Cardio */}
+                                {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'tempo_cardio' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            placeholder="Ex: 30 minutos"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('tempo_cardio')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                          onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_atual_text ?? null, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {(evolutionData as any).tempo_cardio_atual_text || '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className={`py-1.5 px-2 text-center font-medium sticky right-0 z-10 ${
-                                evolutionData.quadril_diferenca !== null && evolutionData.quadril_diferenca !== undefined
-                                  ? (evolutionData.quadril_diferenca < 0 ? 'text-green-400' : evolutionData.quadril_diferenca > 0 ? 'text-red-400' : 'text-slate-400')
-                                  : 'text-slate-400'
-                              }`}>
-                                {evolutionData.quadril_diferenca !== null && evolutionData.quadril_diferenca !== undefined
-                                  ? `${evolutionData.quadril_diferenca > 0 ? '+' : ''}${evolutionData.quadril_diferenca}cm`
-                                  : '-'}
-                              </td>
-                            </tr>
-                          ) : null}
-                          
-                          {/* Aproveitamento */}
-                          {showAproveitamento && evolutionData?.aderencia_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-slate-300 sticky left-0 z-10">🎯 Aproveitamento</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'aderencia' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('aderencia');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <span className="text-xs text-slate-400">%</span>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('aderencia')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-blue-300 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('aderencia', evolutionData.aderencia_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.aderencia_atual || 0}%
-                                  </span>
+
+                                {/* Descanso entre Séries */}
+                                {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
+                                  <tr className="border-b border-white/20">
+                                    <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'descanso' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            placeholder="Ex: 60 seg"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('descanso');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
+                                            onClick={() => handleSaveEdit('descanso')}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
+                                            onClick={handleCancelEdit}
+                                            disabled={isUpdatingCheckin}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
+                                          onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_atual_text ?? null, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {(evolutionData as any).descanso_atual_text || '-'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Treinos */}
-                          {evolutionData?.treino_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Treinos</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'treino' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('treino');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('treino')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('treino', evolutionData.treino_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.treino_atual || 0}
-                                  </span>
+
+                                {/* Água */}
+                                {evolutionData?.agua_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">💧 Água</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'agua' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('agua');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('agua')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('agua', evolutionData.agua_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.agua_atual || 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Cardio */}
-                          {evolutionData?.cardio_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃‍♂️ Cardio</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'cardio' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('cardio');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('cardio')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('cardio', evolutionData.cardio_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.cardio_atual || 0}
-                                  </span>
+
+                                {/* Sono */}
+                                {evolutionData?.sono_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">😴 Sono</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'sono' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('sono');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('sono')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('sono', evolutionData.sono_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.sono_atual || 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Tempo de Treino */}
-                          {evolutionData && ((evolutionData as any).tempo_treino_atual_text || evolutionData.tempo_treino_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏱️ Tempo de Treino</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'tempo_treino' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: 60 a 70 min"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('tempo_treino');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
+
+                                {/* Refeições Livres */}
+                                {evolutionData?.ref_livre_atual !== undefined && (
+                                  <tr className="border-b border-slate-700/30">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'ref_livre' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('ref_livre');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('ref_livre')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.ref_livre_atual || 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
+                                )}
+
+                                {/* Beliscos */}
+                                {evolutionData?.beliscos_atual !== undefined && (
+                                  <tr className="border-b border-white/20">
+                                    <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
+                                    <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
+                                    <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
+                                      {editingField === 'beliscos' && !editingInitialData && !editingPrevious ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') handleSaveEdit('beliscos');
+                                              if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                          />
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('beliscos')} disabled={isUpdatingCheckin}>
+                                            <Check className="h-3 w-3" />
+                                          </Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
+                                          onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_atual || 0, false, false)}
+                                          title="Clique para editar"
+                                        >
+                                          {evolutionData.beliscos_atual || 0}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
+                                  </tr>
+                                )}
+                                {/* Linha de botões de fotos */}
+                                <tr className="border-b border-slate-700/30">
+                                  <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">📷 Fotos</td>
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                     <Button
-                                      size="sm"
                                       variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('tempo_treino')}
-                                      disabled={isUpdatingCheckin}
+                                      size="sm"
+                                      onClick={() => {
+                                        setPhotoViewerSource('initial');
+                                        setShowPhotosViewer(true);
+                                      }}
+                                      className={`text-xs h-6 px-2 ${hasInitialPhotos
+                                          ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                        }`}
+                                      title={hasInitialPhotos ? "Ver fotos dos dados iniciais (há fotos)" : "Ver fotos dos dados iniciais"}
                                     >
-                                      <Check className="h-3 w-3" />
+                                      <Camera className={`w-3 h-3 mr-1 ${hasInitialPhotos ? 'text-slate-200' : ''}`} />
+                                      Dados Iniciais
                                     </Button>
+                                  </td>
+                                  <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
                                     <Button
-                                      size="sm"
                                       variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('tempo_treino', (evolutionData as any).tempo_treino_atual_text ?? null, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).tempo_treino_atual_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Tempo de Cardio */}
-                          {evolutionData && ((evolutionData as any).tempo_cardio_atual_text || evolutionData.tempo_cardio_atual !== undefined) && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">🏃 Tempo de Cardio</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'tempo_cardio' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: 30 minutos"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('tempo_cardio');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
                                       size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('tempo_cardio')}
-                                      disabled={isUpdatingCheckin}
+                                      onClick={() => {
+                                        setPhotoViewerSource('current');
+                                        setShowPhotosViewer(true);
+                                      }}
+                                      className={`text-xs h-6 px-2 ${hasCurrentPhotos
+                                          ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30'
+                                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                                        }`}
+                                      title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
                                     >
-                                      <Check className="h-3 w-3" />
+                                      <Camera className={`w-3 h-3 mr-1 ${hasCurrentPhotos ? 'text-slate-200' : ''}`} />
+                                      {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                                     </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('tempo_cardio', (evolutionData as any).tempo_cardio_atual_text ?? null, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).tempo_cardio_atual_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Descanso entre Séries */}
-                          {evolutionData && ((evolutionData as any).descanso_atual_text || evolutionData.descanso_atual !== undefined) && (
-                            <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-[13px] font-semibold text-slate-300 sticky left-0 z-10">⏸️ Descanso entre as séries</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'descanso' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-24 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      placeholder="Ex: 60 seg"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('descanso');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-green-400 hover:text-green-300"
-                                      onClick={() => handleSaveEdit('descanso')}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0 text-red-400 hover:text-red-300"
-                                      onClick={handleCancelEdit}
-                                      disabled={isUpdatingCheckin}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline text-xs"
-                                    onClick={() => handleStartEdit('descanso', (evolutionData as any).descanso_atual_text ?? null, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {(evolutionData as any).descanso_atual_text || '-'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Água */}
-                          {evolutionData?.agua_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">💧 Água</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'agua' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('agua');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('agua')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('agua', evolutionData.agua_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.agua_atual || 0}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Sono */}
-                          {evolutionData?.sono_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">😴 Sono</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'sono' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('sono');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('sono')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('sono', evolutionData.sono_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.sono_atual || 0}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Refeições Livres */}
-                          {evolutionData?.ref_livre_atual !== undefined && (
-                            <tr className="border-b border-slate-700/30">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍽️ Refeições Livres</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'ref_livre' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('ref_livre');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('ref_livre')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('ref_livre', evolutionData.ref_livre_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.ref_livre_atual || 0}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          
-                          {/* Beliscos */}
-                          {evolutionData?.beliscos_atual !== undefined && (
-                            <tr className="border-b border-white/20">
-                              <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">🍪 Beliscos</td>
-                              <td className="py-1.5 px-1.5 text-center text-slate-400 bg-slate-800/95 z-10">-</td>
-                              <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                                {editingField === 'beliscos' && !editingInitialData && !editingPrevious ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="h-6 w-16 text-xs px-1 text-center bg-slate-700 border-slate-600 text-slate-200"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit('beliscos');
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                      }}
-                                    />
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-green-400 hover:text-green-300" onClick={() => handleSaveEdit('beliscos')} disabled={isUpdatingCheckin}>
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-400 hover:text-red-300" onClick={handleCancelEdit} disabled={isUpdatingCheckin}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span 
-                                    className="text-slate-200 cursor-pointer hover:text-slate-200 hover:underline font-medium"
-                                    onClick={() => handleStartEdit('beliscos', evolutionData.beliscos_atual || 0, false, false)}
-                                    title="Clique para editar"
-                                  >
-                                    {evolutionData.beliscos_atual || 0}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1.5 px-2 text-center text-slate-400 sticky right-0 z-10">-</td>
-                            </tr>
-                          )}
-                          {/* Linha de botões de fotos */}
-                          <tr className="border-b border-slate-700/30">
-                            <td className="py-1.5 px-2 text-[13px] text-slate-300 sticky left-0 z-10">📷 Fotos</td>
-                            <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setPhotoViewerSource('initial');
-                                  setShowPhotosViewer(true);
-                                }}
-                                className={`text-xs h-6 px-2 ${
-                                  hasInitialPhotos 
-                                    ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                                }`}
-                                title={hasInitialPhotos ? "Ver fotos dos dados iniciais (há fotos)" : "Ver fotos dos dados iniciais"}
-                              >
-                                <Camera className={`w-3 h-3 mr-1 ${hasInitialPhotos ? 'text-slate-200' : ''}`} />
-                                Dados Iniciais
-                              </Button>
-                            </td>
-                            <td className="py-1.5 px-1.5 text-center bg-slate-800/95 z-10">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setPhotoViewerSource('current');
-                                  setShowPhotosViewer(true);
-                                }}
-                                className={`text-xs h-6 px-2 ${
-                                  hasCurrentPhotos 
-                                    ? 'text-slate-200 font-semibold bg-blue-500/20 border border-blue-500/30 hover:text-blue-300 hover:bg-blue-500/30' 
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                                }`}
-                                title={hasCurrentPhotos ? "Ver fotos do check-in atual (há fotos)" : "Ver fotos do check-in atual"}
-                              >
-                                <Camera className={`w-3 h-3 mr-1 ${hasCurrentPhotos ? 'text-slate-200' : ''}`} />
-                                {new Date(checkin.data_checkin || checkin.data_preenchimento).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                              </Button>
-                            </td>
-                            <td className="py-1.5 px-2 sticky right-0 z-10"></td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                                  </td>
+                                  <td className="py-1.5 px-2 sticky right-0 z-10"></td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
                         ) : (
                           <div className="text-center py-8 text-slate-400">
                             <p>Carregando dados de evolução...</p>
                           </div>
                         )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </CardContent>
-                </Card>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </CardContent>
+              </Card>
 
               {/* Informações Adicionais para Elaboração do Feedback */}
               <Card className="bg-slate-800/30 border-slate-700/50">
@@ -3522,7 +3530,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       <h4 className="text-sm font-semibold text-slate-200">📋 Informações para Elaboração do Feedback</h4>
                     </div>
                   </div>
-                  
+
                   <AnimatePresence>
                     {isFeedbackInfoExpanded && (
                       <motion.div
@@ -3532,69 +3540,69 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         transition={{ duration: 0.2 }}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Objetivo & Dificuldades */}
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-semibold text-slate-300 mb-2">🎯 Objetivo & Dificuldades</h5>
-                      <div className="space-y-2.5 text-[13px]">
-                        <div>
-                          <span className="font-semibold text-slate-200">Objetivo: </span>
-                          <span className="text-slate-200">{checkin.objetivo || 'Não informado'}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-200">Dificuldades: </span>
-                          <span className="text-slate-200">{checkin.dificuldades || 'Não informado'}</span>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Objetivo & Dificuldades */}
+                          <div className="space-y-2">
+                            <h5 className="text-sm font-semibold text-slate-300 mb-2">🎯 Objetivo & Dificuldades</h5>
+                            <div className="space-y-2.5 text-[13px]">
+                              <div>
+                                <span className="font-semibold text-slate-200">Objetivo: </span>
+                                <span className="text-slate-200">{checkin.objetivo || 'Não informado'}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-200">Dificuldades: </span>
+                                <span className="text-slate-200">{checkin.dificuldades || 'Não informado'}</span>
+                              </div>
+                            </div>
+                          </div>
 
-                    {/* Percepções Visuais */}
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-semibold text-slate-300 mb-2">👁️ Percepções Visuais</h5>
-                      <div className="space-y-2.5 text-[13px]">
-                        <div>
-                          <span className="font-semibold text-slate-200">Melhora Visual: </span>
-                          <span className="text-slate-200">{checkin.melhora_visual || 'Não informado'}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-200">Quais Pontos: </span>
-                          <span className="text-slate-200">{checkin.quais_pontos || 'Não informado'}</span>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Percepções Visuais */}
+                          <div className="space-y-2">
+                            <h5 className="text-sm font-semibold text-slate-300 mb-2">👁️ Percepções Visuais</h5>
+                            <div className="space-y-2.5 text-[13px]">
+                              <div>
+                                <span className="font-semibold text-slate-200">Melhora Visual: </span>
+                                <span className="text-slate-200">{checkin.melhora_visual || 'Não informado'}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-200">Quais Pontos: </span>
+                                <span className="text-slate-200">{checkin.quais_pontos || 'Não informado'}</span>
+                              </div>
+                            </div>
+                          </div>
 
-                    {/* Refeições Livres & Beliscos */}
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-semibold text-slate-300 mb-2">🍽️ Refeições Livres & Beliscos</h5>
-                      <div className="space-y-2.5 text-[13px]">
-                        <div>
-                          <span className="font-semibold text-slate-200">O que comeu na refeição livre: </span>
-                          <span className="text-slate-200">{checkin.oq_comeu_ref_livre || 'Não informado'}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-200">O que beliscou: </span>
-                          <span className="text-slate-200">{checkin.oq_beliscou || 'Não informado'}</span>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Refeições Livres & Beliscos */}
+                          <div className="space-y-2">
+                            <h5 className="text-sm font-semibold text-slate-300 mb-2">🍽️ Refeições Livres & Beliscos</h5>
+                            <div className="space-y-2.5 text-[13px]">
+                              <div>
+                                <span className="font-semibold text-slate-200">O que comeu na refeição livre: </span>
+                                <span className="text-slate-200">{checkin.oq_comeu_ref_livre || 'Não informado'}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-200">O que beliscou: </span>
+                                <span className="text-slate-200">{checkin.oq_beliscou || 'Não informado'}</span>
+                              </div>
+                            </div>
+                          </div>
 
-                    {/* Fome & Ajustes */}
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-semibold text-slate-300 mb-2">🍴 Fome & Ajustes</h5>
-                      <div className="space-y-2.5 text-[13px]">
-                        <div>
-                          <span className="font-semibold text-slate-200">Comeu menos que o planejado: </span>
-                          <span className="text-slate-200">{checkin.comeu_menos || 'Não informado'}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-200">Fome em algum horário: </span>
-                          <span className="text-slate-200">{checkin.fome_algum_horario || 'Não informado'}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-200">Alimento para incluir: </span>
-                          <span className="text-slate-200">{checkin.alimento_para_incluir || 'Não informado'}</span>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Fome & Ajustes */}
+                          <div className="space-y-2">
+                            <h5 className="text-sm font-semibold text-slate-300 mb-2">🍴 Fome & Ajustes</h5>
+                            <div className="space-y-2.5 text-[13px]">
+                              <div>
+                                <span className="font-semibold text-slate-200">Comeu menos que o planejado: </span>
+                                <span className="text-slate-200">{checkin.comeu_menos || 'Não informado'}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-200">Fome em algum horário: </span>
+                                <span className="text-slate-200">{checkin.fome_algum_horario || 'Não informado'}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-200">Alimento para incluir: </span>
+                                <span className="text-slate-200">{checkin.alimento_para_incluir || 'Não informado'}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -3606,7 +3614,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
               <Card className="bg-slate-800/30 border-slate-700/50">
                 <CardContent className="p-3 space-y-3">
                   <h4 className="text-sm font-semibold text-slate-200">📝 Suas Observações</h4>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[13px] font-medium text-slate-200 mb-1.5">
@@ -3620,7 +3628,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-[13px]"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-[13px] font-medium text-slate-200 mb-1.5">
                         ⚙️ Ajustes Realizados na Dieta:
@@ -3638,13 +3646,13 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                   <div className="flex gap-2">
                     {/* Botão Salvar (mostra antes de gerar feedback) */}
                     {!generatedFeedback && (
-                    <Button
-                      onClick={handleSaveAnnotations}
-                      variant="outline"
-                      size="sm"
+                      <Button
+                        onClick={handleSaveAnnotations}
+                        variant="outline"
+                        size="sm"
                         disabled={isSaving}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      >
                         {isSaving ? (
                           <>
                             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -3652,11 +3660,11 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           </>
                         ) : (
                           <>
-                      <Save className="h-3 w-3 mr-1" />
-                      Salvar
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar
                           </>
                         )}
-                    </Button>
+                      </Button>
                     )}
                     <Button
                       onClick={handleGenerateFeedback}
@@ -3683,7 +3691,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       <h4 className="text-xs font-semibold text-slate-200">🤖 Feedback Gerado</h4>
                       <span className="text-[10px] text-slate-400 italic">Você pode editar o feedback antes de enviar</span>
                     </div>
-                    
+
                     <Textarea
                       value={generatedFeedback}
                       onChange={(e) => setGeneratedFeedback(e.target.value)}
@@ -3691,7 +3699,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       rows={20}
                       className="bg-slate-700/50 border-slate-600 text-slate-200 placeholder:text-slate-400 text-xs font-mono whitespace-pre-wrap"
                     />
-                    
+
                     <div className="flex flex-wrap gap-2">
                       <Button
                         onClick={handleSaveAnnotations}
@@ -3712,7 +3720,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           </>
                         )}
                       </Button>
-                      
+
                       <Button
                         onClick={handleCopyFeedback}
                         variant="outline"
@@ -3722,7 +3730,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <Copy className="h-3 w-3 mr-1" />
                         Copiar
                       </Button>
-                      
+
                       <Button
                         onClick={handleCopyPhone}
                         variant="outline"
@@ -3733,7 +3741,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <Phone className="h-3 w-3 mr-1" />
                         {checkin.telefone || checkin.patient?.telefone || 'Telefone'}
                       </Button>
-                      
+
                       <Button
                         onClick={handleOpenWhatsApp}
                         variant="outline"
@@ -3743,7 +3751,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         <ExternalLink className="h-3 w-3 mr-1" />
                         WhatsApp
                       </Button>
-                      
+
                       <Button
                         onClick={handleMarkAsSent}
                         variant="outline"
@@ -3848,9 +3856,9 @@ export const CheckinFeedbackCard = React.memo(CheckinFeedbackCardComponent, (pre
   if (prevProps.expanded !== nextProps.expanded) {
     return false;
   }
-  
+
   // Só pular render se checkin.id e totalCheckins forem iguais E expanded não mudou
   return prevProps.checkin.id === nextProps.checkin.id &&
-    prevProps.totalCheckins === nextProps.totalCheckins; 
+    prevProps.totalCheckins === nextProps.totalCheckins;
 });
 

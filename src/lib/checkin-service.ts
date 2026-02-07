@@ -146,8 +146,10 @@ export const checkinService = {
 
   // Upsert checkin (criar ou atualizar)
   async upsert(checkin: CheckinInsert): Promise<Checkin> {
+    const { data: { user } } = await supabase.auth.getUser();
     const checkinData = {
       ...checkin,
+      ...(user?.id && { user_id: user.id }),
       data_preenchimento: checkin.data_preenchimento || new Date().toISOString()
     };
     

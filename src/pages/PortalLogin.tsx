@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { findPatientByPhone } from '@/lib/portal-patient-lookup';
 import { Loader2, User, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -36,127 +37,58 @@ export default function PortalLogin() {
     );
   }
 
-  // Formatar telefone enquanto digita
+  // Formatar telefone enquanto digita. Aceita 55 na frente (ex.: 5562999149439).
   const formatPhone = (value: string) => {
-    // Remove tudo que não é número
     const numbers = value.replace(/\D/g, '');
-    
-    // Limita a 11 dígitos
-    const limited = numbers.slice(0, 11);
-    
-    // Formata: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
-    if (limited.length <= 2) {
-      return limited;
-    } else if (limited.length <= 7) {
-      return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
-    } else if (limited.length <= 11) {
-      return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
-    }
-    
-    return limited;
+    // Se começar com 55 e tiver mais de 11 dígitos, usa os 11 após o 55
+    const normalized = numbers.startsWith('55') && numbers.length > 11
+      ? numbers.slice(2, 13)
+      : numbers;
+    const limited = normalized.slice(0, 11);
+
+    if (limited.length <= 2) return limited;
+    if (limited.length <= 7) return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
+    return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setTelefone(formatted);
+    setTelefone(formatPhone(e.target.value));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Remove formatação para buscar no banco
     const cleanPhone = telefone.replace(/\D/g, '');
-    
+
     if (cleanPhone.length < 10) {
       toast({
         title: 'Telefone inválido',
-        description: 'Digite um número de telefone válido',
+        description: 'Digite um número de telefone válido (DDD + número)',
         variant: 'destructive'
       });
       return;
     }
 
     setLoading(true);
-
     try {
-      console.log('🔍 Buscando paciente com telefone:', cleanPhone);
-
-      // Tentar buscar com diferentes formatos
-      let patient = null;
-      let error = null;
-
-      // Formato 1: Apenas números (11999999999)
-      const result1 = await supabase
-        .from('patients')
-        .select('telefone, nome')
-        .eq('telefone', cleanPhone)
-        .maybeSingle();
-
-      if (result1.data) {
-        patient = result1.data;
-        console.log('✅ Encontrado com formato numérico:', cleanPhone);
-      }
-
-      // Formato 2: Com formatação (11) 99999-9999
-      if (!patient && cleanPhone.length === 11) {
-        const formatted = `(${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 7)}-${cleanPhone.slice(7)}`;
-        const result2 = await supabase
-          .from('patients')
-          .select('telefone, nome')
-          .eq('telefone', formatted)
-          .maybeSingle();
-
-        if (result2.data) {
-          patient = result2.data;
-          console.log('✅ Encontrado com formato formatado:', formatted);
-        }
-      }
-
-      // Formato 3: Busca parcial (LIKE)
-      if (!patient) {
-        const result3 = await supabase
-          .from('patients')
-          .select('telefone, nome')
-          .ilike('telefone', `%${cleanPhone}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (result3.data) {
-          patient = result3.data;
-          console.log('✅ Encontrado com busca parcial');
-        }
-      }
-
-      if (!patient) {
-        console.log('❌ Paciente não encontrado com telefone:', cleanPhone);
+      const found = await findPatientByPhone(supabase, cleanPhone);
+      if (!found) {
         toast({
           title: 'Paciente não encontrado',
-          description: 'Não encontramos nenhum cadastro com este telefone. Verifique se digitou corretamente.',
+          description: 'Não há acesso ativo para este telefone. Use o link que seu nutricionista enviou ou peça um novo link de acesso.',
           variant: 'destructive'
         });
         return;
       }
 
-      // Usar o telefone exato do banco de dados
-      const patientPhone = patient.telefone;
-      
-      // Gerar token temporário (válido por 24h)
+      const { patient, telefone: patientPhone } = found;
       const token = btoa(`${patientPhone}:${Date.now()}`);
-      
-      // Salvar token no localStorage para validação
       localStorage.setItem('portal_token', token);
       localStorage.setItem('portal_phone', patientPhone);
-      
-      console.log('✅ Token gerado para telefone:', patientPhone);
-      
       toast({
         title: 'Acesso liberado! 🎉',
-        description: `Bem-vindo(a), ${patient.nome}!`
+        description: `Bem-vindo(a), ${patient.nome ?? 'aluno'}!`
       });
-
-      // Redirecionar para o portal com o token
       navigate(`/portal/${token}`);
-      
     } catch (error) {
       console.error('Erro ao fazer login:', error);
       toast({
