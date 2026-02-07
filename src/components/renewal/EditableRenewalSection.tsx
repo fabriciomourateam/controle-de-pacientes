@@ -10,8 +10,11 @@ import {
   RotateCcw, 
   Sparkles,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface EditableRenewalSectionProps {
@@ -24,6 +27,8 @@ interface EditableRenewalSectionProps {
   className?: string;
   cardClassName?: string;
   isPublicAccess?: boolean;
+  /** Controle "visível / oculto no portal público" (ex.: card "Sua Evolução") */
+  portalVisibility?: { visible: boolean; onToggle: () => void; loading?: boolean };
 }
 
 export function EditableRenewalSection({
@@ -35,7 +40,8 @@ export function EditableRenewalSection({
   placeholder,
   className,
   cardClassName,
-  isPublicAccess = false
+  isPublicAccess = false,
+  portalVisibility
 }: EditableRenewalSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { 
@@ -170,6 +176,25 @@ export function EditableRenewalSection({
             )}
             
             <div className="flex items-center gap-1">
+              {!isPublicAccess && portalVisibility && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={portalVisibility.onToggle}
+                      disabled={portalVisibility.loading}
+                      className="text-slate-400 hover:text-white hover:bg-slate-700/50"
+                      title={portalVisibility.visible ? 'Card visível no portal público. Clique para ocultar.' : 'Card oculto do portal público. Clique para mostrar.'}
+                    >
+                      {portalVisibility.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    {portalVisibility.visible ? 'Visível no portal' : 'Oculto do portal'}
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {hasCustomContent && (
                 <Button
                   variant="ghost"

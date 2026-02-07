@@ -87,6 +87,8 @@ export default function PublicPortal() {
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   const [showEvolutionPhotosCard, setShowEvolutionPhotosCard] = useState<boolean>(true);
+  const [showSummaryEvolutionCard, setShowSummaryEvolutionCard] = useState<boolean>(true);
+  const [showContinueJourneyCard, setShowContinueJourneyCard] = useState<boolean>(true);
 
   // Hook para comparação destacada (somente leitura)
   const { comparison, loading: comparisonLoading } = useFeaturedComparison(telefone);
@@ -237,10 +239,8 @@ export default function PublicPortal() {
         })(),
         (supabaseServiceRole as any)
           .from('portal_card_visibility')
-          .select('visible')
-          .eq('patient_telefone', telefone)
-          .eq('card_key', 'evolution_photos')
-          .maybeSingle(),
+          .select('card_key, visible')
+          .eq('patient_telefone', telefone),
       ]);
 
       if (patientResult.error || !patientResult.data) {
@@ -258,7 +258,14 @@ export default function PublicPortal() {
         setBodyCompositions(bioResult.data);
       }
 
-      setShowEvolutionPhotosCard(cardVisibilityResult?.data?.visible !== false);
+      const rows = (cardVisibilityResult?.data as { card_key: string; visible: boolean }[]) || [];
+      const getVisible = (key: string) => {
+        const row = rows.find((r) => r.card_key === key);
+        return row?.visible !== false;
+      };
+      setShowEvolutionPhotosCard(getVisible('evolution_photos'));
+      setShowSummaryEvolutionCard(getVisible('summary_evolution'));
+      setShowContinueJourneyCard(getVisible('continue_journey'));
 
     } catch (error: any) {
       console.error('Erro ao carregar dados públicos:', error);
@@ -410,8 +417,8 @@ export default function PublicPortal() {
             </Card>
           </motion.div>
 
-          {/* Seção "Sua Evolução" - Texto Editável (somente leitura) */}
-          {patient?.telefone && checkins.length > 0 && (
+          {/* Seção "Sua Evolução" - Texto Editável (somente leitura) - ocultável no portal */}
+          {showSummaryEvolutionCard && patient?.telefone && checkins.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -464,6 +471,7 @@ export default function PublicPortal() {
                 isPublicAccess={true} // ❌ Modo público - sem edição, fotos filtradas
                 hasFeaturedComparison={!!(comparison && comparison.is_visible)} // Oculta PhotoComparison se houver comparação destacada
                 showEvolutionPhotosCard={showEvolutionPhotosCard} // Ocultar card Evolução Fotográfica se desativado
+                showContinueJourneyCard={showContinueJourneyCard} // Ocultar card Continue Sua Jornada se desativado
               />
             </motion.div>
           )}

@@ -27,6 +27,7 @@ import { calcularTotaisPlano } from '@/utils/diet-calculations';
 import { DietPDFGenerator } from '@/lib/diet-pdf-generator';
 import { DietPremiumPDFGenerator } from '@/lib/diet-pdf-premium-generator';
 import { useFeaturedComparison } from '@/hooks/use-featured-comparison';
+import { usePortalCardVisibility, PORTAL_CARD_KEYS } from '@/hooks/use-portal-card-visibility';
 import { FeaturedComparison } from '@/components/evolution/FeaturedComparison';
 import { CreateFeaturedComparisonModal } from '@/components/evolution/CreateFeaturedComparisonModal';
 import { EditFeaturedComparisonModal } from '@/components/evolution/EditFeaturedComparisonModal';
@@ -121,11 +122,15 @@ export default function PatientPortal() {
   const [patientId, setPatientId] = useState<string | null>(null);
   const portalRef = useRef<HTMLDivElement>(null);
   const [chartsRefreshTrigger, setChartsRefreshTrigger] = useState(0);
+  const [portalKey, setPortalKey] = useState(0); // Incrementar para "resetar" e recalcular como primeira vez
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
 
   // Hook para comparação destacada
   const { comparison, toggleVisibility, deleteComparison, refetch, updateComparison } = useFeaturedComparison(patient?.telefone);
+  // Visibilidade no portal público: Sua Evolução e Continue Jornada
+  const summaryEvolutionVisibility = usePortalCardVisibility(patient?.telefone, PORTAL_CARD_KEYS.SUMMARY_EVOLUTION);
+  const continueJourneyVisibility = usePortalCardVisibility(patient?.telefone, PORTAL_CARD_KEYS.CONTINUE_JOURNEY);
   const [showCreateComparisonModal, setShowCreateComparisonModal] = useState(false);
   const [showEditComparisonModal, setShowEditComparisonModal] = useState(false);
 
@@ -418,6 +423,42 @@ export default function PatientPortal() {
         title: 'Erro',
         description: 'Não foi possível carregar seus dados',
         variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** Reseta o portal de verdade: remove Antes/Depois, reverte "Sua Evolução" para o texto automático e recarrega tudo */
+  async function handleResetPortal() {
+    if (!patient?.telefone) return;
+    setLoading(true);
+    try {
+      // 1) Reverter "Sua Evolução" para o conteúdo automático (limpa o que foi editado)
+      await (supabase as any)
+        .from('renewal_custom_content')
+        .update({ summary_content: null })
+        .eq('patient_telefone', patient.telefone);
+
+      // 2) Remover a comparação Antes/Depois (foto destacada)
+      if (comparison) {
+        await deleteComparison();
+      }
+
+      // 3) Recarregar dados e forçar remount para exibir o estado “primeira vez”
+      await loadPortalData();
+      await refetch();
+      setPortalKey((k) => k + 1);
+      setChartsRefreshTrigger((t) => t + 1);
+      toast({
+        title: 'Portal resetado',
+        description: 'Antes/Depois removido, "Sua Evolução" voltou ao texto automático e os dados foram recarregados.',
+      });
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível resetar o portal',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -900,8 +941,8 @@ export default function PatientPortal() {
         <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
       </div>
       
-      {/* Conteúdo com z-index */}
-      <div className="relative z-10">
+      {/* Conteúdo com z-index - key força remount ao resetar portal */}
+      <div className="relative z-10" key={portalKey}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Header do Portal - ITEM 9: Dropdown Limpo */}
         <motion.div
@@ -981,6 +1022,13 @@ export default function PatientPortal() {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Atualizar Dados
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleResetPortal}
+                  className="text-white hover:bg-amber-700/50 cursor-pointer py-3"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2 text-amber-400" />
+                  Resetar Portal
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -1021,6 +1069,11 @@ export default function PatientPortal() {
               defaultContent={generateDefaultEvolutionContent()}
               placeholder="Descreva a evolução do paciente de forma personalizada..."
               isPublicAccess={false}
+              portalVisibility={{
+                visible: summaryEvolutionVisibility.visible,
+                onToggle: summaryEvolutionVisibility.toggleVisibility,
+                loading: summaryEvolutionVisibility.loading,
+              }}
             />
           </motion.div>
         )}
@@ -1159,6 +1212,11 @@ export default function PatientPortal() {
               bodyCompositions={bodyCompositions}
               achievements={achievements}
               refreshTrigger={chartsRefreshTrigger}
+              continueJourneyPortalVisibility={{
+                visible: continueJourneyVisibility.visible,
+                onToggle: continueJourneyVisibility.toggleVisibility,
+                loading: continueJourneyVisibility.loading,
+              }}
             />
           </motion.div>
         )}

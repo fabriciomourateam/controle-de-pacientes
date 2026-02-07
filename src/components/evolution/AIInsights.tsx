@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sparkles, TrendingUp, AlertTriangle, Target, ChevronDown, ChevronUp, RefreshCw, Edit2, Plus, Trash2 } from 'lucide-react';
+import { Sparkles, TrendingUp, AlertTriangle, Target, ChevronDown, ChevronUp, RefreshCw, Edit2, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { analyzePatientProgress, type AIAnalysisResult, type AnalysisInsight } from '@/lib/ai-analysis-service';
 import type { Database } from '@/integrations/supabase/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,9 +17,13 @@ interface AIInsightsProps {
   patient?: Patient | null;
   isEditable?: boolean; // Se true, permite editar cards (apenas no portal privado)
   onRefreshData?: () => Promise<void>; // Callback para recarregar dados do paciente/checkins
+  /** Se false, oculta o card "Continue Sua Jornada" (portal público) */
+  showContinueJourneyCard?: boolean;
+  /** Controle "visível / oculto no portal público" para o card Continue Jornada */
+  continueJourneyPortalVisibility?: { visible: boolean; onToggle: () => void; loading?: boolean };
 }
 
-export function AIInsights({ checkins, patient, isEditable = false, onRefreshData }: AIInsightsProps) {
+export function AIInsights({ checkins, patient, isEditable = false, onRefreshData, showContinueJourneyCard = true, continueJourneyPortalVisibility }: AIInsightsProps) {
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
@@ -560,8 +564,24 @@ export function AIInsights({ checkins, patient, isEditable = false, onRefreshDat
           </div>
         )}
 
-        {/* CTA de Renovação - Premium Dourado Compacto */}
+        {/* CTA de Renovação - Premium Dourado Compacto (ocultável no portal público) */}
+        {showContinueJourneyCard && (
         <div className="mt-6 relative overflow-hidden rounded-2xl shadow-2xl">
+          {/* Botão visível/oculto no portal - canto superior direito */}
+          {isEditable && continueJourneyPortalVisibility && (
+            <div className="absolute top-3 right-3 z-10">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={continueJourneyPortalVisibility.onToggle}
+                disabled={continueJourneyPortalVisibility.loading}
+                className="h-8 w-8 p-0 text-amber-200/80 hover:text-amber-100 hover:bg-amber-500/20"
+                title={continueJourneyPortalVisibility.visible ? 'Card visível no portal. Clique para ocultar.' : 'Card oculto do portal. Clique para mostrar.'}
+              >
+                {continueJourneyPortalVisibility.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </Button>
+            </div>
+          )}
           {/* Background com gradiente dourado premium */}
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-yellow-600/25 to-orange-500/20" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.15),transparent_70%)]" />
@@ -614,6 +634,7 @@ export function AIInsights({ checkins, patient, isEditable = false, onRefreshDat
             </div>
           </div>
         </div>
+        )}
 
         </CardContent>
       )}

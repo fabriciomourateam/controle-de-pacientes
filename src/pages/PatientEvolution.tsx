@@ -68,7 +68,8 @@ import {
   BarChart3,
   Phone,
   Edit,
-  Link2
+  Link2,
+  Copy
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -1439,9 +1440,39 @@ export default function PatientEvolution() {
           })() && (
             <Card className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 backdrop-blur-sm border-purple-700/50">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Camera className="w-5 h-5 text-purple-400" />
-                  Dados Iniciais Cadastrados
+                <CardTitle className="flex items-center justify-between gap-2 text-white">
+                  <span className="flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-purple-400" />
+                    Dados Iniciais Cadastrados
+                  </span>
+                  {(patient.data_nascimento || patient.peso_inicial || patient.altura_inicial || patient.medida_cintura_inicial || patient.medida_quadril_inicial) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10"
+                          onClick={() => {
+                            const lines: string[] = [];
+                            if (patient.data_nascimento) lines.push(`Idade: ${calcularIdade(patient.data_nascimento)} anos`);
+                            if (patient.peso_inicial) lines.push(`Peso Inicial: ${patient.peso_inicial} kg`);
+                            if (patient.altura_inicial) lines.push(`Altura: ${patient.altura_inicial} m`);
+                            if (patient.medida_cintura_inicial) lines.push(`Cintura: ${patient.medida_cintura_inicial} cm`);
+                            if (patient.medida_quadril_inicial) lines.push(`Quadril: ${patient.medida_quadril_inicial} cm`);
+                            const text = lines.join('\n');
+                            if (text) {
+                              navigator.clipboard.writeText(text);
+                              toast({ title: 'Copiado!', description: 'Dados iniciais copiados para a área de transferência.' });
+                            }
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">Copiar dados iniciais</TooltipContent>
+                    </Tooltip>
+                  )}
                 </CardTitle>
                 <CardDescription className="text-slate-400">
                   Baseline do paciente - {patient.data_fotos_iniciais ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data não informada'}

@@ -32,6 +32,9 @@ interface PatientEvolutionTabProps {
   isPublicAccess?: boolean; // Se true, modo somente leitura (sem edição, fotos filtradas)
   hasFeaturedComparison?: boolean; // Se true, oculta PhotoComparison na página pública
   showEvolutionPhotosCard?: boolean; // Se false (portal público), não exibe o card Evolução Fotográfica
+  showContinueJourneyCard?: boolean; // Se false (portal público), não exibe o card Continue Sua Jornada
+  /** Controle visível/oculto no portal para o card Continue Jornada (portal editável) */
+  continueJourneyPortalVisibility?: { visible: boolean; onToggle: () => void; loading?: boolean };
 }
 
 export function PatientEvolutionTab({ 
@@ -43,7 +46,9 @@ export function PatientEvolutionTab({
   refreshTrigger,
   isPublicAccess = false,
   hasFeaturedComparison = false,
-  showEvolutionPhotosCard = true // Card Evolução Fotográfica visível no portal (pode ser ocultado pelo nutricionista)
+  showEvolutionPhotosCard = true, // Card Evolução Fotográfica visível no portal (pode ser ocultado pelo nutricionista)
+  showContinueJourneyCard = true, // Card Continue Sua Jornada visível no portal (pode ser ocultado)
+  continueJourneyPortalVisibility
 }: PatientEvolutionTabProps) {
   const { toast } = useToast();
   const [checkins, setCheckins] = useState<Checkin[]>(propsCheckins || []);
@@ -407,8 +412,10 @@ export function PatientEvolutionTab({
           <AIInsights 
             checkins={checkins} 
             patient={patient}
-            isEditable={!isPublicAccess} // Permite edição apenas no portal privado
-            onRefreshData={loadPortalData} // Callback para recarregar dados
+            isEditable={!isPublicAccess}
+            onRefreshData={loadPortalData}
+            showContinueJourneyCard={showContinueJourneyCard}
+            continueJourneyPortalVisibility={continueJourneyPortalVisibility}
           />
         </motion.div>
       )}
