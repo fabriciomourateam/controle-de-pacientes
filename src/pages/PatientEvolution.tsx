@@ -1238,14 +1238,14 @@ export default function PatientEvolution() {
                 if ((patient as any)?.peso_inicial) {
                   const dataInicial = (patient as any).data_fotos_iniciais || patient?.created_at;
                   weightData.push({
-                    data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                    data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
                     peso: parseFloat((patient as any).peso_inicial.toString())
                   });
                 }
                 checkins.slice().reverse().forEach((c) => {
                   if (c.peso) {
                     weightData.push({
-                      data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                      data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
                       peso: parseFloat(c.peso.replace(',', '.'))
                     });
                   }
@@ -1299,7 +1299,7 @@ export default function PatientEvolution() {
                       <span className="text-lg ml-1">kg</span>
                     </div>
                     <p className="text-xs text-indigo-300/70 mt-1">
-                      {new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      {new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </p>
                   </CardContent>
                 </Card>

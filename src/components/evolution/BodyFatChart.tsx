@@ -42,7 +42,7 @@ export function BodyFatChart({ data, headerAction }: BodyFatChartProps) {
 
   const chartData = data
     .map((item) => ({
-      data: new Date(item.data_avaliacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      data: new Date(item.data_avaliacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       dataCompleta: new Date(item.data_avaliacao).toLocaleDateString('pt-BR'),
       gordura: item.percentual_gordura,
       classificacao: item.classificacao

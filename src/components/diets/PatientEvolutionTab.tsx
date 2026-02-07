@@ -13,7 +13,6 @@ import { AIInsights } from '@/components/evolution/AIInsights';
 import { detectAchievements } from '@/lib/achievement-system';
 import { 
   Activity, 
-  Calendar,
   TrendingUp,
   Weight,
 } from 'lucide-react';
@@ -32,6 +31,7 @@ interface PatientEvolutionTabProps {
   refreshTrigger?: number; // Trigger para forçar atualização dos gráficos
   isPublicAccess?: boolean; // Se true, modo somente leitura (sem edição, fotos filtradas)
   hasFeaturedComparison?: boolean; // Se true, oculta PhotoComparison na página pública
+  showEvolutionPhotosCard?: boolean; // Se false (portal público), não exibe o card Evolução Fotográfica
 }
 
 export function PatientEvolutionTab({ 
@@ -42,7 +42,8 @@ export function PatientEvolutionTab({
   achievements: propsAchievements,
   refreshTrigger,
   isPublicAccess = false,
-  hasFeaturedComparison = false // NOVO: indica se há comparação destacada visível
+  hasFeaturedComparison = false,
+  showEvolutionPhotosCard = true // Card Evolução Fotográfica visível no portal (pode ser ocultado pelo nutricionista)
 }: PatientEvolutionTabProps) {
   const { toast } = useToast();
   const [checkins, setCheckins] = useState<Checkin[]>(propsCheckins || []);
@@ -210,14 +211,14 @@ export function PatientEvolutionTab({
   if (patient?.peso_inicial) {
     const dataInicial = (patient as any)?.data_fotos_iniciais || patient.created_at;
     weightData.push({
-      data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       peso: parseFloat(patient.peso_inicial.toString())
     });
   }
   checkins.slice().reverse().forEach((c) => {
     if (c.peso) {
       weightData.push({
-        data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
         peso: parseFloat(c.peso.replace(',', '.'))
       });
     }
@@ -238,90 +239,26 @@ export function PatientEvolutionTab({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            {/* Check-ins Realizados */}
-            <Card className="relative overflow-hidden bg-gradient-to-br from-blue-600/30 via-blue-500/20 to-indigo-600/30 border-0 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:scale-[1.02] transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent" />
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-400/20 rounded-full blur-2xl" />
-              <CardHeader className="pb-1 relative">
-                <CardTitle className="text-xs sm:text-sm text-blue-200 flex items-center gap-2 font-medium">
-                  <div className="p-1.5 rounded-lg bg-blue-500/30 backdrop-blur-sm">
-                    <Activity className="w-3.5 h-3.5 text-blue-300" />
-                  </div>
-                  Check-ins
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative pt-0">
-                <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{checkins.length}</div>
-                <p className="text-[10px] sm:text-xs text-blue-200/70 mt-0.5">Total de avaliações</p>
-              </CardContent>
-            </Card>
-
-            {/* Idade */}
-            {patient?.data_nascimento && (
-              <Card className="relative overflow-hidden bg-gradient-to-br from-cyan-600/30 via-cyan-500/20 to-teal-600/30 border-0 shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/20 hover:scale-[1.02] transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 to-transparent" />
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-cyan-400/20 rounded-full blur-2xl" />
-                <CardHeader className="pb-1 relative">
-                  <CardTitle className="text-xs sm:text-sm text-cyan-200 flex items-center gap-2 font-medium">
-                    <div className="p-1.5 rounded-lg bg-cyan-500/30 backdrop-blur-sm">
-                      <Calendar className="w-3.5 h-3.5 text-cyan-300" />
-                    </div>
-                    Idade
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative pt-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                    {idade}
-                    <span className="text-base sm:text-lg ml-1 font-normal text-cyan-200/80">anos</span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-cyan-200/70 mt-0.5">Idade atual</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Altura */}
-            {(patient as any)?.altura_inicial && (
-              <Card className="relative overflow-hidden bg-gradient-to-br from-violet-600/30 via-purple-500/20 to-fuchsia-600/30 border-0 shadow-lg shadow-purple-500/10 hover:shadow-purple-500/20 hover:scale-[1.02] transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-transparent" />
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-purple-400/20 rounded-full blur-2xl" />
-                <CardHeader className="pb-1 relative">
-                  <CardTitle className="text-xs sm:text-sm text-purple-200 flex items-center gap-2 font-medium">
-                    <div className="p-1.5 rounded-lg bg-purple-500/30 backdrop-blur-sm">
-                      <TrendingUp className="w-3.5 h-3.5 text-purple-300" />
-                    </div>
-                    Altura
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative pt-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                    {(patient as any).altura_inicial}
-                    <span className="text-base sm:text-lg ml-1 font-normal text-purple-200/80">m</span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-purple-200/70 mt-0.5">Altura</p>
-                </CardContent>
-              </Card>
-            )}
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Peso Inicial */}
             {weightData.length > 0 && (
-              <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-600/30 via-green-500/20 to-teal-600/30 border-0 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] transition-all duration-300">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-600/30 via-green-500/20 to-teal-600/30 border-0 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-transparent" />
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-emerald-400/20 rounded-full blur-2xl" />
-                <CardHeader className="pb-1 relative">
-                  <CardTitle className="text-xs sm:text-sm text-emerald-200 flex items-center gap-2 font-medium">
-                    <div className="p-1.5 rounded-lg bg-emerald-500/30 backdrop-blur-sm">
-                      <Weight className="w-3.5 h-3.5 text-emerald-300" />
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-emerald-400/20 rounded-full blur-2xl" />
+                <CardHeader className="pb-1 relative px-5 pt-5">
+                  <CardTitle className="text-sm sm:text-base text-emerald-200 flex items-center gap-2 font-medium">
+                    <div className="p-2 rounded-lg bg-emerald-500/30 backdrop-blur-sm">
+                      <Weight className="w-4 h-4 text-emerald-300" />
                     </div>
                     Peso Inicial
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative pt-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                <CardContent className="relative pt-0 px-5 pb-5 flex-1 flex flex-col justify-end">
+                  <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
                     {weightData[0]?.peso?.toFixed(1) || 'N/A'}
-                    {weightData[0]?.peso && <span className="text-base sm:text-lg ml-1 font-normal text-emerald-200/80">kg</span>}
+                    {weightData[0]?.peso && <span className="text-xl sm:text-2xl ml-1 font-normal text-emerald-200/80">kg</span>}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-emerald-200/70 mt-0.5">
+                  <p className="text-xs sm:text-sm text-emerald-200/70 mt-1">
                     {weightData[0]?.data}
                   </p>
                 </CardContent>
@@ -330,24 +267,24 @@ export function PatientEvolutionTab({
 
             {/* Peso Atual */}
             {checkins[0]?.peso && (
-              <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-600/30 via-blue-500/20 to-violet-600/30 border-0 shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:scale-[1.02] transition-all duration-300">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-600/30 via-blue-500/20 to-violet-600/30 border-0 shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/10 to-transparent" />
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-indigo-400/20 rounded-full blur-2xl" />
-                <CardHeader className="pb-1 relative">
-                  <CardTitle className="text-xs sm:text-sm text-indigo-200 flex items-center gap-2 font-medium">
-                    <div className="p-1.5 rounded-lg bg-indigo-500/30 backdrop-blur-sm">
-                      <Weight className="w-3.5 h-3.5 text-indigo-300" />
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-indigo-400/20 rounded-full blur-2xl" />
+                <CardHeader className="pb-1 relative px-5 pt-5">
+                  <CardTitle className="text-sm sm:text-base text-indigo-200 flex items-center gap-2 font-medium">
+                    <div className="p-2 rounded-lg bg-indigo-500/30 backdrop-blur-sm">
+                      <Weight className="w-4 h-4 text-indigo-300" />
                     </div>
                     Peso Atual
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative pt-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                <CardContent className="relative pt-0 px-5 pb-5 flex-1 flex flex-col justify-end">
+                  <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
                     {parseFloat(checkins[0].peso.replace(',', '.')).toFixed(1)}
-                    <span className="text-base sm:text-lg ml-1 font-normal text-indigo-200/80">kg</span>
+                    <span className="text-xl sm:text-2xl ml-1 font-normal text-indigo-200/80">kg</span>
                   </div>
-                  <p className="text-[10px] sm:text-xs text-indigo-200/70 mt-0.5">
-                    {new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  <p className="text-xs sm:text-sm text-indigo-200/70 mt-1">
+                    {new Date(checkins[0].data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
                 </CardContent>
               </Card>
@@ -355,7 +292,7 @@ export function PatientEvolutionTab({
 
             {/* Variação */}
             {weightData.length >= 2 && (
-              <Card className={`relative overflow-hidden border-0 shadow-lg hover:scale-[1.02] transition-all duration-300 ${
+              <Card className={`relative overflow-hidden border-0 shadow-lg hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col ${
                 isNeutral 
                   ? 'bg-gradient-to-br from-slate-600/30 via-slate-500/20 to-gray-600/30 shadow-slate-500/10 hover:shadow-slate-500/20' 
                   : isNegative 
@@ -363,21 +300,21 @@ export function PatientEvolutionTab({
                     : 'bg-gradient-to-br from-amber-600/30 via-orange-500/20 to-red-600/30 shadow-orange-500/10 hover:shadow-orange-500/20'
               }`}>
                 <div className={`absolute inset-0 bg-gradient-to-br ${isNeutral ? 'from-slate-400/10' : isNegative ? 'from-emerald-400/10' : 'from-orange-400/10'} to-transparent`} />
-                <div className={`absolute -top-4 -right-4 w-20 h-20 ${isNeutral ? 'bg-slate-400/20' : isNegative ? 'bg-emerald-400/20' : 'bg-orange-400/20'} rounded-full blur-2xl`} />
-                <CardHeader className="pb-1 relative">
-                  <CardTitle className={`text-xs sm:text-sm flex items-center gap-2 font-medium ${isNeutral ? 'text-slate-200' : isNegative ? 'text-emerald-200' : 'text-orange-200'}`}>
-                    <div className={`p-1.5 rounded-lg backdrop-blur-sm ${isNeutral ? 'bg-slate-500/30' : isNegative ? 'bg-emerald-500/30' : 'bg-orange-500/30'}`}>
-                      <TrendingUp className={`w-3.5 h-3.5 ${isNeutral ? 'text-slate-300' : isNegative ? 'text-emerald-300' : 'text-orange-300'}`} />
+                <div className={`absolute -top-4 -right-4 w-24 h-24 ${isNeutral ? 'bg-slate-400/20' : isNegative ? 'bg-emerald-400/20' : 'bg-orange-400/20'} rounded-full blur-2xl`} />
+                <CardHeader className="pb-1 relative px-5 pt-5">
+                  <CardTitle className={`text-sm sm:text-base flex items-center gap-2 font-medium ${isNeutral ? 'text-slate-200' : isNegative ? 'text-emerald-200' : 'text-orange-200'}`}>
+                    <div className={`p-2 rounded-lg backdrop-blur-sm ${isNeutral ? 'bg-slate-500/30' : isNegative ? 'bg-emerald-500/30' : 'bg-orange-500/30'}`}>
+                      <TrendingUp className={`w-4 h-4 ${isNeutral ? 'text-slate-300' : isNegative ? 'text-emerald-300' : 'text-orange-300'}`} />
                     </div>
                     Variação
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative pt-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                <CardContent className="relative pt-0 px-5 pb-5 flex-1 flex flex-col justify-end">
+                  <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
                     {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange}
-                    <span className={`text-base sm:text-lg ml-1 font-normal ${isNeutral ? 'text-slate-200/80' : isNegative ? 'text-emerald-200/80' : 'text-orange-200/80'}`}>kg</span>
+                    <span className={`text-xl sm:text-2xl ml-1 font-normal ${isNeutral ? 'text-slate-200/80' : isNegative ? 'text-emerald-200/80' : 'text-orange-200/80'}`}>kg</span>
                   </div>
-                  <p className={`text-[10px] sm:text-xs mt-0.5 ${isNeutral ? 'text-slate-200/70' : isNegative ? 'text-emerald-200/70' : 'text-orange-200/70'}`}>
+                  <p className={`text-xs sm:text-sm mt-1 ${isNeutral ? 'text-slate-200/70' : isNegative ? 'text-emerald-200/70' : 'text-orange-200/70'}`}>
                     {isNeutral ? 'Sem variação' : isNegative ? 'Perda de peso' : 'Ganho de peso'}
                   </p>
                 </CardContent>
@@ -443,8 +380,8 @@ export function PatientEvolutionTab({
         </motion.div>
       )}
 
-      {/* 5. Comparação de Fotos - Ocultar se não houver fotos OU se na página pública houver comparação destacada */}
-      {hasPhotos() && checkins.length >= 2 && !(isPublicAccess && hasFeaturedComparison) && (
+      {/* 5. Comparação de Fotos - Ocultar se não houver fotos, ou na página pública se comparação destacada ou card oculto */}
+      {hasPhotos() && checkins.length >= 2 && !(isPublicAccess && hasFeaturedComparison) && showEvolutionPhotosCard && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

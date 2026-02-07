@@ -86,6 +86,7 @@ export default function PublicPortal() {
   const portalRef = useRef<HTMLDivElement>(null);
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
+  const [showEvolutionPhotosCard, setShowEvolutionPhotosCard] = useState<boolean>(true);
 
   // Hook para comparação destacada (somente leitura)
   const { comparison, loading: comparisonLoading } = useFeaturedComparison(telefone);
@@ -214,7 +215,7 @@ export default function PublicPortal() {
 
       console.log('🔍 Carregando dados públicos para:', telefone);
 
-      const [checkinsData, patientResult, bioResult] = await Promise.all([
+      const [checkinsData, patientResult, bioResult, cardVisibilityResult] = await Promise.all([
         checkinService.getByPhone(telefone),
         supabaseServiceRole
           .from('patients')
@@ -233,7 +234,13 @@ export default function PublicPortal() {
           }
           
           return await bioQuery;
-        })()
+        })(),
+        (supabaseServiceRole as any)
+          .from('portal_card_visibility')
+          .select('visible')
+          .eq('patient_telefone', telefone)
+          .eq('card_key', 'evolution_photos')
+          .maybeSingle(),
       ]);
 
       if (patientResult.error || !patientResult.data) {
@@ -250,6 +257,8 @@ export default function PublicPortal() {
       if (bioResult.data) {
         setBodyCompositions(bioResult.data);
       }
+
+      setShowEvolutionPhotosCard(cardVisibilityResult?.data?.visible !== false);
 
     } catch (error: any) {
       console.error('Erro ao carregar dados públicos:', error);
@@ -454,6 +463,7 @@ export default function PublicPortal() {
                 refreshTrigger={0}
                 isPublicAccess={true} // ❌ Modo público - sem edição, fotos filtradas
                 hasFeaturedComparison={!!(comparison && comparison.is_visible)} // Oculta PhotoComparison se houver comparação destacada
+                showEvolutionPhotosCard={showEvolutionPhotosCard} // Ocultar card Evolução Fotográfica se desativado
               />
             </motion.div>
           )}

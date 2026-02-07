@@ -1,11 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Edit, Trash2, Sparkles, TrendingDown } from 'lucide-react';
+import { Eye, EyeOff, Edit, Trash2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FeaturedComparison as FeaturedComparisonType } from '@/hooks/use-featured-comparison';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface FeaturedComparisonProps {
   comparison: FeaturedComparisonType;
@@ -31,10 +29,6 @@ export function FeaturedComparison({
     title: comparison?.title
   });
   
-  const weightDiff = comparison.before_weight && comparison.after_weight
-    ? comparison.before_weight - comparison.after_weight
-    : null;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -105,16 +99,6 @@ export function FeaturedComparison({
               </div>
             )}
           </div>
-
-          {/* Estatísticas */}
-          <div className={`flex gap-4 ${isCompact ? 'mt-2' : 'mt-4'} flex-wrap`}>
-            {weightDiff !== null && (
-              <Badge className={`bg-emerald-500/20 text-emerald-300 border-emerald-500/30 ${isCompact ? 'px-2 py-0.5 text-xs' : 'px-3 py-1'}`}>
-                <TrendingDown className={`${isCompact ? 'w-3 h-3' : 'w-4 h-4'} mr-1`} />
-                {Math.abs(weightDiff).toFixed(1)} kg {weightDiff > 0 ? 'perdidos' : 'ganhos'}
-              </Badge>
-            )}
-          </div>
         </div>
 
         {/* Comparação de Fotos */}
@@ -122,24 +106,11 @@ export function FeaturedComparison({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
             {/* Foto ANTES */}
             <div className="relative group">
-              <div className={`absolute top-0 left-0 right-0 bg-gradient-to-b from-slate-900/90 to-transparent z-10 ${isCompact ? 'p-2' : 'p-4'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge className={`bg-red-500/80 text-white border-0 ${isCompact ? 'text-xs mb-1' : 'mb-2'}`}>
-                      ANTES
-                    </Badge>
-                    <p className={`text-white font-medium ${isCompact ? 'text-xs' : 'text-sm'}`}>
-                      {format(new Date(comparison.before_photo_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                    </p>
-                    {comparison.before_weight && (
-                      <p className={`text-slate-300 mt-1 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
-                        {comparison.before_weight} kg
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className={`absolute top-0 left-0 right-0 z-10 ${isCompact ? 'p-2' : 'p-4'}`}>
+                <Badge className="bg-red-500/80 text-white border-0" style={{ fontSize: isCompact ? '0.75rem' : undefined }}>
+                  ANTES
+                </Badge>
               </div>
-
               <div className="aspect-[3/4] relative overflow-hidden bg-slate-900 flex items-center justify-center">
                 <img
                   src={comparison.before_photo_url}
@@ -156,24 +127,11 @@ export function FeaturedComparison({
 
             {/* Foto DEPOIS */}
             <div className="relative group">
-              <div className={`absolute top-0 left-0 right-0 bg-gradient-to-b from-slate-900/90 to-transparent z-10 ${isCompact ? 'p-2' : 'p-4'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge className={`bg-emerald-500/80 text-white border-0 ${isCompact ? 'text-xs mb-1' : 'mb-2'}`}>
-                      DEPOIS
-                    </Badge>
-                    <p className={`text-white font-medium ${isCompact ? 'text-xs' : 'text-sm'}`}>
-                      {format(new Date(comparison.after_photo_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                    </p>
-                    {comparison.after_weight && (
-                      <p className={`text-slate-300 mt-1 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
-                        {comparison.after_weight} kg
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className={`absolute top-0 left-0 right-0 z-10 ${isCompact ? 'p-2' : 'p-4'}`}>
+                <Badge className="bg-emerald-500/80 text-white border-0" style={{ fontSize: isCompact ? '0.75rem' : undefined }}>
+                  DEPOIS
+                </Badge>
               </div>
-
               <div className="aspect-[3/4] relative overflow-hidden bg-slate-900 flex items-center justify-center">
                 <img
                   src={comparison.after_photo_url}
@@ -187,33 +145,15 @@ export function FeaturedComparison({
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
               </div>
 
-              {/* Badge de conquista */}
-              {weightDiff && weightDiff > 0 && (
-                <div className="absolute bottom-4 right-4 z-10">
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
-                    className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full p-3 shadow-lg"
-                  >
-                    <Sparkles className="w-6 h-6 text-white" />
-                  </motion.div>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Mensagem motivacional */}
-          {weightDiff && weightDiff > 0 && (
-            <div className={`bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border-t border-emerald-500/20 ${isCompact ? 'p-4' : 'p-6'}`}>
-              <p className={`text-center text-white font-medium ${isCompact ? 'text-base' : 'text-lg'}`}>
-                🎉 Incrível! Uma transformação de <span className="text-emerald-400 font-bold">{Math.abs(weightDiff).toFixed(1)} kg</span>!
-              </p>
-              <p className={`text-center text-slate-400 mt-2 ${isCompact ? 'text-xs' : 'text-sm'}`}>
-                Continue assim, você está no caminho certo! 💪
-              </p>
-            </div>
-          )}
+          {/* Mensagem embaixo das fotos */}
+          <div className={`bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border-t border-emerald-500/20 ${isCompact ? 'p-4' : 'p-6'}`}>
+            <p className={`text-center text-white font-medium ${isCompact ? 'text-base' : 'text-lg'}`}>
+              ✨ Uma transformação incrível!
+            </p>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, ChevronRight, ChevronDown, ChevronUp, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2, Settings } from "lucide-react";
+import { Camera, ChevronRight, ChevronDown, ChevronUp, ZoomIn, Calendar, ExternalLink, Trash2, Download, Edit2, Settings, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -20,6 +20,7 @@ import { PhotoVisibilityModal } from "./PhotoVisibilityModal";
 import { EditFeaturedComparisonModal } from "./EditFeaturedComparisonModal";
 import { usePhotoVisibility } from "@/hooks/use-photo-visibility";
 import { useFeaturedComparison, CreateFeaturedComparisonData } from "@/hooks/use-featured-comparison";
+import { useEvolutionPhotosCardVisibility } from "@/hooks/use-evolution-photos-card-visibility";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -94,6 +95,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
   const [isUpdatingAngle, setIsUpdatingAngle] = useState(false);
   const { toast } = useToast();
   const { saveComparison, loading: savingComparison } = useFeaturedComparison(patient?.telefone || '');
+  const { visible: evolutionPhotosCardVisible, loading: evolutionPhotosCardLoading, toggleVisibility: toggleEvolutionPhotosCardVisibility } = useEvolutionPhotosCardVisibility(patient?.telefone ?? null);
 
   // Sincronizar estado do sessionStorage quando o telefone mudar (mudança de paciente)
   const prevTelefoneRef = useRef(patient?.telefone);
@@ -928,6 +930,32 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {patient && isEditable && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleEvolutionPhotosCardVisibility}
+                  disabled={evolutionPhotosCardLoading}
+                  className={`gap-2 ${
+                    evolutionPhotosCardVisible
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
+                      : 'bg-slate-700/50 border-slate-600/50 text-slate-400 hover:bg-slate-700'
+                  }`}
+                  title={evolutionPhotosCardVisible ? 'Card visível no portal público. Clique para ocultar.' : 'Card oculto do portal público. Clique para mostrar.'}
+                >
+                  {evolutionPhotosCardVisible ? (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      Visível no portal
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-4 h-4" />
+                      Oculto do portal
+                    </>
+                  )}
+                </Button>
+              )}
               {patient && (
                 <>
                   <AddCheckinPhotos
@@ -1325,7 +1353,10 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
                                 src={photo.url}
                                 alt={`Foto ${globalIndex + 1}`}
                                 className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
-                                onClick={() => handleZoomPhoto(photo)}
+                                onClick={() => {
+                                  if (isSelectionMode) handleSelectPhoto(photo);
+                                  else handleZoomPhoto(photo);
+                                }}
                                 onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
                               />
                             ) : imageErrors.has(getPhotoId(photo)) ? (
@@ -1348,7 +1379,14 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
                                 alt={`Foto ${globalIndex + 1}`}
                                 loading="lazy"
                                 className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
-                                onClick={() => handleZoomPhoto(photo)}
+                                onClick={(e) => {
+                                  if (isSelectionMode) {
+                                    e.stopPropagation();
+                                    handleSelectPhoto(photo);
+                                  } else {
+                                    handleZoomPhoto(photo);
+                                  }
+                                }}
                                 onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
                               />
                             )}

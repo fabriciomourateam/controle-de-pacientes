@@ -67,7 +67,7 @@ Nome: {patientName}
 - IMPORTANTE - Hidratação (Água): Considere que 2,5 litros ou mais já está adequado. Só reforce para melhorar quando estiver em 2 litros ou menos.
 - IMPORTANTE - Sono: Considere que 6 horas ou mais já está adequado. Só reforce para melhorar quando estiver abaixo de 6 horas.
 - IMPORTANTE - Formatação: Organize o texto em parágrafos curtos e fluídos. Não quebre a linha em cada frase individual; em vez disso, agrupe ideias relacionadas em parágrafos de 2 a 3 frases para garantir uma leitura agradável no celular.
-- Use espaçamento duplo apenas entre seções ou parágrafos distintos.
+- Use apenas uma quebra de linha entre seções, títulos e parágrafos. Não use múltiplas linhas em branco (evite mais de um Enter seguido).
 
 *Formato de saída esperado:*
 📌 *FEEDBACK DO CHECK-IN*

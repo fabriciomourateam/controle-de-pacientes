@@ -131,6 +131,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       });
     }
   }, [previousCheckins, isExpanded, checkin.telefone, checkin.id, checkin.data_checkin, checkin.data_preenchimento, showAllCheckinsColumns]);
+  // Normalizar quebras de linha ao carregar feedback salvo (mesma lógica de cleanFeedback)
+  const normalizeLineBreaks = (text: string) =>
+    text.replace(/\n{2,}/g, '\n').replace(/[ \t]{2,}/g, ' ').trim();
+
   // Carregar dados existentes quando disponível do hook
   React.useEffect(() => {
     if (feedbackAnalysis) {
@@ -138,7 +142,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       if (feedbackAnalysis.checkin_id === checkin.id) {
         setObservedImprovements(feedbackAnalysis.observed_improvements || '');
         setDietAdjustments(feedbackAnalysis.diet_adjustments || '');
-        setGeneratedFeedback(feedbackAnalysis.generated_feedback || '');
+        setGeneratedFeedback(normalizeLineBreaks(feedbackAnalysis.generated_feedback || ''));
       }
     }
   }, [feedbackAnalysis, checkin.id]);
@@ -166,7 +170,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
         if (data) {
           setObservedImprovements(data.observed_improvements || '');
           setDietAdjustments(data.diet_adjustments || '');
-          setGeneratedFeedback(data.generated_feedback || '');
+          setGeneratedFeedback(normalizeLineBreaks(data.generated_feedback || ''));
         }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -315,10 +319,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     checkPreviousPhotos();
   }, [previousCheckinId]);
 
-  // Função para limpar excesso de quebras de linha no feedback
+  // Função para normalizar quebras de linha: no máximo uma quebra entre linhas/parágrafos
   const cleanFeedback = useCallback((text: string): string => {
     return text
-      .replace(/\n{3,}/g, '\n\n') // Substituir 3 ou mais quebras por apenas 2
+      .replace(/\n{2,}/g, '\n') // Duas ou mais quebras viram uma só (evita "muitas linhas em branco")
       .replace(/[ \t]{2,}/g, ' ') // Substituir espaços/tabs múltiplos por um único espaço
       .trim();
   }, []);

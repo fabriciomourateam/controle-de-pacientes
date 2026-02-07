@@ -169,7 +169,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
     const dataInicial = patientWithInitialData.data_fotos_iniciais || patient?.created_at;
     const dataInicialPoint = {
       id: 'inicial',
-      data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       dataCompleta: new Date(dataInicial).toISOString(),
       peso: parseFloat(patientWithInitialData.peso_inicial.toString()),
       tipo: 'Inicial',
@@ -184,7 +184,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
     const dataAtual = patientWithInitialData.data_fotos_atuais || new Date().toISOString();
     const dataAtualPoint = {
       id: 'atual',
-      data: new Date(dataAtual).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      data: new Date(dataAtual).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       dataCompleta: new Date(dataAtual).toISOString(),
       peso: parseFloat(patientWithInitialData.peso_atual.toString()),
       tipo: 'Atual',
@@ -200,7 +200,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
     if (pesoValue) {
       const dataPoint = {
         id: `daily-${weight.id}`,
-        data: new Date(weight.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        data: new Date(weight.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
         dataCompleta: weight.data_pesagem,
         peso: parseFloat(pesoValue.toString()),
         tipo: `Peso ${weight.tipo === 'jejum' ? 'Jejum' : 'Dia'}`,
@@ -221,7 +221,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
         : parseFloat(pesoCheckin.toString());
       const dataPoint = {
         id: c.id,
-        data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
         dataCompleta: c.data_checkin,
         peso: pesoValue,
         tipo: index === 0 ? '1º Check-in' : 'Check-in',
@@ -237,7 +237,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
 
   // Preparar dados para gráfico de pontuações
   const scoresData = checkinsOrdenados.map(c => ({
-    data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
     treino: parseFloat(c.pontos_treinos || '0') || 0,
     cardio: parseFloat(c.pontos_cardios || '0') || 0,
     sono: parseFloat(c.pontos_sono || '0') || 0,
@@ -323,7 +323,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
     };
 
     return {
-      data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       treino: extractNumberFromText(c.treino),
       cardio: extractNumberFromText(c.cardio),
       sono: extractNumberFromText(c.sono),
@@ -422,7 +422,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value) => {
                     const date = new Date(value);
-                    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
                   }}
                 />
                 <YAxis 
@@ -702,7 +702,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
           const dataInicial = patientWithInitialData.data_fotos_iniciais || patient?.created_at;
           measurementsData.push({
             id: 'inicial',
-            data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+            data: new Date(dataInicial).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
             dataCompleta: new Date(dataInicial).toISOString(),
             cintura: patientWithInitialData.medida_cintura_inicial ? parseFloat(patientWithInitialData.medida_cintura_inicial.toString()) : null,
             quadril: patientWithInitialData.medida_quadril_inicial ? parseFloat(patientWithInitialData.medida_quadril_inicial.toString()) : null,
@@ -715,7 +715,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
           const dataAtual = patientWithInitialData.data_fotos_atuais || new Date().toISOString();
           measurementsData.push({
             id: 'atual',
-            data: new Date(dataAtual).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+            data: new Date(dataAtual).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
             dataCompleta: new Date(dataAtual).toISOString(),
             cintura: patientWithInitialData.medida_cintura_atual ? parseFloat(patientWithInitialData.medida_cintura_atual.toString()) : null,
             quadril: patientWithInitialData.medida_quadril_atual ? parseFloat(patientWithInitialData.medida_quadril_atual.toString()) : null,
@@ -733,7 +733,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
             if (measurements.cintura !== null || measurements.quadril !== null) {
               measurementsData.push({
                 id: c.id,
-                data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                data: new Date(c.data_checkin).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
                 dataCompleta: c.data_checkin,
                 cintura: measurements.cintura,
                 quadril: measurements.quadril,
@@ -795,7 +795,7 @@ export function EvolutionCharts({ checkins, patient, refreshTrigger, onAddData }
                     style={{ fontSize: '12px' }}
                     tickFormatter={(value) => {
                       const date = new Date(value);
-                      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
                     }}
                   />
                   <YAxis 

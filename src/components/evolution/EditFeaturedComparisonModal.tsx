@@ -126,37 +126,28 @@ export function EditFeaturedComparisonModal({
       }));
     };
 
-    // Adicionar listeners nos containers de edição
+    // Usar capture: true para o scroll do mouse zoomar mesmo com o modal tendo overflow
+    const opts = { passive: false, capture: true };
     if (beforeContainer) {
-      beforeContainer.addEventListener('wheel', handleWheelBefore, { passive: false });
+      beforeContainer.addEventListener('wheel', handleWheelBefore, opts);
     }
     if (afterContainer) {
-      afterContainer.addEventListener('wheel', handleWheelAfter, { passive: false });
+      afterContainer.addEventListener('wheel', handleWheelAfter, opts);
     }
-
-    // Adicionar listeners no preview também
     if (beforePreview) {
-      beforePreview.addEventListener('wheel', handleWheelBefore, { passive: false });
+      beforePreview.addEventListener('wheel', handleWheelBefore, opts);
     }
     if (afterPreview) {
-      afterPreview.addEventListener('wheel', handleWheelAfter, { passive: false });
+      afterPreview.addEventListener('wheel', handleWheelAfter, opts);
     }
 
     return () => {
-      if (beforeContainer) {
-        beforeContainer.removeEventListener('wheel', handleWheelBefore);
-      }
-      if (afterContainer) {
-        afterContainer.removeEventListener('wheel', handleWheelAfter);
-      }
-      if (beforePreview) {
-        beforePreview.removeEventListener('wheel', handleWheelBefore);
-      }
-      if (afterPreview) {
-        afterPreview.removeEventListener('wheel', handleWheelAfter);
-      }
+      if (beforeContainer) beforeContainer.removeEventListener('wheel', handleWheelBefore, opts);
+      if (afterContainer) afterContainer.removeEventListener('wheel', handleWheelAfter, opts);
+      if (beforePreview) beforePreview.removeEventListener('wheel', handleWheelBefore, opts);
+      if (afterPreview) afterPreview.removeEventListener('wheel', handleWheelAfter, opts);
     };
-  }, []);
+  }, [open]);
 
   // Funções de zoom
   const handleZoomIn = (side: 'before' | 'after') => {
@@ -382,17 +373,17 @@ export function EditFeaturedComparisonModal({
                   draggable={false}
                 />
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                  Zoom: {beforeState.zoom.toFixed(1)}x
+                  Zoom: {beforeState.zoom.toFixed(1)}x — use o scroll aqui
                 </div>
               </div>
 
-              {/* Controles */}
+              {/* Controles: zoom e reset (único conjunto por foto) */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleZoomOut('before')} className="bg-slate-800 border-slate-700 text-white">
+                  <Button size="sm" variant="outline" onClick={() => handleZoomOut('before')} className="bg-slate-800 border-slate-700 text-white" title="Diminuir zoom">
                     <ZoomOut className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleZoomIn('before')} className="bg-slate-800 border-slate-700 text-white">
+                  <Button size="sm" variant="outline" onClick={() => handleZoomIn('before')} className="bg-slate-800 border-slate-700 text-white" title="Aumentar zoom">
                     <ZoomIn className="w-4 h-4" />
                   </Button>
                 </div>
@@ -437,17 +428,17 @@ export function EditFeaturedComparisonModal({
                   draggable={false}
                 />
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                  Zoom: {afterState.zoom.toFixed(1)}x
+                  Zoom: {afterState.zoom.toFixed(1)}x — use o scroll aqui
                 </div>
               </div>
 
-              {/* Controles */}
+              {/* Controles: zoom e reset (único conjunto por foto) */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleZoomOut('after')} className="bg-slate-800 border-slate-700 text-white">
+                  <Button size="sm" variant="outline" onClick={() => handleZoomOut('after')} className="bg-slate-800 border-slate-700 text-white" title="Diminuir zoom">
                     <ZoomOut className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleZoomIn('after')} className="bg-slate-800 border-slate-700 text-white">
+                  <Button size="sm" variant="outline" onClick={() => handleZoomIn('after')} className="bg-slate-800 border-slate-700 text-white" title="Aumentar zoom">
                     <ZoomIn className="w-4 h-4" />
                   </Button>
                 </div>

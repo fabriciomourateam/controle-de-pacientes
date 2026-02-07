@@ -41,7 +41,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { patientSchema, PatientFormData } from "@/lib/validation-schemas";
 import { usePlans } from "@/hooks/use-supabase-data";
-import { cn } from "@/lib/utils";
 
 interface PatientFormProps {
   patient?: PatientFormData & { id: string };
@@ -339,37 +338,39 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <Calendar className="w-4 h-4" />
                       Data de Expiração *
                     </FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal bg-surface border-border",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy")
-                            ) : (
-                              <span>Selecione a data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-slate-900/95 backdrop-blur-sm border-slate-700/50" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value + "T12:00:00") : undefined)}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 [color-scheme:dark]"
                         />
-                      </PopoverContent>
-                    </Popover>
+                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0 bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-slate-900/95 backdrop-blur-sm border-slate-700/50" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     <FormDescription>
-                      Data em que o acompanhamento expira
+                      Digite a data ou use o calendário. Data em que o acompanhamento expira.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -471,35 +472,41 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                       <Calendar className="w-4 h-4" />
                       Data de Nascimento
                     </FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal bg-surface border-border hover:bg-surface-hover",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy")
-                            ) : (
-                              <span>Selecione a data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value + "T12:00:00") : undefined)}
+                          max={format(new Date(), "yyyy-MM-dd")}
+                          className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-400 [color-scheme:dark]"
                         />
-                      </PopoverContent>
-                    </Popover>
+                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0 bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-slate-900/95 backdrop-blur-sm border-slate-700/50" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <FormDescription>
+                      Digite a data ou use o calendário. Anos antigos podem ser digitados diretamente no campo.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

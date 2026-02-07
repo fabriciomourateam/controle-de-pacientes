@@ -820,22 +820,16 @@ export function CheckinsList() {
                   ? `${assigneeColor.border} ${assigneeColor.hoverBorder}`
                   : 'hover:from-slate-700/60 hover:to-slate-800/60 hover:border-slate-600/60'
                   } bg-gradient-to-br from-slate-800/50 to-slate-900/50 hover:shadow-lg hover:shadow-slate-900/20`}>
-                  <div className="grid grid-cols-[1fr_140px_160px_120px] gap-3 items-center">
-                    {/* Informações do Paciente - Coluna flexível */}
+                  {/* Mobile: coluna (nome em cima, controles embaixo). Desktop: grid em uma linha */}
+                  <div className="flex flex-col gap-3 md:grid md:grid-cols-[1fr_140px_160px_120px] md:gap-3 md:items-center">
+                    {/* Nome do paciente - no mobile ocupa a linha toda e fica sempre visível */}
                     <div
-                      className="flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
                       onClick={(e) => {
-                        // Prevenir abertura se o clique vier de dentro dos controles (status, responsável, ações)
                         const target = e.target as HTMLElement;
-                        if (target.closest('[data-no-expand]')) {
-                          return;
-                        }
-                        // Prevenir abertura se o clique vier de um link ou botão
-                        if (target.closest('a') || target.closest('button') || target.closest('[role="button"]')) {
-                          return;
-                        }
+                        if (target.closest('[data-no-expand]')) return;
+                        if (target.closest('a') || target.closest('button') || target.closest('[role="button"]')) return;
                         e.stopPropagation();
-                        // Abrir Sheet com os dados do check-in
                         setSelectedCheckinForSheet(checkin);
                       }}
                     >
@@ -844,35 +838,32 @@ export function CheckinsList() {
                           {checkin.patient?.nome?.charAt(0) || 'P'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <h4 className="font-semibold text-white text-lg truncate leading-tight">{checkin.patient?.nome || 'Paciente não informado'}</h4>
                       </div>
                     </div>
 
-                    {/* Status - Coluna fixa */}
-                    <div className="flex-shrink-0" data-no-expand>
-                      <CheckinQuickControls
-                        checkin={checkin}
-                        teamMembers={teamMembers}
-                        onUpdate={refetch}
-                        notesCount={checkin.notes_count || 0}
-                        showOnlyStatus={true}
-                      />
-                    </div>
-
-                    {/* Responsável - Coluna fixa */}
-                    <div className="flex-shrink-0" data-no-expand>
-                      <CheckinQuickControls
-                        checkin={checkin}
-                        teamMembers={teamMembers}
-                        onUpdate={refetch}
-                        notesCount={checkin.notes_count || 0}
-                        showOnlyResponsible={true}
-                      />
-                    </div>
-
-                    {/* Ações - Coluna fixa */}
-                    <div className="flex items-center gap-1 flex-shrink-0 justify-end w-full" data-no-expand>
+                    {/* No mobile: uma linha com Status, Responsável e Ações. No desktop: cada um vira coluna do grid (md:contents) */}
+                    <div className="flex flex-wrap items-center gap-2 md:contents">
+                      <div className="flex-shrink-0" data-no-expand>
+                        <CheckinQuickControls
+                          checkin={checkin}
+                          teamMembers={teamMembers}
+                          onUpdate={refetch}
+                          notesCount={checkin.notes_count || 0}
+                          showOnlyStatus={true}
+                        />
+                      </div>
+                      <div className="flex-shrink-0" data-no-expand>
+                        <CheckinQuickControls
+                          checkin={checkin}
+                          teamMembers={teamMembers}
+                          onUpdate={refetch}
+                          notesCount={checkin.notes_count || 0}
+                          showOnlyResponsible={true}
+                        />
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0 justify-end w-full md:justify-end" data-no-expand>
                       <CheckinQuickControls
                         checkin={checkin}
                         teamMembers={teamMembers}
@@ -933,6 +924,7 @@ export function CheckinsList() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      </div>
                     </div>
                   </div>
 
