@@ -101,52 +101,42 @@ export function EditFeaturedComparisonModal({
   const beforePreviewRef = useRef<HTMLDivElement>(null);
   const afterPreviewRef = useRef<HTMLDivElement>(null);
 
-  // Adicionar listener de wheel com { passive: false } para permitir preventDefault
+  // Listener de wheel no document para zoom: evita que o scroll do modal consuma o evento
   useEffect(() => {
-    const beforeContainer = beforeContainerRef.current;
-    const afterContainer = afterContainerRef.current;
-    const beforePreview = beforePreviewRef.current;
-    const afterPreview = afterPreviewRef.current;
+    if (!open) return;
 
-    const handleWheelBefore = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setBeforeState(prev => ({ 
-        ...prev, 
-        zoom: Math.max(0.5, Math.min(3, prev.zoom + delta))
-      }));
+    const handleWheel = (e: WheelEvent) => {
+      const beforeContainer = beforeContainerRef.current;
+      const afterContainer = afterContainerRef.current;
+      const beforePreview = beforePreviewRef.current;
+      const afterPreview = afterPreviewRef.current;
+      const target = e.target as Node;
+
+      const isOverBefore = beforeContainer?.contains(target) || beforePreview?.contains(target);
+      const isOverAfter = afterContainer?.contains(target) || afterPreview?.contains(target);
+
+      if (isOverBefore || isOverAfter) {
+        e.preventDefault();
+        e.stopPropagation();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        if (isOverBefore) {
+          setBeforeState(prev => ({
+            ...prev,
+            zoom: Math.max(0.5, Math.min(3, prev.zoom + delta))
+          }));
+        }
+        if (isOverAfter) {
+          setAfterState(prev => ({
+            ...prev,
+            zoom: Math.max(0.5, Math.min(3, prev.zoom + delta))
+          }));
+        }
+      }
     };
 
-    const handleWheelAfter = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setAfterState(prev => ({ 
-        ...prev, 
-        zoom: Math.max(0.5, Math.min(3, prev.zoom + delta))
-      }));
-    };
-
-    // Usar capture: true para o scroll do mouse zoomar mesmo com o modal tendo overflow
     const opts = { passive: false, capture: true };
-    if (beforeContainer) {
-      beforeContainer.addEventListener('wheel', handleWheelBefore, opts);
-    }
-    if (afterContainer) {
-      afterContainer.addEventListener('wheel', handleWheelAfter, opts);
-    }
-    if (beforePreview) {
-      beforePreview.addEventListener('wheel', handleWheelBefore, opts);
-    }
-    if (afterPreview) {
-      afterPreview.addEventListener('wheel', handleWheelAfter, opts);
-    }
-
-    return () => {
-      if (beforeContainer) beforeContainer.removeEventListener('wheel', handleWheelBefore, opts);
-      if (afterContainer) afterContainer.removeEventListener('wheel', handleWheelAfter, opts);
-      if (beforePreview) beforePreview.removeEventListener('wheel', handleWheelBefore, opts);
-      if (afterPreview) afterPreview.removeEventListener('wheel', handleWheelAfter, opts);
-    };
+    document.addEventListener('wheel', handleWheel, opts);
+    return () => document.removeEventListener('wheel', handleWheel, opts);
   }, [open]);
 
   // Funções de zoom
