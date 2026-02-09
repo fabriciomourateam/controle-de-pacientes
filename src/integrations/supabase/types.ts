@@ -1212,6 +1212,80 @@ export type Database = {
         }
         Relationships: []
       }
+      user_access_control: {
+        Row: {
+          id: string
+          user_id: string
+          route_metrics: boolean
+          route_commercial_metrics: boolean
+          route_reports: boolean
+          route_plans: boolean
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          route_metrics?: boolean
+          route_commercial_metrics?: boolean
+          route_reports?: boolean
+          route_plans?: boolean
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          route_metrics?: boolean
+          route_commercial_metrics?: boolean
+          route_reports?: boolean
+          route_plans?: boolean
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patient_anamnesis: {
+        Row: {
+          id: string
+          patient_id: string
+          telefone: string
+          user_id: string
+          data: Record<string, any>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          telefone: string
+          user_id: string
+          data: Record<string, any>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          telefone?: string
+          user_id?: string
+          data?: Record<string, any>
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_anamnesis_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       retention_exclusions: {
         Row: {
           id: string

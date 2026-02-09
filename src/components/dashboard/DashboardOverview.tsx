@@ -48,10 +48,12 @@ import {
   Trash2,
   MoreVertical,
   CheckCircle2,
-  Pencil
+  Pencil,
+  ClipboardList
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
@@ -67,6 +69,7 @@ interface RenewalTemplate {
 export function DashboardOverview() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics(filterThisMonth);
   const { data: chartData, isLoading: chartLoading } = useChartData(filterThisMonth);
@@ -550,6 +553,22 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             }
             onSave={handleCreatePatient}
           />
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (user?.id) {
+                const link = `${window.location.origin}/anamnese/${user.id}`;
+                navigator.clipboard.writeText(link);
+                toast({ title: 'Link copiado!', description: 'Cole e envie para o paciente preencher a anamnese.' });
+              } else {
+                navigate('/patients/new-anamnesis');
+              }
+            }}
+            className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 transition-all duration-300"
+          >
+            <ClipboardList className="w-4 h-4 mr-2" />
+            Nova Anamnese
+          </Button>
           <AutoSyncManager />
         </div>
       </div>

@@ -9,6 +9,7 @@ import { RenewPlanModal } from "@/components/modals/RenewPlanModal";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DietPlansList } from "@/components/diets/DietPlansList";
+import { AnamnesisView } from "@/components/anamnesis/AnamnesisView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PatientDetails() {
@@ -157,8 +158,9 @@ export default function PatientDetails() {
 
         {/* Tabs para organizar informações */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="diets">Planos Alimentares</TabsTrigger>
+            <TabsTrigger value="anamnese">Anamnese</TabsTrigger>
             <TabsTrigger value="info">Informações</TabsTrigger>
           </TabsList>
 
@@ -221,6 +223,10 @@ export default function PatientDetails() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="anamnese" className="mt-6">
+            <AnamnesisView patientId={patient.id} />
           </TabsContent>
 
           <TabsContent value="diets" className="mt-6">

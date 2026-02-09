@@ -30,7 +30,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { adminService, AdminUser, AdminMetrics, RevenueData } from '@/lib/admin-service';
+import { userAccessService, AccessRoutes } from '@/lib/user-access-service';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -88,6 +90,9 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [userDetailsOpen, setUserDetailsOpen] = useState(false);
+  const [accessMap, setAccessMap] = useState<Record<string, AccessRoutes>>({});
+  const [teamMemberIds, setTeamMemberIds] = useState<Set<string>>(new Set());
+  const [togglingAccess, setTogglingAccess] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -116,14 +121,26 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       setRefreshing(true);
-      const [usersData, metricsData, revenueDataData] = await Promise.all([
+      const [usersData, metricsData, revenueDataData, accessData] = await Promise.all([
         adminService.getAllUsers(),
         adminService.getAdminMetrics(),
-        adminService.getRevenueData()
+        adminService.getRevenueData(),
+        userAccessService.getAllAccess(),
       ]);
       setUsers(usersData);
       setMetrics(metricsData);
       setRevenueData(revenueDataData);
+      setAccessMap(accessData);
+
+      // Buscar membros de equipe para identificar tipo
+      const { data: teamMembers } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('is_active', true);
+      
+      const memberIds = new Set<string>();
+      teamMembers?.forEach(m => { if (m.user_id) memberIds.add(m.user_id); });
+      setTeamMemberIds(memberIds);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast({
@@ -152,6 +169,48 @@ export default function AdminDashboard() {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleToggleAccess = async (userId: string, routeKey: keyof AccessRoutes, currentValue: boolean) => {
+    setTogglingAccess(`${userId}-${routeKey}`);
+    try {
+      await userAccessService.updateAccess(userId, { [routeKey]: !currentValue });
+      setAccessMap(prev => ({
+        ...prev,
+        [userId]: {
+          ...(prev[userId] || { route_metrics: false, route_commercial_metrics: false, route_reports: false, route_plans: false }),
+          [routeKey]: !currentValue,
+        }
+      }));
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar o acesso.',
+        variant: 'destructive'
+      });
+    } finally {
+      setTogglingAccess(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Tem certeza que deseja remover o usuário ${email}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      // Remover controle de acesso
+      await userAccessService.deleteAccess(userId);
+      // Desativar assinatura
+      await adminService.toggleUserStatus(userId, false);
+      toast({ title: 'Usuário removido', description: `${email} foi desativado.` });
+      loadData();
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const getUserType = (userId: string, email: string): { label: string; color: string } => {
+    if (email === ADMIN_EMAIL) return { label: 'Admin', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+    if (teamMemberIds.has(userId)) return { label: 'Membro', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+    return { label: 'Owner', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
   };
 
   const handleCopyEmail = (email: string) => {
@@ -443,11 +502,13 @@ export default function AdminDashboard() {
                 <TableHeader>
                   <TableRow className="border-slate-700">
                     <TableHead className="text-slate-300">Email</TableHead>
-                    <TableHead className="text-slate-300">Assinatura</TableHead>
+                    <TableHead className="text-slate-300">Tipo</TableHead>
                     <TableHead className="text-slate-300">Status</TableHead>
+                    <TableHead className="text-slate-300 text-center">Métr. Oper.</TableHead>
+                    <TableHead className="text-slate-300 text-center">Métr. Com.</TableHead>
+                    <TableHead className="text-slate-300 text-center">Relatórios</TableHead>
+                    <TableHead className="text-slate-300 text-center">Planos</TableHead>
                     <TableHead className="text-slate-300">Pacientes</TableHead>
-                    <TableHead className="text-slate-300">Check-ins</TableHead>
-                    <TableHead className="text-slate-300">Receita</TableHead>
                     <TableHead className="text-slate-300">Cadastro</TableHead>
                     <TableHead className="text-slate-300 text-right">Ações</TableHead>
                   </TableRow>
@@ -455,39 +516,83 @@ export default function AdminDashboard() {
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-slate-400 py-8">
+                      <TableCell colSpan={10} className="text-center text-slate-400 py-8">
                         Nenhum usuário encontrado
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredUsers.map((user) => (
+                    filteredUsers.map((user) => {
+                      const userType = getUserType(user.id, user.email);
+                      const userAccess = accessMap[user.id] || { route_metrics: false, route_commercial_metrics: false, route_reports: false, route_plans: false };
+                      const isAdmin = user.email === ADMIN_EMAIL;
+
+                      return (
                       <TableRow key={user.id} className="border-slate-700">
-                        <TableCell className="text-white font-medium">{user.email}</TableCell>
                         <TableCell>
-                          {user.subscription ? (
-                            <div>
-                              <div className="text-white">{user.subscription.plan_display_name}</div>
-                              {user.subscription.current_period_end && (
-                                <div className="text-xs text-slate-400">
-                                  {user.subscription.status === 'trial' ? 'Trial vence' : 'Vence'}: {formatDate(user.subscription.current_period_end)}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">Sem assinatura</span>
-                          )}
+                          <div>
+                            <div className="text-white font-medium text-sm">{user.email}</div>
+                            {user.subscription && (
+                              <div className="text-xs text-slate-500">{user.subscription.plan_display_name}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={userType.color}>{userType.label}</Badge>
                         </TableCell>
                         <TableCell>
                           {user.subscription ? getStatusBadge(user.subscription.status) : getStatusBadge('none')}
                         </TableCell>
+                        {/* Toggles de acesso */}
+                        <TableCell className="text-center">
+                          {isAdmin ? (
+                            <span className="text-emerald-400 text-xs">Sempre</span>
+                          ) : (
+                            <Switch
+                              checked={userAccess.route_metrics}
+                              onCheckedChange={() => handleToggleAccess(user.id, 'route_metrics', userAccess.route_metrics)}
+                              disabled={togglingAccess === `${user.id}-route_metrics`}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isAdmin ? (
+                            <span className="text-emerald-400 text-xs">Sempre</span>
+                          ) : (
+                            <Switch
+                              checked={userAccess.route_commercial_metrics}
+                              onCheckedChange={() => handleToggleAccess(user.id, 'route_commercial_metrics', userAccess.route_commercial_metrics)}
+                              disabled={togglingAccess === `${user.id}-route_commercial_metrics`}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isAdmin ? (
+                            <span className="text-emerald-400 text-xs">Sempre</span>
+                          ) : (
+                            <Switch
+                              checked={userAccess.route_reports}
+                              onCheckedChange={() => handleToggleAccess(user.id, 'route_reports', userAccess.route_reports)}
+                              disabled={togglingAccess === `${user.id}-route_reports`}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isAdmin ? (
+                            <span className="text-emerald-400 text-xs">Sempre</span>
+                          ) : (
+                            <Switch
+                              checked={userAccess.route_plans}
+                              onCheckedChange={() => handleToggleAccess(user.id, 'route_plans', userAccess.route_plans)}
+                              disabled={togglingAccess === `${user.id}-route_plans`}
+                            />
+                          )}
+                        </TableCell>
                         <TableCell className="text-white">{user.stats.total_patients}</TableCell>
-                        <TableCell className="text-white">{user.stats.total_checkins}</TableCell>
-                        <TableCell className="text-white">{formatCurrency(user.stats.total_revenue)}</TableCell>
                         <TableCell className="text-slate-400 text-sm">
                           {formatDate(user.created_at)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -543,22 +648,35 @@ export default function AdminDashboard() {
                                     {user.subscription.status === 'active' ? (
                                       <>
                                         <Ban className="w-4 h-4 mr-2" />
-                                        Desativar Assinatura
+                                        Desativar
                                       </>
                                     ) : (
                                       <>
                                         <CheckCircle2 className="w-4 h-4 mr-2" />
-                                        Ativar Assinatura
+                                        Ativar
                                       </>
                                     )}
                                   </DropdownMenuItem>
+                                )}
+                                {!isAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator className="bg-slate-700" />
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeleteUser(user.id, user.email)}
+                                      className="text-red-400 hover:bg-red-500/10"
+                                    >
+                                      <Ban className="w-4 h-4 mr-2" />
+                                      Remover Usuário
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

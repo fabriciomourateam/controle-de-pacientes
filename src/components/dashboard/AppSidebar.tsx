@@ -23,6 +23,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAccessControl } from "@/hooks/use-access-control";
 
 import {
   Sidebar,
@@ -68,6 +69,7 @@ export function AppSidebar() {
   const { profile } = useProfile();
   const { hasPermission, isOwner } = useAuthContext();
   const { toast } = useToast();
+  const { canAccess } = useAccessControl();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isTeamMember, setIsTeamMember] = useState(false);
 
@@ -152,16 +154,19 @@ export function AppSidebar() {
     "/reports": { resource: "reports", action: "clinical" },
   };
 
-  // Filtrar itens do menu baseado em permissões
+  // Rotas controladas por user_access_control (admin togga on/off)
+  const accessControlledRoutes = ['/metrics', '/commercial-metrics', '/reports', '/plans'];
+
+  // Filtrar itens do menu baseado em permissões + controle de acesso do admin
   const filteredMainNavItems = mainNavItems.filter(item => {
     // Workspace só aparece para o admin
     if (item.title === "Workspace") {
       return userEmail === ADMIN_EMAIL;
     }
     
-    // Planos de Acompanhamento só para owner
-    if ((item as any).ownerOnly) {
-      return isOwner;
+    // Admin da plataforma sempre vê tudo
+    if (userEmail === ADMIN_EMAIL) {
+      return true;
     }
     
     // Dashboard sempre aparece
@@ -169,7 +174,19 @@ export function AppSidebar() {
       return true;
     }
     
-    // Verificar permissão para a rota
+    // Rotas controladas pelo admin: verificar user_access_control
+    if (accessControlledRoutes.includes(item.url)) {
+      // Para membros de equipe, verificar permissões do cargo E controle de acesso
+      if (!isOwner) {
+        const permission = routePermissions[item.url];
+        const hasTeamPermission = permission ? hasPermission(permission.resource, permission.action) : false;
+        return hasTeamPermission && canAccess(item.url);
+      }
+      // Para owners, verificar apenas controle de acesso do admin
+      return canAccess(item.url);
+    }
+    
+    // Outras rotas: verificar permissão normal (para membros de equipe)
     const permission = routePermissions[item.url];
     if (permission) {
       return isOwner || hasPermission(permission.resource, permission.action);
