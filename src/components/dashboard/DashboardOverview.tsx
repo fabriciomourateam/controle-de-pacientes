@@ -49,7 +49,8 @@ import {
   MoreVertical,
   CheckCircle2,
   Pencil,
-  ClipboardList
+  ClipboardList,
+  MessageSquarePlus
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
@@ -568,6 +569,20 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           >
             <ClipboardList className="w-4 h-4 mr-2" />
             Nova Anamnese
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (user?.id) {
+                const link = `${window.location.origin}/checkin/${user.id}`;
+                navigator.clipboard.writeText(link);
+                toast({ title: 'Link copiado!', description: 'Cole e envie para o paciente preencher o check-in mensal.' });
+              }
+            }}
+            className="border-blue-500/30 hover:bg-blue-500/10 text-blue-300 hover:text-blue-200 transition-all duration-300"
+          >
+            <MessageSquarePlus className="w-4 h-4 mr-2" />
+            Link Check-in
           </Button>
           <AutoSyncManager />
         </div>

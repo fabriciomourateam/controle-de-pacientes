@@ -33,6 +33,8 @@ import { adminService, AdminUser, AdminMetrics, RevenueData } from '@/lib/admin-
 import { userAccessService, AccessRoutes } from '@/lib/user-access-service';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FlowEditor } from '@/components/admin/FlowEditor';
 import {
   Table,
   TableBody,
@@ -305,7 +307,7 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-fadeIn">
+      <div className="space-y-6 animate-fadeIn">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -314,6 +316,21 @@ export default function AdminDashboard() {
               Visão geral de todos os usuários e métricas do sistema
             </p>
           </div>
+        </div>
+
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="bg-slate-800/50 border border-slate-700/30">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="checkin-editor">Editor de Check-in</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="checkin-editor" className="mt-6">
+            <FlowEditor />
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="mt-6 space-y-8">
+
+        <div className="flex justify-end">
           <Button
             onClick={loadData}
             disabled={refreshing}
@@ -720,7 +737,9 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
-      </div>
+
+          </TabsContent>
+        </Tabs>
 
       {/* Dialog de Detalhes do Usuário */}
       <Dialog open={userDetailsOpen} onOpenChange={setUserDetailsOpen}>
@@ -790,6 +809,7 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </DashboardLayout>
   );
 }

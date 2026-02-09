@@ -43,6 +43,7 @@ const TestGoogleDrive = lazy(() => import("./pages/TestGoogleDrive"));
 const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
 const PublicPortal = lazy(() => import("./pages/PublicPortal"));
 const NewPatientAnamnesis = lazy(() => import("./pages/NewPatientAnamnesis"));
+const PublicCheckin = lazy(() => import("./pages/PublicCheckin"));
 
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
@@ -102,6 +103,11 @@ const App = () => (
           <Route path="/anamnese/:token" element={
             <Suspense fallback={<PageLoader />}>
               <NewPatientAnamnesis />
+            </Suspense>
+          } />
+          <Route path="/checkin/:token" element={
+            <Suspense fallback={<PageLoader />}>
+              <PublicCheckin />
             </Suspense>
           } />
           

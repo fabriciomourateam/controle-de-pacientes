@@ -1212,6 +1212,36 @@ export type Database = {
         }
         Relationships: []
       }
+      checkin_flow_config: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          flow: Record<string, any>[]
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name?: string
+          flow: Record<string, any>[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          flow?: Record<string, any>[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_access_control: {
         Row: {
           id: string
