@@ -19,6 +19,7 @@ import { checkinFlowService, CheckinFlowConfig, CheckinFlowTheme, DEFAULT_THEME 
 import { DEFAULT_CHECKIN_FLOW, FlowStep } from '@/lib/checkin-flow-default';
 import { StepList } from './StepList';
 import { StepEditor } from './StepEditor';
+import { ChatCheckinEngine } from '@/components/checkin-public/ChatCheckinEngine';
 
 export function FlowEditor() {
   const { toast } = useToast();
@@ -331,7 +332,11 @@ export function FlowEditor() {
                   {selectedStep ? (
                     <div>
                       <h3 className="text-white font-semibold text-sm mb-3">Editar Step</h3>
-                      <StepEditor step={selectedStep} onChange={handleStepChange} />
+                      <StepEditor
+                        step={selectedStep}
+                        onChange={handleStepChange}
+                        isLastStep={editedFlow.length > 0 && editedFlow[editedFlow.length - 1]?.id === selectedStep?.id}
+                      />
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
@@ -388,6 +393,8 @@ export function FlowEditor() {
                       { key: 'button_bg', label: 'Botão enviar' },
                       { key: 'option_bg', label: 'Opções (fundo)' },
                       { key: 'option_text', label: 'Opções (texto)' },
+                      { key: 'header_bg', label: 'Cabeçalho (fundo)' },
+                      { key: 'header_text', label: 'Cabeçalho (texto)' },
                       { key: 'accent_color', label: 'Cor destaque' },
                     ].map(({ key, label }) => (
                       <div key={key} className="space-y-1">
@@ -438,50 +445,15 @@ export function FlowEditor() {
                       </div>
                     </div>
 
-                    {/* Mensagens */}
-                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                      {/* Bot msg */}
-                      <div className="flex justify-start">
-                        <div className="max-w-[80%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm" style={{ background: editedTheme.bot_bubble_bg, color: editedTheme.bot_bubble_text, border: '1px solid rgba(255,255,255,0.05)' }}>
-                          Olá! Chegou a hora do seu Check-in! 💪
-                        </div>
-                      </div>
-                      <div className="flex justify-start">
-                        <div className="max-w-[80%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm" style={{ background: editedTheme.bot_bubble_bg, color: editedTheme.bot_bubble_text, border: '1px solid rgba(255,255,255,0.05)' }}>
-                          Qual o seu peso atual?
-                        </div>
-                      </div>
-                      {/* User msg */}
-                      <div className="flex justify-end">
-                        <div className="max-w-[80%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm" style={{ background: editedTheme.user_bubble_bg, color: editedTheme.user_bubble_text }}>
-                          72.5 kg
-                        </div>
-                      </div>
-                      <div className="flex justify-start">
-                        <div className="max-w-[80%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm" style={{ background: editedTheme.bot_bubble_bg, color: editedTheme.bot_bubble_text, border: '1px solid rgba(255,255,255,0.05)' }}>
-                          Quantos treinos por semana?
-                        </div>
-                      </div>
-                      {/* Options */}
-                      <div className="flex flex-wrap gap-2 pl-2">
-                        {['3', '4', '5', '6'].map(n => (
-                          <div key={n} className="px-4 py-2 rounded-xl text-sm border" style={{ background: editedTheme.option_bg, color: editedTheme.option_text, borderColor: editedTheme.option_border }}>
-                            {n}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Input */}
-                    <div className="px-4 py-3 border-t border-white/10">
-                      <div className="flex gap-2">
-                        <div className="flex-1 rounded-xl h-10 px-3 flex items-center text-sm opacity-50" style={{ background: editedTheme.input_bg, border: `1px solid ${editedTheme.input_border}`, color: editedTheme.input_text }}>
-                          Digite sua resposta...
-                        </div>
-                        <div className="rounded-xl h-10 w-10 flex items-center justify-center" style={{ background: editedTheme.button_bg }}>
-                          <span style={{ color: editedTheme.button_text }}>→</span>
-                        </div>
-                      </div>
+                    {/* Preview real do fluxo (negrito e imagem aparecem aqui) */}
+                    <div className="flex-1 min-h-0 flex flex-col">
+                      <ChatCheckinEngine
+                        flow={editedFlow}
+                        patientName="Paciente Exemplo"
+                        onComplete={async () => {}}
+                        loading={false}
+                        theme={editedTheme}
+                      />
                     </div>
                   </div>
                 </div>

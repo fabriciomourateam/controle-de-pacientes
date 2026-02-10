@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, X, Save } from 'lucide-react';
+import { Camera, Upload, X, Save, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -201,10 +201,13 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Camera className="w-4 h-4" />
-          Adicionar Fotos
-        </Button>
+        <button
+          type="button"
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-200 hover:scale-105"
+          title="Adicionar Fotos"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
         <DialogHeader>

@@ -15,7 +15,8 @@ import {
   ChevronDown,
   Inbox,
   RefreshCw,
-  Clock
+  Clock,
+  Scale
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -815,6 +816,9 @@ export function CheckinsList() {
               // Obter cor do responsável (com suporte a cores personalizadas)
               const assigneeColor = assigneeColorsService.getAssigneeCardColor(checkin.assigned_to, teamMembers);
 
+              const telefoneCheckin = checkin.telefone || checkin.patient?.telefone;
+              const hasBioimpedance = !!(telefoneCheckin && patientsWithBioimpedance.has(telefoneCheckin));
+
               return (
                 <div key={checkin.id} className={`px-2.5 py-3 backdrop-blur-sm rounded-lg border border-slate-700/50 transition-all duration-300 ease-out ${assigneeColor
                   ? `${assigneeColor.border} ${assigneeColor.hoverBorder}`
@@ -841,6 +845,20 @@ export function CheckinsList() {
                       <div className="min-w-0 flex-1">
                         <h4 className="font-semibold text-white text-lg truncate leading-tight">{checkin.patient?.nome || 'Paciente não informado'}</h4>
                       </div>
+                      {hasBioimpedance && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                <Scale className="w-3.5 h-3.5" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Paciente com bioimpedância registrada</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
 
                     {/* No mobile: uma linha com Status, Responsável e Ações. No desktop: cada um vira coluna do grid (md:contents) */}

@@ -30,6 +30,10 @@ export interface FlowStep {
     condition: { field: string; operator: string; value: string };
     messages: string[];
   }[];
+  /** URL de imagem de apoio (ex.: onde medir cintura/quadril) */
+  imageUrl?: string;
+  /** Posição da imagem em relação ao texto do step: acima ou abaixo */
+  imagePosition?: 'above' | 'below';
 }
 
 export const DEFAULT_CHECKIN_FLOW: FlowStep[] = [

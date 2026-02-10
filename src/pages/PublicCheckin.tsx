@@ -319,6 +319,7 @@ export default function PublicCheckin() {
             <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-3">Check-in Enviado! ✅</h1>
+          <p className="text-emerald-300/90 font-medium mb-2">Seus dados foram salvos com sucesso.</p>
           <p className="text-slate-300 text-lg mb-2">Muito obrigado por preencher, {patientName}!</p>
           <p className="text-slate-400">
             Em até 48 horas úteis <span className="text-emerald-300 font-medium">{nutriName}</span> te dará o feedback sobre o seu Check-in! 💪🎯

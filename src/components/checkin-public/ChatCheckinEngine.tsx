@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,11 +6,43 @@ import { Send, Upload, X, Camera, Loader2, CheckCircle2 } from 'lucide-react';
 import { FlowStep } from '@/lib/checkin-flow-default';
 import { CheckinFlowTheme, DEFAULT_THEME } from '@/lib/checkin-flow-service';
 
+const ASTER = '[\\*\\uFF0A\\u2022]'; // * ＊ •
+/** Converte **texto** em negrito e *texto* em itálico; preserva quebras de linha. Não usa HTML bruto (seguro). */
+function renderFormattedText(text: string): React.ReactNode {
+  const raw = String(text);
+  const parts: React.ReactNode[] = [];
+  const reBold = new RegExp(`(?:${ASTER}){2}(.+?)(?:${ASTER}){2}`, 'g');
+  let m: RegExpExecArray | null;
+  let lastIndex = 0;
+  while ((m = reBold.exec(raw)) !== null) {
+    parts.push(parseItalic(raw.slice(lastIndex, m.index)));
+    parts.push(<strong key={`b-${parts.length}`}>{m[1]}</strong>);
+    lastIndex = reBold.lastIndex;
+  }
+  parts.push(parseItalic(raw.slice(lastIndex)));
+  return <span className="whitespace-pre-wrap">{parts}</span>;
+}
+/** Aplica itálico *texto* em um trecho (já sem **). Conteúdo não pode ter * ＊ •. */
+function parseItalic(segment: string): React.ReactNode {
+  const reItalic = new RegExp(`${ASTER}([^*\uFF0A\u2022]+)${ASTER}`, 'g');
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let n: RegExpExecArray | null;
+  while ((n = reItalic.exec(segment)) !== null) {
+    parts.push(segment.slice(lastIndex, n.index));
+    parts.push(<em key={`i-${parts.length}`}>{n[1]}</em>);
+    lastIndex = reItalic.lastIndex;
+  }
+  parts.push(segment.slice(lastIndex));
+  return parts.length === 1 ? parts[0] : <>{parts}</>;
+}
+
 interface ChatMessage {
   id: string;
   type: 'bot' | 'user';
   content: string;
   isTyping?: boolean;
+  imageUrl?: string;
 }
 
 interface ChatCheckinEngineProps {
@@ -55,6 +87,8 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [stepMessagesDone, setStepMessagesDone] = useState(false);
+  const startedRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,14 +97,14 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  const addBotMessage = (content: string): Promise<void> => {
+  const addBotMessage = (content: string, imageUrl?: string): Promise<void> => {
     return new Promise((resolve) => {
       setIsTyping(true);
       scrollToBottom();
-      const delay = Math.min(content.length * 15, 1500);
+      const delay = imageUrl ? 400 : Math.min(content.length * 15, 1500);
       setTimeout(() => {
         setIsTyping(false);
-        setMessages(prev => [...prev, { id: `bot-${Date.now()}-${Math.random()}`, type: 'bot', content }]);
+        setMessages(prev => [...prev, { id: `bot-${Date.now()}-${Math.random()}`, type: 'bot', content, imageUrl }]);
         scrollToBottom();
         setTimeout(resolve, 300);
       }, delay);
@@ -82,8 +116,10 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     scrollToBottom();
   };
 
-  // Iniciar o fluxo
+  // Iniciar o fluxo (apenas uma vez, evita double-run no Strict Mode)
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     startFlow();
   }, []);
 
@@ -106,9 +142,14 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
       return;
     }
 
+    setStepMessagesDone(false);
     setCurrentStepIndex(index);
 
-    // Exibir mensagens do step
+    const imageFirst = step.imagePosition === 'above';
+
+    if (step.imageUrl && imageFirst) {
+      await addBotMessage('', step.imageUrl);
+    }
     if (step.question) {
       await addBotMessage(step.question);
     }
@@ -117,6 +158,11 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
         await addBotMessage(msg);
       }
     }
+    if (step.imageUrl && !imageFirst) {
+      await addBotMessage('', step.imageUrl);
+    }
+
+    setStepMessagesDone(true);
 
     // Se é apenas mensagem, avançar automaticamente
     if (step.type === 'message') {
@@ -216,7 +262,12 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
                 : { background: theme.bot_bubble_bg, color: theme.bot_bubble_text, border: '1px solid rgba(255,255,255,0.05)' }
               }
             >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.imageUrl && (
+                <div className="mb-2 rounded-lg overflow-hidden max-w-full border border-white/10">
+                  <img src={msg.imageUrl} alt="Apoio" className="max-h-48 w-full object-contain" />
+                </div>
+              )}
+              {msg.content ? <p>{renderFormattedText(msg.content)}</p> : null}
             </div>
           </div>
         ))}
@@ -237,8 +288,8 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Area */}
-      {!isComplete && !isTyping && currentStep && (
+      {/* Input Area (só após todas as mensagens do step) */}
+      {!isComplete && !isTyping && stepMessagesDone && currentStep && (
         <div className="border-t border-slate-800/50 p-4 bg-slate-950/50">
           {/* Choice Input */}
           {currentStep.type === 'choice' && currentStep.options && (

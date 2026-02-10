@@ -23,13 +23,14 @@ const STEP_TYPE_CONFIG: Record<string, { icon: typeof MessageSquare; label: stri
   file: { icon: Upload, label: 'Fotos', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
 };
 
-function SortableStep({ step, isSelected, onSelect, onDelete }: {
-  step: FlowStep; isSelected: boolean; onSelect: () => void; onDelete: () => void;
+function SortableStep({ step, isSelected, onSelect, onDelete, isLastStep }: {
+  step: FlowStep; isSelected: boolean; onSelect: () => void; onDelete: () => void; isLastStep: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   const config = STEP_TYPE_CONFIG[step.type] || STEP_TYPE_CONFIG.message;
   const Icon = config.icon;
+  const showsFinalizeButton = isLastStep && step.type === 'message';
 
   const title = step.question
     ? step.question.substring(0, 50) + (step.question.length > 50 ? '...' : '')
@@ -51,6 +52,11 @@ function SortableStep({ step, isSelected, onSelect, onDelete }: {
       </button>
       <Badge className={`${config.color} text-[10px] px-1.5 py-0 shrink-0`}>{config.label}</Badge>
       <span className="text-sm text-slate-300 truncate flex-1">{title}</span>
+      {showsFinalizeButton && (
+        <span className="text-[10px] text-emerald-400/90 shrink-0 font-medium" title="Após este step aparece o botão Finalizar e Enviar Check-in">
+          Finalizar
+        </span>
+      )}
       {(step.conditionalMessages?.length ?? 0) > 0 && (
         <span className="text-[10px] text-amber-400/90 shrink-0" title={`${step.conditionalMessages!.length} mensagem(ns) condicional(is)`}>
           {step.conditionalMessages!.length} cond.
@@ -94,13 +100,14 @@ export function StepList({ steps, selectedStepId, onSelectStep, onReorder, onDel
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1">
-            {steps.map(step => (
+            {steps.map((step, index) => (
               <SortableStep
                 key={step.id}
                 step={step}
                 isSelected={selectedStepId === step.id}
                 onSelect={() => onSelectStep(step.id)}
                 onDelete={() => onDelete(step.id)}
+                isLastStep={index === steps.length - 1}
               />
             ))}
           </div>

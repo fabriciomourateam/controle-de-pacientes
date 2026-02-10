@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,12 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Image, Upload } from 'lucide-react';
 import { FlowStep } from '@/lib/checkin-flow-default';
+import { checkinFlowService } from '@/lib/checkin-flow-service';
 
 interface StepEditorProps {
   step: FlowStep;
   onChange: (updated: FlowStep) => void;
+  /** Se true, este step é o último do fluxo; quando for type "message", após ele aparece o botão Finalizar */
+  isLastStep?: boolean;
 }
 
 const CHECKIN_FIELDS = [
@@ -31,9 +34,12 @@ const OPERATORS = [
   { value: 'between', label: 'Entre (min,max)' },
 ];
 
-export function StepEditor({ step, onChange }: StepEditorProps) {
+export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
   const hasConditions = (step.conditionalMessages?.length ?? 0) > 0 || !!step.showIf;
+  const isFinalizeStep = isLastStep && step.type === 'message';
   const [showConditions, setShowConditions] = useState(hasConditions);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const stepImageInputRef = useRef<HTMLInputElement>(null);
 
   const update = (key: keyof FlowStep, value: any) => {
     onChange({ ...step, [key]: value });
@@ -80,6 +86,11 @@ export function StepEditor({ step, onChange }: StepEditorProps) {
 
   return (
     <div className="space-y-5">
+      {isFinalizeStep && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          Este é o step de <strong>finalização</strong>. Após exibir estas mensagens, o paciente verá o botão &quot;Finalizar e Enviar Check-in&quot; para salvar os dados.
+        </div>
+      )}
       {/* Tipo e Campo */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -123,6 +134,7 @@ export function StepEditor({ step, onChange }: StepEditorProps) {
             className="bg-slate-800/50 border-slate-700/50 text-white text-sm resize-none"
             placeholder="Pergunta que aparece como mensagem do bot..."
           />
+          <p className="text-[10px] text-slate-500">Use **palavra** para negrito e *palavra* para itálico no chat.</p>
         </div>
       )}
 
@@ -134,6 +146,7 @@ export function StepEditor({ step, onChange }: StepEditorProps) {
             <Plus className="w-3 h-3 mr-1" /> Adicionar
           </Button>
         </div>
+        <p className="text-[10px] text-slate-500">Use **palavra** para negrito e *palavra* para itálico no chat.</p>
         {(step.messages || []).map((msg, i) => (
           <div key={i} className="flex gap-2">
             <Textarea
@@ -190,6 +203,66 @@ export function StepEditor({ step, onChange }: StepEditorProps) {
       <div className="flex items-center justify-between">
         <Label className="text-slate-400 text-xs">Obrigatório</Label>
         <Switch checked={step.required || false} onCheckedChange={v => update('required', v)} />
+      </div>
+
+      {/* Imagem de apoio (opcional) */}
+      <div className="space-y-1.5">
+        <Label className="text-slate-400 text-xs flex items-center gap-1.5">
+          <Image className="w-3.5 h-3.5" /> Imagem de apoio (opcional)
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            value={step.imageUrl || ''}
+            onChange={e => update('imageUrl', e.target.value || undefined)}
+            placeholder="URL da imagem (ex.: onde medir cintura/quadril)"
+            className="flex-1 bg-slate-800/50 border-slate-700/50 text-white text-sm h-9"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={uploadingImage}
+            onClick={() => stepImageInputRef.current?.click()}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700/50 h-9 shrink-0"
+          >
+            <Upload className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        {step.imageUrl && (
+          <div className="flex items-center gap-2">
+            <Label className="text-slate-500 text-[10px] shrink-0">Ordem:</Label>
+            <Select
+              value={step.imagePosition || 'below'}
+              onValueChange={(v: 'above' | 'below') => update('imagePosition', v)}
+            >
+              <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white h-8 text-xs w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="above">Imagem acima do texto</SelectItem>
+                <SelectItem value="below">Imagem abaixo do texto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <input
+          ref={stepImageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setUploadingImage(true);
+            try {
+              const url = await checkinFlowService.uploadStepImage(file);
+              update('imageUrl', url);
+            } finally {
+              setUploadingImage(false);
+              e.target.value = '';
+            }
+          }}
+        />
       </div>
 
       {/* Condições avançadas */}

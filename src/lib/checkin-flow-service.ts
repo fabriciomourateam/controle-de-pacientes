@@ -208,4 +208,25 @@ export const checkinFlowService = {
 
     return publicUrl;
   },
+
+  /** Upload de imagem de apoio para step do fluxo (ex.: onde medir cintura/quadril) */
+  async uploadStepImage(file: File): Promise<string> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `checkin_step_${user.id}_${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('patient-photos')
+      .upload(fileName, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('patient-photos')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  },
 };
