@@ -18,8 +18,9 @@
 
 export interface FlowStep {
   id: string;
-  type: 'message' | 'text' | 'number' | 'choice' | 'file';
-  field?: string; // campo na tabela checkin
+  type: 'message' | 'text' | 'number' | 'choice' | 'file' | 'multi-input';
+  field?: string; // campo na tabela checkin (usado para single input)
+  inputs?: { label: string; field: string; type: 'text' | 'number'; placeholder?: string }[]; // para multi-input
   question?: string; // pergunta exibida como mensagem do bot
   messages?: string[]; // mensagens adicionais do bot (antes do input)
   placeholder?: string;
@@ -59,17 +60,20 @@ export const DEFAULT_CHECKIN_FLOW: FlowStep[] = [
     required: true,
   },
 
-  // === MEDIDAS ===
+  // === MEDIDAS (Cintura e Quadril) ===
   {
-    id: 'medida',
-    type: 'text',
-    field: 'medida',
+    id: 'medidas',
+    type: 'multi-input',
     question: 'Agora me passe suas medidas:',
     messages: [
       '1. Cintura: meça na menor circunferência da cintura\n2. Quadril: meça na maior circunferência do glúteo',
-      'Caso tenha tirado mais medidas, pode enviar também!'
+      'Caso tenha tirado mais medidas, pode incluir nas observações finais!'
     ],
-    placeholder: 'Ex: Cintura: 80cm / Quadril: 95cm',
+    inputs: [
+      { label: 'Cintura (cm)', field: 'cintura', type: 'number', placeholder: 'Ex: 80' },
+      { label: 'Quadril (cm)', field: 'quadril', type: 'number', placeholder: 'Ex: 100' }
+    ],
+    required: true,
   },
 
   // === TREINOS ===

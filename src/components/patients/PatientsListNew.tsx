@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Plus, 
-  MoreHorizontal, 
+import {
+  Plus,
+  MoreHorizontal,
   Calendar,
   Phone,
   Eye,
@@ -81,7 +81,7 @@ export function PatientsListNew() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { preferences, loading: preferencesLoading, updateFilters, updateSorting, updateVisibleColumns, updateColumnOrder } = usePatientPreferences();
-  
+
   // Estados locais
   const [patients, setPatients] = useState<Patient[]>([]);
   const [allPatients, setAllPatients] = useState<Patient[]>([]); // Todos os pacientes (não filtrados)
@@ -94,7 +94,7 @@ export function PatientsListNew() {
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
-  
+
   // Paginação: mostrar apenas os primeiros N pacientes
   const [displayLimit, setDisplayLimit] = useState(15);
   const INITIAL_DISPLAY_LIMIT = 15;
@@ -102,7 +102,7 @@ export function PatientsListNew() {
 
   // Estado para planos únicos (otimizado)
   const [uniquePlans, setUniquePlans] = useState<string[]>([]);
-  
+
   // Obter planos únicos de TODOS os pacientes (não filtrados) - fallback
   const uniquePlansFromAll = useMemo(() => {
     if (allPatients.length > 0) {
@@ -111,12 +111,12 @@ export function PatientsListNew() {
     }
     return uniquePlans;
   }, [allPatients, uniquePlans]);
-  
+
   // Pacientes visíveis (limitados pela paginação)
   const visiblePatients = useMemo(() => {
     return patients.slice(0, displayLimit);
   }, [patients, displayLimit]);
-  
+
   // Verificar se há mais pacientes para mostrar
   const hasMorePatients = patients.length > displayLimit;
 
@@ -139,7 +139,7 @@ export function PatientsListNew() {
       // Planos ativos - cores vibrantes
       'BASIC': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       'PREMIUM': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      
+
       // Planos inativos - cores mais escuras
       'INATIVO': 'bg-slate-600/20 text-slate-500 border-slate-600/30',
       'CONGELADO': 'bg-blue-600/20 text-blue-500 border-blue-600/30',
@@ -147,13 +147,13 @@ export function PatientsListNew() {
       'PENDÊNCIA FINANCEIRA': 'bg-orange-600/20 text-orange-500 border-orange-600/30',
       'NEGATIVADO': 'bg-red-700/20 text-red-600 border-red-700/30',
     };
-    
+
     // Buscar por correspondência parcial para planos com emojis ou variações
     const normalizedPlano = plano.toUpperCase().trim();
-    const matchingKey = Object.keys(planColors).find(key => 
+    const matchingKey = Object.keys(planColors).find(key =>
       normalizedPlano.includes(key) || key.includes(normalizedPlano)
     );
-    
+
     return matchingKey ? planColors[matchingKey] : 'bg-slate-500/20 text-slate-400 border-slate-500/30';
   };
 
@@ -199,7 +199,7 @@ export function PatientsListNew() {
       }
     }
   };
-  
+
   // Carregar todos os pacientes (para lista de planos) - mantido para compatibilidade
   const loadAllPatients = async () => {
     try {
@@ -209,12 +209,12 @@ export function PatientsListNew() {
       console.error('Erro ao carregar planos:', error);
     }
   };
-  
+
   // Função para carregar mais pacientes
   const handleLoadMore = () => {
     setDisplayLimit(prev => prev + LOAD_MORE_INCREMENT);
   };
-  
+
   // Resetar limite quando filtros mudarem
   useEffect(() => {
     setDisplayLimit(INITIAL_DISPLAY_LIMIT);
@@ -223,7 +223,7 @@ export function PatientsListNew() {
   // Carregar pacientes com filtros
   const loadPatients = async () => {
     if (!preferences) return;
-    
+
     try {
       setLoading(true);
       const data = await patientService.getFiltered(
@@ -295,7 +295,7 @@ export function PatientsListNew() {
   // Função para mapear Patient (Supabase) para PatientFormData
   const mapPatientToFormData = (patient: Patient | null) => {
     if (!patient) return undefined;
-    
+
     return {
       id: patient.id,
       nome: patient.nome || "",
@@ -335,8 +335,48 @@ export function PatientsListNew() {
       console.log('❌ Nenhum paciente selecionado para exclusão');
       return;
     }
-    
+
     try {
+      console.log('🔄 Removendo registros relacionados...');
+
+      // 1. Anamnese e Feedback
+      try {
+        await supabase.from('patient_anamnesis').delete().eq('patient_id', patientToDelete.id);
+        await supabase.from('patient_feedback_records').delete().eq('patient_id', patientToDelete.id);
+      } catch (e) {
+        console.warn('Erro ao deletar anamnese/feedback:', e);
+      }
+
+      // 2. Dados de Check-in (via telefone)
+      if (patientToDelete.telefone) {
+        await supabase.from('checkin').delete().eq('telefone', patientToDelete.telefone);
+      }
+
+      // 3. IA, Perguntas e Tokens
+      const safeDelete = async (table: string) => {
+        try {
+          await supabase.from(table).delete().eq('patient_id', patientToDelete.id);
+        } catch (e) {
+          console.warn(`Erro ao deletar de ${table}:`, e);
+        }
+      };
+
+      await safeDelete('diet_ai_generations');
+      await safeDelete('diet_questions');
+      await safeDelete('retention_exclusions');
+
+      // Tokens do Portal
+      if (patientToDelete.telefone) {
+        try {
+          await supabase.from('patient_portal_tokens').delete().eq('telefone', patientToDelete.telefone);
+        } catch (e) {
+          console.warn('Erro ao deletar tokens:', e);
+        }
+      }
+
+      // 4. Planos Alimentares
+      await safeDelete('diet_plans');
+
       console.log('🔄 Excluindo paciente do Supabase...', patientToDelete.id);
       // Excluir paciente do Supabase
       const { error } = await supabase
@@ -354,7 +394,7 @@ export function PatientsListNew() {
         title: "Sucesso",
         description: "Paciente excluído com sucesso"
       });
-      
+
       // Recarregar ambas as listas
       console.log('🔄 Recarregando listas de pacientes...');
       await loadPatients();
@@ -378,18 +418,18 @@ export function PatientsListNew() {
     try {
       // Cabeçalhos do CSV baseados nas colunas visíveis
       const headers = filteredColumnOptions.map(col => col.label);
-      
+
       // Adicionar colunas extras que não estão na tabela mas são úteis
       const allHeaders = [...headers, 'CPF', 'Email', 'Data de Nascimento', 'Objetivo', 'Observação'];
-      
+
       // Criar linhas do CSV
       const rows = patients.map(patient => {
         const row: string[] = [];
-        
+
         // Adicionar dados das colunas visíveis
         filteredColumnOptions.forEach(col => {
           let value = '';
-          
+
           switch (col.key) {
             case 'nome':
               value = patient.nome || '';
@@ -433,39 +473,39 @@ export function PatientsListNew() {
             default:
               value = (patient as any)[col.key] || '';
           }
-          
+
           row.push(value);
         });
-        
+
         // Adicionar colunas extras
         row.push(patient.cpf || '');
         row.push(patient.email || '');
         row.push(patient.data_nascimento ? new Date(patient.data_nascimento).toLocaleDateString('pt-BR') : '');
         row.push(patient.objetivo || '');
         row.push(patient.observacao || '');
-        
+
         return row;
       });
-      
+
       // Criar conteúdo CSV
       const csvContent = [
         allHeaders.join(','),
         ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
       ].join('\n');
-      
+
       // Criar blob e fazer download
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `pacientes_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast({
         title: "Sucesso",
         description: `${patients.length} paciente${patients.length !== 1 ? 's' : ''} exportado${patients.length !== 1 ? 's' : ''} com sucesso`
@@ -483,12 +523,12 @@ export function PatientsListNew() {
   // Calcular status do paciente
   const getPatientStatus = (patient: Patient) => {
     if (!patient.vencimento) return 'unknown';
-    
+
     const today = new Date();
     const vencimento = new Date(patient.vencimento);
     const diffTime = vencimento.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'expired';
     if (diffDays <= 7) return 'expiring_soon';
     return 'active';
@@ -508,24 +548,24 @@ export function PatientsListNew() {
   };
 
   // Filtrar e ordenar colunas visíveis (memoizado para evitar re-renders)
-  const visibleColumns = useMemo(() => 
+  const visibleColumns = useMemo(() =>
     preferences?.visible_columns || columnOptions.map(col => col.key),
     [preferences?.visible_columns]
   );
-  
-  const columnOrder = useMemo(() => 
+
+  const columnOrder = useMemo(() =>
     preferences?.column_order || columnOptions.map(col => col.key),
     [preferences?.column_order]
   );
-  
+
   // Filtrar colunas visíveis (memoizado)
-  const visibleColumnOptions = useMemo(() => 
+  const visibleColumnOptions = useMemo(() =>
     columnOptions.filter(col => visibleColumns.includes(col.key)),
     [visibleColumns]
   );
-  
+
   // Ordenar colunas conforme a ordem salva (memoizado)
-  const filteredColumnOptions = useMemo(() => 
+  const filteredColumnOptions = useMemo(() =>
     columnOrder
       .map(key => visibleColumnOptions.find(col => col.key === key))
       .filter(Boolean) as typeof columnOptions,
@@ -621,9 +661,9 @@ export function PatientsListNew() {
               visibleColumns={visibleColumns}
               onColumnsChange={handleColumnsChange}
             />
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
               onClick={handleExportCSV}
             >
@@ -673,12 +713,12 @@ export function PatientsListNew() {
               ) : (
                 visiblePatients.map((patient) => {
                   const status = getPatientStatus(patient);
-                  
+
                   return (
                     <TableRow key={patient.id} className="border-slate-700/30 hover:bg-slate-800/30 transition-colors">
                       {filteredColumnOptions.map((column) => {
                         let content;
-                        
+
                         switch (column.key) {
                           case 'nome':
                             content = (
@@ -713,8 +753,8 @@ export function PatientsListNew() {
                             break;
                           case 'plano':
                             content = patient.plano ? (
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={getPlanBadgeStyle(patient.plano)}
                               >
                                 {patient.plano}
@@ -722,17 +762,17 @@ export function PatientsListNew() {
                             ) : 'N/A';
                             break;
                           case 'vencimento':
-                            content = <span className='text-slate-300'>{patient.vencimento ? 
+                            content = <span className='text-slate-300'>{patient.vencimento ?
                               new Date(patient.vencimento).toLocaleDateString('pt-BR') : 'N/A'}</span>;
                             break;
                           case 'dias_para_vencer':
-                            content = <span className='text-slate-300'>{patient.dias_para_vencer !== null ? 
+                            content = <span className='text-slate-300'>{patient.dias_para_vencer !== null ?
                               `${patient.dias_para_vencer} dias` : 'N/A'}</span>;
                             break;
                           case 'ultimo_contato':
                             content = (() => {
                               const ultimoContatoRaw = (patient as any).ultimo_contato;
-                              
+
                               console.log('🔍 Debug ultimo_contato:', {
                                 paciente: patient.nome,
                                 raw: ultimoContatoRaw,
@@ -740,14 +780,14 @@ export function PatientsListNew() {
                                 isNull: ultimoContatoRaw === null,
                                 isUndefined: ultimoContatoRaw === undefined
                               });
-                              
+
                               if (!ultimoContatoRaw) {
                                 return <span className='text-slate-400'>Nunca</span>;
                               }
-                              
+
                               // Extrair a data do objeto JSON
                               let dataContatoStr: string | null = null;
-                              
+
                               // Se for string JSON, fazer parse
                               if (typeof ultimoContatoRaw === 'string') {
                                 try {
@@ -758,27 +798,27 @@ export function PatientsListNew() {
                                   dataContatoStr = ultimoContatoRaw;
                                   console.log('⚠️ Não é JSON, usando como string:', dataContatoStr);
                                 }
-                              } 
+                              }
                               // Se já for objeto
                               else if (typeof ultimoContatoRaw === 'object' && ultimoContatoRaw.start) {
                                 dataContatoStr = ultimoContatoRaw.start;
                                 console.log('📦 Objeto direto:', { ultimoContatoRaw, dataContatoStr });
                               }
-                              
+
                               if (!dataContatoStr) {
                                 console.log('❌ Nenhuma data encontrada');
                                 return <span className='text-slate-400'>Nunca</span>;
                               }
-                              
+
                               const dataContato = new Date(dataContatoStr);
                               const hoje = new Date();
                               const diffTime = Math.abs(hoje.getTime() - dataContato.getTime());
                               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                              
+
                               const dataFormatada = dataContato.toLocaleDateString('pt-BR');
-                              
+
                               console.log('✅ Data processada:', { dataContatoStr, dataContato, diffDays, dataFormatada });
-                              
+
                               // Definir cor baseado nos dias sem contato
                               let badgeClass = 'bg-green-500/20 text-green-400 border-green-500/30'; // < 20 dias
                               if (diffDays >= 30) {
@@ -786,7 +826,7 @@ export function PatientsListNew() {
                               } else if (diffDays >= 20) {
                                 badgeClass = 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'; // >= 20 dias
                               }
-                              
+
                               return (
                                 <div className="flex flex-col gap-1">
                                   <Badge variant="outline" className={badgeClass}>
@@ -803,20 +843,20 @@ export function PatientsListNew() {
                             content = getStatusBadge(status);
                             break;
                           case 'created_at':
-                            content = <span className='text-slate-300'>{patient.created_at ? 
+                            content = <span className='text-slate-300'>{patient.created_at ?
                               new Date(patient.created_at).toLocaleDateString('pt-BR') : 'N/A'}</span>;
                             break;
                           default:
                             content = <span className='text-slate-300'>{(patient as any)[column.key] || 'N/A'}</span>;
                         }
-                        
+
                         return (
                           <TableCell key={column.key} className="text-slate-300">
                             {content}
                           </TableCell>
                         );
                       })}
-                      
+
                       <TableCell className="text-center">
                         <TooltipProvider>
                           <Tooltip>
@@ -885,7 +925,7 @@ export function PatientsListNew() {
                               Renovar plano
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDeletePatient(patient)}
                               className="text-destructive"
                             >
@@ -902,7 +942,7 @@ export function PatientsListNew() {
             </TableBody>
           </Table>
         </CardContent>
-        
+
         {/* Botão Mostrar Mais */}
         {!loading && hasMorePatients && (
           <div className="p-4 border-t border-slate-700/50 flex justify-center">
@@ -916,7 +956,7 @@ export function PatientsListNew() {
             </Button>
           </div>
         )}
-        
+
         {/* Indicador de pacientes visíveis */}
         {!loading && patients.length > 0 && (
           <div className="px-4 pb-4 text-center">
@@ -942,7 +982,7 @@ export function PatientsListNew() {
               nome: data.nome,
               telefone: data.telefone,
             };
-            
+
             // Campos opcionais que existem na tabela
             if (data.apelido) dataToSave.apelido = data.apelido;
             if (data.cpf) dataToSave.cpf = data.cpf;
@@ -951,21 +991,21 @@ export function PatientsListNew() {
             if (data.genero) dataToSave.genero = data.genero;
             if (data.plano) dataToSave.plano = data.plano;
             if (data.observacao) dataToSave.observacao = data.observacao;
-            
+
             // Converter data_nascimento para string
             if (data.data_nascimento) {
-              dataToSave.data_nascimento = data.data_nascimento instanceof Date 
-                ? data.data_nascimento.toISOString().split('T')[0] 
+              dataToSave.data_nascimento = data.data_nascimento instanceof Date
+                ? data.data_nascimento.toISOString().split('T')[0]
                 : data.data_nascimento;
             }
-            
+
             // Converter vencimento para string
             if (data.vencimento) {
-              dataToSave.vencimento = data.vencimento instanceof Date 
-                ? data.vencimento.toISOString().split('T')[0] 
+              dataToSave.vencimento = data.vencimento instanceof Date
+                ? data.vencimento.toISOString().split('T')[0]
                 : data.vencimento;
             }
-            
+
             // Converter números para string (apenas se existirem na tabela)
             if (data.tempo_acompanhamento !== undefined) {
               dataToSave.tempo_acompanhamento = Number(data.tempo_acompanhamento);
@@ -973,7 +1013,7 @@ export function PatientsListNew() {
             if (data.valor !== undefined) {
               dataToSave.valor = Number(data.valor);
             }
-            
+
             if (selectedPatient) {
               // Atualizar paciente existente
               console.log('🔄 Atualizando paciente no Supabase...', selectedPatient.id, dataToSave);
@@ -990,7 +1030,7 @@ export function PatientsListNew() {
                 const result = await patientService.create(dataToSave);
                 console.log('✅ Paciente criado com sucesso:', result);
                 toast({
-                  title: "Sucesso", 
+                  title: "Sucesso",
                   description: "Paciente criado com sucesso"
                 });
               } catch (error: any) {
@@ -1073,7 +1113,7 @@ export function PatientsListNew() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setIsDeleteModalOpen(false);
                 setPatientToDelete(null);
