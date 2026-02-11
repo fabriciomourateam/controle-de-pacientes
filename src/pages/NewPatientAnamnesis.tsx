@@ -196,7 +196,7 @@ export default function NewPatientAnamnesis() {
 
       // 5. Enviar Webhook
       try {
-        await fetch('https://n8n.shapepro.shop/webhook-test/anamnese-myshape', {
+        await fetch('https://n8n.shapepro.shop/webhook/anamnese-myshape', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
