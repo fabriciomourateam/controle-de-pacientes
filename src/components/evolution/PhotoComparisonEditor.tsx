@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePhotoVisibility } from '@/hooks/use-photo-visibility';
 import { Eye, EyeOff, Save, RotateCcw, ZoomIn, ZoomOut, Move, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { HeicImage } from '@/components/ui/heic-image';
 import type { Database } from '@/integrations/supabase/types';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -61,7 +62,7 @@ export function PhotoComparisonEditor({
       id: 'initial-frente',
       url: patientWithData.foto_inicial_frente,
       label: '⭐ Baseline - Frente',
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toLocaleDateString('pt-BR')
         : 'Data Inicial',
       weight: patientWithData.peso_inicial?.toString() || 'N/A',
@@ -74,7 +75,7 @@ export function PhotoComparisonEditor({
       id: 'initial-lado',
       url: patientWithData.foto_inicial_lado,
       label: '⭐ Baseline - Lado',
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toLocaleDateString('pt-BR')
         : 'Data Inicial',
       weight: patientWithData.peso_inicial?.toString() || 'N/A',
@@ -87,7 +88,7 @@ export function PhotoComparisonEditor({
       id: 'initial-lado-2',
       url: patientWithData.foto_inicial_lado_2,
       label: '⭐ Baseline - Lado 2',
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toLocaleDateString('pt-BR')
         : 'Data Inicial',
       weight: patientWithData.peso_inicial?.toString() || 'N/A',
@@ -100,7 +101,7 @@ export function PhotoComparisonEditor({
       id: 'initial-costas',
       url: patientWithData.foto_inicial_costas,
       label: '⭐ Baseline - Costas',
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toLocaleDateString('pt-BR')
         : 'Data Inicial',
       weight: patientWithData.peso_inicial?.toString() || 'N/A',
@@ -110,7 +111,7 @@ export function PhotoComparisonEditor({
   }
 
   // Fotos dos check-ins (do mais antigo ao mais recente)
-  const sortedCheckins = [...checkins].sort((a, b) => 
+  const sortedCheckins = [...checkins].sort((a, b) =>
     new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
   );
 
@@ -160,7 +161,7 @@ export function PhotoComparisonEditor({
   // Estados para as duas fotos
   const [beforePhotoId, setBeforePhotoId] = useState<string>(allPhotos[0]?.id || '');
   const [afterPhotoId, setAfterPhotoId] = useState<string>(allPhotos[allPhotos.length - 1]?.id || '');
-  
+
   const [beforeState, setBeforeState] = useState<PhotoState>({
     zoom: 1,
     x: 0,
@@ -168,7 +169,7 @@ export function PhotoComparisonEditor({
     isDragging: false,
     dragStart: { x: 0, y: 0 }
   });
-  
+
   const [afterState, setAfterState] = useState<PhotoState>({
     zoom: 1,
     x: 0,
@@ -273,9 +274,9 @@ export function PhotoComparisonEditor({
   // Salvar configurações
   const handleSave = async () => {
     setSaving(true);
-    
+
     const promises = [];
-    
+
     // Salvar foto "antes"
     if (beforePhotoId) {
       promises.push(updateSetting(beforePhotoId, {
@@ -284,7 +285,7 @@ export function PhotoComparisonEditor({
         position_y: (beforeState.y / 4)
       }));
     }
-    
+
     // Salvar foto "depois"
     if (afterPhotoId) {
       promises.push(updateSetting(afterPhotoId, {
@@ -293,14 +294,14 @@ export function PhotoComparisonEditor({
         position_y: (afterState.y / 4)
       }));
     }
-    
+
     await Promise.all(promises);
-    
+
     toast({
       title: 'Configurações salvas!',
       description: 'As fotos foram ajustadas com sucesso'
     });
-    
+
     setSaving(false);
     if (onSaved) onSaved();
   };
@@ -395,16 +396,29 @@ export function PhotoComparisonEditor({
                 onMouseLeave={() => handleMouseUp('before')}
               >
                 {beforePhoto && (
-                  <img
-                    src={beforePhoto.url}
-                    alt="Antes"
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-                    style={{
-                      transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
-                      transition: beforeState.isDragging ? 'none' : 'transform 0.1s'
-                    }}
-                    draggable={false}
-                  />
+                  beforePhoto.url.toLowerCase().endsWith('.heic') ? (
+                    <HeicImage
+                      src={beforePhoto.url}
+                      alt="Antes"
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                      style={{
+                        transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
+                        transition: beforeState.isDragging ? 'none' : 'transform 0.1s'
+                      }}
+                      draggable={false}
+                    />
+                  ) : (
+                    <img
+                      src={beforePhoto.url}
+                      alt="Antes"
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                      style={{
+                        transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
+                        transition: beforeState.isDragging ? 'none' : 'transform 0.1s'
+                      }}
+                      draggable={false}
+                    />
+                  )
                 )}
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                   Zoom: {beforeState.zoom.toFixed(1)}x
@@ -464,16 +478,29 @@ export function PhotoComparisonEditor({
                 onMouseLeave={() => handleMouseUp('after')}
               >
                 {afterPhoto && (
-                  <img
-                    src={afterPhoto.url}
-                    alt="Depois"
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-                    style={{
-                      transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
-                      transition: afterState.isDragging ? 'none' : 'transform 0.1s'
-                    }}
-                    draggable={false}
-                  />
+                  afterPhoto.url.toLowerCase().endsWith('.heic') ? (
+                    <HeicImage
+                      src={afterPhoto.url}
+                      alt="Depois"
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                      style={{
+                        transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
+                        transition: afterState.isDragging ? 'none' : 'transform 0.1s'
+                      }}
+                      draggable={false}
+                    />
+                  ) : (
+                    <img
+                      src={afterPhoto.url}
+                      alt="Depois"
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                      style={{
+                        transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
+                        transition: afterState.isDragging ? 'none' : 'transform 0.1s'
+                      }}
+                      draggable={false}
+                    />
+                  )
                 )}
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                   Zoom: {afterState.zoom.toFixed(1)}x

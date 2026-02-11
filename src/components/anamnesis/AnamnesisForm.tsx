@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { usePlans } from '@/hooks/use-supabase-data';
-import { 
-  User, Phone, MapPin, Ruler, Target, Heart, 
-  Utensils, Clock, Dumbbell, MessageSquare, ChevronLeft, ChevronRight, 
+import {
+  User, Phone, MapPin, Ruler, Target, Heart,
+  Utensils, Clock, Dumbbell, MessageSquare, ChevronLeft, ChevronRight,
   Save, Loader2, CheckCircle2, Upload, X, Camera
 } from 'lucide-react';
 import { AnamnesisData } from '@/lib/anamnesis-service';
@@ -57,14 +57,14 @@ const STEPS = [
 ];
 
 const ESTADOS_BR = [
-  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
-  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 ];
 
 // ===== COMPONENTES AUXILIARES =====
 
-function PhotoUploadField({ label, preview, onFileChange, onRemove }: { 
-  label: string; preview: string; onFileChange: (f: File) => void; onRemove: () => void; 
+function PhotoUploadField({ label, preview, onFileChange, onRemove }: {
+  label: string; preview: string; onFileChange: (f: File) => void; onRemove: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -99,12 +99,13 @@ function PhotoUploadField({ label, preview, onFileChange, onRemove }: {
   );
 }
 
-function FieldInput({ label, value, onChange, placeholder, type = 'text', required = false, icon }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean; icon?: string;
+
+function FieldInput({ label, value, onChange, placeholder, type = 'text', required = false, icon, labelClassName }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean; icon?: string; labelClassName?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-slate-400 text-xs font-medium tracking-wide flex items-center gap-1.5">
+      <Label className={`text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5 ${labelClassName}`}>
         {icon && <span className="text-sm">{icon}</span>}
         {label}{required && <span className="text-blue-400">*</span>}
       </Label>
@@ -124,7 +125,7 @@ function FieldTextarea({ label, value, onChange, placeholder, rows = 3 }: {
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-slate-400 text-xs font-medium tracking-wide">{label}</Label>
+      <Label className="text-slate-300 text-xs font-medium tracking-wide">{label}</Label>
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -135,6 +136,7 @@ function FieldTextarea({ label, value, onChange, placeholder, rows = 3 }: {
     </div>
   );
 }
+
 
 // ===== COMPONENTE PRINCIPAL =====
 
@@ -149,7 +151,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
     try {
       const { plans, loading: plansLoading } = usePlans();
       activePlans = plans.filter((p: any) => p.active);
-    } catch {}
+    } catch { }
   }
 
   const [form, setForm] = useState<FormData>({
@@ -161,6 +163,34 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
   });
 
   const [previews, setPreviews] = useState({ frente: '', lado: '', lado2: '', costas: '' });
+  const [isCustomDDI, setIsCustomDDI] = useState(false);
+
+  // Persistence: Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('anamnesis-form-progress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Date objects or Files won't be restored perfectly from JSON. Files are lost.
+        // We only restore text fields.
+        setForm(prev => ({
+          ...prev,
+          ...parsed,
+          // Convert string dates back if needed, specifically for local state logic if any
+          // But main form fields are strings anyway except files.
+          foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null
+        }));
+      } catch (e) {
+        console.error('Failed to load saved form', e);
+      }
+    }
+  }, []);
+
+  // Persistence: Save to localStorage on change
+  useEffect(() => {
+    const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null };
+    localStorage.setItem('anamnesis-form-progress', JSON.stringify(dataToSave));
+  }, [form]);
 
   const updateField = (key: keyof FormData, value: any) => setForm(prev => ({ ...prev, [key]: value }));
   const updateAnamnese = (key: keyof AnamnesisData, value: string) => setForm(prev => ({ ...prev, anamnese: { ...prev.anamnese, [key]: value } }));
@@ -185,16 +215,141 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
   };
 
   const validateCurrentStep = (): boolean => {
+    const checkEmpty = (value: any) => !value || (typeof value === 'string' && !value.trim());
+    const showErr = (field: string) => {
+      toast({ title: 'Campo obrigatório', description: `O campo "${field}" é obrigatório. Se não souber, preencha com 0.`, variant: 'destructive' });
+      return false;
+    };
+
     if (step === 1) {
-      if (!form.nome.trim()) {
-        toast({ title: 'Campo obrigatório', description: 'Nome completo é obrigatório.', variant: 'destructive' });
-        return false;
-      }
-      if (!form.telefone.trim()) {
-        toast({ title: 'Campo obrigatório', description: 'Telefone é obrigatório.', variant: 'destructive' });
-        return false;
+      if (checkEmpty(form.nome)) return showErr('Nome Completo');
+      if (checkEmpty(form.telefone)) return showErr('Telefone');
+      if (checkEmpty(form.data_nascimento)) return showErr('Data de Nascimento');
+      if (checkEmpty(form.cpf)) return showErr('CPF');
+      if (checkEmpty(form.email)) return showErr('Email');
+    }
+
+    if (step === 2) {
+      if (checkEmpty(form.anamnese.rua)) return showErr('Rua/Avenida');
+      if (checkEmpty(form.anamnese.numero)) return showErr('Número');
+      if (checkEmpty(form.anamnese.bairro)) return showErr('Bairro');
+      if (checkEmpty(form.anamnese.cidade)) return showErr('Cidade');
+      if (checkEmpty(form.anamnese.estado)) return showErr('Estado');
+      if (checkEmpty(form.anamnese.cep)) return showErr('CEP');
+      if (form.anamnese.estado === 'Exterior' && checkEmpty(form.anamnese.detalhes_endereco_exterior)) return showErr('Detalhes do Endereço');
+    }
+
+    if (step === 3) {
+      if (checkEmpty(form.peso)) return showErr('Peso');
+      if (checkEmpty(form.altura)) return showErr('Altura');
+      if (checkEmpty(form.cintura)) return showErr('Cintura');
+      if (checkEmpty(form.quadril)) return showErr('Quadril');
+    }
+
+    // Generic check for other steps if needed, but specific is better
+    // Steps 4-10: mostly text areas or inputs.
+    // I'll implement checks based on Step ID.
+
+    if (step === 4) { // Objetivos
+      if (checkEmpty(form.anamnese.onde_conheceu)) return showErr('Onde conheceu');
+      if (checkEmpty(form.objetivo)) return showErr('Objetivo Principal');
+      if (checkEmpty(form.anamnese.relato_objetivo)) return showErr('Relato do Objetivo');
+      if (checkEmpty(form.anamnese.ja_foi_nutricionista)) return showErr('Já foi em nutricionista');
+      // ... others can be checked generically or specifically
+    }
+
+    // Step 5: Saude - all mandatory per request
+    if (step === 5) {
+      const fields = [
+        ['restricao_alimentar', 'Restrição Alimentar'],
+        ['alergia_intolerancia', 'Alergia/Intolerância'],
+        ['fuma', 'Fuma'],
+        ['bebida_alcoolica', 'Bebida Alcoólica'],
+        ['problema_saude', 'Problema de Saúde'],
+        ['medicamento_continuo', 'Medicamento'],
+        ['uso_hormonal', 'Uso Hormonal'],
+        ['protocolo_hormonal', 'Protocolo Hormonal'],
+        ['interesse_hormonal', 'Interesse Hormonal']
+      ];
+      for (const [key, label] of fields) {
+        if (checkEmpty((form.anamnese as any)[key])) return showErr(label);
       }
     }
+
+    // Step 6: Alimentação
+    if (step === 6) {
+      const fields = [
+        ['mora_com_quantas_pessoas', 'Mora com quantas pessoas'],
+        ['habito_cozinhar', 'Hábito de cozinhar'],
+        ['alimentos_nao_gosta', 'Alimentos que não gosta'],
+        ['problema_alimentos_especificos', 'Problemas com alimentos'],
+        ['preferencia_carboidratos', 'Preferência Carboidratos'],
+        ['preferencia_proteinas', 'Preferência Proteínas'],
+        ['preferencia_frutas', 'Preferência Frutas'],
+        ['hora_mais_fome', 'Hora de mais fome'],
+        ['apetite', 'Apetite'],
+        ['mastigacao', 'Mastigação'],
+        ['alimentos_faz_questao', 'Alimentos que faz questão'],
+        ['suplementos', 'Suplementos'],
+        ['litros_agua', 'Litros de água']
+      ];
+      for (const [key, label] of fields) {
+        if (checkEmpty((form.anamnese as any)[key])) return showErr(label);
+      }
+    }
+
+    // Step 7: Rotina
+    if (step === 7) {
+      const fields = [
+        ['horario_estudo', 'Horário de Estudo'],
+        ['horario_trabalho', 'Horário de Trabalho'],
+        ['trabalha_pe_sentado', 'Trabalha em pé ou sentado'],
+        ['tempo_em_pe', 'Tempo em pé'],
+        ['horario_treino', 'Horário de Treino'],
+        ['horario_acordar', 'Horário de Acordar'],
+        ['horario_dormir', 'Horário de Dormir'],
+        ['horas_sono', 'Horas de Sono'],
+        ['qualidade_sono', 'Qualidade do Sono'],
+        ['habito_cafe', 'Hábito de Café'],
+        ['cafe_sem_acucar', 'Café sem açúcar'],
+        ['alimentacao_fim_semana', 'Alimentação Fim de Semana'],
+        ['levar_refeicoes_trabalho', 'Levar refeições'],
+        ['pesar_refeicoes', 'Pesar refeições']
+      ];
+      for (const [key, label] of fields) {
+        if (checkEmpty((form.anamnese as any)[key])) return showErr(label);
+      }
+    }
+
+    // Step 8: Refeições
+    if (step === 8) {
+      // Check at least one meal? Or all? "Todos os dados obrigatórios".
+      // Let's check all 6 slots? Some might be empty if user eats less times.
+      // User said: "Se não souber... colocar 0".
+      // But if they eat 3 times, should they put "0" in meal 4/5/6?
+      // Safe bet: Text says "Descreva o que come...".
+      // I'll enforced at least Refeição 01, 02, 03?
+      // Or ALL as requested. "tem como todos os dados serem obrigatorios?" -> Yes.
+      const meals = Array.from({ length: 6 }, (_, i) => i + 1);
+      for (const n of meals) {
+        if (checkEmpty((form.anamnese as any)[`refeicao_0${n}`])) return showErr(`Refeição 0${n} (descrição)`);
+        if (checkEmpty((form.anamnese as any)[`horario_refeicao_0${n}`])) return showErr(`Horário Refeição 0${n}`);
+      }
+    }
+
+    // Step 9: Treinos
+    if (step === 9) {
+      const fields = [
+        'frequencia_musculacao', 'recuperacao_pos_treino', 'disponibilidade_musculacao',
+        'horas_treino_dia', 'divisao_treino', 'exercicios_por_grupo', 'series_por_exercicio',
+        'repeticoes_por_serie', 'prioridade_muscular', 'aerobico_dias_semana', 'tempo_aerobico',
+        'aerobico_preferido', 'lesoes', 'atividades_fisicas'
+      ];
+      for (const key of fields) {
+        if (checkEmpty((form.anamnese as any)[key])) return showErr('Campo de treino');
+      }
+    }
+
     return true;
   };
 
@@ -206,6 +361,13 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       setStep(1);
       return;
     }
+    if (!termsAccepted) {
+      toast({ title: 'Termo de Adesão', description: 'Você precisa aceitar os termos de adesão para finalizar.', variant: 'destructive' });
+      return;
+    }
+
+    // Clear storage on successful submission attempt
+    localStorage.removeItem('anamnesis-form-progress');
     await onSubmit(form);
   };
 
@@ -222,17 +384,102 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FieldInput icon="👤" label="Nome Completo" value={form.nome} onChange={v => updateField('nome', v)} placeholder="Seu nome completo" required />
         <div className="space-y-1.5">
-          <Label className="text-slate-400 text-xs font-medium tracking-wide flex items-center gap-1.5">
-            <span className="text-sm">📱</span> Telefone (com código do país) <span className="text-blue-400">*</span>
+          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+            <span className="text-sm">📱</span> Telefone <span className="text-blue-400">*</span>
           </Label>
-          <Input
-            type="tel"
-            value={form.telefone}
-            onChange={(e) => updateField('telefone', e.target.value.replace(/[^0-9+]/g, ''))}
-            placeholder="5511991418266"
-            className="bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
-          />
-          <p className="text-slate-600 text-[10px]">Formato: código do país + DDD + número (ex: 5511991418266)</p>
+          <div className="flex gap-2">
+            {(() => {
+              const commonDDIs = [
+                { code: '55', label: '🇧🇷 +55' },
+                { code: '1', label: '🇺🇸 +1' },
+                { code: '351', label: '🇵🇹 +351' },
+                { code: '44', label: '🇬🇧 +44' },
+                { code: '34', label: '🇪🇸 +34' },
+                { code: '39', label: '🇮🇹 +39' },
+                { code: '33', label: '🇫🇷 +33' },
+                { code: '49', label: '🇩🇪 +49' },
+                { code: '41', label: '🇨🇭 +41' },
+                { code: '81', label: '🇯🇵 +81' },
+                { code: '61', label: '🇦🇺 +61' },
+                { code: '353', label: '🇮🇪 +353' },
+              ];
+
+              const currentDDI = commonDDIs.find(d => form.telefone.startsWith(d.code));
+              const showCustomInput = isCustomDDI || (form.telefone.length > 0 && !currentDDI);
+              const displayDDI = currentDDI ? currentDDI.code : '55';
+
+              if (showCustomInput) {
+                return (
+                  <div className="relative">
+                    <Input
+                      value={form.telefone.length > 0 && !currentDDI ? (form.telefone.match(/^\d{1,4}/)?.[0] || '') : ''}
+                      onChange={(e) => {
+                        const oldDDI = (form.telefone.match(/^\d{1,4}/)?.[0]) || '';
+                        const body = form.telefone.slice(oldDDI.length);
+                        updateField('telefone', e.target.value.replace(/[^0-9]/g, '') + body);
+                      }}
+                      placeholder="Código"
+                      className="w-[80px] bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 px-1 text-center text-xs"
+                    />
+                    <button
+                      onClick={() => { setIsCustomDDI(false); if (!currentDDI) updateField('telefone', '55' + form.telefone); }}
+                      className="absolute -top-2 -right-2 bg-slate-700 rounded-full p-0.5 text-[10px] w-4 h-4 flex items-center justify-center hover:bg-red-500 text-white border border-slate-500"
+                      title="Voltar para lista"
+                      type="button"
+                    >✕</button>
+                  </div>
+                );
+              }
+
+              return (
+                <Select
+                  value={displayDDI}
+                  onValueChange={(val) => {
+                    if (val === 'custom') {
+                      setIsCustomDDI(true);
+                    } else {
+                      const old = commonDDIs.find(d => form.telefone.startsWith(d.code))?.code || '55';
+                      const body = form.telefone.startsWith(old) ? form.telefone.slice(old.length) : form.telefone;
+                      updateField('telefone', val + body);
+                      setIsCustomDDI(false);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[80px] bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 px-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {commonDDIs.map(d => (
+                      <SelectItem key={d.code} value={d.code}>{d.label}</SelectItem>
+                    ))}
+                    <SelectItem value="custom" className="text-blue-300 font-medium border-t border-slate-700 mt-1 pt-1">🌐 Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              );
+            })()}
+
+            <Input
+              type="tel"
+              value={(() => {
+                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
+                const ddi = commonDDIs.find(d => form.telefone.startsWith(d)) ||
+                  (isCustomDDI ? (form.telefone.match(/^\d{1,4}/)?.[0] || '') : '55');
+
+                if (form.telefone.startsWith(ddi)) return form.telefone.slice(ddi.length);
+                return form.telefone;
+              })()}
+              onChange={(e) => {
+                const newBody = e.target.value.replace(/[^0-9]/g, '');
+                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
+                const matched = commonDDIs.find(d => form.telefone.startsWith(d));
+                const ddiToKeep = matched || (isCustomDDI ? (form.telefone.match(/^\d{1,4}/)?.[0] || '') : '55');
+                updateField('telefone', ddiToKeep + newBody);
+              }}
+              placeholder="DDD + Número"
+              className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
+            />
+          </div>
+          <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -296,14 +543,20 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-slate-400 text-xs font-medium tracking-wide">Estado</Label>
+          <Label className="text-slate-300 text-xs font-medium tracking-wide">Estado</Label>
           <Select value={form.anamnese.estado || ''} onValueChange={v => updateAnamnese('estado', v)}>
             <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="UF" /></SelectTrigger>
-            <SelectContent>{ESTADOS_BR.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {ESTADOS_BR.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+              <SelectItem value="Exterior">Exterior</SelectItem>
+            </SelectContent>
           </Select>
         </div>
         <FieldInput label="CEP" value={form.anamnese.cep || ''} onChange={v => updateAnamnese('cep', v)} placeholder="00000-000" />
       </div>
+      {form.anamnese.estado === 'Exterior' && (
+        <FieldInput label="País/Detalhes do Endereço" value={form.anamnese.detalhes_endereco_exterior || ''} onChange={v => updateAnamnese('detalhes_endereco_exterior', v)} placeholder="Digite seu país e detalhes do endereço" />
+      )}
     </div>
   );
 
@@ -313,6 +566,9 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
         <h3 className="text-white font-semibold mb-4 text-sm flex items-center gap-2">
           <span className="text-lg">📐</span> Medidas Corporais
         </h3>
+        <div className="mb-6 rounded-xl overflow-hidden border border-blue-500/30 w-full max-w-sm mx-auto">
+          <img src="/unnamed.jpg" alt="Exemplo de fotos e medidas" className="w-full h-auto object-contain bg-black/40" />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <FieldInput label="Peso (kg)" value={form.peso} onChange={v => updateField('peso', v)} placeholder="70.5" type="number" />
           <FieldInput label="Altura (cm)" value={form.altura} onChange={v => updateField('altura', v)} placeholder="175" type="number" />
@@ -327,9 +583,11 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
         </h3>
         <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4 mb-5">
           <p className="text-blue-300/80 text-xs leading-relaxed">
-            <strong className="text-blue-300">Instruções:</strong> Local bem iluminado. Enquadre o corpo inteiro (inclusive pernas). 
-            Câmera na altura do estômago. De preferência em jejum e descalço. Cabelo comprido preso. 
-            Homens: cueca/sunga/short curto. Mulheres: biquíni ou short curto e top.
+            <strong className="text-blue-300">Instruções:</strong> Faça as fotos preferencialmente em jejum, em um local bem iluminado, enquadre o corpo inteiro (inclusive as pernas). <br />
+            Caso não tenha ninguém pra tirar as fotos, você pode colocar o celular num apoio, filmar com a câmera frontal e tirar print nas posições solicitadas.
+            <br /><br />
+            - <strong>Homens:</strong> cueca/sunga/shorts curto. <br />
+            - <strong>Mulheres:</strong> biquíni ou shorts curto e top.
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -344,9 +602,36 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
 
   const renderObjetivos = () => (
     <div className="space-y-4">
-      <FieldInput label="Onde conheceu meu trabalho?" value={form.anamnese.onde_conheceu || ''} onChange={v => updateAnamnese('onde_conheceu', v)} placeholder="Instagram, indicação, Google..." />
-      <FieldTextarea label="Objetivo (descreva detalhadamente)" value={form.objetivo} onChange={v => updateField('objetivo', v)} placeholder="Descreva seus objetivos de saúde e forma física..." rows={4} />
-      <FieldTextarea label="Relate sobre o objetivo" value={form.anamnese.relato_objetivo || ''} onChange={v => updateAnamnese('relato_objetivo', v)} placeholder="O que te motivou a buscar esse objetivo..." />
+      <div className="space-y-1.5">
+        <Label className="text-slate-300 text-xs font-medium tracking-wide">Onde conheceu meu trabalho?</Label>
+        <Select value={form.anamnese.onde_conheceu || ''} onValueChange={v => updateAnamnese('onde_conheceu', v)}>
+          <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Google">Google</SelectItem>
+            <SelectItem value="Instagram">Instagram</SelectItem>
+            <SelectItem value="Facebook">Facebook</SelectItem>
+            <SelectItem value="Indicação">Indicação</SelectItem>
+            <SelectItem value="Outros">Outros</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-slate-300 text-xs font-medium tracking-wide">Objetivo (Selecione com base no que mais te incomoda no seu físico hoje)</Label>
+        <Select value={form.objetivo} onValueChange={v => updateField('objetivo', v)}>
+          <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione o principal" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Diminuir o percentual de gordura">Diminuir o percentual de gordura</SelectItem>
+            <SelectItem value="Ganho de massa muscular">Ganho de massa muscular</SelectItem>
+            <SelectItem value="Recomposição corporal">Recomposição corporal</SelectItem>
+            <SelectItem value="Emagrecimento">Emagrecimento</SelectItem>
+            <SelectItem value="Performance">Performance</SelectItem>
+            <SelectItem value="Melhora de saúde">Melhora de saúde</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <FieldTextarea label="Agora descreva detalhadamente seu objetivo" value={form.anamnese.relato_objetivo || ''} onChange={v => updateAnamnese('relato_objetivo', v)} placeholder="O que te motivou a buscar esse objetivo..." />
       <FieldTextarea label="Já foi em algum nutricionista antes?" value={form.anamnese.ja_foi_nutricionista || ''} onChange={v => updateAnamnese('ja_foi_nutricionista', v)} />
       <FieldTextarea label="Se sim, o que funcionou pra você?" value={form.anamnese.o_que_funcionou || ''} onChange={v => updateAnamnese('o_que_funcionou', v)} />
       <FieldTextarea label="Qual a sua maior dificuldade relacionada ao objetivo?" value={form.anamnese.maior_dificuldade || ''} onChange={v => updateAnamnese('maior_dificuldade', v)} />
@@ -386,12 +671,22 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       <FieldTextarea label="Quais frutas prefere?" value={form.anamnese.preferencia_frutas || ''} onChange={v => updateAnamnese('preferencia_frutas', v)} />
       <FieldInput label="Que horas do dia sente mais fome?" value={form.anamnese.hora_mais_fome || ''} onChange={v => updateAnamnese('hora_mais_fome', v)} />
       <FieldInput label="Como está seu apetite?" value={form.anamnese.apetite || ''} onChange={v => updateAnamnese('apetite', v)} />
-      <FieldInput label="Como é sua mastigação?" value={form.anamnese.mastigacao || ''} onChange={v => updateAnamnese('mastigacao', v)} />
+
+      <div className="space-y-1.5">
+        <Label className="text-slate-300 text-xs font-medium tracking-wide">Como é sua mastigação?</Label>
+        <Select value={form.anamnese.mastigacao || ''} onValueChange={v => updateAnamnese('mastigacao', v)}>
+          <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Lenta">Lenta</SelectItem>
+            <SelectItem value="Mediana">Mediana</SelectItem>
+            <SelectItem value="Rápida">Rápida</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <FieldTextarea label="Alimentos que faz questão que tenha na dieta" value={form.anamnese.alimentos_faz_questao || ''} onChange={v => updateAnamnese('alimentos_faz_questao', v)} />
-      <FieldInput label="Hábito intestinal" value={form.anamnese.habito_intestinal || ''} onChange={v => updateAnamnese('habito_intestinal', v)} />
-      <FieldInput label="Hábito urinário" value={form.anamnese.habito_urinario || ''} onChange={v => updateAnamnese('habito_urinario', v)} />
-      <FieldInput label="Suplementos em uso" value={form.anamnese.suplementos || ''} onChange={v => updateAnamnese('suplementos', v)} />
-      <FieldInput label="Quantos litros de água por dia?" value={form.anamnese.litros_agua || ''} onChange={v => updateAnamnese('litros_agua', v)} />
+      <FieldInput label="Possui algum suplemento em mãos? Se sim, qual(is)?" value={form.anamnese.suplementos || ''} onChange={v => updateAnamnese('suplementos', v)} />
+      <FieldInput label="Bebe quantos litros de água por dia?" value={form.anamnese.litros_agua || ''} onChange={v => updateAnamnese('litros_agua', v)} />
     </div>
   );
 
@@ -408,10 +703,10 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       </div>
       <FieldInput label="Quantas horas dorme por noite?" value={form.anamnese.horas_sono || ''} onChange={v => updateAnamnese('horas_sono', v)} />
       <FieldTextarea label="Como é seu sono? Usa remédio para dormir?" value={form.anamnese.qualidade_sono || ''} onChange={v => updateAnamnese('qualidade_sono', v)} />
-      <FieldInput label="Hábito de café? Com açúcar? Quanto?" value={form.anamnese.habito_cafe || ''} onChange={v => updateAnamnese('habito_cafe', v)} />
+      <FieldInput label="Tem o hábito de tomar café? Se sim, toma com açúcar? Quanto?" value={form.anamnese.habito_cafe || ''} onChange={v => updateAnamnese('habito_cafe', v)} />
       <FieldInput label="Consegue tomar sem açúcar ou com adoçante?" value={form.anamnese.cafe_sem_acucar || ''} onChange={v => updateAnamnese('cafe_sem_acucar', v)} />
-      <FieldInput label="Alimentação nos finais de semana" value={form.anamnese.alimentacao_fim_semana || ''} onChange={v => updateAnamnese('alimentacao_fim_semana', v)} />
-      <FieldInput label="Condições de levar refeições ao trabalho?" value={form.anamnese.levar_refeicoes_trabalho || ''} onChange={v => updateAnamnese('levar_refeicoes_trabalho', v)} />
+      <FieldInput label="Como é sua alimentação aos finais de semana?" value={form.anamnese.alimentacao_fim_semana || ''} onChange={v => updateAnamnese('alimentacao_fim_semana', v)} />
+      <FieldInput label="Tem condições de levar refeições para o trabalho?" value={form.anamnese.levar_refeicoes_trabalho || ''} onChange={v => updateAnamnese('levar_refeicoes_trabalho', v)} />
       <FieldInput label="Consegue pesar as refeições?" value={form.anamnese.pesar_refeicoes || ''} onChange={v => updateAnamnese('pesar_refeicoes', v)} />
     </div>
   );
@@ -427,7 +722,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
     ];
     return (
       <div className="space-y-4">
-        <p className="text-slate-400 text-sm">Descreva o que come e o que gostaria de comer em cada refeição:</p>
+        <p className="text-slate-300 text-sm">Descreva o que come e o que gostaria de comer em cada refeição:</p>
         {refeicoes.map(r => (
           <div key={r.num} className="bg-slate-800/20 rounded-2xl p-4 space-y-3 border border-slate-700/20">
             <div className="flex items-center justify-between gap-3">
@@ -442,7 +737,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
                 />
               </div>
             </div>
-            <FieldTextarea label="O que come e gostaria de comer" value={(form.anamnese as any)[r.refKey] || ''} onChange={v => updateAnamnese(r.refKey, v)} placeholder={r.ex || 'Descreva...'} rows={2} />
+            <FieldTextarea label="O que come na refeição atualmente e o que gostaria de comer" value={(form.anamnese as any)[r.refKey] || ''} onChange={v => updateAnamnese(r.refKey, v)} placeholder={r.ex || 'Descreva...'} rows={2} />
           </div>
         ))}
       </div>
@@ -451,36 +746,41 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
 
   const renderTreinos = () => (
     <div className="space-y-4">
-      <FieldTextarea label="Atividades físicas que pratica atualmente" value={form.anamnese.atividades_fisicas || ''} onChange={v => updateAnamnese('atividades_fisicas', v)} />
+      <FieldInput label="Faz musculação quantas vezes por semana?" value={form.anamnese.frequencia_musculacao || ''} onChange={v => updateAnamnese('frequencia_musculacao', v)} />
+      <FieldInput label="Como é sua recuperação pós-treino?" value={form.anamnese.recuperacao_pos_treino || ''} onChange={v => updateAnamnese('recuperacao_pos_treino', v)} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FieldInput label="Horas de treino por dia" value={form.anamnese.horas_treino_dia || ''} onChange={v => updateAnamnese('horas_treino_dia', v)} />
-        <FieldInput label="Treina há quanto tempo?" value={form.anamnese.tempo_treinando || ''} onChange={v => updateAnamnese('tempo_treinando', v)} />
+        <FieldInput label="Tem disponibilidade para treinar quantos dias na semana?" value={form.anamnese.disponibilidade_musculacao || ''} onChange={v => updateAnamnese('disponibilidade_musculacao', v)} />
+        <FieldInput label="Quantas horas por dia tem disponível para treino?" value={form.anamnese.horas_treino_dia || ''} onChange={v => updateAnamnese('horas_treino_dia', v)} />
       </div>
-      <FieldInput label="Treina em jejum?" value={form.anamnese.treina_jejum || ''} onChange={v => updateAnamnese('treina_jejum', v)} />
-      <FieldTextarea label="Já treinou em jejum? Como foi?" value={form.anamnese.ja_treinou_jejum || ''} onChange={v => updateAnamnese('ja_treinou_jejum', v)} />
-      <FieldInput label="Musculação quantas vezes por semana?" value={form.anamnese.frequencia_musculacao || ''} onChange={v => updateAnamnese('frequencia_musculacao', v)} />
-      <FieldInput label="Recuperação pós-treino" value={form.anamnese.recuperacao_pos_treino || ''} onChange={v => updateAnamnese('recuperacao_pos_treino', v)} />
-      <FieldInput label="Disponibilidade para musculação (dias/semana)" value={form.anamnese.disponibilidade_musculacao || ''} onChange={v => updateAnamnese('disponibilidade_musculacao', v)} />
-      <FieldTextarea label="Divisão de treino atual" value={form.anamnese.divisao_treino || ''} onChange={v => updateAnamnese('divisao_treino', v)} placeholder="Ex: Peito/Tríceps/Ombro, Costas/Bíceps, Perna..." />
+
+      <FieldTextarea label="Como está sua divisão de treino atual?" value={form.anamnese.divisao_treino || ''} onChange={v => updateAnamnese('divisao_treino', v)} placeholder="Ex: Peito/Tríceps/Ombro, Costas/Bíceps, Perna..." />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <FieldInput label="Exercícios/grupo muscular" value={form.anamnese.exercicios_por_grupo || ''} onChange={v => updateAnamnese('exercicios_por_grupo', v)} />
-        <FieldInput label="Séries/exercício" value={form.anamnese.series_por_exercicio || ''} onChange={v => updateAnamnese('series_por_exercicio', v)} />
-        <FieldInput label="Repetições/série" value={form.anamnese.repeticoes_por_serie || ''} onChange={v => updateAnamnese('repeticoes_por_serie', v)} />
+        <FieldInput label="Faz quantos exercícios por grupo muscular?" labelClassName="h-10 flex items-end pb-1" value={form.anamnese.exercicios_por_grupo || ''} onChange={v => updateAnamnese('exercicios_por_grupo', v)} />
+        <FieldInput label="Faz quantas séries por exercício?" labelClassName="h-10 flex items-end pb-1" value={form.anamnese.series_por_exercicio || ''} onChange={v => updateAnamnese('series_por_exercicio', v)} />
+        <FieldInput label="Quantas repetições em cada série?" labelClassName="h-10 flex items-end pb-1" value={form.anamnese.repeticoes_por_serie || ''} onChange={v => updateAnamnese('repeticoes_por_serie', v)} />
       </div>
-      <FieldTextarea label="Grupo muscular com mais prioridade" value={form.anamnese.prioridade_muscular || ''} onChange={v => updateAnamnese('prioridade_muscular', v)} />
+
+      <FieldTextarea label="Qual grupo muscular que tem mais prioridade em desenvolver?" value={form.anamnese.prioridade_muscular || ''} onChange={v => updateAnamnese('prioridade_muscular', v)} />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FieldInput label="Faz cardio quantos dias na semana?" labelClassName="h-10 flex items-end pb-1" value={form.anamnese.aerobico_dias_semana || ''} onChange={v => updateAnamnese('aerobico_dias_semana', v)} />
+        <FieldInput label="Quanto tempo de cardio você faz nesses dias?" labelClassName="h-10 flex items-end pb-1" value={form.anamnese.tempo_aerobico || ''} onChange={v => updateAnamnese('tempo_aerobico', v)} />
+        <FieldInput label="Qual seu cardio preferido?" labelClassName="h-10 flex items-end pb-1" value={form.anamnese.aerobico_preferido || ''} onChange={v => updateAnamnese('aerobico_preferido', v)} />
+      </div>
+
       <FieldTextarea label="Já teve alguma lesão? Detalhe" value={form.anamnese.lesoes || ''} onChange={v => updateAnamnese('lesoes', v)} />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <FieldInput label="Aeróbico (dias/semana)" value={form.anamnese.aerobico_dias_semana || ''} onChange={v => updateAnamnese('aerobico_dias_semana', v)} />
-        <FieldInput label="Tempo de aeróbico" value={form.anamnese.tempo_aerobico || ''} onChange={v => updateAnamnese('tempo_aerobico', v)} />
-        <FieldInput label="Aeróbico preferido" value={form.anamnese.aerobico_preferido || ''} onChange={v => updateAnamnese('aerobico_preferido', v)} />
-      </div>
+      <FieldTextarea label="Atividades físicas que pratica atualmente (além da musculação)" value={form.anamnese.atividades_fisicas || ''} onChange={v => updateAnamnese('atividades_fisicas', v)} />
     </div>
   );
 
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   const renderObservacoes = () => (
     <div className="space-y-5">
-      <FieldTextarea label="Observações para a prescrição alimentar" value={form.anamnese.observacao_alimentar || ''} onChange={v => updateAnamnese('observacao_alimentar', v)} rows={4} />
-      <FieldTextarea label="Observações para a prescrição de treinos" value={form.anamnese.observacao_treinos || ''} onChange={v => updateAnamnese('observacao_treinos', v)} rows={4} />
+      <FieldTextarea label="Observações adicionais para a prescrição alimentar" value={form.anamnese.observacao_alimentar || ''} onChange={v => updateAnamnese('observacao_alimentar', v)} rows={4} />
+      <FieldTextarea label="Observações para a prescrição dos treinos" value={form.anamnese.observacao_treinos || ''} onChange={v => updateAnamnese('observacao_treinos', v)} rows={4} />
       <FieldTextarea label="Observações gerais" value={form.observacao} onChange={v => updateField('observacao', v)} rows={3} />
       <div className="bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/20 rounded-2xl p-5">
         <h3 className="text-white font-semibold mb-2 text-sm flex items-center gap-2">
@@ -490,6 +790,44 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
           Teria 2 ou 3 amigos/familiares para indicar que gostariam de ter um acompanhamento como o nosso? (nome e telefone)
         </p>
         <FieldTextarea label="" value={form.anamnese.indicacoes_amigos || ''} onChange={v => updateAnamnese('indicacoes_amigos', v)} placeholder="Nome - Telefone" rows={3} />
+      </div>
+
+      {/* Termo de Adesão */}
+      <div className="bg-slate-800/20 border border-slate-700/50 rounded-2xl p-6 mt-6 space-y-4">
+        <h3 className="text-white font-semibold flex items-center gap-2">
+          📝 Termo de Adesão ao Acompanhamento
+        </h3>
+        <p className="text-slate-300 text-sm leading-relaxed">
+          Antes de seguir, é importante que você conheça os termos do nosso acompanhamento. <br /><br />
+          Este é o <strong>contrato que formaliza sua adesão ao plano escolhido</strong> e explica de forma transparente como funciona o serviço, prazos, deveres e garantias — pra que tudo fique claro desde o início.
+        </p>
+        <div className="py-2">
+          <a
+            href="https://drive.google.com/file/d/1KuLkE5WpEeqX6MYFI46VhySng5UOK-nY/view?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline text-sm flex items-center gap-1 transition-colors"
+          >
+            Clique aqui para ler o termo completo
+            <Upload className="w-3 h-3 rotate-90" />
+          </a>
+        </div>
+        <p className="text-slate-300 text-sm leading-relaxed">
+          👉🏼 A leitura é rápida e vai te ajudar a entender exatamente o que esperar do nosso trabalho juntos.
+        </p>
+
+        <div className="flex items-center space-x-3 pt-2">
+          <input
+            type="checkbox"
+            id="terms"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer"
+          />
+          <Label htmlFor="terms" className="text-slate-300 text-sm cursor-pointer select-none">
+            Declaro que li e concordo com os termos. <span className="text-slate-500 text-xs block mt-0.5">*Ao clicar em aceite, será assinado digitalmente.</span>
+          </Label>
+        </div>
       </div>
     </div>
   );
@@ -518,14 +856,14 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       <div className="sticky top-0 z-30 -mx-4 px-4 pt-3 pb-2">
         {/* Progress Bar */}
         <div className="h-1 bg-slate-800/50 rounded-full overflow-hidden mb-3">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${(step / STEPS.length) * 100}%` }}
           />
         </div>
 
         {/* Steps Navigation - scroll visível */}
-        <nav 
+        <nav
           className="flex items-center gap-1.5 overflow-x-auto pb-2"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
@@ -534,13 +872,12 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
               key={s.id}
               type="button"
               onClick={() => goToStep(s.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
-                step === s.id
-                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-lg shadow-blue-500/10'
-                  : step > s.id
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200 flex-shrink-0 ${step === s.id
+                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-lg shadow-blue-500/10'
+                : step > s.id
                   ? 'bg-emerald-500/10 text-emerald-400/80 border border-emerald-500/20'
                   : 'bg-slate-800/30 text-slate-500 border border-slate-700/30 hover:bg-slate-800/50 hover:text-slate-300'
-              }`}
+                }`}
             >
               {step > s.id ? <CheckCircle2 className="w-3.5 h-3.5" /> : <span>{s.emoji}</span>}
               <span>{s.title}</span>

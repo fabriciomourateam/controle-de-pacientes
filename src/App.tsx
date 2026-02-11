@@ -44,6 +44,7 @@ const DietPlanEditor = lazy(() => import("./pages/DietPlanEditor"));
 const PublicPortal = lazy(() => import("./pages/PublicPortal"));
 const NewPatientAnamnesis = lazy(() => import("./pages/NewPatientAnamnesis"));
 const PublicCheckin = lazy(() => import("./pages/PublicCheckin"));
+const CheckinFlowEditorPage = lazy(() => import("./pages/CheckinFlowEditorPage"));
 
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
@@ -90,153 +91,158 @@ const App = () => (
           <UpdateNotification />
           <RealtimeUpdater />
           <BrowserRouter>
-        <Routes>
-          {/* Rotas públicas - não requerem autenticação */}
-          <Route path="/landing" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/portal" element={<PortalLogin />} />
-          <Route path="/portal/:token" element={
-            <Suspense fallback={<PageLoader />}>
-              <PatientPortal />
-            </Suspense>
-          } />
-          <Route path="/anamnese/:token" element={
-            <Suspense fallback={<PageLoader />}>
-              <NewPatientAnamnesis />
-            </Suspense>
-          } />
-          <Route path="/checkin/:token" element={
-            <Suspense fallback={<PageLoader />}>
-              <PublicCheckin />
-            </Suspense>
-          } />
-          
-          {/* Rotas protegidas - requerem autenticação */}
-          <Route path="/" element={
-            <Suspense fallback={<PageLoader />}>
-                <Dashboard />
-              </Suspense>
-          } />
-          <Route path="/dashboard" element={
-            <Suspense fallback={<PageLoader />}>
-                <Dashboard />
-              </Suspense>
-          } />
-          <Route path="/patients" element={
-            <Suspense fallback={<PageLoader />}>
-                <Patients />
-              </Suspense>
-          } />
-          <Route path="/patients/:id" element={
-            <Suspense fallback={<PageLoader />}>
-                <PatientDetails />
-              </Suspense>
-          } />
-          <Route path="/checkins" element={
-            <Suspense fallback={<PageLoader />}>
-                <Checkins />
-              </Suspense>
-          } />
-          <Route path="/checkins/evolution/:telefone" element={
-            <Suspense fallback={<PageLoader />}>
-                <PatientEvolutionWrapper />
-              </Suspense>
-          } />
-          <Route path="/public/portal/:telefone" element={
-            <Suspense fallback={<PageLoader />}>
-                <PublicPortal />
-              </Suspense>
-          } />
-          <Route path="/plans" element={
-            <Suspense fallback={<PageLoader />}>
-                <Plans />
-              </Suspense>
-          } />
-          <Route path="/metrics" element={
-            <Suspense fallback={<PageLoader />}>
-                <MetricsDashboard />
-              </Suspense>
-          } />
-          <Route path="/commercial-metrics" element={
-            <Suspense fallback={<PageLoader />}>
-                <CommercialMetrics />
-              </Suspense>
-          } />
-          <Route path="/retention" element={
-            <Suspense fallback={<PageLoader />}>
-                <RetentionDashboard />
-              </Suspense>
-          } />
-          <Route path="/debug-vendas" element={
-            <Suspense fallback={<PageLoader />}>
-                <DebugVendas />
-              </Suspense>
-          } />
-          <Route path="/workspace" element={
-            <Suspense fallback={<PageLoader />}>
-                <Workspace />
-              </Suspense>
-          } />
-          <Route path="/reports" element={
-            <Suspense fallback={<PageLoader />}>
-                <Reports />
-              </Suspense>
-          } />
-          <Route path="/profile" element={
-            <Suspense fallback={<PageLoader />}>
-                <Profile />
-              </Suspense>
-          } />
+            <Routes>
+              {/* Rotas públicas - não requerem autenticação */}
+              <Route path="/landing" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/portal" element={<PortalLogin />} />
+              <Route path="/portal/:token" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PatientPortal />
+                </Suspense>
+              } />
+              <Route path="/anamnese/:token" element={
+                <Suspense fallback={<PageLoader />}>
+                  <NewPatientAnamnesis />
+                </Suspense>
+              } />
+              <Route path="/checkin/:token" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PublicCheckin />
+                </Suspense>
+              } />
 
-          <Route path="/help" element={
-            <Suspense fallback={<PageLoader />}>
-                <Help />
-              </Suspense>
-          } />
-          <Route path="/pricing" element={
-            <Suspense fallback={<PageLoader />}>
-                <Pricing />
-              </Suspense>
-          } />
-          <Route path="/admin" element={
-            <Suspense fallback={<PageLoader />}>
-                <AdminDashboard />
-              </Suspense>
-          } />
-          <Route path="/team" element={
-            <Suspense fallback={<PageLoader />}>
-                <TeamManagement />
-              </Suspense>
-          } />
-          <Route path="/meetings" element={
-            <Suspense fallback={<PageLoader />}>
-                <TeamMeetings />
-              </Suspense>
-          } />
-          <Route path="/test-google-drive" element={
-            <Suspense fallback={<PageLoader />}>
-                <TestGoogleDrive />
-              </Suspense>
-          } />
-          <Route path="/patients/new-anamnesis" element={
-            <Suspense fallback={<PageLoader />}>
-                <NewPatientAnamnesis />
-              </Suspense>
-          } />
-          <Route path="/patients/:patientId/diet-plan/new" element={
-            <Suspense fallback={<PageLoader />}>
-                <DietPlanEditor />
-              </Suspense>
-          } />
-          <Route path="/patients/:patientId/diet-plan/:planId/edit" element={
-            <Suspense fallback={<PageLoader />}>
-                <DietPlanEditor />
-              </Suspense>
-          } />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </BrowserRouter>
+              {/* Rotas protegidas - requerem autenticação */}
+              <Route path="/" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Dashboard />
+                </Suspense>
+              } />
+              <Route path="/dashboard" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Dashboard />
+                </Suspense>
+              } />
+              <Route path="/patients" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Patients />
+                </Suspense>
+              } />
+              <Route path="/patients/:id" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PatientDetails />
+                </Suspense>
+              } />
+              <Route path="/checkins" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Checkins />
+                </Suspense>
+              } />
+              <Route path="/checkins/evolution/:telefone" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PatientEvolutionWrapper />
+                </Suspense>
+              } />
+              <Route path="/public/portal/:telefone" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PublicPortal />
+                </Suspense>
+              } />
+              <Route path="/plans" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Plans />
+                </Suspense>
+              } />
+              <Route path="/metrics" element={
+                <Suspense fallback={<PageLoader />}>
+                  <MetricsDashboard />
+                </Suspense>
+              } />
+              <Route path="/commercial-metrics" element={
+                <Suspense fallback={<PageLoader />}>
+                  <CommercialMetrics />
+                </Suspense>
+              } />
+              <Route path="/retention" element={
+                <Suspense fallback={<PageLoader />}>
+                  <RetentionDashboard />
+                </Suspense>
+              } />
+              <Route path="/debug-vendas" element={
+                <Suspense fallback={<PageLoader />}>
+                  <DebugVendas />
+                </Suspense>
+              } />
+              <Route path="/workspace" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Workspace />
+                </Suspense>
+              } />
+              <Route path="/reports" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Reports />
+                </Suspense>
+              } />
+              <Route path="/profile" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Profile />
+                </Suspense>
+              } />
+
+              <Route path="/help" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Help />
+                </Suspense>
+              } />
+              <Route path="/pricing" element={
+                <Suspense fallback={<PageLoader />}>
+                  <Pricing />
+                </Suspense>
+              } />
+              <Route path="/checkin-editor" element={
+                <Suspense fallback={<PageLoader />}>
+                  <CheckinFlowEditorPage />
+                </Suspense>
+              } />
+              <Route path="/admin" element={
+                <Suspense fallback={<PageLoader />}>
+                  <AdminDashboard />
+                </Suspense>
+              } />
+              <Route path="/team" element={
+                <Suspense fallback={<PageLoader />}>
+                  <TeamManagement />
+                </Suspense>
+              } />
+              <Route path="/meetings" element={
+                <Suspense fallback={<PageLoader />}>
+                  <TeamMeetings />
+                </Suspense>
+              } />
+              <Route path="/test-google-drive" element={
+                <Suspense fallback={<PageLoader />}>
+                  <TestGoogleDrive />
+                </Suspense>
+              } />
+              <Route path="/patients/new-anamnesis" element={
+                <Suspense fallback={<PageLoader />}>
+                  <NewPatientAnamnesis />
+                </Suspense>
+              } />
+              <Route path="/patients/:patientId/diet-plan/new" element={
+                <Suspense fallback={<PageLoader />}>
+                  <DietPlanEditor />
+                </Suspense>
+              } />
+              <Route path="/patients/:patientId/diet-plan/:planId/edit" element={
+                <Suspense fallback={<PageLoader />}>
+                  <DietPlanEditor />
+                </Suspense>
+              } />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -36,7 +36,7 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
   const [fotoLado, setFotoLado] = useState<File | null>(null);
   const [fotoLado2, setFotoLado2] = useState<File | null>(null);
   const [fotoCostas, setFotoCostas] = useState<File | null>(null);
-  
+
   // Preview URLs
   const [previewFrente, setPreviewFrente] = useState<string>('');
   const [previewLado, setPreviewLado] = useState<string>('');
@@ -51,7 +51,7 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-  
+
   const [dataFotos, setDataFotos] = useState(getLocalDateString());
 
   // Refs para inputs de arquivo
@@ -75,18 +75,42 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
     }
   }, [open]);
 
-  const handleFileChange = (
+  const handleFileChange = async (
     file: File | null,
     setFile: (file: File | null) => void,
     setPreview: (url: string) => void
   ) => {
     if (file) {
-      setFile(file);
+      let fileToProcess = file;
+
+      // Se for HEIC, converter para JPEG para preview e estado
+      // Verificamos aqui também para garantir que o preview funcione
+      if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
+        try {
+          // Toast informando conversão
+          toast({
+            title: "Processando imagem...",
+            description: "Convertendo formato HEIC para JPEG",
+            duration: 2000,
+          });
+
+          fileToProcess = await processPhotoFile(file);
+        } catch (error) {
+          console.error("Erro ao converter HEIC para preview:", error);
+          toast({
+            title: "Aviso",
+            description: "Não foi possível gerar o preview da imagem HEIC, mas o upload tentará converter.",
+            variant: "destructive"
+          });
+        }
+      }
+
+      setFile(fileToProcess);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileToProcess);
     }
   };
 
@@ -94,7 +118,7 @@ export function AddCheckinPhotos({ telefone, nome, onSuccess, open: externalOpen
     try {
       // Processar arquivo (converte HEIC para JPEG automaticamente se necessário)
       const processedFile = await processPhotoFile(file);
-      
+
       const { data, error } = await supabase.storage
         .from('patient-photos')
         .upload(path, processedFile, {

@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { X, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { convertGoogleDriveUrl, isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { GoogleDriveImage } from '../ui/google-drive-image';
+import { HeicImage } from '../ui/heic-image';
 import type { Database } from '@/integrations/supabase/types';
 
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -51,16 +52,16 @@ export function CheckinPhotoComparison({
           costas: (patient as any).foto_inicial_costas || undefined
         };
         setInitialPhotos(initialPhotosData);
-        setInitialDate((patient as any).data_fotos_iniciais 
+        setInitialDate((patient as any).data_fotos_iniciais
           ? new Date((patient as any).data_fotos_iniciais).toLocaleDateString('pt-BR')
           : 'Dados Iniciais');
 
         // Fotos atuais do último check-in (mais recente)
-        const sortedCheckins = [...checkins].sort((a, b) => 
+        const sortedCheckins = [...checkins].sort((a, b) =>
           new Date(b.data_checkin).getTime() - new Date(a.data_checkin).getTime()
         );
         const lastCheckin = sortedCheckins[0];
-        
+
         const currentPhotosData: PhotoSet = {
           frente: lastCheckin?.foto_1 || undefined,
           lado: lastCheckin?.foto_2 || undefined,
@@ -68,7 +69,7 @@ export function CheckinPhotoComparison({
           costas: lastCheckin?.foto_4 || undefined
         };
         setCurrentPhotos(currentPhotosData);
-        setCurrentDate(lastCheckin?.data_checkin 
+        setCurrentDate(lastCheckin?.data_checkin
           ? new Date(lastCheckin.data_checkin).toLocaleDateString('pt-BR')
           : 'Último Check-in');
 
@@ -76,7 +77,7 @@ export function CheckinPhotoComparison({
         const angles: PhotoAngle[] = ['frente', 'lado', 'lado_2', 'costas'];
         const availableAngleInitial = angles.find(angle => initialPhotosData[angle]);
         const availableAngleCurrent = angles.find(angle => currentPhotosData[angle]);
-        
+
         if (availableAngleInitial) {
           setSelectedAngleInitial(availableAngleInitial);
         }
@@ -117,7 +118,7 @@ export function CheckinPhotoComparison({
   };
 
   const angles: PhotoAngle[] = ['frente', 'lado', 'lado_2', 'costas'];
-  
+
   const getAvailableAngles = (photoSet: PhotoSet) => {
     return angles.filter(angle => photoSet[angle]);
   };
@@ -128,16 +129,16 @@ export function CheckinPhotoComparison({
   const navigateAngle = (photoSet: PhotoSet, currentAngle: PhotoAngle, direction: 'prev' | 'next', setAngle: (angle: PhotoAngle) => void) => {
     const available = getAvailableAngles(photoSet);
     if (available.length === 0) return;
-    
+
     const currentIndex = available.indexOf(currentAngle);
     let newIndex: number;
-    
+
     if (direction === 'prev') {
       newIndex = currentIndex === 0 ? available.length - 1 : currentIndex - 1;
     } else {
       newIndex = currentIndex === available.length - 1 ? 0 : currentIndex + 1;
     }
-    
+
     setAngle(available[newIndex]);
   };
 
@@ -156,6 +157,12 @@ export function CheckinPhotoComparison({
       <div className="w-full h-[400px] flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden">
         {isGoogleDriveUrl(photoUrl) ? (
           <GoogleDriveImage
+            src={photoUrl}
+            alt={`${source} - ${date}`}
+            className="w-full h-full object-contain"
+          />
+        ) : photoUrl?.toLowerCase().endsWith('.heic') ? (
+          <HeicImage
             src={photoUrl}
             alt={`${source} - ${date}`}
             className="w-full h-full object-contain"
@@ -230,11 +237,10 @@ export function CheckinPhotoComparison({
                           variant={selectedAngleInitial === angle ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedAngleInitial(angle)}
-                          className={`text-[10px] h-6 px-1.5 ${
-                            selectedAngleInitial === angle
+                          className={`text-[10px] h-6 px-1.5 ${selectedAngleInitial === angle
                               ? 'bg-green-600 hover:bg-green-700 text-white'
                               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                          }`}
+                            }`}
                         >
                           {getAngleLabel(angle)}
                         </Button>
@@ -287,11 +293,10 @@ export function CheckinPhotoComparison({
                           variant={selectedAngleCurrent === angle ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedAngleCurrent(angle)}
-                          className={`text-[10px] h-6 px-1.5 ${
-                            selectedAngleCurrent === angle
+                          className={`text-[10px] h-6 px-1.5 ${selectedAngleCurrent === angle
                               ? 'bg-blue-600 hover:bg-blue-700 text-white'
                               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                          }`}
+                            }`}
                         >
                           {getAngleLabel(angle)}
                         </Button>

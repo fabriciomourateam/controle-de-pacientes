@@ -8,12 +8,14 @@ export interface AnamnesisData {
   cidade?: string;
   estado?: string;
   cep?: string;
+  detalhes_endereco_exterior?: string;
 
   // Dados pessoais extras
   instagram?: string;
   idade?: string;
 
   // Histórico e Objetivos
+  objetivo?: string;
   onde_conheceu?: string;
   objetivo_detalhado?: string;
   relato_objetivo?: string;

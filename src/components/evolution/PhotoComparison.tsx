@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMediaType } from "@/lib/media-utils";
 import { convertGoogleDriveUrl, isGoogleDriveUrl } from "@/lib/google-drive-utils";
 import { GoogleDriveImage } from "@/components/ui/google-drive-image";
+import { HeicImage } from "@/components/ui/heic-image";
 import type { Database } from "@/integrations/supabase/types";
 import { AddCheckinPhotos } from "./AddCheckinPhotos";
 import { CheckinPhotoComparison } from "./CheckinPhotoComparison";
@@ -47,12 +48,12 @@ interface PhotoData {
 
 export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable = false, hideInPublic = false, showCreateComparisonButton = false }: PhotoComparisonProps) {
   console.log('🚀 PhotoComparison RENDERIZADO!', { checkinsLength: checkins.length, hasPatient: !!patient });
-  
+
   // Se hideInPublic for true, não renderizar nada
   if (hideInPublic) {
     return null;
   }
-  
+
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoData | null>(null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
@@ -62,20 +63,20 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
   const [photoToDelete, setPhotoToDelete] = useState<PhotoData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showVisibilityModal, setShowVisibilityModal] = useState(false);
-  
+
   // Modo de seleção para criar comparação Antes/Depois
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedBeforePhoto, setSelectedBeforePhoto] = useState<PhotoData | null>(null);
   const [selectedAfterPhoto, setSelectedAfterPhoto] = useState<PhotoData | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  
+
   // Hook de visibilidade de fotos
   const { isPhotoVisible, getSetting } = usePhotoVisibility(patient?.telefone);
-  
+
   // Usar sessionStorage para preservar estado de minimização entre renderizações
   // Chave única baseada no telefone do paciente
   const storageKey = `photo-comparison-minimized-${patient?.telefone || 'default'}`;
-  
+
   // Função helper para ler do sessionStorage
   const getStoredMinimized = () => {
     try {
@@ -88,7 +89,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
       return false; // Padrão: expandido
     }
   };
-  
+
   // Inicializar estado do sessionStorage (função lazy para garantir que seja lido apenas na primeira renderização)
   const [isMinimized, setIsMinimized] = useState(() => getStoredMinimized());
   const [showComparisonModal, setShowComparisonModal] = useState(false);
@@ -100,7 +101,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
   // Sincronizar estado do sessionStorage quando o telefone mudar (mudança de paciente)
   const prevTelefoneRef = useRef(patient?.telefone);
   const prevCheckinsLengthRef = useRef(checkins.length);
-  
+
   useEffect(() => {
     // Se o telefone mudou, ler o estado do novo paciente
     if (prevTelefoneRef.current !== patient?.telefone) {
@@ -134,15 +135,15 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
   const handleDownloadPhoto = async (url: string, label: string) => {
     try {
       // Extrair ID do Google Drive
-      const fileId = url.match(/[?&]id=([^&]+)/)?.[1] || 
-                     url.match(/\/file\/d\/([^\/]+)/)?.[1] ||
-                     url.match(/\/d\/([^\/]+)/)?.[1];
-      
+      const fileId = url.match(/[?&]id=([^&]+)/)?.[1] ||
+        url.match(/\/file\/d\/([^\/]+)/)?.[1] ||
+        url.match(/\/d\/([^\/]+)/)?.[1];
+
       if (fileId && url.includes('drive.google.com')) {
         // Para Google Drive, usar fetch para baixar como blob
         try {
           const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-          
+
           toast({
             title: 'Iniciando download...',
             description: `Baixando ${label}...`
@@ -157,17 +158,17 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           if (response.ok) {
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
-            
+
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             // Limpar blob URL
             window.URL.revokeObjectURL(blobUrl);
-            
+
             toast({
               title: 'Download concluído!',
               description: `${label} foi baixado com sucesso.`
@@ -177,25 +178,25 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           }
         } catch (fetchError) {
           console.log('Fetch falhou, tentando método alternativo...', fetchError);
-          
+
           // Fallback: tentar converter URL para formato direto
           const directUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
-          
+
           try {
             const response = await fetch(directUrl);
             if (response.ok) {
               const blob = await response.blob();
               const blobUrl = window.URL.createObjectURL(blob);
-              
+
               const link = document.createElement('a');
               link.href = blobUrl;
               link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
-              
+
               window.URL.revokeObjectURL(blobUrl);
-              
+
               toast({
                 title: 'Download concluído!',
                 description: `${label} foi baixado com sucesso.`
@@ -205,11 +206,11 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
             }
           } catch (thumbnailError) {
             console.log('Thumbnail fetch falhou, abrindo em nova aba...', thumbnailError);
-            
+
             // Último recurso: abrir em nova aba
             const fallbackUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
             window.open(fallbackUrl, '_blank');
-            
+
             toast({
               title: 'Download iniciado',
               description: `${label} será aberto em nova aba para download manual.`
@@ -227,16 +228,16 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           if (response.ok) {
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
-            
+
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             window.URL.revokeObjectURL(blobUrl);
-            
+
             toast({
               title: 'Download concluído!',
               description: `${label} foi baixado com sucesso.`
@@ -246,7 +247,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           }
         } catch (directError) {
           console.log('Fetch direto falhou, usando método tradicional...', directError);
-          
+
           // Fallback para método tradicional
           const link = document.createElement('a');
           link.href = url;
@@ -255,7 +256,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          
+
           toast({
             title: 'Download iniciado',
             description: `Baixando ${label}...`
@@ -279,20 +280,20 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
     lado_2: (patient as any).foto_inicial_lado_2,
     costas: (patient as any).foto_inicial_costas,
   } : null;
-  
+
   console.log('📸 PhotoComparison - Dados recebidos:', {
     hasPatient: !!patient,
     patientName: patient?.nome,
     checkinsCount: checkins.length,
     patientPhotos
   });
-  
+
   console.log('📸 URLs das fotos (completas):', patientPhotos);
 
   const handleImageError = (photoId: string, url: string, originalUrl?: string) => {
     console.log('❌ Erro ao carregar imagem:', photoId);
     console.log('❌ URL que falhou:', url);
-    
+
     // Tentar URL alternativa se ainda não tentou
     if (!alternativeUrls.has(photoId) && originalUrl) {
       console.log('🔄 Tentando URL alternativa (thumbnail)...');
@@ -303,7 +304,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
         return;
       }
     }
-    
+
     setImageErrors(prev => new Set(prev).add(photoId));
   };
 
@@ -324,14 +325,14 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
       const isVideo = getMediaType(patientWithInitialData.foto_inicial_frente) === 'video';
       // Tentar usar URL original primeiro, só converter se necessário
       const originalUrl = patientWithInitialData.foto_inicial_frente;
-      const convertedUrl = originalUrl.includes('drive.google.com') 
-        ? convertGoogleDriveUrl(originalUrl, isVideo) 
+      const convertedUrl = originalUrl.includes('drive.google.com')
+        ? convertGoogleDriveUrl(originalUrl, isVideo)
         : originalUrl;
-      
+
       console.log('📸 Foto Frente - URL Original:', originalUrl);
       console.log('📸 Foto Frente - URL Convertida:', convertedUrl);
       console.log('📸 Foto Frente - É vídeo?', isVideo);
-      
+
       initialPhotos.push({
         url: originalUrl, // Usar URL original, não convertida
         date: patientWithInitialData.data_fotos_iniciais ? new Date(patientWithInitialData.data_fotos_iniciais).toLocaleDateString('pt-BR') : 'Data Inicial',
@@ -394,8 +395,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
     const photos: PhotoData[] = [];
     if (checkin.foto_1) {
       const isVideo = getMediaType(checkin.foto_1) === 'video';
-      const url = checkin.foto_1.includes('drive.google.com') 
-        ? convertGoogleDriveUrl(checkin.foto_1, isVideo) 
+      const url = checkin.foto_1.includes('drive.google.com')
+        ? convertGoogleDriveUrl(checkin.foto_1, isVideo)
         : checkin.foto_1;
       photos.push({
         url: url || checkin.foto_1,
@@ -409,8 +410,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
     }
     if (checkin.foto_2) {
       const isVideo = getMediaType(checkin.foto_2) === 'video';
-      const url = checkin.foto_2.includes('drive.google.com') 
-        ? convertGoogleDriveUrl(checkin.foto_2, isVideo) 
+      const url = checkin.foto_2.includes('drive.google.com')
+        ? convertGoogleDriveUrl(checkin.foto_2, isVideo)
         : checkin.foto_2;
       photos.push({
         url: url || checkin.foto_2,
@@ -424,8 +425,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
     }
     if (checkin.foto_3) {
       const isVideo = getMediaType(checkin.foto_3) === 'video';
-      const url = checkin.foto_3.includes('drive.google.com') 
-        ? convertGoogleDriveUrl(checkin.foto_3, isVideo) 
+      const url = checkin.foto_3.includes('drive.google.com')
+        ? convertGoogleDriveUrl(checkin.foto_3, isVideo)
         : checkin.foto_3;
       photos.push({
         url: url || checkin.foto_3,
@@ -439,8 +440,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
     }
     if (checkin.foto_4) {
       const isVideo = getMediaType(checkin.foto_4) === 'video';
-      const url = checkin.foto_4.includes('drive.google.com') 
-        ? convertGoogleDriveUrl(checkin.foto_4, isVideo) 
+      const url = checkin.foto_4.includes('drive.google.com')
+        ? convertGoogleDriveUrl(checkin.foto_4, isVideo)
         : checkin.foto_4;
       photos.push({
         url: url || checkin.foto_4,
@@ -457,19 +458,19 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
 
   // Combinar fotos iniciais com fotos de check-ins
   const allPhotos = [...initialPhotos, ...checkinPhotos];
-  
+
   console.log('📸 allPhotos final:', allPhotos.length, allPhotos);
 
   // ITEM 6 e 8: Filtrar fotos visíveis (apenas para pacientes, nutricionista vê todas)
-  const visiblePhotos = isEditable 
+  const visiblePhotos = isEditable
     ? allPhotos // Nutricionista vê todas
     : allPhotos.filter(photo => {
-        // Criar ID único para cada foto
-        const photoId = photo.isInitial 
-          ? `initial-${photo.angle}`
-          : `checkin-${photo.checkinId}-foto-${photo.photoNumber}`;
-        return isPhotoVisible(photoId);
-      });
+      // Criar ID único para cada foto
+      const photoId = photo.isInitial
+        ? `initial-${photo.angle}`
+        : `checkin-${photo.checkinId}-foto-${photo.photoNumber}`;
+      return isPhotoVisible(photoId);
+    });
 
   console.log('👁️ Fotos visíveis:', visiblePhotos.length, 'de', allPhotos.length);
 
@@ -517,10 +518,10 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
 
   // Função para formatar label da foto
   const getPhotoLabel = (photo: PhotoData, index: number) => {
-    const angleLabel = photo.angle === 'frente' ? '📷 Frente' : 
-                       photo.angle === 'lado' ? '📷 Lado' : 
-                       photo.angle === 'lado_2' ? '📷 Lado 2' : 
-                       photo.angle === 'costas' ? '📷 Costas' : '📷';
+    const angleLabel = photo.angle === 'frente' ? '📷 Frente' :
+      photo.angle === 'lado' ? '📷 Lado' :
+        photo.angle === 'lado_2' ? '📷 Lado 2' :
+          photo.angle === 'costas' ? '📷 Costas' : '📷';
     const prefix = photo.isInitial ? '⭐ BASELINE' : `#${index + 1}`;
     return `${prefix} - ${angleLabel} - ${photo.date} (${photo.weight}kg)`;
   };
@@ -528,10 +529,10 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
   // Função para atualizar o ângulo da foto
   const handleUpdatePhotoAngle = async (photo: PhotoData, newAngle: 'frente' | 'lado' | 'lado_2' | 'costas') => {
     if (!patient) return;
-    
+
     // Salvar posição do scroll antes de atualizar
     const scrollPosition = window.scrollY;
-    
+
     setIsUpdatingAngle(true);
     try {
       if (photo.isInitial) {
@@ -645,7 +646,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
       if (onPhotoDeleted) {
         onPhotoDeleted();
       }
-      
+
       // Restaurar posição do scroll após um pequeno delay para garantir que o DOM foi atualizado
       setTimeout(() => {
         window.scrollTo(0, scrollPosition);
@@ -789,14 +790,14 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
       if (dateStr.includes('-') && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
         return dateStr.split('T')[0];
       }
-      
+
       // Converter de DD/MM/YYYY para YYYY-MM-DD
       const parts = dateStr.split('/');
       if (parts.length === 3) {
         const [day, month, year] = parts;
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
-      
+
       // Fallback: retornar data atual
       return new Date().toISOString().split('T')[0];
     };
@@ -829,11 +830,11 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
 
   if (visiblePhotos.length === 0) {
     const patientWithData = patient as any;
-    const hasPhotoUrls = patientWithData?.foto_inicial_frente || 
-                         patientWithData?.foto_inicial_lado || 
-                         patientWithData?.foto_inicial_lado_2 || 
-                         patientWithData?.foto_inicial_costas;
-    
+    const hasPhotoUrls = patientWithData?.foto_inicial_frente ||
+      patientWithData?.foto_inicial_lado ||
+      patientWithData?.foto_inicial_lado_2 ||
+      patientWithData?.foto_inicial_costas;
+
     return (
       <Card className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-slate-700/50">
         <CardHeader>
@@ -869,44 +870,44 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
               transition={{ duration: 0.3 }}
             >
               <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Camera className="w-16 h-16 text-slate-600 mb-4" />
-            <p className="text-slate-400 text-lg">Nenhuma foto disponível</p>
-            <p className="text-slate-500 text-sm mt-2">
-              As fotos dos check-ins aparecerão aqui para comparação
-            </p>
-            
-            {hasPhotoUrls && (
-              <div className="mt-6 p-4 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-left max-w-2xl">
-                <p className="text-yellow-400 font-semibold mb-2">⚠️ Debug: URLs encontradas mas fotos não processadas</p>
-                <div className="text-xs text-yellow-300 space-y-1">
-                  {patientWithData.foto_inicial_frente && (
-                    <div>
-                      <strong>Frente:</strong> {patientWithData.foto_inicial_frente.substring(0, 80)}...
-                    </div>
-                  )}
-                  {patientWithData.foto_inicial_lado && (
-                    <div>
-                      <strong>Lado D:</strong> {patientWithData.foto_inicial_lado.substring(0, 80)}...
-                    </div>
-                  )}
-                  {patientWithData.foto_inicial_lado_2 && (
-                    <div>
-                      <strong>Lado E:</strong> {patientWithData.foto_inicial_lado_2.substring(0, 80)}...
-                    </div>
-                  )}
-                  {patientWithData.foto_inicial_costas && (
-                    <div>
-                      <strong>Costas:</strong> {patientWithData.foto_inicial_costas.substring(0, 80)}...
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Camera className="w-16 h-16 text-slate-600 mb-4" />
+                  <p className="text-slate-400 text-lg">Nenhuma foto disponível</p>
+                  <p className="text-slate-500 text-sm mt-2">
+                    As fotos dos check-ins aparecerão aqui para comparação
+                  </p>
+
+                  {hasPhotoUrls && (
+                    <div className="mt-6 p-4 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-left max-w-2xl">
+                      <p className="text-yellow-400 font-semibold mb-2">⚠️ Debug: URLs encontradas mas fotos não processadas</p>
+                      <div className="text-xs text-yellow-300 space-y-1">
+                        {patientWithData.foto_inicial_frente && (
+                          <div>
+                            <strong>Frente:</strong> {patientWithData.foto_inicial_frente.substring(0, 80)}...
+                          </div>
+                        )}
+                        {patientWithData.foto_inicial_lado && (
+                          <div>
+                            <strong>Lado D:</strong> {patientWithData.foto_inicial_lado.substring(0, 80)}...
+                          </div>
+                        )}
+                        {patientWithData.foto_inicial_lado_2 && (
+                          <div>
+                            <strong>Lado E:</strong> {patientWithData.foto_inicial_lado_2.substring(0, 80)}...
+                          </div>
+                        )}
+                        {patientWithData.foto_inicial_costas && (
+                          <div>
+                            <strong>Costas:</strong> {patientWithData.foto_inicial_costas.substring(0, 80)}...
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-yellow-300 text-xs mt-2">
+                        Verifique o console do navegador (F12) para mais detalhes
+                      </p>
                     </div>
                   )}
                 </div>
-                <p className="text-yellow-300 text-xs mt-2">
-                  Verifique o console do navegador (F12) para mais detalhes
-                </p>
-              </div>
-            )}
-          </div>
               </CardContent>
             </motion.div>
           )}
@@ -936,11 +937,10 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
                   size="sm"
                   onClick={toggleEvolutionPhotosCardVisibility}
                   disabled={evolutionPhotosCardLoading}
-                  className={`gap-2 ${
-                    evolutionPhotosCardVisible
-                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
-                      : 'bg-slate-700/50 border-slate-600/50 text-slate-400 hover:bg-slate-700'
-                  }`}
+                  className={`gap-2 ${evolutionPhotosCardVisible
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
+                    : 'bg-slate-700/50 border-slate-600/50 text-slate-400 hover:bg-slate-700'
+                    }`}
                   title={evolutionPhotosCardVisible ? 'Card visível no portal público. Clique para ocultar.' : 'Card oculto do portal público. Clique para mostrar.'}
                 >
                   {evolutionPhotosCardVisible ? (
@@ -995,9 +995,9 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
                       ) : (
                         <>
                           <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
-                            {!selectedBeforePhoto ? '1️⃣ Selecione foto ANTES' : 
-                             !selectedAfterPhoto ? '2️⃣ Selecione foto DEPOIS' : 
-                             '✅ Fotos selecionadas'}
+                            {!selectedBeforePhoto ? '1️⃣ Selecione foto ANTES' :
+                              !selectedAfterPhoto ? '2️⃣ Selecione foto DEPOIS' :
+                                '✅ Fotos selecionadas'}
                           </Badge>
                           <Button
                             variant="outline"
@@ -1045,458 +1045,485 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
               transition={{ duration: 0.3 }}
             >
               <CardContent className="space-y-6">
-          {/* Seção antiga de comparação removida - mantida apenas para referência */}
-          {false && allPhotos.length >= 2 && firstPhoto && lastPhoto && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <ChevronRight className="w-5 h-5 text-emerald-400" />
-                  Comparação: Antes e Depois
-                </h3>
-              </div>
+                {/* Seção antiga de comparação removida - mantida apenas para referência */}
+                {false && allPhotos.length >= 2 && firstPhoto && lastPhoto && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <ChevronRight className="w-5 h-5 text-emerald-400" />
+                        Comparação: Antes e Depois
+                      </h3>
+                    </div>
 
-              {/* Seletores de Fotos */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-700/30 p-4 rounded-lg border border-slate-600/30">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Foto "Antes"</label>
-                  <Select
-                    value={selectedBeforeIndex.toString()}
-                    onValueChange={(value) => setSelectedBeforeIndex(parseInt(value))}
-                  >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      {allPhotos.map((photo, index) => (
-                        <SelectItem 
-                          key={`before-${index}`} 
-                          value={index.toString()}
-                          className="text-white hover:bg-slate-700"
+                    {/* Seletores de Fotos */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-700/30 p-4 rounded-lg border border-slate-600/30">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300">Foto "Antes"</label>
+                        <Select
+                          value={selectedBeforeIndex.toString()}
+                          onValueChange={(value) => setSelectedBeforeIndex(parseInt(value))}
                         >
-                          {getPhotoLabel(photo, index)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Foto "Depois"</label>
-                  <Select
-                    value={(selectedAfterIndex ?? allPhotos.length - 1).toString()}
-                    onValueChange={(value) => setSelectedAfterIndex(parseInt(value))}
-                  >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      {allPhotos.map((photo, index) => (
-                        <SelectItem 
-                          key={`after-${index}`} 
-                          value={index.toString()}
-                          className="text-white hover:bg-slate-700"
-                        >
-                          {getPhotoLabel(photo, index)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Foto/Vídeo Inicial */}
-                <div className="space-y-3">
-                  <div className="relative group">
-                    {firstPhoto.isVideo ? (
-                      <video 
-                        src={firstPhoto.url} 
-                        controls
-                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all"
-                      />
-                    ) : isGoogleDriveUrl(firstPhoto.url) ? (
-                      <GoogleDriveImage
-                        src={firstPhoto.url}
-                        alt="Foto Inicial"
-                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
-                        onClick={() => handleZoomPhoto(firstPhoto)}
-                        onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
-                      />
-                    ) : imageErrors.has(getPhotoId(firstPhoto)) ? (
-                      <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
-                        <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
-                        <p className="text-slate-300 mb-4">Foto não disponível</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(firstPhoto.url, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Abrir em nova aba
-                        </Button>
+                          <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600">
+                            {allPhotos.map((photo, index) => (
+                              <SelectItem
+                                key={`before-${index}`}
+                                value={index.toString()}
+                                className="text-white hover:bg-slate-700"
+                              >
+                                {getPhotoLabel(photo, index)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    ) : (
-                      <img 
-                        src={getPhotoUrl(firstPhoto)} 
-                        alt="Foto Inicial"
-                        loading="lazy"
-                        className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
-                        onClick={() => handleZoomPhoto(firstPhoto)}
-                        onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
-                      />
-                    )}
-                    <Badge className={`absolute top-2 left-2 ${firstPhoto.isInitial ? 'bg-purple-600/90' : 'bg-blue-600/90'} text-white`}>
-                      {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
-                    </Badge>
-                    {!firstPhoto.isVideo && !imageErrors.has(getPhotoId(firstPhoto)) && (
-                      <>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="absolute top-1/2 -translate-y-1/2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadPhoto(firstPhoto.url, `Foto-Antes-${firstPhoto.date}-${firstPhoto.weight}kg`);
-                          }}
-                          title="Baixar foto"
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300">Foto "Depois"</label>
+                        <Select
+                          value={(selectedAfterIndex ?? allPhotos.length - 1).toString()}
+                          onValueChange={(value) => setSelectedAfterIndex(parseInt(value))}
                         >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                          onClick={() => handleZoomPhoto(firstPhoto)}
-                        >
-                          <ZoomIn className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <div className="bg-slate-700/50 p-3 rounded-lg">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Calendar className="w-4 h-4" />
-                        {firstPhoto.date}
-                      </div>
-                      <div className="text-white font-semibold">
-                        {firstPhoto.weight} kg
+                          <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600">
+                            {allPhotos.map((photo, index) => (
+                              <SelectItem
+                                key={`after-${index}`}
+                                value={index.toString()}
+                                className="text-white hover:bg-slate-700"
+                              >
+                                {getPhotoLabel(photo, index)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Foto/Vídeo Final */}
-                <div className="space-y-3">
-                  <div className="relative group">
-                    {lastPhoto.isVideo ? (
-                      <video 
-                        src={lastPhoto.url} 
-                        controls
-                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all"
-                      />
-                    ) : isGoogleDriveUrl(lastPhoto.url) ? (
-                      <GoogleDriveImage
-                        src={lastPhoto.url}
-                        alt="Foto Atual"
-                        className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
-                        onClick={() => handleZoomPhoto(lastPhoto)}
-                        onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
-                      />
-                    ) : imageErrors.has(getPhotoId(lastPhoto)) ? (
-                      <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
-                        <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
-                        <p className="text-slate-300 mb-4">Foto não disponível</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(lastPhoto.url, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Abrir em nova aba
-                        </Button>
-                      </div>
-                    ) : (
-                      <img
-                        src={getPhotoUrl(lastPhoto)}
-                        alt="Foto Atual"
-                        loading="lazy"
-                        className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
-                        onClick={() => handleZoomPhoto(lastPhoto)}
-                        onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
-                      />
-                    )}
-                    <Badge className="absolute top-2 left-2 bg-emerald-600/90 text-white">
-                      ATUAL
-                    </Badge>
-                    {!lastPhoto.isVideo && !imageErrors.has(getPhotoId(lastPhoto)) && (
-                      <>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="absolute top-1/2 -translate-y-1/2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadPhoto(lastPhoto.url, `Foto-Depois-${lastPhoto.date}-${lastPhoto.weight}kg`);
-                          }}
-                          title="Baixar foto"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                          onClick={() => handleZoomPhoto(lastPhoto)}
-                        >
-                          <ZoomIn className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <div className="bg-slate-700/50 p-3 rounded-lg">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Calendar className="w-4 h-4" />
-                        {lastPhoto.date}
-                      </div>
-                      <div className="text-white font-semibold">
-                        {lastPhoto.weight} kg
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Galeria de Todas as Fotos Agrupadas por Data */}
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Camera className="w-5 h-5 text-purple-400" />
-              Galeria Completa ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
-            </h3>
-            
-            {sortedDates.map((date, dateIndex) => {
-              const photosForDate = photosByDate[date];
-              const isInitialDate = photosForDate[0]?.isInitial;
-              
-              return (
-                <div key={date} className="space-y-3">
-                  {/* Cabeçalho da Data */}
-                  <div className="flex items-center gap-3 pb-2 border-b border-slate-700/50">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      <h4 className="text-base font-semibold text-white">
-                        {date}
-                      </h4>
-                      {isInitialDate && (
-                        <Badge className="bg-purple-600/90 text-white text-xs">
-                          ⭐ Baseline
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex-1" />
-                    <Badge variant="outline" className="text-slate-400 border-slate-600">
-                      {photosForDate.length} {photosForDate.length === 1 ? 'foto' : 'fotos'}
-                    </Badge>
-                    {photosForDate[0]?.weight && photosForDate[0].weight !== 'N/A' && (
-                      <Badge variant="outline" className="text-blue-400 border-blue-600/50">
-                        {photosForDate[0].weight} kg
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Grid de Fotos para esta Data */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {photosForDate.map((photo, photoIndex) => {
-                      // Encontrar índice global para badge
-                      const globalIndex = allPhotos.findIndex(p => 
-                        p.checkinId === photo.checkinId && p.photoNumber === photo.photoNumber
-                      );
-                      
-                      return (
-                        <div key={`${photo.checkinId}-${photo.photoNumber}`} className="space-y-2">
-                          <div 
-                            className={`relative group ${isSelectionMode ? 'cursor-pointer' : ''}`}
-                            onClick={() => isSelectionMode && handleSelectPhoto(photo)}
-                          >
-                            {/* Indicador de Seleção */}
-                            {isSelectionMode && (
-                              <div className={`absolute inset-0 rounded-lg border-4 z-20 pointer-events-none transition-all ${
-                                selectedBeforePhoto?.url === photo.url 
-                                  ? 'border-red-500 bg-red-500/20' 
-                                  : selectedAfterPhoto?.url === photo.url 
-                                  ? 'border-emerald-500 bg-emerald-500/20' 
-                                  : 'border-transparent hover:border-white/30'
-                              }`}>
-                                {selectedBeforePhoto?.url === photo.url && (
-                                  <div className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
-                                    ANTES
-                                  </div>
-                                )}
-                                {selectedAfterPhoto?.url === photo.url && (
-                                  <div className="absolute top-2 right-2 bg-emerald-500 text-white px-3 py-1 rounded-full font-bold text-sm">
-                                    DEPOIS
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {photo.isVideo ? (
-                              <video 
-                                src={photo.url} 
-                                controls
-                                className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
-                              />
-                            ) : isGoogleDriveUrl(photo.url) ? (
-                              <GoogleDriveImage
-                                src={photo.url}
-                                alt={`Foto ${globalIndex + 1}`}
-                                className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
-                                onClick={() => {
-                                  if (isSelectionMode) handleSelectPhoto(photo);
-                                  else handleZoomPhoto(photo);
-                                }}
-                                onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
-                              />
-                            ) : imageErrors.has(getPhotoId(photo)) ? (
-                              <div className="w-full h-48 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border border-slate-600">
-                                <ExternalLink className="h-8 w-8 text-slate-400 mb-2" />
-                                <p className="text-xs text-slate-300 mb-2 px-2 text-center">Foto não disponível</p>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-xs"
-                                  onClick={() => window.open(photo.url, '_blank')}
-                                >
-                                  <ExternalLink className="h-3 w-3 mr-1" />
-                                  Abrir
-                                </Button>
-                              </div>
-                            ) : (
-                              <img
-                                src={getPhotoUrl(photo)}
-                                alt={`Foto ${globalIndex + 1}`}
-                                loading="lazy"
-                                className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Foto/Vídeo Inicial */}
+                      <div className="space-y-3">
+                        <div className="relative group">
+                          {firstPhoto.isVideo ? (
+                            <video
+                              src={firstPhoto.url}
+                              controls
+                              className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all"
+                            />
+                          ) : isGoogleDriveUrl(firstPhoto.url) ? (
+                            <GoogleDriveImage
+                              src={firstPhoto.url}
+                              alt="Foto Inicial"
+                              className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(firstPhoto)}
+                              onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
+                            />
+                          ) : imageErrors.has(getPhotoId(firstPhoto)) ? (
+                            <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
+                              <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
+                              <p className="text-slate-300 mb-4">Foto não disponível</p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(firstPhoto.url, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Abrir em nova aba
+                              </Button>
+                            </div>
+                          ) : firstPhoto.url.toLowerCase().endsWith('.heic') ? (
+                            <HeicImage
+                              src={firstPhoto.url}
+                              alt="Foto Inicial"
+                              className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(firstPhoto)}
+                            />
+                          ) : (
+                            <img
+                              src={getPhotoUrl(firstPhoto)}
+                              alt="Foto Inicial"
+                              loading="lazy"
+                              className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(firstPhoto)}
+                              onError={() => handleImageError(getPhotoId(firstPhoto), getPhotoUrl(firstPhoto), firstPhoto.url)}
+                            />
+                          )}
+                          <Badge className={`absolute top-2 left-2 ${firstPhoto.isInitial ? 'bg-purple-600/90' : 'bg-blue-600/90'} text-white`}>
+                            {firstPhoto.isInitial ? 'BASELINE' : 'INICIAL'}
+                          </Badge>
+                          {!firstPhoto.isVideo && !imageErrors.has(getPhotoId(firstPhoto)) && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="absolute top-1/2 -translate-y-1/2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
                                 onClick={(e) => {
-                                  if (isSelectionMode) {
-                                    e.stopPropagation();
-                                    handleSelectPhoto(photo);
-                                  } else {
-                                    handleZoomPhoto(photo);
-                                  }
+                                  e.stopPropagation();
+                                  handleDownloadPhoto(firstPhoto.url, `Foto-Antes-${firstPhoto.date}-${firstPhoto.weight}kg`);
                                 }}
-                                onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
-                              />
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  className={`absolute top-2 left-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${photo.isInitial ? 'bg-purple-600/90 border-transparent' : 'bg-blue-600/90 border-transparent'} text-white cursor-pointer hover:opacity-80 transition-opacity z-10`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                  }}
-                                  onMouseDown={(e) => {
-                                    e.stopPropagation();
-                                  }}
-                                >
-                                  {photo.angle === 'frente' ? '📷 Frente' : 
-                                   photo.angle === 'lado' ? '📷 Lado D' : 
-                                   photo.angle === 'lado_2' ? '📷 Lado E' : 
-                                   photo.angle === 'costas' ? '📷 Costas' : 
-                                   photo.isInitial ? '⭐' : `#${globalIndex + 1}`}
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent className="bg-slate-800 border-slate-600 z-50" onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (photo.angle !== 'frente') {
-                                      handleUpdatePhotoAngle(photo, 'frente');
-                                    }
-                                  }}
-                                  disabled={isUpdatingAngle || photo.angle === 'frente'}
-                                  className="text-white hover:bg-slate-700 cursor-pointer"
-                                >
-                                  📷 Frente {photo.angle === 'frente' && '✓'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (photo.angle !== 'lado') {
-                                      handleUpdatePhotoAngle(photo, 'lado');
-                                    }
-                                  }}
-                                  disabled={isUpdatingAngle || photo.angle === 'lado'}
-                                  className="text-white hover:bg-slate-700 cursor-pointer"
-                                >
-                                  📷 Lado D {photo.angle === 'lado' && '✓'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (photo.angle !== 'lado_2') {
-                                      handleUpdatePhotoAngle(photo, 'lado_2');
-                                    }
-                                  }}
-                                  disabled={isUpdatingAngle || photo.angle === 'lado_2'}
-                                  className="text-white hover:bg-slate-700 cursor-pointer"
-                                >
-                                  📷 Lado E {photo.angle === 'lado_2' && '✓'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (photo.angle !== 'costas') {
-                                      handleUpdatePhotoAngle(photo, 'costas');
-                                    }
-                                  }}
-                                  disabled={isUpdatingAngle || photo.angle === 'costas'}
-                                  className="text-white hover:bg-slate-700 cursor-pointer"
-                                >
-                                  📷 Costas {photo.angle === 'costas' && '✓'}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            {/* Botão de download */}
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="absolute top-2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadPhoto(photo.url, `Foto-${photo.date}-${photo.weight}kg`);
-                              }}
-                              title="Baixar foto"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                            {/* Botão de deletar */}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPhotoToDelete(photo);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <div className="text-xs text-center">
-                            <p className="text-white font-semibold">{photo.weight} kg</p>
+                                title="Baixar foto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                                onClick={() => handleZoomPhoto(firstPhoto)}
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                        <div className="bg-slate-700/50 p-3 rounded-lg">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-slate-300">
+                              <Calendar className="w-4 h-4" />
+                              {firstPhoto.date}
+                            </div>
+                            <div className="text-white font-semibold">
+                              {firstPhoto.weight} kg
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+
+                      {/* Foto/Vídeo Final */}
+                      <div className="space-y-3">
+                        <div className="relative group">
+                          {lastPhoto.isVideo ? (
+                            <video
+                              src={lastPhoto.url}
+                              controls
+                              className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all"
+                            />
+                          ) : isGoogleDriveUrl(lastPhoto.url) ? (
+                            <GoogleDriveImage
+                              src={lastPhoto.url}
+                              alt="Foto Atual"
+                              className="w-full h-80 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(lastPhoto)}
+                              onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
+                            />
+                          ) : imageErrors.has(getPhotoId(lastPhoto)) ? (
+                            <div className="w-full h-80 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border-2 border-slate-600">
+                              <ExternalLink className="h-12 w-12 text-slate-400 mb-3" />
+                              <p className="text-slate-300 mb-4">Foto não disponível</p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(lastPhoto.url, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Abrir em nova aba
+                              </Button>
+                            </div>
+                          ) : lastPhoto.url.toLowerCase().endsWith('.heic') ? (
+                            <HeicImage
+                              src={lastPhoto.url}
+                              alt="Foto Atual"
+                              className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(lastPhoto)}
+                            />
+                          ) : (
+                            <img
+                              src={getPhotoUrl(lastPhoto)}
+                              alt="Foto Atual"
+                              loading="lazy"
+                              className="w-full h-96 object-cover rounded-lg border-2 border-slate-600 hover:border-emerald-500 transition-all cursor-pointer"
+                              onClick={() => handleZoomPhoto(lastPhoto)}
+                              onError={() => handleImageError(getPhotoId(lastPhoto), getPhotoUrl(lastPhoto), lastPhoto.url)}
+                            />
+                          )}
+                          <Badge className="absolute top-2 left-2 bg-emerald-600/90 text-white">
+                            ATUAL
+                          </Badge>
+                          {!lastPhoto.isVideo && !imageErrors.has(getPhotoId(lastPhoto)) && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="absolute top-1/2 -translate-y-1/2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadPhoto(lastPhoto.url, `Foto-Depois-${lastPhoto.date}-${lastPhoto.weight}kg`);
+                                }}
+                                title="Baixar foto"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                                onClick={() => handleZoomPhoto(lastPhoto)}
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                        <div className="bg-slate-700/50 p-3 rounded-lg">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-slate-300">
+                              <Calendar className="w-4 h-4" />
+                              {lastPhoto.date}
+                            </div>
+                            <div className="text-white font-semibold">
+                              {lastPhoto.weight} kg
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
+
+                {/* Galeria de Todas as Fotos Agrupadas por Data */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-purple-400" />
+                    Galeria Completa ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
+                  </h3>
+
+                  {sortedDates.map((date, dateIndex) => {
+                    const photosForDate = photosByDate[date];
+                    const isInitialDate = photosForDate[0]?.isInitial;
+
+                    return (
+                      <div key={date} className="space-y-3">
+                        {/* Cabeçalho da Data */}
+                        <div className="flex items-center gap-3 pb-2 border-b border-slate-700/50">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-slate-400" />
+                            <h4 className="text-base font-semibold text-white">
+                              {date}
+                            </h4>
+                            {isInitialDate && (
+                              <Badge className="bg-purple-600/90 text-white text-xs">
+                                ⭐ Baseline
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex-1" />
+                          <Badge variant="outline" className="text-slate-400 border-slate-600">
+                            {photosForDate.length} {photosForDate.length === 1 ? 'foto' : 'fotos'}
+                          </Badge>
+                          {photosForDate[0]?.weight && photosForDate[0].weight !== 'N/A' && (
+                            <Badge variant="outline" className="text-blue-400 border-blue-600/50">
+                              {photosForDate[0].weight} kg
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Grid de Fotos para esta Data */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {photosForDate.map((photo, photoIndex) => {
+                            // Encontrar índice global para badge
+                            const globalIndex = allPhotos.findIndex(p =>
+                              p.checkinId === photo.checkinId && p.photoNumber === photo.photoNumber
+                            );
+
+                            return (
+                              <div key={`${photo.checkinId}-${photo.photoNumber}`} className="space-y-2">
+                                <div
+                                  className={`relative group ${isSelectionMode ? 'cursor-pointer' : ''}`}
+                                  onClick={() => isSelectionMode && handleSelectPhoto(photo)}
+                                >
+                                  {/* Indicador de Seleção */}
+                                  {isSelectionMode && (
+                                    <div className={`absolute inset-0 rounded-lg border-4 z-20 pointer-events-none transition-all ${selectedBeforePhoto?.url === photo.url
+                                      ? 'border-red-500 bg-red-500/20'
+                                      : selectedAfterPhoto?.url === photo.url
+                                        ? 'border-emerald-500 bg-emerald-500/20'
+                                        : 'border-transparent hover:border-white/30'
+                                      }`}>
+                                      {selectedBeforePhoto?.url === photo.url && (
+                                        <div className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">
+                                          ANTES
+                                        </div>
+                                      )}
+                                      {selectedAfterPhoto?.url === photo.url && (
+                                        <div className="absolute top-2 right-2 bg-emerald-500 text-white px-3 py-1 rounded-full font-bold text-sm">
+                                          DEPOIS
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {photo.isVideo ? (
+                                    <video
+                                      src={photo.url}
+                                      controls
+                                      className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all"
+                                    />
+                                  ) : isGoogleDriveUrl(photo.url) ? (
+                                    <GoogleDriveImage
+                                      src={photo.url}
+                                      alt={`Foto ${globalIndex + 1}`}
+                                      className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                                      onClick={() => {
+                                        if (isSelectionMode) handleSelectPhoto(photo);
+                                        else handleZoomPhoto(photo);
+                                      }}
+                                      onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
+                                    />
+                                  ) : imageErrors.has(getPhotoId(photo)) ? (
+                                    <div className="w-full h-48 flex flex-col items-center justify-center bg-slate-700/50 rounded-lg border border-slate-600">
+                                      <ExternalLink className="h-8 w-8 text-slate-400 mb-2" />
+                                      <p className="text-xs text-slate-300 mb-2 px-2 text-center">Foto não disponível</p>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs"
+                                        onClick={() => window.open(photo.url, '_blank')}
+                                      >
+                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                        Abrir
+                                      </Button>
+                                    </div>
+                                  ) : photo.url.toLowerCase().endsWith('.heic') ? (
+                                    <HeicImage
+                                      src={photo.url}
+                                      alt={`Foto ${globalIndex + 1}`}
+                                      className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                                      onClick={(e) => {
+                                        if (isSelectionMode) {
+                                          e.stopPropagation();
+                                          handleSelectPhoto(photo);
+                                        } else {
+                                          handleZoomPhoto(photo);
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <img
+                                      src={getPhotoUrl(photo)}
+                                      alt={`Foto ${globalIndex + 1}`}
+                                      loading="lazy"
+                                      className="w-full h-48 object-cover rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer hover:scale-105"
+                                      onClick={(e) => {
+                                        if (isSelectionMode) {
+                                          e.stopPropagation();
+                                          handleSelectPhoto(photo);
+                                        } else {
+                                          handleZoomPhoto(photo);
+                                        }
+                                      }}
+                                      onError={() => handleImageError(getPhotoId(photo), getPhotoUrl(photo), photo.url)}
+                                    />
+                                  )}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        className={`absolute top-2 left-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${photo.isInitial ? 'bg-purple-600/90 border-transparent' : 'bg-blue-600/90 border-transparent'} text-white cursor-pointer hover:opacity-80 transition-opacity z-10`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                        }}
+                                        onMouseDown={(e) => {
+                                          e.stopPropagation();
+                                        }}
+                                      >
+                                        {photo.angle === 'frente' ? '📷 Frente' :
+                                          photo.angle === 'lado' ? '📷 Lado D' :
+                                            photo.angle === 'lado_2' ? '📷 Lado E' :
+                                              photo.angle === 'costas' ? '📷 Costas' :
+                                                photo.isInitial ? '⭐' : `#${globalIndex + 1}`}
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="bg-slate-800 border-slate-600 z-50" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (photo.angle !== 'frente') {
+                                            handleUpdatePhotoAngle(photo, 'frente');
+                                          }
+                                        }}
+                                        disabled={isUpdatingAngle || photo.angle === 'frente'}
+                                        className="text-white hover:bg-slate-700 cursor-pointer"
+                                      >
+                                        📷 Frente {photo.angle === 'frente' && '✓'}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (photo.angle !== 'lado') {
+                                            handleUpdatePhotoAngle(photo, 'lado');
+                                          }
+                                        }}
+                                        disabled={isUpdatingAngle || photo.angle === 'lado'}
+                                        className="text-white hover:bg-slate-700 cursor-pointer"
+                                      >
+                                        📷 Lado D {photo.angle === 'lado' && '✓'}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (photo.angle !== 'lado_2') {
+                                            handleUpdatePhotoAngle(photo, 'lado_2');
+                                          }
+                                        }}
+                                        disabled={isUpdatingAngle || photo.angle === 'lado_2'}
+                                        className="text-white hover:bg-slate-700 cursor-pointer"
+                                      >
+                                        📷 Lado E {photo.angle === 'lado_2' && '✓'}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (photo.angle !== 'costas') {
+                                            handleUpdatePhotoAngle(photo, 'costas');
+                                          }
+                                        }}
+                                        disabled={isUpdatingAngle || photo.angle === 'costas'}
+                                        className="text-white hover:bg-slate-700 cursor-pointer"
+                                      >
+                                        📷 Costas {photo.angle === 'costas' && '✓'}
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                  {/* Botão de download */}
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="absolute top-2 right-12 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownloadPhoto(photo.url, `Foto-${photo.date}-${photo.weight}kg`);
+                                    }}
+                                    title="Baixar foto"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                  {/* Botão de deletar */}
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPhotoToDelete(photo);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                                <div className="text-xs text-center">
+                                  <p className="text-white font-semibold">{photo.weight} kg</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
               </CardContent>
             </motion.div>
           )}
@@ -1580,8 +1607,8 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           {selectedPhoto && (
             <div className="relative">
               {selectedPhoto.isVideo ? (
-                <video 
-                  src={selectedPhoto.url} 
+                <video
+                  src={selectedPhoto.url}
                   controls
                   className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
                   onError={(e) => {
@@ -1600,6 +1627,12 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
                     handleImageError(getPhotoId(selectedPhoto), getPhotoUrl(selectedPhoto), selectedPhoto.url);
                   }}
                   crossOrigin="anonymous"
+                />
+              ) : selectedPhoto.url.toLowerCase().endsWith('.heic') ? (
+                <HeicImage
+                  src={selectedPhoto.url}
+                  alt="Foto ampliada"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
                 />
               ) : imageErrors.has(getPhotoId(selectedPhoto)) ? (
                 <div className="w-full h-[70vh] flex flex-col items-center justify-center bg-slate-800/50 rounded-lg">
@@ -1624,7 +1657,7 @@ export function PhotoComparison({ checkins, patient, onPhotoDeleted, isEditable 
           )}
         </DialogContent>
       </Dialog>
-      
+
       {/* Modal de Comparação de Fotos */}
       {patient && (
         <CheckinPhotoComparison

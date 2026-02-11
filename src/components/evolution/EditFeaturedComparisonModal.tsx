@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ZoomIn, ZoomOut, RotateCcw, Save, X, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { HeicImage } from '@/components/ui/heic-image';
 
 interface PhotoData {
   url: string;
@@ -235,7 +236,7 @@ export function EditFeaturedComparisonModal({
       const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
       const scale = currentDistance / state.initialPinchDistance;
       const newZoom = Math.max(0.5, Math.min(3, state.initialPinchZoom * scale));
-      
+
       setState(prev => ({
         ...prev,
         zoom: newZoom
@@ -272,12 +273,12 @@ export function EditFeaturedComparisonModal({
         afterX: afterState.x,
         afterY: afterState.y,
       });
-      
+
       toast({
         title: 'Comparação salva!',
         description: 'As configurações foram aplicadas com sucesso'
       });
-      
+
       onClose();
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -348,20 +349,32 @@ export function EditFeaturedComparisonModal({
                 onMouseMove={(e) => handleMouseMove(e, 'before')}
                 onMouseUp={() => handleMouseUp('before')}
                 onMouseLeave={() => handleMouseUp('before')}
-                onTouchStart={(e) => handleTouchStart(e, 'before')}
                 onTouchMove={(e) => handleTouchMove(e, 'before')}
                 onTouchEnd={() => handleTouchEnd('before')}
               >
-                <img
-                  src={beforePhoto.url}
-                  alt="Antes"
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-                  style={{
-                    transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
-                    transition: (beforeState.isDragging || beforeState.isTouching) ? 'none' : 'transform 0.1s'
-                  }}
-                  draggable={false}
-                />
+                {beforePhoto.url.toLowerCase().endsWith('.heic') ? (
+                  <HeicImage
+                    src={beforePhoto.url}
+                    alt="Antes"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                    style={{
+                      transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
+                      transition: (beforeState.isDragging || beforeState.isTouching) ? 'none' : 'transform 0.1s'
+                    }}
+                    draggable={false}
+                  />
+                ) : (
+                  <img
+                    src={beforePhoto.url}
+                    alt="Antes"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                    style={{
+                      transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
+                      transition: (beforeState.isDragging || beforeState.isTouching) ? 'none' : 'transform 0.1s'
+                    }}
+                    draggable={false}
+                  />
+                )}
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                   Zoom: {beforeState.zoom.toFixed(1)}x — use o scroll aqui
                 </div>
@@ -403,20 +416,32 @@ export function EditFeaturedComparisonModal({
                 onMouseMove={(e) => handleMouseMove(e, 'after')}
                 onMouseUp={() => handleMouseUp('after')}
                 onMouseLeave={() => handleMouseUp('after')}
-                onTouchStart={(e) => handleTouchStart(e, 'after')}
                 onTouchMove={(e) => handleTouchMove(e, 'after')}
                 onTouchEnd={() => handleTouchEnd('after')}
               >
-                <img
-                  src={afterPhoto.url}
-                  alt="Depois"
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-                  style={{
-                    transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
-                    transition: (afterState.isDragging || afterState.isTouching) ? 'none' : 'transform 0.1s'
-                  }}
-                  draggable={false}
-                />
+                {afterPhoto.url.toLowerCase().endsWith('.heic') ? (
+                  <HeicImage
+                    src={afterPhoto.url}
+                    alt="Depois"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                    style={{
+                      transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
+                      transition: (afterState.isDragging || afterState.isTouching) ? 'none' : 'transform 0.1s'
+                    }}
+                    draggable={false}
+                  />
+                ) : (
+                  <img
+                    src={afterPhoto.url}
+                    alt="Depois"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                    style={{
+                      transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
+                      transition: (afterState.isDragging || afterState.isTouching) ? 'none' : 'transform 0.1s'
+                    }}
+                    draggable={false}
+                  />
+                )}
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                   Zoom: {afterState.zoom.toFixed(1)}x — use o scroll aqui
                 </div>
@@ -450,7 +475,7 @@ export function EditFeaturedComparisonModal({
               <div className="max-w-4xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {/* Preview ANTES - EXATAMENTE como na página pública */}
-                  <div 
+                  <div
                     ref={beforePreviewRef}
                     className="relative group cursor-zoom-in"
                   >
@@ -461,15 +486,27 @@ export function EditFeaturedComparisonModal({
                     </div>
                     {/* Preview com aspect-ratio 3:4 e object-contain - foto completa sem corte */}
                     <div className="aspect-[3/4] relative overflow-hidden bg-slate-900 rounded flex items-center justify-center">
-                      <img
-                        src={beforePhoto.url}
-                        alt="Preview Antes"
-                        className="max-w-full max-h-full object-contain"
-                        style={{
-                          transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
-                          transformOrigin: 'center center'
-                        }}
-                      />
+                      {beforePhoto.url.toLowerCase().endsWith('.heic') ? (
+                        <HeicImage
+                          src={beforePhoto.url}
+                          alt="Preview Antes"
+                          className="max-w-full max-h-full object-contain"
+                          style={{
+                            transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
+                            transformOrigin: 'center center'
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={beforePhoto.url}
+                          alt="Preview Antes"
+                          className="max-w-full max-h-full object-contain"
+                          style={{
+                            transform: `scale(${beforeState.zoom}) translate(${beforeState.x / beforeState.zoom}px, ${beforeState.y / beforeState.zoom}px)`,
+                            transformOrigin: 'center center'
+                          }}
+                        />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
                     </div>
                     <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs z-10 hidden md:block">
@@ -478,7 +515,7 @@ export function EditFeaturedComparisonModal({
                   </div>
 
                   {/* Preview DEPOIS - EXATAMENTE como na página pública */}
-                  <div 
+                  <div
                     ref={afterPreviewRef}
                     className="relative group cursor-zoom-in"
                   >
@@ -489,15 +526,27 @@ export function EditFeaturedComparisonModal({
                     </div>
                     {/* Preview com aspect-ratio 3:4 e object-contain - foto completa sem corte */}
                     <div className="aspect-[3/4] relative overflow-hidden bg-slate-900 rounded flex items-center justify-center">
-                      <img
-                        src={afterPhoto.url}
-                        alt="Preview Depois"
-                        className="max-w-full max-h-full object-contain"
-                        style={{
-                          transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
-                          transformOrigin: 'center center'
-                        }}
-                      />
+                      {afterPhoto.url.toLowerCase().endsWith('.heic') ? (
+                        <HeicImage
+                          src={afterPhoto.url}
+                          alt="Preview Depois"
+                          className="max-w-full max-h-full object-contain"
+                          style={{
+                            transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
+                            transformOrigin: 'center center'
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={afterPhoto.url}
+                          alt="Preview Depois"
+                          className="max-w-full max-h-full object-contain"
+                          style={{
+                            transform: `scale(${afterState.zoom}) translate(${afterState.x / afterState.zoom}px, ${afterState.y / afterState.zoom}px)`,
+                            transformOrigin: 'center center'
+                          }}
+                        />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
                     </div>
                     <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs z-10 hidden md:block">
@@ -512,7 +561,7 @@ export function EditFeaturedComparisonModal({
           {/* Dica */}
           <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
             <p className="text-sm text-blue-300">
-              💡 <strong>Dica:</strong> 
+              💡 <strong>Dica:</strong>
               <span className="hidden md:inline"> Clique e arraste as fotos para reposicionar. Use o scroll do mouse (em qualquer foto) ou os botões +/- para ajustar o zoom.</span>
               <span className="md:hidden"> Arraste com o dedo para reposicionar. Use dois dedos (pinçar) para dar zoom ou use os botões +/-.</span>
               {' '}O preview mostra EXATAMENTE como ficará na página pública. A foto será salva na posição que você deixar!

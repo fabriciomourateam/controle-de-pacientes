@@ -46,6 +46,7 @@ import {
   Plus,
   FileText,
   Trash2,
+  Settings2,
   MoreVertical,
   CheckCircle2,
   Pencil,
@@ -583,6 +584,14 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           >
             <MessageSquarePlus className="w-4 h-4 mr-2" />
             Link Check-in
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/checkin-editor')}
+            className="border-purple-500/30 hover:bg-purple-500/10 text-purple-300 hover:text-purple-200 transition-all duration-300"
+          >
+            <Settings2 className="w-4 h-4 mr-2" />
+            Editor de Check-in
           </Button>
           <AutoSyncManager />
         </div>

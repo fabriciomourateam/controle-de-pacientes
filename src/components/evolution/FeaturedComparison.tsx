@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Edit, Trash2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FeaturedComparison as FeaturedComparisonType } from '@/hooks/use-featured-comparison';
+import { HeicImage } from '@/components/ui/heic-image';
 
 interface FeaturedComparisonProps {
   comparison: FeaturedComparisonType;
@@ -28,7 +29,7 @@ export function FeaturedComparison({
     isVisible: comparison?.is_visible,
     title: comparison?.title
   });
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -61,11 +62,10 @@ export function FeaturedComparison({
                   variant="outline"
                   size="sm"
                   onClick={onToggleVisibility}
-                  className={`gap-2 ${
-                    comparison.is_visible
+                  className={`gap-2 ${comparison.is_visible
                       ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
                       : 'bg-slate-700/50 border-slate-600/50 text-slate-400 hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   {comparison.is_visible ? (
                     <>
@@ -112,15 +112,27 @@ export function FeaturedComparison({
                 </Badge>
               </div>
               <div className="aspect-[3/4] relative overflow-hidden bg-slate-900 flex items-center justify-center">
-                <img
-                  src={comparison.before_photo_url}
-                  alt="Foto Antes"
-                  className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
-                  style={{
-                    transform: `scale(${comparison.before_zoom || 1}) translate(${(comparison.before_position_x || 0) / (comparison.before_zoom || 1)}px, ${(comparison.before_position_y || 0) / (comparison.before_zoom || 1)}px)`,
-                    transformOrigin: 'center center'
-                  }}
-                />
+                {comparison.before_photo_url.toLowerCase().endsWith('.heic') ? (
+                  <HeicImage
+                    src={comparison.before_photo_url}
+                    alt="Foto Antes"
+                    className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      transform: `scale(${comparison.before_zoom || 1}) translate(${(comparison.before_position_x || 0) / (comparison.before_zoom || 1)}px, ${(comparison.before_position_y || 0) / (comparison.before_zoom || 1)}px)`,
+                      transformOrigin: 'center center'
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={comparison.before_photo_url}
+                    alt="Foto Antes"
+                    className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      transform: `scale(${comparison.before_zoom || 1}) translate(${(comparison.before_position_x || 0) / (comparison.before_zoom || 1)}px, ${(comparison.before_position_y || 0) / (comparison.before_zoom || 1)}px)`,
+                      transformOrigin: 'center center'
+                    }}
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
               </div>
             </div>
@@ -133,15 +145,27 @@ export function FeaturedComparison({
                 </Badge>
               </div>
               <div className="aspect-[3/4] relative overflow-hidden bg-slate-900 flex items-center justify-center">
-                <img
-                  src={comparison.after_photo_url}
-                  alt="Foto Depois"
-                  className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
-                  style={{
-                    transform: `scale(${comparison.after_zoom || 1}) translate(${(comparison.after_position_x || 0) / (comparison.after_zoom || 1)}px, ${(comparison.after_position_y || 0) / (comparison.after_zoom || 1)}px)`,
-                    transformOrigin: 'center center'
-                  }}
-                />
+                {comparison.after_photo_url.toLowerCase().endsWith('.heic') ? (
+                  <HeicImage
+                    src={comparison.after_photo_url}
+                    alt="Foto Depois"
+                    className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      transform: `scale(${comparison.after_zoom || 1}) translate(${(comparison.after_position_x || 0) / (comparison.after_zoom || 1)}px, ${(comparison.after_position_y || 0) / (comparison.after_zoom || 1)}px)`,
+                      transformOrigin: 'center center'
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={comparison.after_photo_url}
+                    alt="Foto Depois"
+                    className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      transform: `scale(${comparison.after_zoom || 1}) translate(${(comparison.after_position_x || 0) / (comparison.after_zoom || 1)}px, ${(comparison.after_position_y || 0) / (comparison.after_zoom || 1)}px)`,
+                      transformOrigin: 'center center'
+                    }}
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
               </div>
 

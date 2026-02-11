@@ -103,7 +103,6 @@ export default function NewPatientAnamnesis() {
         email: formData.email || null,
         genero: formData.genero || null,
         data_nascimento: formData.data_nascimento || null,
-        objetivo: formData.objetivo || null,
         observacao: formData.observacao || null,
         user_id: userId,
       };
@@ -122,39 +121,52 @@ export default function NewPatientAnamnesis() {
         patientData.data_fotos_iniciais = dataFotos;
       }
 
+      console.log('Dados do paciente a serem enviados:', patientData);
+
       const { data: newPatient, error: patientError } = await supabasePublic
         .from('patients')
         .insert(patientData)
         .select('*')
         .single();
 
-      if (patientError) throw patientError;
+      if (patientError) {
+        console.error('Erro ao criar paciente:', patientError);
+        throw patientError;
+      }
+
+      console.log('Paciente criado:', newPatient);
 
       // 3. Criar checkin inicial
       if (formData.peso || formData.cintura || formData.quadril || fotoFrenteUrl) {
         const checkinData: any = {
           telefone: cleanTelefone,
           data_checkin: dataFotos,
-          mes_ano: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
           data_preenchimento: new Date().toISOString(),
           tipo_checkin: 'inicial',
-          peso: formData.peso || null,
+          peso: formData.peso ? parseFloat(formData.peso.replace(',', '.')) : null,
           foto_1: fotoFrenteUrl || null,
           foto_2: fotoLadoUrl || null,
           foto_3: fotoLado2Url || null,
           foto_4: fotoCostasUrl || null,
         };
+
+        console.log('Criando checkin inicial:', checkinData);
+
         if (formData.cintura || formData.quadril) {
           const medidas: string[] = [];
           if (formData.cintura) medidas.push(`Cintura: ${formData.cintura}cm`);
           if (formData.quadril) medidas.push(`Quadril: ${formData.quadril}cm`);
           checkinData.medida = medidas.join(' ');
         }
-        await supabasePublic.from('checkin').insert(checkinData);
+
+        const { error: checkinError } = await supabasePublic.from('checkin').insert(checkinData);
+        if (checkinError) console.error('Erro ao criar checkin:', checkinError);
       }
 
       // 4. Salvar anamnese
-      const anamneseData = { ...formData.anamnese };
+      const anamneseData: any = { ...formData.anamnese };
+      if (formData.objetivo) anamneseData.objetivo = formData.objetivo;
+
       if (formData.data_nascimento) {
         const birthDate = new Date(formData.data_nascimento);
         const today = new Date();
@@ -164,7 +176,9 @@ export default function NewPatientAnamnesis() {
         anamneseData.idade = age.toString();
       }
 
-      await supabasePublic
+      console.log('Salvando anamnese:', anamneseData);
+
+      const { error: anamneseError } = await supabasePublic
         .from('patient_anamnesis')
         .insert({
           patient_id: newPatient.id,
@@ -173,12 +187,40 @@ export default function NewPatientAnamnesis() {
           data: anamneseData,
         });
 
+      if (anamneseError) {
+        console.error('Erro ao salvar anamnese:', anamneseError);
+        throw anamneseError;
+      }
+
+      console.log('Anamnese salva com sucesso');
+
+      // 5. Enviar Webhook
+      try {
+        await fetch('https://n8n.shapepro.shop/webhook-test/anamnese-myshape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient: newPatient,
+            anamnese: anamneseData,
+            images: {
+              frente: fotoFrenteUrl,
+              lado: fotoLadoUrl,
+              lado2: fotoLado2Url,
+              costas: fotoCostasUrl
+            },
+            submitted_at: new Date().toISOString()
+          })
+        });
+      } catch (webhookError) {
+        console.error('Erro ao enviar webhook:', webhookError);
+      }
+
       setSuccess(true);
     } catch (error: any) {
-      console.error('Erro ao cadastrar:', error);
+      console.error('Erro detalhado ao cadastrar:', JSON.stringify(error, null, 2));
       toast({
         title: 'Erro ao enviar',
-        description: error.message || 'Tente novamente.',
+        description: error.message || 'Verifique o console para mais detalhes.',
         variant: 'destructive',
       });
     } finally {
@@ -225,14 +267,11 @@ export default function NewPatientAnamnesis() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-3">Anamnese enviada!</h1>
           <p className="text-slate-300 text-lg mb-2">
-            Obrigado por preencher sua anamnese.
-          </p>
-          <p className="text-slate-400">
-            Seus dados foram enviados com sucesso para <span className="text-emerald-300 font-medium">{nutriName}</span>. 
-            Em breve seu acompanhamento será iniciado!
+            Seus dados foram enviados com sucesso. <br />
+            Em até <strong className="text-emerald-400 font-bold">72 horas úteis</strong> seu planejamento será entregue!
           </p>
           <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-500/80 text-sm">
               Tenho certeza que você terá ótimos resultados! 🎯
             </p>
           </div>
@@ -270,7 +309,7 @@ export default function NewPatientAnamnesis() {
 
         {/* Formulário */}
         <AnamnesisForm onSubmit={handleSubmit} loading={loading} isPublic />
-        
+
         {/* Footer */}
         <div className="text-center mt-8 pb-8">
           <p className="text-slate-600 text-xs">

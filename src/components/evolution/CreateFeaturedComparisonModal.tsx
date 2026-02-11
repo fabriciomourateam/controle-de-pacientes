@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Check } from 'lucide-react';
 import { useFeaturedComparison, CreateFeaturedComparisonData } from '@/hooks/use-featured-comparison';
+import { HeicImage } from '@/components/ui/heic-image';
 import type { Database } from '@/integrations/supabase/types';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
@@ -55,7 +56,7 @@ export function CreateFeaturedComparisonModal({
   if (patientWithData?.foto_inicial_frente) {
     allPhotos.push({
       url: patientWithData.foto_inicial_frente,
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toISOString()
         : new Date().toISOString(),
       weight: patientWithData.peso_inicial?.toString(),
@@ -67,7 +68,7 @@ export function CreateFeaturedComparisonModal({
   if (patientWithData?.foto_inicial_lado) {
     allPhotos.push({
       url: patientWithData.foto_inicial_lado,
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toISOString()
         : new Date().toISOString(),
       weight: patientWithData.peso_inicial?.toString(),
@@ -79,7 +80,7 @@ export function CreateFeaturedComparisonModal({
   if (patientWithData?.foto_inicial_lado_2) {
     allPhotos.push({
       url: patientWithData.foto_inicial_lado_2,
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toISOString()
         : new Date().toISOString(),
       weight: patientWithData.peso_inicial?.toString(),
@@ -91,7 +92,7 @@ export function CreateFeaturedComparisonModal({
   if (patientWithData?.foto_inicial_costas) {
     allPhotos.push({
       url: patientWithData.foto_inicial_costas,
-      date: patientWithData.data_fotos_iniciais 
+      date: patientWithData.data_fotos_iniciais
         ? new Date(patientWithData.data_fotos_iniciais).toISOString()
         : new Date().toISOString(),
       weight: patientWithData.peso_inicial?.toString(),
@@ -102,7 +103,7 @@ export function CreateFeaturedComparisonModal({
   }
 
   // 2. Fotos dos check-ins (do mais antigo ao mais recente - IGUAL PhotoComparisonEditor)
-  const sortedCheckins = [...checkins].sort((a, b) => 
+  const sortedCheckins = [...checkins].sort((a, b) =>
     new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
   );
 
@@ -144,7 +145,7 @@ export function CreateFeaturedComparisonModal({
       });
     }
   });
-  
+
   // Ordenar fotos por data (mais antigas primeiro)
   allPhotos.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -255,17 +256,24 @@ export function CreateFeaturedComparisonModal({
                     <button
                       key={`before-${index}`}
                       onClick={() => setSelectedBefore(photo)}
-                      className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedBefore?.url === photo.url
+                      className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${selectedBefore?.url === photo.url
                           ? 'border-red-500 ring-2 ring-red-500/50'
                           : 'border-slate-700 hover:border-slate-600'
-                      }`}
+                        }`}
                     >
-                      <img
-                        src={photo.url}
-                        alt={`Foto ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      {photo.url.toLowerCase().endsWith('.heic') ? (
+                        <HeicImage
+                          src={photo.url}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={photo.url}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                       {selectedBefore?.url === photo.url && (
                         <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
                           <div className="bg-red-500 rounded-full p-2">
@@ -313,17 +321,24 @@ export function CreateFeaturedComparisonModal({
                     <button
                       key={`after-${index}`}
                       onClick={() => setSelectedAfter(photo)}
-                      className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedAfter?.url === photo.url
+                      className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${selectedAfter?.url === photo.url
                           ? 'border-emerald-500 ring-2 ring-emerald-500/50'
                           : 'border-slate-700 hover:border-slate-600'
-                      }`}
+                        }`}
                     >
-                      <img
-                        src={photo.url}
-                        alt={`Foto ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      {photo.url.toLowerCase().endsWith('.heic') ? (
+                        <HeicImage
+                          src={photo.url}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={photo.url}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                       {selectedAfter?.url === photo.url && (
                         <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
                           <div className="bg-emerald-500 rounded-full p-2">
