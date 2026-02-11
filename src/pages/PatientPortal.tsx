@@ -32,8 +32,8 @@ import { FeaturedComparison } from '@/components/evolution/FeaturedComparison';
 import { CreateFeaturedComparisonModal } from '@/components/evolution/CreateFeaturedComparisonModal';
 import { EditFeaturedComparisonModal } from '@/components/evolution/EditFeaturedComparisonModal';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { 
-  Activity, 
+import {
+  Activity,
   Calendar,
   AlertCircle,
   RefreshCw,
@@ -101,7 +101,7 @@ const getDailyMotivationalPhrase = () => {
   const today = new Date();
   const startOfYear = new Date(today.getFullYear(), 0, 1);
   const dayOfYear = Math.floor((today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   return phrases[dayOfYear % phrases.length];
 };
 
@@ -112,7 +112,7 @@ export default function PatientPortal() {
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
-  
+
   // Estado para controlar o limite de bioimpedâncias carregadas
   const [bioLimit, setBioLimit] = useState<number | null>(50); // Padrão: 50 avaliações
   const [showBioLimitControl, setShowBioLimitControl] = useState(false);
@@ -147,21 +147,21 @@ export default function PatientPortal() {
     }
 
     // Ordenar checkins do mais antigo para o mais recente para garantir ordem correta
-    const sortedCheckins = [...checkins].sort((a, b) => 
+    const sortedCheckins = [...checkins].sort((a, b) =>
       new Date(a.data_checkin).getTime() - new Date(b.data_checkin).getTime()
     );
-    
+
     const firstCheckin = sortedCheckins[0]; // Primeiro check-in cronologicamente
     const lastCheckin = sortedCheckins[sortedCheckins.length - 1]; // Último check-in cronologicamente
-    
+
     // CORREÇÃO: Usar peso_inicial do paciente se disponível (campo existe mas TypeScript não reconhece)
     const patientWithInitialData = patient as any;
-    const pesoInicial = patientWithInitialData?.peso_inicial 
-      ? parseFloat(patientWithInitialData.peso_inicial.toString()) 
+    const pesoInicial = patientWithInitialData?.peso_inicial
+      ? parseFloat(patientWithInitialData.peso_inicial.toString())
       : parseFloat(firstCheckin.peso || '0');
     const pesoAtual = parseFloat(lastCheckin.peso || '0');
     const perdaPeso = pesoInicial - pesoAtual;
-    
+
     // Calcular tempo de acompanhamento - DO INÍCIO DO ACOMPANHAMENTO (tabela patients) ATÉ AGORA
     // Prioridade: inicio_acompanhamento > primeiro check-in > created_at
     let dataInicio: Date;
@@ -174,12 +174,12 @@ export default function PatientPortal() {
     } else {
       dataInicio = new Date(); // Fallback
     }
-    
+
     const dataAtual = new Date(); // Data atual, não último check-in
     const diasAcompanhamento = Math.floor((dataAtual.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
     const mesesAcompanhamento = Math.floor(diasAcompanhamento / 30);
     const semanasAcompanhamento = Math.floor(diasAcompanhamento / 7);
-    
+
     let tempoTexto = '';
     if (mesesAcompanhamento > 0) {
       tempoTexto = `${mesesAcompanhamento} ${mesesAcompanhamento === 1 ? 'mês' : 'meses'}`;
@@ -204,7 +204,7 @@ export default function PatientPortal() {
     const genero = patient?.genero?.toLowerCase() || '';
     const isFeminino = genero === 'feminino' || genero === 'f';
     const pronome = isFeminino ? 'a' : 'o';
-    
+
     let textoMotivacional = '';
     if (perdaPeso > 0) {
       textoMotivacional = `Sua dedicação está transformando seu corpo! A redução de ${Math.abs(perdaPeso).toFixed(1)}kg em ${tempoTexto} é apenas o começo - o mais importante é a recomposição corporal que está acontecendo. Você está perdendo gordura e ganhando definição muscular, o que significa um corpo mais forte, saudável e funcional. Continue focad${pronome} e consistente - cada treino e cada refeição equilibrada está moldando a melhor versão de você! 💪✨`;
@@ -249,7 +249,7 @@ export default function PatientPortal() {
         setShowBioLimitControl(false);
       }
     };
-    
+
     if (showBioLimitControl) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -272,26 +272,26 @@ export default function PatientPortal() {
     // Salvar referência do manifest original
     const originalManifest = document.querySelector('link[rel="manifest"]');
     const originalHref = originalManifest?.getAttribute('href');
-    
+
     // Trocar para o manifest do portal
     if (originalManifest) {
       originalManifest.setAttribute('href', '/manifest-portal.json');
     }
-    
+
     // Atualizar meta tags para o portal
-    document.title = 'Meu Portal - Grow Nutri';
-    
+    document.title = 'Meu Portal - My Shape';
+
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute('content', 'Acompanhe sua dieta, progresso e conquistas com seu nutricionista.');
     }
-    
+
     // Restaurar ao sair da página
     return () => {
       if (originalManifest && originalHref) {
         originalManifest.setAttribute('href', originalHref);
       }
-      document.title = 'Grow Nutri - Controle da sua Empresa';
+      document.title = 'My Shape - Controle da sua Empresa';
     };
   }, []);
 
@@ -300,22 +300,22 @@ export default function PatientPortal() {
     if (!loading && patient && portalRef.current) {
       const urlParams = new URLSearchParams(window.location.search);
       const autoDownloadFormat = urlParams.get('autoDownload'); // 'png', 'pdf', ou 'jpeg'
-      
+
       if (autoDownloadFormat) {
         console.log(`🎯 Auto-download ${autoDownloadFormat.toUpperCase()} detectado! Iniciando captura...`);
-        
+
         // Aguardar renderização completa dos gráficos
         setTimeout(async () => {
           console.log(`📸 Capturando portal como ${autoDownloadFormat.toUpperCase()}...`);
-          
+
           if (autoDownloadFormat === 'png' || autoDownloadFormat === 'jpeg') {
             await handleExportEvolutionImage();
           } else if (autoDownloadFormat === 'pdf') {
             await handleExportEvolutionPDF();
           }
-          
+
           console.log('✅ Download iniciado! Fechando aba em 3 segundos...');
-          
+
           // Fechar aba automaticamente após download
           setTimeout(() => {
             window.close();
@@ -334,16 +334,16 @@ export default function PatientPortal() {
 
     try {
       setLoading(true);
-      
+
       // MODO TESTE: Usar telefone fixo para demonstração
       let telefone;
-      
+
       if (token === 'teste123') {
         telefone = '11999999999'; // Telefone de teste
       } else {
         // Validar token real
         telefone = await validateToken(token);
-        
+
         if (!telefone) {
           // Token inválido ou expirado - limpar localStorage e redirecionar para login
           localStorage.removeItem('portal_access_token');
@@ -377,16 +377,16 @@ export default function PatientPortal() {
             .select('*')
             .eq('telefone', telefone)
             .order('data_avaliacao', { ascending: false });
-          
+
           // Aplicar limite apenas se fornecido
           if (bioLimit !== null && bioLimit !== undefined) {
             bioQuery = bioQuery.limit(bioLimit);
           }
-          
+
           return await bioQuery;
         })()
       ]);
-      
+
       if (checkinsData.length === 0) {
         toast({
           title: 'Nenhum check-in encontrado',
@@ -394,9 +394,9 @@ export default function PatientPortal() {
           variant: 'destructive'
         });
       }
-      
+
       setCheckins(checkinsData);
-      
+
       // Tratar erro 406 (RLS) graciosamente
       if (patientResult.error) {
         if ((patientResult.error as any).status === 406 || (patientResult.error as any).code === 'PGRST200') {
@@ -406,7 +406,7 @@ export default function PatientPortal() {
         }
       } else if (patientResult.data) {
         setPatient(patientResult.data);
-        
+
         // Salvar patient_id para usar nos componentes de dieta
         if (patientResult.data.id) {
           setPatientId(patientResult.data.id);
@@ -478,7 +478,7 @@ export default function PatientPortal() {
 
   async function handleExportEvolutionImage() {
     console.log('🎯 Função handleExportEvolutionImage chamada');
-    
+
     if (!patient) {
       console.error('❌ Paciente não encontrado');
       toast({
@@ -504,7 +504,7 @@ export default function PatientPortal() {
       console.log('🚀 Iniciando captura de imagem...');
       console.log('👤 Paciente:', patient.nome);
       console.log('📱 Portal ref:', portalRef.current);
-      
+
       toast({
         title: 'Gerando imagem...',
         description: 'Aguarde enquanto criamos seu relatório'
@@ -534,7 +534,7 @@ export default function PatientPortal() {
       });
 
       let dataURL;
-      
+
       try {
         // Tentar com dom-to-image com máxima qualidade
         console.log('🎯 Tentativa 1: dom-to-image alta qualidade...');
@@ -556,7 +556,7 @@ export default function PatientPortal() {
       } catch (error1) {
         console.log('❌ dom-to-image falhou, tentando html2canvas...');
         console.log('🎯 Tentativa 2: html2canvas básico...');
-        
+
         try {
           // Tentar html2canvas com alta qualidade
           const canvas = await html2canvas(portalRef.current, {
@@ -577,13 +577,13 @@ export default function PatientPortal() {
         } catch (error2) {
           console.log('❌ html2canvas também falhou, tentando captura simples...');
           console.log('🎯 Tentativa 3: captura sem elementos complexos...');
-          
+
           // Última tentativa: usar API nativa de screenshot se disponível
           if ('getDisplayMedia' in navigator.mediaDevices) {
             console.log('🎯 Tentando API nativa de screenshot...');
             // Implementar captura nativa aqui se necessário
           }
-          
+
           // Fallback: html2canvas com configuração básica mas boa qualidade
           const canvas = await html2canvas(portalRef.current, {
             scale: 1.5, // Boa qualidade
@@ -594,7 +594,7 @@ export default function PatientPortal() {
             ignoreElements: (element) => {
               // Ignorar apenas elementos realmente problemáticos
               return element.classList.contains('hide-in-pdf') ||
-                     (element.tagName === 'CANVAS' && (element as HTMLCanvasElement).width === 0);
+                (element.tagName === 'CANVAS' && (element as HTMLCanvasElement).width === 0);
             }
           });
           dataURL = canvas.toDataURL('image/png', 1.0); // Máxima qualidade
@@ -618,7 +618,7 @@ export default function PatientPortal() {
       document.body.removeChild(link);
 
       console.log('✅ Download iniciado com sucesso!');
-      
+
       toast({
         title: 'Imagem gerada! 🎉',
         description: 'Seu relatório foi baixado com sucesso'
@@ -627,13 +627,13 @@ export default function PatientPortal() {
     } catch (error) {
       console.error('❌ Erro detalhado:', error);
       console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
-      
+
       let errorMessage = 'Erro desconhecido';
       if (error instanceof Error) {
         errorMessage = error.message;
         console.error('❌ Mensagem do erro:', error.message);
       }
-      
+
       toast({
         title: 'Erro ao gerar imagem',
         description: `Detalhes: ${errorMessage}`,
@@ -664,7 +664,7 @@ export default function PatientPortal() {
       // Ocultar apenas botões interativos
       const elementsToHide = portalRef.current.querySelectorAll('.hide-in-pdf');
       const originalDisplay: string[] = [];
-      
+
       elementsToHide.forEach((el, index) => {
         originalDisplay[index] = (el as HTMLElement).style.display;
         (el as HTMLElement).style.display = 'none';
@@ -695,10 +695,10 @@ export default function PatientPortal() {
       const imgData = canvas.toDataURL('image/png', 0.9);
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      
+
       const pdfWidth = 210; // A4 width in mm
       const imgHeightMM = (imgHeight * pdfWidth) / imgWidth;
-      
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -738,7 +738,7 @@ export default function PatientPortal() {
       // Buscar dados do plano alimentar
       const plans = await dietService.getByPatientId(patientId);
       const activePlan = plans.find((p: any) => p.status === 'active' || p.active);
-      
+
       if (!activePlan) {
         toast({
           title: 'Erro',
@@ -790,7 +790,7 @@ export default function PatientPortal() {
       // Buscar dados do plano alimentar
       const plans = await dietService.getByPatientId(patientId);
       const activePlan = plans.find((p: any) => p.status === 'active' || p.active);
-      
+
       if (!activePlan) {
         toast({
           title: 'Erro',
@@ -914,384 +914,384 @@ export default function PatientPortal() {
   return (
     <DashboardLayout>
       <div ref={portalRef} className="min-h-screen relative overflow-hidden">
-      {/* Background Premium Moderno */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        {/* Gradiente radial para profundidade */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.12),transparent_50%)]" />
-        
-        {/* Padrão de grade sutil */}
-        <div 
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `
+        {/* Background Premium Moderno */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+          {/* Gradiente radial para profundidade */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.15),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.12),transparent_50%)]" />
+
+          {/* Padrão de grade sutil */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `
               linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
               linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
             `,
-            backgroundSize: '50px 50px'
-          }}
-        />
-        
-        {/* Efeito de brilho animado */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        
-        {/* Linhas de gradiente decorativas */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-      </div>
-      
-      {/* Conteúdo com z-index - key força remount ao resetar portal */}
-      <div className="relative z-10" key={portalKey}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Header do Portal - ITEM 9: Dropdown Limpo */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
-        >
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
-              📊 {patient?.nome || 'Meu Acompanhamento'}
-            </h1>
-            <p className="text-sm sm:text-base text-slate-400 mt-1">
-              Acompanhe seu progresso e conquistas
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto hide-in-pdf">
-            {/* Botão Compartilhar - Leva para o portal público */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (patient?.telefone) {
-                  const publicUrl = `${window.location.origin}/public/portal/${patient.telefone}`;
-                  window.open(publicUrl, '_blank');
-                }
-              }}
-              className="border-slate-600 hover:bg-slate-800 text-white min-h-[44px] px-4"
+              backgroundSize: '50px 50px'
+            }}
+          />
+
+          {/* Efeito de brilho animado */}
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+
+          {/* Linhas de gradiente decorativas */}
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+        </div>
+
+        {/* Conteúdo com z-index - key força remount ao resetar portal */}
+        <div className="relative z-10" key={portalKey}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+            {/* Header do Portal - ITEM 9: Dropdown Limpo */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
             >
-              <Eye className="w-4 h-4 mr-2" />
-              Compartilhar
-            </Button>
-            
-            {/* Menu de ações: Apenas Evolução e Atualizar - ITEM 9 */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                  📊 {patient?.nome || 'Meu Acompanhamento'}
+                </h1>
+                <p className="text-sm sm:text-base text-slate-400 mt-1">
+                  Acompanhe seu progresso e conquistas
+                </p>
+              </div>
+              <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto hide-in-pdf">
+                {/* Botão Compartilhar - Leva para o portal público */}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-slate-600 hover:bg-slate-800 text-white min-h-[44px] min-w-[44px] px-3"
+                  onClick={() => {
+                    if (patient?.telefone) {
+                      const publicUrl = `${window.location.origin}/public/portal/${patient.telefone}`;
+                      window.open(publicUrl, '_blank');
+                    }
+                  }}
+                  className="border-slate-600 hover:bg-slate-800 text-white min-h-[44px] px-4"
                 >
-                  <MoreVertical className="w-5 h-5" />
+                  <Eye className="w-4 h-4 mr-2" />
+                  Compartilhar
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white w-56">
-                {/* Opções de Evolução */}
-                {patient && (
-                  <>
-                    <DropdownMenuItem
-                      onClick={() => setShowEvolutionExport(true)}
-                      className="text-white hover:bg-blue-700/50 cursor-pointer py-3"
-                    >
-                      <Eye className="w-4 h-4 mr-2 text-blue-400" />
-                      Visualizar Evolução
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleExportEvolution('png')}
-                      className="text-white hover:bg-green-700/50 cursor-pointer py-3"
-                    >
-                      <FileImage className="w-4 h-4 mr-2 text-green-400" />
-                      Baixar Evolução PNG
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleExportEvolution('pdf')}
-                      className="text-white hover:bg-purple-700/50 cursor-pointer py-3"
-                    >
-                      <FileText className="w-4 h-4 mr-2 text-purple-400" />
-                      Baixar Evolução PDF
-                    </DropdownMenuItem>
-                  </>
-                )}
-                
-                <DropdownMenuItem
-                  onClick={loadPortalData}
-                  className="text-white hover:bg-slate-700 cursor-pointer py-3"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Atualizar Dados
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleResetPortal}
-                  className="text-white hover:bg-amber-700/50 cursor-pointer py-3"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2 text-amber-400" />
-                  Resetar Portal
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </motion.div>
 
-        {/* Card de Cabeçalho - Minha Evolução */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 backdrop-blur-sm border-slate-700/50 shadow-xl">
-            <CardContent className="p-6 sm:p-8">
-              <div className="flex flex-col gap-4">
-                {/* Título Principal */}
-                <div className="text-center">
-                  <h1 className="text-3xl sm:text-4xl font-bold text-white">
-                    Minha Evolução
-                  </h1>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* ITEM 2: Seção "Sua Evolução" - Texto Editável */}
-        {patient?.telefone && checkins.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          >
-            <EditableRenewalSection
-              patientTelefone={patient.telefone}
-              sectionKey="summary_content"
-              title="Sua Evolução"
-              icon={<Sparkles className="w-6 h-6 text-yellow-400" />}
-              defaultContent={generateDefaultEvolutionContent()}
-              placeholder="Descreva a evolução do paciente de forma personalizada..."
-              isPublicAccess={false}
-              portalVisibility={{
-                visible: summaryEvolutionVisibility.visible,
-                onToggle: summaryEvolutionVisibility.toggleVisibility,
-                loading: summaryEvolutionVisibility.loading,
-              }}
-            />
-          </motion.div>
-        )}
-
-
-        {/* Controle de Limite de Bioimpedância - Se houver dados */}
-        {bodyCompositions.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.12 }}
-            className="relative"
-          >
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-              {/* Botão para controlar limite de bioimpedância - Apenas ícone */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                {/* Menu de ações: Apenas Evolução e Atualizar - ITEM 9 */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowBioLimitControl(!showBioLimitControl)}
-                      className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white h-9 w-9 p-0"
+                      className="border-slate-600 hover:bg-slate-800 text-white min-h-[44px] min-w-[44px] px-3"
                     >
-                      <BarChart3 className="w-4 h-4" />
+                      <MoreVertical className="w-5 h-5" />
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Limite: {bioLimit ? `${bioLimit} avaliações` : 'Sem limite'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            {/* Menu de controle de limite */}
-            {showBioLimitControl && (
-              <Card className="bio-limit-control-menu absolute top-16 right-4 z-50 bg-slate-800 border-slate-600 shadow-lg min-w-[200px]">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="text-sm font-medium text-white mb-2">
-                      Quantas avaliações carregar?
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        size="sm"
-                        variant={bioLimit === 50 ? "default" : "outline"}
-                        onClick={async () => {
-                          setBioLimit(50);
-                          setShowBioLimitControl(false);
-                          await loadPortalData();
-                        }}
-                        className="w-full justify-start"
-                      >
-                        50 avaliações (padrão)
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={bioLimit === 100 ? "default" : "outline"}
-                        onClick={async () => {
-                          setBioLimit(100);
-                          setShowBioLimitControl(false);
-                          await loadPortalData();
-                        }}
-                        className="w-full justify-start"
-                      >
-                        100 avaliações
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={bioLimit === 200 ? "default" : "outline"}
-                        onClick={async () => {
-                          setBioLimit(200);
-                          setShowBioLimitControl(false);
-                          await loadPortalData();
-                        }}
-                        className="w-full justify-start"
-                      >
-                        200 avaliações
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={bioLimit === null ? "default" : "outline"}
-                        onClick={async () => {
-                          setBioLimit(null);
-                          setShowBioLimitControl(false);
-                          await loadPortalData();
-                        }}
-                        className="w-full justify-start text-orange-400 hover:text-orange-300"
-                      >
-                        Todas as avaliações (sem limite)
-                      </Button>
-                    </div>
-                    <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
-                      <p>⚠️ Limites maiores aumentam o tempo de carregamento</p>
-                      <p>💡 Use "Todas" apenas quando necessário</p>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white w-56">
+                    {/* Opções de Evolução */}
+                    {patient && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => setShowEvolutionExport(true)}
+                          className="text-white hover:bg-blue-700/50 cursor-pointer py-3"
+                        >
+                          <Eye className="w-4 h-4 mr-2 text-blue-400" />
+                          Visualizar Evolução
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleExportEvolution('png')}
+                          className="text-white hover:bg-green-700/50 cursor-pointer py-3"
+                        >
+                          <FileImage className="w-4 h-4 mr-2 text-green-400" />
+                          Baixar Evolução PNG
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleExportEvolution('pdf')}
+                          className="text-white hover:bg-purple-700/50 cursor-pointer py-3"
+                        >
+                          <FileText className="w-4 h-4 mr-2 text-purple-400" />
+                          Baixar Evolução PDF
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    <DropdownMenuItem
+                      onClick={loadPortalData}
+                      className="text-white hover:bg-slate-700 cursor-pointer py-3"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Atualizar Dados
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleResetPortal}
+                      className="text-white hover:bg-amber-700/50 cursor-pointer py-3"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2 text-amber-400" />
+                      Resetar Portal
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </motion.div>
+
+            {/* Card de Cabeçalho - Minha Evolução */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <Card className="bg-gradient-to-r from-slate-800/80 to-slate-900/80 backdrop-blur-sm border-slate-700/50 shadow-xl">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="flex flex-col gap-4">
+                    {/* Título Principal */}
+                    <div className="text-center">
+                      <h1 className="text-3xl sm:text-4xl font-bold text-white">
+                        Minha Evolução
+                      </h1>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+
+            {/* ITEM 2: Seção "Sua Evolução" - Texto Editável */}
+            {patient?.telefone && checkins.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+              >
+                <EditableRenewalSection
+                  patientTelefone={patient.telefone}
+                  sectionKey="summary_content"
+                  title="Sua Evolução"
+                  icon={<Sparkles className="w-6 h-6 text-yellow-400" />}
+                  defaultContent={generateDefaultEvolutionContent()}
+                  placeholder="Descreva a evolução do paciente de forma personalizada..."
+                  isPublicAccess={false}
+                  portalVisibility={{
+                    visible: summaryEvolutionVisibility.visible,
+                    onToggle: summaryEvolutionVisibility.toggleVisibility,
+                    loading: summaryEvolutionVisibility.loading,
+                  }}
+                />
+              </motion.div>
             )}
-          </motion.div>
-        )}
 
-        {/* Comparação Destacada Antes/Depois */}
-        {comparison && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <FeaturedComparison
-              comparison={comparison}
-              isEditable={true}
-              onToggleVisibility={toggleVisibility}
-              onEdit={() => setShowEditComparisonModal(true)}
-              onDelete={async () => {
-                await deleteComparison();
-                refetch();
-              }}
-            />
-          </motion.div>
-        )}
 
-        {/* ITEM 3: Conteúdo de Evolução (sem abas) */}
-        {patientId && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="space-y-6"
-          >
-            <PatientEvolutionTab 
-              patientId={patientId}
-              checkins={checkins}
-              patient={patient}
-              bodyCompositions={bodyCompositions}
-              achievements={achievements}
-              refreshTrigger={chartsRefreshTrigger}
-              continueJourneyPortalVisibility={{
-                visible: continueJourneyVisibility.visible,
-                onToggle: continueJourneyVisibility.toggleVisibility,
-                loading: continueJourneyVisibility.loading,
-              }}
-            />
-          </motion.div>
-        )}
+            {/* Controle de Limite de Bioimpedância - Se houver dados */}
+            {bodyCompositions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.12 }}
+                className="relative"
+              >
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                  {/* Botão para controlar limite de bioimpedância - Apenas ícone */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowBioLimitControl(!showBioLimitControl)}
+                          className="gap-2 bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white h-9 w-9 p-0"
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Limite: {bioLimit ? `${bioLimit} avaliações` : 'Sem limite'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
 
-        {/* Footer */}
-        <div className="text-center text-xs sm:text-sm text-white py-4 sm:py-6 px-4">
-          {getDailyMotivationalPhrase()}
+                {/* Menu de controle de limite */}
+                {showBioLimitControl && (
+                  <Card className="bio-limit-control-menu absolute top-16 right-4 z-50 bg-slate-800 border-slate-600 shadow-lg min-w-[200px]">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium text-white mb-2">
+                          Quantas avaliações carregar?
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            size="sm"
+                            variant={bioLimit === 50 ? "default" : "outline"}
+                            onClick={async () => {
+                              setBioLimit(50);
+                              setShowBioLimitControl(false);
+                              await loadPortalData();
+                            }}
+                            className="w-full justify-start"
+                          >
+                            50 avaliações (padrão)
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={bioLimit === 100 ? "default" : "outline"}
+                            onClick={async () => {
+                              setBioLimit(100);
+                              setShowBioLimitControl(false);
+                              await loadPortalData();
+                            }}
+                            className="w-full justify-start"
+                          >
+                            100 avaliações
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={bioLimit === 200 ? "default" : "outline"}
+                            onClick={async () => {
+                              setBioLimit(200);
+                              setShowBioLimitControl(false);
+                              await loadPortalData();
+                            }}
+                            className="w-full justify-start"
+                          >
+                            200 avaliações
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={bioLimit === null ? "default" : "outline"}
+                            onClick={async () => {
+                              setBioLimit(null);
+                              setShowBioLimitControl(false);
+                              await loadPortalData();
+                            }}
+                            className="w-full justify-start text-orange-400 hover:text-orange-300"
+                          >
+                            Todas as avaliações (sem limite)
+                          </Button>
+                        </div>
+                        <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+                          <p>⚠️ Limites maiores aumentam o tempo de carregamento</p>
+                          <p>💡 Use "Todas" apenas quando necessário</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </motion.div>
+            )}
+
+            {/* Comparação Destacada Antes/Depois */}
+            {comparison && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <FeaturedComparison
+                  comparison={comparison}
+                  isEditable={true}
+                  onToggleVisibility={toggleVisibility}
+                  onEdit={() => setShowEditComparisonModal(true)}
+                  onDelete={async () => {
+                    await deleteComparison();
+                    refetch();
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {/* ITEM 3: Conteúdo de Evolução (sem abas) */}
+            {patientId && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+                className="space-y-6"
+              >
+                <PatientEvolutionTab
+                  patientId={patientId}
+                  checkins={checkins}
+                  patient={patient}
+                  bodyCompositions={bodyCompositions}
+                  achievements={achievements}
+                  refreshTrigger={chartsRefreshTrigger}
+                  continueJourneyPortalVisibility={{
+                    visible: continueJourneyVisibility.visible,
+                    onToggle: continueJourneyVisibility.toggleVisibility,
+                    loading: continueJourneyVisibility.loading,
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {/* Footer */}
+            <div className="text-center text-xs sm:text-sm text-white py-4 sm:py-6 px-4">
+              {getDailyMotivationalPhrase()}
+            </div>
+          </div>
         </div>
-        </div>
-      </div>
 
-      {/* ITEM 7: Modal de Registro de Peso REMOVIDO */}
+        {/* ITEM 7: Modal de Registro de Peso REMOVIDO */}
 
-      {/* Modal de Exportação da Evolução */}
-      {showEvolutionExport && patient && (
-        <EvolutionExportPage
-          patient={patient}
-          checkins={checkins}
-          bodyCompositions={bodyCompositions}
-          onClose={() => { setShowEvolutionExport(false); setEvolutionExportMode(null); }}
-          directExportMode={evolutionExportMode || undefined}
-          onDirectExport={handleDirectEvolutionExport}
-        />
-      )}
+        {/* Modal de Exportação da Evolução */}
+        {showEvolutionExport && patient && (
+          <EvolutionExportPage
+            patient={patient}
+            checkins={checkins}
+            bodyCompositions={bodyCompositions}
+            onClose={() => { setShowEvolutionExport(false); setEvolutionExportMode(null); }}
+            directExportMode={evolutionExportMode || undefined}
+            onDirectExport={handleDirectEvolutionExport}
+          />
+        )}
 
-      {/* Modal de Criação/Edição de Comparação */}
-      {showCreateComparisonModal && patient && (
-        <CreateFeaturedComparisonModal
-          open={showCreateComparisonModal}
-          onOpenChange={setShowCreateComparisonModal}
-          telefone={patient.telefone}
-          checkins={checkins}
-          patient={patient}
-          onSuccess={refetch}
-        />
-      )}
+        {/* Modal de Criação/Edição de Comparação */}
+        {showCreateComparisonModal && patient && (
+          <CreateFeaturedComparisonModal
+            open={showCreateComparisonModal}
+            onOpenChange={setShowCreateComparisonModal}
+            telefone={patient.telefone}
+            checkins={checkins}
+            patient={patient}
+            onSuccess={refetch}
+          />
+        )}
 
-      {/* Modal de Edição de Comparação Existente */}
-      {showEditComparisonModal && comparison && patient && (
-        <EditFeaturedComparisonModal
-          open={showEditComparisonModal}
-          onClose={() => setShowEditComparisonModal(false)}
-          beforePhoto={{
-            url: comparison.before_photo_url,
-            date: new Date(comparison.before_photo_date).toLocaleDateString('pt-BR'),
-            weight: comparison.before_weight?.toString() || ''
-          }}
-          afterPhoto={{
-            url: comparison.after_photo_url,
-            date: new Date(comparison.after_photo_date).toLocaleDateString('pt-BR'),
-            weight: comparison.after_weight?.toString() || ''
-          }}
-          initialTitle={comparison.title}
-          initialDescription={comparison.description || ''}
-          initialBeforeZoom={comparison.before_zoom || 1}
-          initialBeforeX={comparison.before_position_x || 0}
-          initialBeforeY={comparison.before_position_y || 0}
-          initialAfterZoom={comparison.after_zoom || 1}
-          initialAfterX={comparison.after_position_x || 0}
-          initialAfterY={comparison.after_position_y || 0}
-          onSave={async (data) => {
-            await updateComparison({
-              title: data.title,
-              description: data.description,
-              before_zoom: data.beforeZoom,
-              before_position_x: data.beforeX,
-              before_position_y: data.beforeY,
-              after_zoom: data.afterZoom,
-              after_position_x: data.afterX,
-              after_position_y: data.afterY,
-            });
-            await refetch();
-          }}
-        />
-      )}
+        {/* Modal de Edição de Comparação Existente */}
+        {showEditComparisonModal && comparison && patient && (
+          <EditFeaturedComparisonModal
+            open={showEditComparisonModal}
+            onClose={() => setShowEditComparisonModal(false)}
+            beforePhoto={{
+              url: comparison.before_photo_url,
+              date: new Date(comparison.before_photo_date).toLocaleDateString('pt-BR'),
+              weight: comparison.before_weight?.toString() || ''
+            }}
+            afterPhoto={{
+              url: comparison.after_photo_url,
+              date: new Date(comparison.after_photo_date).toLocaleDateString('pt-BR'),
+              weight: comparison.after_weight?.toString() || ''
+            }}
+            initialTitle={comparison.title}
+            initialDescription={comparison.description || ''}
+            initialBeforeZoom={comparison.before_zoom || 1}
+            initialBeforeX={comparison.before_position_x || 0}
+            initialBeforeY={comparison.before_position_y || 0}
+            initialAfterZoom={comparison.after_zoom || 1}
+            initialAfterX={comparison.after_position_x || 0}
+            initialAfterY={comparison.after_position_y || 0}
+            onSave={async (data) => {
+              await updateComparison({
+                title: data.title,
+                description: data.description,
+                before_zoom: data.beforeZoom,
+                before_position_x: data.beforeX,
+                before_position_y: data.beforeY,
+                after_zoom: data.afterZoom,
+                after_position_x: data.afterX,
+                after_position_y: data.afterY,
+              });
+              await refetch();
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

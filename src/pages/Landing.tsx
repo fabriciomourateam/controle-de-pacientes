@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Users, 
-  BarChart3, 
-  MessageSquare, 
-  Target, 
+import {
+  Users,
+  BarChart3,
+  MessageSquare,
+  Target,
   TrendingUp,
   Shield,
   Zap,
@@ -40,10 +40,10 @@ export default function Landing() {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-    
+
     // Verificar se está autenticado
     checkAuth();
-    
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -66,7 +66,7 @@ export default function Landing() {
       // Buscar plano gratuito
       const plans = await subscriptionService.getPlans();
       const freePlan = plans.find(p => p.name === 'free');
-      
+
       if (!freePlan) {
         toast({
           title: 'Erro',
@@ -168,9 +168,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header Fixo */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50' : 'bg-transparent'
-      }`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50' : 'bg-transparent'
+        }`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -182,9 +181,9 @@ export default function Landing() {
               </div>
               <div>
                 <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
-                  Grow Nutri
+                  My Shape
                 </h1>
-                <p className="text-xs text-slate-400">Gestão de Pacientes</p>
+                <p className="text-xs text-slate-400">Construindo Resultados</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -230,7 +229,7 @@ export default function Landing() {
       <section className="relative pt-32 pb-20 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-cyan-500/10" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent)]" />
-        
+
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center space-y-8">
             {/* Badge */}
@@ -251,7 +250,7 @@ export default function Landing() {
 
             {/* Subheadline */}
             <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              Organize pacientes, acompanhe evoluções, gere insights e escale seu negócio. 
+              Organize pacientes, acompanhe evoluções, gere insights e escale seu negócio.
               Tudo em uma plataforma moderna e intuitiva.
             </p>
 
@@ -348,7 +347,7 @@ export default function Landing() {
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   escolhem
                 </span>{' '}
-                a Grow Nutri?
+                a My Shape?
               </h2>
               <p className="text-xl text-slate-300 mb-8">
                 Não é apenas um software. É uma transformação completa na forma como você gerencia seu consultório.
@@ -508,13 +507,13 @@ export default function Landing() {
               </div>
               <div>
                 <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
-                  Grow Nutri
+                  My Shape
                 </h1>
-                <p className="text-xs text-slate-400">Gestão de Pacientes</p>
+                <p className="text-xs text-slate-400">Construindo Resultados</p>
               </div>
             </div>
             <p className="text-slate-400 text-sm">
-              © 2025 Grow Nutri. Transformando consultórios de nutrição.
+              © 2025 My Shape. Transformando consultórios de nutrição.
             </p>
           </div>
         </div>

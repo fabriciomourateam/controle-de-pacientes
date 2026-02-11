@@ -1,6 +1,6 @@
 {
-  "name": "Grow Nutri - Controle de Pacientes",
-  "short_name": "Grow Nutri",
+  "name": "My Shape - Controle de Pacientes",
+  "short_name": "My Shape",
   "description": "Sistema completo de gestão para nutricionistas. Controle de pacientes, check-ins, dietas e muito mais.",
   "start_url": "/",
   "display": "standalone",
@@ -16,13 +16,18 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon-grow.png", 
+      "src": "/favicon-grow.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "productivity", "business", "medical"],
+  "categories": [
+    "health",
+    "productivity",
+    "business",
+    "medical"
+  ],
   "lang": "pt-BR",
   "dir": "ltr",
   "screenshots": [],
@@ -32,7 +37,12 @@
       "short_name": "Pacientes",
       "description": "Ver lista de pacientes",
       "url": "/patients",
-      "icons": [{ "src": "/favicon-grow.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/favicon-grow.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

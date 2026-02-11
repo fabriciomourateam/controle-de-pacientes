@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, 
-  Users, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Users,
+  MessageSquare,
   Calendar,
   BarChart3,
   TrendingUp,
@@ -79,7 +79,7 @@ export function AppSidebar() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUserEmail(user?.email || null);
-        
+
         // Verificar se é membro de alguma equipe
         if (user) {
           const { data: teamMember, error } = await supabase
@@ -87,7 +87,7 @@ export function AppSidebar() {
             .select('id')
             .eq('user_id', user.id)
             .maybeSingle();
-          
+
           setIsTeamMember(!!teamMember);
         }
       } catch (error) {
@@ -101,14 +101,14 @@ export function AppSidebar() {
   const handleLogout = async () => {
     try {
       console.log('🔄 Iniciando logout...');
-      
+
       // Limpar dados locais primeiro
       localStorage.clear();
       sessionStorage.clear();
-      
+
       // Fazer logout no Supabase
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         console.error('❌ Erro ao fazer logout:', error);
         toast({
@@ -120,10 +120,10 @@ export function AppSidebar() {
       }
 
       console.log('✅ Logout realizado com sucesso');
-      
+
       // Redirecionar para login
       window.location.href = '/login';
-      
+
     } catch (error) {
       console.error('❌ Erro ao fazer logout:', error);
       toast({
@@ -139,9 +139,9 @@ export function AppSidebar() {
     return currentPath.startsWith(path);
   };
 
-  const getNavCls = (path: string) => 
-    isActive(path) 
-      ? "bg-gradient-to-r from-blue-600/20 to-blue-500/20 text-blue-400 font-medium border-blue-500/30" 
+  const getNavCls = (path: string) =>
+    isActive(path)
+      ? "bg-gradient-to-r from-blue-600/20 to-blue-500/20 text-blue-400 font-medium border-blue-500/30"
       : "hover:bg-slate-700/50 text-slate-300 hover:text-white hover:border-slate-600/50";
 
   // Mapeamento de permissões por rota
@@ -163,17 +163,17 @@ export function AppSidebar() {
     if (item.title === "Workspace") {
       return userEmail === ADMIN_EMAIL;
     }
-    
+
     // Admin da plataforma sempre vê tudo
     if (userEmail === ADMIN_EMAIL) {
       return true;
     }
-    
+
     // Dashboard sempre aparece
     if (item.url === "/") {
       return true;
     }
-    
+
     // Rotas controladas pelo admin: verificar user_access_control
     if (accessControlledRoutes.includes(item.url)) {
       // Para membros de equipe, verificar permissões do cargo E controle de acesso
@@ -185,43 +185,42 @@ export function AppSidebar() {
       // Para owners, verificar apenas controle de acesso do admin
       return canAccess(item.url);
     }
-    
+
     // Outras rotas: verificar permissão normal (para membros de equipe)
     const permission = routePermissions[item.url];
     if (permission) {
       return isOwner || hasPermission(permission.resource, permission.action);
     }
-    
+
     return true;
   });
 
   // Adicionar Admin Dashboard e Gestão de Equipe
   const adminNavItems = [];
-  
+
   // Admin só para o email específico
   if (userEmail === ADMIN_EMAIL) {
     adminNavItems.push({ title: "Admin", url: "/admin", icon: Shield });
   }
-  
+
   // Gestão de Equipe apenas para owner ou admin
   if (userEmail === ADMIN_EMAIL || isOwner) {
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
-  
+
   // Reuniões também para membros da equipe (que não são owners)
   // Usar isTeamMember que já foi verificado, ou verificar permissão de dashboard
   if (!isOwner && userEmail !== ADMIN_EMAIL && (isTeamMember || profile?.permissions?.dashboard)) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
-  
+
 
 
   return (
     <Sidebar
-      className={`bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-r border-slate-700/50 transition-all duration-300 ${
-        isCollapsed ? "w-[70px]" : "w-[240px]"
-      }`}
+      className={`bg-gradient-to-b from-slate-900/95 to-slate-800/95 backdrop-blur-sm border-r border-slate-700/50 transition-all duration-300 ${isCollapsed ? "w-[70px]" : "w-[240px]"
+        }`}
       collapsible="icon"
     >
       <SidebarHeader className="p-4 border-b border-slate-700/50">
@@ -235,9 +234,9 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
-                Grow Nutri
+                My Shape
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">Gestão de Pacientes</p>
+              <p className="text-xs text-slate-400 mt-0.5">Construindo Resultados</p>
             </div>
           )}
         </div>
@@ -253,8 +252,8 @@ export function AppSidebar() {
               {filteredMainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
+                    <NavLink
+                      to={item.url}
                       className={`${getNavCls(item.url)} transition-colors duration-200`}
                     >
                       <item.icon className="w-4 h-4" />
@@ -277,8 +276,8 @@ export function AppSidebar() {
                 {adminNavItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
+                      <NavLink
+                        to={item.url}
                         className={`${getNavCls(item.url)} transition-colors duration-200`}
                       >
                         <item.icon className="w-4 h-4" />
@@ -301,8 +300,8 @@ export function AppSidebar() {
               {secondaryNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
+                    <NavLink
+                      to={item.url}
                       className={`${getNavCls(item.url)} transition-colors duration-200`}
                     >
                       <item.icon className="w-4 h-4" />
@@ -333,7 +332,7 @@ export function AppSidebar() {
                 {profile?.email || 'email@exemplo.com'}
               </p>
             </div>
-            <button 
+            <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

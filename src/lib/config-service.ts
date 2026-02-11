@@ -150,8 +150,8 @@ export class ConfigService {
         logo_url: null,
         primary_color: '#00C98A',
         secondary_color: '#222222',
-        company_name: 'Grow Nutri',
-        footer_text: 'Sistema de Controle de Pacientes',
+        company_name: 'My Shape',
+        footer_text: 'Construindo Resultados',
         show_logo: true,
         show_company_name: true,
       };
@@ -162,8 +162,8 @@ export class ConfigService {
         logo_url: null,
         primary_color: '#00C98A',
         secondary_color: '#222222',
-        company_name: 'Grow Nutri',
-        footer_text: 'Sistema de Controle de Pacientes',
+        company_name: 'My Shape',
+        footer_text: 'Construindo Resultados',
         show_logo: true,
         show_company_name: true,
       };
