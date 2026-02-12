@@ -66,7 +66,6 @@ export const DEFAULT_CHECKIN_FLOW: FlowStep[] = [
     type: 'multi-input',
     question: 'Agora me passe suas medidas:',
     messages: [
-      '1. Cintura: meça na menor circunferência da cintura\n2. Quadril: meça na maior circunferência do glúteo',
       'Caso tenha tirado mais medidas, pode incluir nas observações finais!'
     ],
     inputs: [

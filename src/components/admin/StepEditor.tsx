@@ -105,6 +105,7 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
               <SelectItem value="number">Número</SelectItem>
               <SelectItem value="choice">Opções</SelectItem>
               <SelectItem value="file">Upload de fotos</SelectItem>
+              <SelectItem value="multi-input">Múltiplos Campos (Medidas)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -181,6 +182,102 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
               <Button size="sm" variant="ghost" onClick={() => removeOption(i)} className="text-slate-500 hover:text-red-400 shrink-0 h-9">
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+
+
+      {/* Inputs para Multi-Input */}
+      {step.type === 'multi-input' && (
+        <div className="space-y-3 border-t border-slate-700/30 pt-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-slate-400 text-xs">Campos do Multi-Input</Label>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => update('inputs', [...(step.inputs || []), { label: 'Novo Campo', field: '', type: 'number', placeholder: '' }])}
+              className="h-6 text-xs text-slate-400"
+            >
+              <Plus className="w-3 h-3 mr-1" /> Adicionar Campo
+            </Button>
+          </div>
+
+          {(step.inputs || []).map((input, i) => (
+            <div key={i} className="bg-slate-900/30 rounded-lg p-3 space-y-2 border border-slate-700/20">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-500 uppercase">Input {i + 1}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => update('inputs', (step.inputs || []).filter((_, idx) => idx !== i))}
+                  className="h-5 text-xs text-red-400"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-500">Label</Label>
+                  <Input
+                    value={input.label}
+                    onChange={e => {
+                      const newInputs = [...(step.inputs || [])];
+                      newInputs[i] = { ...newInputs[i], label: e.target.value };
+                      update('inputs', newInputs);
+                    }}
+                    className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-xs"
+                    placeholder="Ex: Cintura (cm)"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-500">ID (ex: cintura)</Label>
+                  <Input
+                    value={input.field}
+                    onChange={e => {
+                      const newInputs = [...(step.inputs || [])];
+                      newInputs[i] = { ...newInputs[i], field: e.target.value };
+                      update('inputs', newInputs);
+                    }}
+                    className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-xs"
+                    placeholder="Id único"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-500">Tipo</Label>
+                  <Select
+                    value={input.type}
+                    onValueChange={v => {
+                      const newInputs = [...(step.inputs || [])];
+                      newInputs[i] = { ...newInputs[i], type: v as any };
+                      update('inputs', newInputs);
+                    }}
+                  >
+                    <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Texto</SelectItem>
+                      <SelectItem value="number">Número</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-500">Placeholder</Label>
+                  <Input
+                    value={input.placeholder || ''}
+                    onChange={e => {
+                      const newInputs = [...(step.inputs || [])];
+                      newInputs[i] = { ...newInputs[i], placeholder: e.target.value };
+                      update('inputs', newInputs);
+                    }}
+                    className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-xs"
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
             </div>
           ))}
         </div>

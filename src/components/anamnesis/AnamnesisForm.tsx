@@ -747,7 +747,27 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
   const renderTreinos = () => (
     <div className="space-y-4">
       <FieldInput label="Faz musculação quantas vezes por semana?" value={form.anamnese.frequencia_musculacao || ''} onChange={v => updateAnamnese('frequencia_musculacao', v)} />
-      <FieldInput label="Como é sua recuperação pós-treino?" value={form.anamnese.recuperacao_pos_treino || ''} onChange={v => updateAnamnese('recuperacao_pos_treino', v)} />
+
+      <FieldInput label="Treina há quanto tempo?" value={form.anamnese.tempo_treinando || ''} onChange={v => updateAnamnese('tempo_treinando', v)} placeholder="Ex: 6 meses, 1 ano..." />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+            Treina em jejum?
+          </Label>
+          <Select value={form.anamnese.treina_jejum || ''} onValueChange={v => updateAnamnese('treina_jejum', v)}>
+            <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Sim">Sim</SelectItem>
+              <SelectItem value="Não">Não</SelectItem>
+              <SelectItem value="Às vezes">Às vezes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <FieldInput label="Como é sua recuperação pós-treino?" value={form.anamnese.recuperacao_pos_treino || ''} onChange={v => updateAnamnese('recuperacao_pos_treino', v)} />
+      </div>
+
+      <FieldTextarea label="Já treinou em jejum? Se sim, como foi?" value={form.anamnese.ja_treinou_jejum || ''} onChange={v => updateAnamnese('ja_treinou_jejum', v)} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FieldInput label="Tem disponibilidade para treinar quantos dias na semana?" value={form.anamnese.disponibilidade_musculacao || ''} onChange={v => updateAnamnese('disponibilidade_musculacao', v)} />

@@ -404,19 +404,23 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
                       const allFilled = currentStep.inputs?.every(i => multiInputValues[i.field]?.trim());
                       if (!allFilled) return;
 
-                      // Format for display and saving
-                      // Save as a combined string in 'medida' field for backward compatibility
-                      // Also save individual fields if backend supports them
-                      const cintura = multiInputValues['cintura'];
-                      const quadril = multiInputValues['quadril'];
-                      const combined = `Cintura: ${cintura}cm / Quadril: ${quadril}cm`;
+                      // Construir string combinada dinamicamente com base nos inputs configurados
+                      const parts = currentStep.inputs?.map(input => {
+                        const val = multiInputValues[input.field] || '';
+                        // Remove dois pontos final se o usuário tiver adicionado (ex: "Cintura:" -> "Cintura")
+                        const cleanLabel = input.label.replace(/:\s*$/, '').trim();
+                        // Monta a string no formato "Label: Valor"
+                        return `${cleanLabel}: ${val}`;
+                      }) || [];
+
+                      const combined = parts.join(' / ');
 
                       addUserMessage(combined);
 
                       const newData = {
                         ...data,
                         ...multiInputValues,
-                        medida: combined // Force mapping to existing 'medida' field
+                        medida: combined // Salva a string formatada no campo medida para compatibilidade
                       };
                       setData(newData);
 
@@ -424,7 +428,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
                       setIsProcessing(true);
                       processNextStep(currentStepIndex + 1);
                     }}
-                    disabled={!currentStep.inputs.every(i => multiInputValues[i.field]?.trim())}
+                    disabled={!currentStep.inputs?.every(i => multiInputValues[i.field]?.trim())}
                     className="self-end w-full sm:w-auto px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
                     style={{ background: theme.button_bg, color: theme.button_text }}
                   >

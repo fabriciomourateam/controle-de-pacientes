@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
   Loader2,
   ArrowLeft,
   User
@@ -28,7 +28,7 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Erro",
@@ -133,7 +133,7 @@ export default function Login() {
         title: "E-mail enviado!",
         description: "Verifique sua caixa de entrada para redefinir sua senha.",
       });
-      
+
       setResetPasswordMode(false);
     } catch (error: any) {
       toast({
@@ -155,10 +155,10 @@ export default function Login() {
             <User className="w-12 h-12 text-blue-400" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Controle de Pacientes
+            My Shape
           </h1>
           <p className="text-slate-400">
-            Faça login para acessar sua conta
+            Construindo Resultados
           </p>
         </div>
 
