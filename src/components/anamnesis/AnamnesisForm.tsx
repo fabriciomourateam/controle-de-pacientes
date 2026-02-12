@@ -13,6 +13,7 @@ import {
   Save, Loader2, CheckCircle2, Upload, X, Camera
 } from 'lucide-react';
 import { AnamnesisData } from '@/lib/anamnesis-service';
+import type { AnamnesisFlowStep, AnamnesisFieldDef } from '@/lib/anamnesis-flow-default';
 
 interface FormData {
   nome: string;
@@ -40,10 +41,13 @@ interface FormData {
 interface AnamnesisFormProps {
   onSubmit: (data: FormData) => Promise<void>;
   loading: boolean;
-  isPublic?: boolean; // Quando true: sem plano, layout público
+  isPublic?: boolean;
+  customFlow?: AnamnesisFlowStep[];
+  customTermsUrl?: string;
+  customTermsText?: string;
 }
 
-const STEPS = [
+const DEFAULT_STEPS = [
   { id: 1, title: 'Dados Pessoais', icon: User, emoji: '👤' },
   { id: 2, title: 'Endereço', icon: MapPin, emoji: '📍' },
   { id: 3, title: 'Medidas e Fotos', icon: Ruler, emoji: '📏' },
@@ -140,7 +144,18 @@ function FieldTextarea({ label, value, onChange, placeholder, rows = 3 }: {
 
 // ===== COMPONENTE PRINCIPAL =====
 
-export function AnamnesisForm({ onSubmit, loading, isPublic = false }: AnamnesisFormProps) {
+export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow, customTermsUrl, customTermsText }: AnamnesisFormProps) {
+  const useCustomFlow = customFlow && customFlow.length > 0;
+
+  // Derivar STEPS dinamicamente a partir do customFlow
+  const STEPS = useCustomFlow
+    ? customFlow.map((s, i) => ({
+      id: i + 1,
+      title: s.sectionTitle,
+      icon: MessageSquare,
+      emoji: s.sectionEmoji || '📋',
+    }))
+    : DEFAULT_STEPS;
   const [step, setStep] = useState(1);
   const { toast } = useToast();
   const formRef = useRef<HTMLDivElement>(null);
@@ -220,6 +235,31 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
       toast({ title: 'Campo obrigatório', description: `O campo "${field}" é obrigatório. Se não souber, preencha com 0.`, variant: 'destructive' });
       return false;
     };
+
+    // Validação dinâmica para fluxo customizado
+    if (useCustomFlow) {
+      const section = customFlow[step - 1];
+      if (section) {
+        for (const fieldDef of section.fields) {
+          if (!fieldDef.required) continue;
+          if (fieldDef.type === 'photo') continue; // photos are optional by nature
+
+          // Check showIf condition
+          if (fieldDef.showIf) {
+            const condVal = fieldDef.showIf.field === 'genero'
+              ? form.genero
+              : (form.anamnese as any)[fieldDef.showIf.field] || '';
+            if (condVal !== fieldDef.showIf.value) continue;
+          }
+
+          const val = fieldDef.targetField === 'form'
+            ? (form as any)[fieldDef.field]
+            : (form.anamnese as any)[fieldDef.field];
+          if (checkEmpty(val)) return showErr(fieldDef.label);
+        }
+      }
+      return true;
+    }
 
     if (step === 1) {
       if (checkEmpty(form.nome)) return showErr('Nome Completo');
@@ -797,6 +837,177 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
 
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // === RENDERIZAÇÃO DINÂMICA DE CAMPOS ===
+  const renderDynamicField = (fieldDef: AnamnesisFieldDef) => {
+    const getValue = () => {
+      if (fieldDef.targetField === 'form') return (form as any)[fieldDef.field] || '';
+      return (form.anamnese as any)[fieldDef.field] || '';
+    };
+    const setValue = (v: string) => {
+      if (fieldDef.targetField === 'form') updateField(fieldDef.field as keyof FormData, v);
+      else updateAnamnese(fieldDef.field as keyof AnamnesisData, v);
+    };
+
+    // showIf conditional
+    if (fieldDef.showIf) {
+      const condVal = fieldDef.showIf.field === 'genero'
+        ? form.genero
+        : (form.anamnese as any)[fieldDef.showIf.field] || '';
+      if (condVal !== fieldDef.showIf.value) return null;
+    }
+
+    // photo fields
+    if (fieldDef.type === 'photo') {
+      const photoKey = fieldDef.field as 'foto_frente' | 'foto_lado' | 'foto_lado2' | 'foto_costas';
+      const previewKey = photoKey.replace('foto_', '') as 'frente' | 'lado' | 'lado2' | 'costas';
+      return (
+        <PhotoUploadField
+          key={fieldDef.id}
+          label={fieldDef.label}
+          preview={previews[previewKey] || ''}
+          onFileChange={f => handlePhotoChange(photoKey, f)}
+          onRemove={() => removePhoto(photoKey)}
+        />
+      );
+    }
+
+    // select fields
+    if (fieldDef.type === 'select' && fieldDef.options) {
+      return (
+        <div key={fieldDef.id} className="space-y-1.5">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+            {fieldDef.icon && <span className="text-sm">{fieldDef.icon}</span>}
+            {fieldDef.label}{fieldDef.required && <span className="text-blue-400">*</span>}
+          </Label>
+          <Select value={getValue()} onValueChange={setValue}>
+            <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectContent>
+              {fieldDef.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    // textarea fields
+    if (fieldDef.type === 'textarea') {
+      return (
+        <FieldTextarea
+          key={fieldDef.id}
+          label={fieldDef.label}
+          value={getValue()}
+          onChange={setValue}
+          placeholder={fieldDef.placeholder}
+        />
+      );
+    }
+
+    // text, number, date, time fields
+    return (
+      <FieldInput
+        key={fieldDef.id}
+        label={fieldDef.label}
+        value={getValue()}
+        onChange={setValue}
+        placeholder={fieldDef.placeholder}
+        type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
+        required={fieldDef.required}
+        icon={fieldDef.icon}
+      />
+    );
+  };
+
+  const renderDynamicSection = (sectionIndex: number) => {
+    if (!useCustomFlow) return null;
+    const section = customFlow[sectionIndex];
+    if (!section) return null;
+
+    // Group fields by gridCols for layout
+    const renderedFields: React.ReactNode[] = [];
+    let gridGroup: AnamnesisFieldDef[] = [];
+    let currentGridCols = 0;
+
+    const flushGrid = () => {
+      if (gridGroup.length > 0) {
+        const cols = currentGridCols || 1;
+        renderedFields.push(
+          <div key={`grid-${renderedFields.length}`} className={`grid grid-cols-1 md:grid-cols-${cols} gap-4`}>
+            {gridGroup.map(f => renderDynamicField(f))}
+          </div>
+        );
+        gridGroup = [];
+        currentGridCols = 0;
+      }
+    };
+
+    for (const field of section.fields) {
+      if (field.gridCols && field.gridCols > 1) {
+        if (currentGridCols > 0 && currentGridCols !== field.gridCols) {
+          flushGrid();
+        }
+        currentGridCols = field.gridCols;
+        gridGroup.push(field);
+      } else {
+        flushGrid();
+        renderedFields.push(renderDynamicField(field));
+      }
+    }
+    flushGrid();
+
+    // If this is the last section, add terms at the end
+    const isLastSection = sectionIndex === customFlow.length - 1;
+
+    return (
+      <div className="space-y-4">
+        {renderedFields}
+        {isLastSection && renderTermsBlock()}
+      </div>
+    );
+  };
+
+  // Bloco de termos reutilizável
+  const effectiveTermsUrl = customTermsUrl || 'https://drive.google.com/file/d/1KuLkE5WpEeqX6MYFI46VhySng5UOK-nY/view?usp=sharing';
+  const effectiveTermsText = customTermsText || 'Antes de seguir, é importante que você conheça os termos do nosso acompanhamento.\n\nEste é o **contrato que formaliza sua adesão ao plano escolhido** e explica de forma transparente como funciona o serviço, prazos, deveres e garantias — pra que tudo fique claro desde o início.';
+
+  const renderTermsBlock = () => (
+    <div className="bg-slate-800/20 border border-slate-700/50 rounded-2xl p-6 mt-6 space-y-4">
+      <h3 className="text-white font-semibold flex items-center gap-2">
+        📝 Termo de Adesão ao Acompanhamento
+      </h3>
+      <p className="text-slate-300 text-sm leading-relaxed" dangerouslySetInnerHTML={{
+        __html: effectiveTermsText
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br />')
+      }} />
+      <div className="py-2">
+        <a
+          href={effectiveTermsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:text-blue-300 underline text-sm flex items-center gap-1 transition-colors"
+        >
+          Clique aqui para ler o termo completo
+          <Upload className="w-3 h-3 rotate-90" />
+        </a>
+      </div>
+      <p className="text-slate-300 text-sm leading-relaxed">
+        👉🏼 A leitura é rápida e vai te ajudar a entender exatamente o que esperar do nosso trabalho juntos.
+      </p>
+      <div className="flex items-center space-x-3 pt-2">
+        <input
+          type="checkbox"
+          id="terms"
+          checked={termsAccepted}
+          onChange={(e) => setTermsAccepted(e.target.checked)}
+          className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer"
+        />
+        <Label htmlFor="terms" className="text-slate-300 text-sm cursor-pointer select-none">
+          Declaro que li e concordo com os termos. <span className="text-slate-500 text-xs block mt-0.5">*Ao clicar em aceite, será assinado digitalmente.</span>
+        </Label>
+      </div>
+    </div>
+  );
+
   const renderObservacoes = () => (
     <div className="space-y-5">
       <FieldTextarea label="Observações adicionais para a prescrição alimentar" value={form.anamnese.observacao_alimentar || ''} onChange={v => updateAnamnese('observacao_alimentar', v)} rows={4} />
@@ -811,48 +1022,17 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false }: Anamnesis
         </p>
         <FieldTextarea label="" value={form.anamnese.indicacoes_amigos || ''} onChange={v => updateAnamnese('indicacoes_amigos', v)} placeholder="Nome - Telefone" rows={3} />
       </div>
-
-      {/* Termo de Adesão */}
-      <div className="bg-slate-800/20 border border-slate-700/50 rounded-2xl p-6 mt-6 space-y-4">
-        <h3 className="text-white font-semibold flex items-center gap-2">
-          📝 Termo de Adesão ao Acompanhamento
-        </h3>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Antes de seguir, é importante que você conheça os termos do nosso acompanhamento. <br /><br />
-          Este é o <strong>contrato que formaliza sua adesão ao plano escolhido</strong> e explica de forma transparente como funciona o serviço, prazos, deveres e garantias — pra que tudo fique claro desde o início.
-        </p>
-        <div className="py-2">
-          <a
-            href="https://drive.google.com/file/d/1KuLkE5WpEeqX6MYFI46VhySng5UOK-nY/view?usp=sharing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 underline text-sm flex items-center gap-1 transition-colors"
-          >
-            Clique aqui para ler o termo completo
-            <Upload className="w-3 h-3 rotate-90" />
-          </a>
-        </div>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          👉🏼 A leitura é rápida e vai te ajudar a entender exatamente o que esperar do nosso trabalho juntos.
-        </p>
-
-        <div className="flex items-center space-x-3 pt-2">
-          <input
-            type="checkbox"
-            id="terms"
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-            className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer"
-          />
-          <Label htmlFor="terms" className="text-slate-300 text-sm cursor-pointer select-none">
-            Declaro que li e concordo com os termos. <span className="text-slate-500 text-xs block mt-0.5">*Ao clicar em aceite, será assinado digitalmente.</span>
-          </Label>
-        </div>
-      </div>
+      {renderTermsBlock()}
     </div>
   );
 
   const renderStepContent = () => {
+    // Se tem flow customizado, usar renderização dinâmica
+    if (useCustomFlow) {
+      return renderDynamicSection(step - 1);
+    }
+
+    // Fallback: renderização hardcoded original
     switch (step) {
       case 1: return renderDadosPessoais();
       case 2: return renderEndereco();

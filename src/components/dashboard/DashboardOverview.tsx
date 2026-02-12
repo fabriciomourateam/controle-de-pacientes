@@ -593,6 +593,14 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             <Settings2 className="w-4 h-4 mr-2" />
             Editor de Check-in
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/anamnesis-editor')}
+            className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 transition-all duration-300"
+          >
+            <Settings2 className="w-4 h-4 mr-2" />
+            Editor de Anamnese
+          </Button>
 
         </div>
       </div>

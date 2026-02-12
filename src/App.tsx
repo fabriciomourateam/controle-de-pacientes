@@ -46,6 +46,7 @@ const PublicPortal = lazy(() => import("./pages/PublicPortal"));
 const NewPatientAnamnesis = lazy(() => import("./pages/NewPatientAnamnesis"));
 const PublicCheckin = lazy(() => import("./pages/PublicCheckin"));
 const CheckinFlowEditorPage = lazy(() => import("./pages/CheckinFlowEditorPage"));
+const AnamnesisFlowEditorPage = lazy(() => import("./pages/AnamnesisFlowEditorPage"));
 const StudentEvolution = lazy(() => import("./pages/StudentEvolution"));
 
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
@@ -212,6 +213,11 @@ const App = () => (
               <Route path="/checkin-editor" element={
                 <Suspense fallback={<PageLoader />}>
                   <CheckinFlowEditorPage />
+                </Suspense>
+              } />
+              <Route path="/anamnesis-editor" element={
+                <Suspense fallback={<PageLoader />}>
+                  <AnamnesisFlowEditorPage />
                 </Suspense>
               } />
               <Route path="/admin" element={

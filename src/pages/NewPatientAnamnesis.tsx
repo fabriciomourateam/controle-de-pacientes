@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@supabase/supabase-js';
 import { processPhotoFile } from '@/lib/heic-converter';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import type { AnamnesisFlowStep, FinalMessageConfig } from '@/lib/anamnesis-flow-default';
 
 // Cliente com service role para acesso público (mesmo padrão do PublicPortal)
 const supabasePublic = createClient(
@@ -22,7 +23,13 @@ export default function NewPatientAnamnesis() {
   const [success, setSuccess] = useState(false);
   const [invalidToken, setInvalidToken] = useState(false);
 
-  // Validar token e buscar dados do nutricionista
+  // Flow config do nutricionista (se houver fluxo ativo customizado)
+  const [flowSteps, setFlowSteps] = useState<AnamnesisFlowStep[] | null>(null);
+  const [finalMessage, setFinalMessage] = useState<FinalMessageConfig | null>(null);
+  const [termsUrl, setTermsUrl] = useState<string | null>(null);
+  const [termsText, setTermsText] = useState<string | null>(null);
+
+  // Validar token e buscar dados do nutricionista + flow config ativo
   useEffect(() => {
     async function validateToken() {
       if (!token) {
@@ -44,6 +51,25 @@ export default function NewPatientAnamnesis() {
         } else {
           setUserId(profile.id);
           setNutriName(profile.full_name || 'Nutricionista');
+
+          // Buscar flow config ativo do nutricionista
+          const { data: flowConfig } = await supabasePublic
+            .from('anamnesis_flow_config')
+            .select('flow, final_message, terms_url, terms_text')
+            .eq('user_id', profile.id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (flowConfig) {
+            if (flowConfig.flow && Array.isArray(flowConfig.flow) && flowConfig.flow.length > 0) {
+              setFlowSteps(flowConfig.flow as AnamnesisFlowStep[]);
+            }
+            if (flowConfig.final_message) {
+              setFinalMessage(flowConfig.final_message as FinalMessageConfig);
+            }
+            if (flowConfig.terms_url) setTermsUrl(flowConfig.terms_url);
+            if (flowConfig.terms_text) setTermsText(flowConfig.terms_text);
+          }
         }
       } catch {
         setInvalidToken(true);
@@ -259,21 +285,24 @@ export default function NewPatientAnamnesis() {
 
   // Sucesso
   if (success) {
+    const fmTitle = finalMessage?.title || 'Anamnese enviada!';
+    const fmSubtitle = finalMessage?.subtitle || 'Seus dados foram enviados com sucesso.\nEm até **72 horas úteis** seu planejamento será entregue!';
+    const fmFooter = finalMessage?.footer || 'Tenho certeza que você terá ótimos resultados! 🎯';
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 flex items-center justify-center px-4">
         <div className="text-center max-w-lg">
           <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
             <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-3">Anamnese enviada!</h1>
-          <p className="text-slate-300 text-lg mb-2">
-            Seus dados foram enviados com sucesso. <br />
-            Em até <strong className="text-emerald-400 font-bold">72 horas úteis</strong> seu planejamento será entregue!
-          </p>
+          <h1 className="text-3xl font-bold text-white mb-3">{fmTitle}</h1>
+          <p className="text-slate-300 text-lg mb-2" dangerouslySetInnerHTML={{
+            __html: fmSubtitle
+              .replace(/\*\*(.*?)\*\*/g, '<strong class="text-emerald-400 font-bold">$1</strong>')
+              .replace(/\n/g, '<br />')
+          }} />
           <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            <p className="text-slate-500/80 text-sm">
-              Tenho certeza que você terá ótimos resultados! 🎯
-            </p>
+            <p className="text-slate-500/80 text-sm">{fmFooter}</p>
           </div>
         </div>
       </div>
@@ -308,7 +337,14 @@ export default function NewPatientAnamnesis() {
         </div>
 
         {/* Formulário */}
-        <AnamnesisForm onSubmit={handleSubmit} loading={loading} isPublic />
+        <AnamnesisForm
+          onSubmit={handleSubmit}
+          loading={loading}
+          isPublic
+          customFlow={flowSteps ?? undefined}
+          customTermsUrl={termsUrl ?? undefined}
+          customTermsText={termsText ?? undefined}
+        />
 
         {/* Footer */}
         <div className="text-center mt-8 pb-8">

@@ -10,13 +10,13 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/favicon-grow.png",
+      "src": "/Logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon-grow.png",
+      "src": "/Logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -39,7 +39,7 @@
       "url": "/patients",
       "icons": [
         {
-          "src": "/favicon-grow.png",
+          "src": "/Logo.png",
           "sizes": "192x192"
         }
       ]
