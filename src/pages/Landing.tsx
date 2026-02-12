@@ -13,17 +13,13 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
-  Calendar,
-  Activity,
   Brain,
   FileText,
   Smartphone,
   Clock,
   Award,
-  Heart,
-  LineChart,
   AlertTriangle,
-  Monitor
+  ChevronRight,
 } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth-helpers';
 import { subscriptionService } from '@/lib/subscription-service';
@@ -40,10 +36,7 @@ export default function Landing() {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-
-    // Verificar se está autenticado
     checkAuth();
-
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -63,7 +56,6 @@ export default function Landing() {
     }
 
     try {
-      // Buscar plano gratuito
       const plans = await subscriptionService.getPlans();
       const freePlan = plans.find(p => p.name === 'free');
 
@@ -103,56 +95,65 @@ export default function Landing() {
     {
       icon: Users,
       title: 'Gestão Completa de Pacientes',
-      description: 'Organize todos os seus pacientes em um só lugar. Histórico completo, dados organizados e fácil acesso.',
-      color: 'from-blue-500 to-cyan-500'
+      description: 'Organize todos os seus pacientes em um só lugar com histórico completo e fácil acesso.',
+      accent: 'from-amber-500 to-orange-500',
+      glow: 'amber',
     },
     {
       icon: MessageSquare,
       title: 'Check-ins Inteligentes',
-      description: 'Sistema de check-ins diários que permite acompanhar o progresso dos seus pacientes em tempo real.',
-      color: 'from-purple-500 to-pink-500'
+      description: 'Acompanhe o progresso dos seus pacientes em tempo real com check-ins diários personalizados.',
+      accent: 'from-blue-500 to-cyan-500',
+      glow: 'blue',
     },
     {
-      icon: LineChart,
+      icon: TrendingUp,
       title: 'Evolução Visual',
       description: 'Gráficos e análises detalhadas mostrando a evolução completa do paciente ao longo do tempo.',
-      color: 'from-green-500 to-emerald-500'
+      accent: 'from-emerald-500 to-green-500',
+      glow: 'emerald',
     },
     {
       icon: Target,
       title: 'Planos Personalizados',
-      description: 'Crie planos de dieta e treino personalizados para cada paciente com calculadora TMB/GET integrada.',
-      color: 'from-orange-500 to-red-500'
+      description: 'Crie planos de dieta e treino sob medida com calculadora TMB/GET integrada.',
+      accent: 'from-rose-500 to-pink-500',
+      glow: 'rose',
     },
     {
       icon: BarChart3,
       title: 'Dashboard de Métricas',
-      description: 'Acompanhe métricas operacionais e comerciais. MRR, ARPU, Churn Rate e muito mais.',
-      color: 'from-indigo-500 to-purple-500'
+      description: 'MRR, ARPU, Churn Rate e muito mais. Tudo em um dashboard completo e intuitivo.',
+      accent: 'from-indigo-500 to-blue-500',
+      glow: 'indigo',
     },
     {
       icon: AlertTriangle,
       title: 'Sistema de Retenção',
-      description: 'Identifique pacientes em risco de cancelamento e tome ações preventivas automaticamente.',
-      color: 'from-yellow-500 to-orange-500'
+      description: 'Identifique pacientes em risco e tome ações preventivas automaticamente.',
+      accent: 'from-amber-400 to-yellow-500',
+      glow: 'amber',
     },
     {
       icon: Brain,
       title: 'Análise com IA',
-      description: 'Insights inteligentes sobre composição corporal, tendências e recomendações personalizadas.',
-      color: 'from-pink-500 to-rose-500'
+      description: 'Insights inteligentes sobre composição corporal, tendências e recomendações.',
+      accent: 'from-fuchsia-500 to-pink-500',
+      glow: 'fuchsia',
     },
     {
       icon: Smartphone,
       title: 'Portal do Paciente',
       description: 'Seus pacientes têm acesso ao próprio portal para visualizar evolução e conquistas.',
-      color: 'from-cyan-500 to-blue-500'
+      accent: 'from-cyan-500 to-teal-500',
+      glow: 'cyan',
     },
     {
       icon: FileText,
       title: 'Relatórios Profissionais',
       description: 'Gere relatórios completos e profissionais para seus pacientes com um clique.',
-      color: 'from-violet-500 to-purple-500'
+      accent: 'from-slate-400 to-slate-500',
+      glow: 'slate',
     }
   ];
 
@@ -165,40 +166,118 @@ export default function Landing() {
     'Foque no que realmente importa: seus pacientes'
   ];
 
+  const stats = [
+    { value: '+40%', label: 'Retenção', icon: TrendingUp, color: 'from-amber-500 to-orange-500' },
+    { value: '-15h', label: 'Semana', icon: Clock, color: 'from-blue-500 to-cyan-500' },
+    { value: '100%', label: 'Profissional', icon: Award, color: 'from-emerald-500 to-green-500' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header Fixo */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50' : 'bg-transparent'
+    <div className="min-h-screen relative bg-[#0a0e1a]">
+      {/* Global Styles */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); opacity: 0.3; }
+          50% { transform: translateY(-25px); opacity: 0.6; }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gradient-shift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.7s ease-out forwards;
+        }
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .text-gradient-gold {
+          background: linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: gradient-shift 4s ease infinite;
+        }
+        .card-hover {
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+      `}</style>
+
+      {/* Background Effects (persistent) */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-15%] left-[-5%] w-[700px] h-[700px] rounded-full bg-gradient-to-br from-amber-500/[0.07] via-amber-600/[0.03] to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-blue-600/[0.06] via-cyan-500/[0.03] to-transparent blur-3xl animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute top-[50%] left-[60%] w-[400px] h-[400px] rounded-full bg-gradient-to-br from-amber-400/[0.04] to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+        {/* Grid */}
+        <div
+          className="absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }}
+        />
+        {/* Particles */}
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-amber-400/30"
+            style={{
+              left: `${10 + i * 12}%`,
+              top: `${5 + (i % 4) * 25}%`,
+              animation: `float ${5 + i * 1.5}s ease-in-out infinite`,
+              animationDelay: `${i * 0.6}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ========== HEADER ========== */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
+        ? 'bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-white/[0.06] shadow-2xl shadow-black/30'
+        : 'bg-transparent'
         }`}>
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-600/30 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-lg shadow-blue-500/20">
-                  <LineChart className="w-5 h-5 text-cyan-400" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full border-2 border-slate-900 animate-pulse" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
-                  My Shape
-                </h1>
-                <p className="text-xs text-slate-400">Construindo Resultados</p>
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <img
+                src="/Logo.png"
+                alt="My Shape"
+                className="w-14 h-14 object-contain drop-shadow-[0_0_12px_rgba(251,191,36,0.5)]"
+              />
+              <div className="flex flex-col">
+                <img
+                  src="/Texto.png"
+                  alt="My Shape"
+                  className="h-8 object-contain"
+                />
+                <p className="text-[9px] text-amber-400/80 tracking-[0.2em] uppercase text-center -mt-0.5">Construindo Resultados</p>
               </div>
             </div>
+
+            {/* Nav */}
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
                 <>
                   <Button
                     variant="ghost"
                     onClick={() => navigate('/')}
-                    className="text-slate-300 hover:text-white"
+                    className="text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-xl"
                   >
                     Dashboard
                   </Button>
                   <Button
                     onClick={() => navigate('/pricing')}
-                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-semibold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 transition-all duration-300 hover:scale-105"
                   >
                     Ver Planos
                   </Button>
@@ -208,14 +287,15 @@ export default function Landing() {
                   <Button
                     variant="ghost"
                     onClick={() => navigate('/login')}
-                    className="text-slate-300 hover:text-white"
+                    className="text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-xl"
                   >
                     Entrar
                   </Button>
                   <Button
                     onClick={handleStartTrial}
-                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-semibold rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 transition-all duration-300 hover:scale-105"
                   >
+                    <Zap className="w-4 h-4 mr-1.5" />
                     Começar Grátis
                   </Button>
                 </>
@@ -225,41 +305,42 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-cyan-500/10" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent)]" />
+      {/* ========== HERO SECTION ========== */}
+      <section className="relative pt-36 pb-24 px-6 overflow-hidden">
+        {/* Hero-specific glow */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-amber-500/[0.08] to-transparent blur-3xl rounded-full" />
 
-        <div className="container mx-auto max-w-6xl relative z-10">
+        <div className="container mx-auto max-w-5xl relative z-10">
           <div className="text-center space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-300">Transforme os resultados da sua Empresa com eficiência e Tecnologia!</span>
+            <div className="animate-fade-in-up inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-amber-500/[0.08] border border-amber-500/20 backdrop-blur-sm">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-medium text-amber-200/80">A plataforma que transforma nutricionistas</span>
+              <ChevronRight className="w-3.5 h-3.5 text-amber-400/60" />
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight">
+            <h1 className="animate-fade-in-up delay-1 text-5xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight">
               O Controle que{' '}
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent animate-gradient">
+              <span className="text-gradient-gold">
                 Transforma
               </span>
               <br />
-              sua Prática como Nutricionista
+              sua Prática Profissional
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              Organize pacientes, acompanhe evoluções, gere insights e escale seu negócio.
-              Tudo em uma plataforma moderna e intuitiva.
+            <p className="animate-fade-in-up delay-2 text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              Organize pacientes, acompanhe evoluções, gere insights com IA e escale seu negócio.
+              Tudo em uma plataforma <span className="text-slate-300 font-medium">moderna e intuitiva</span>.
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <div className="animate-fade-in-up delay-3 flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <Button
                 size="lg"
                 onClick={handleStartTrial}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-lg px-8 py-6 h-auto shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 text-base font-semibold px-8 py-6 h-auto rounded-xl shadow-xl shadow-amber-500/25 hover:shadow-2xl hover:shadow-amber-500/35 transition-all duration-300 hover:scale-105 active:scale-[0.98]"
               >
                 <Zap className="w-5 h-5 mr-2" />
                 Começar Trial de 30 Dias Grátis
@@ -268,7 +349,7 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate('/pricing')}
-                className="border-2 border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white text-lg px-8 py-6 h-auto hover:border-slate-500 transition-all duration-300"
+                className="border border-white/[0.1] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15] text-base px-8 py-6 h-auto rounded-xl transition-all duration-300"
               >
                 Ver Planos e Preços
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -276,178 +357,85 @@ export default function Landing() {
             </div>
 
             {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-8 pt-8 text-slate-400">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <span>Sem cartão de crédito</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <span>30 dias grátis</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <span>Cancele quando quiser</span>
+            <div className="animate-fade-in-up delay-4 flex flex-wrap items-center justify-center gap-8 pt-6">
+              {[
+                { icon: Shield, text: 'Sem cartão de crédito' },
+                { icon: CheckCircle2, text: '30 dias grátis' },
+                { icon: Sparkles, text: 'Cancele quando quiser' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-slate-500">
+                  <item.icon className="w-4 h-4 text-amber-500/60" />
+                  <span className="text-sm">{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== STATS BAR ========== */}
+      <section className="relative py-12 px-6">
+        <div className="container mx-auto max-w-4xl">
+          <div className="relative">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-amber-500/20 via-white/[0.05] to-amber-500/20 rounded-2xl" />
+            <div className="relative bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-white/[0.04] p-8">
+              <div className="grid grid-cols-3 gap-8">
+                {stats.map((stat, i) => {
+                  const Icon = stat.icon;
+                  return (
+                    <div key={i} className="text-center space-y-2">
+                      <div className={`inline-flex w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} items-center justify-center mb-2 shadow-lg`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-white">{stat.value}</div>
+                      <div className="text-sm text-slate-400">{stat.label}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-slate-900/50">
+      {/* ========== FEATURES ========== */}
+      <section className="relative py-24 px-6">
         <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Tudo que você precisa para{' '}
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                revolucionar
-              </span>{' '}
-              seu consultório
+          <div className="text-center mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Funcionalidades</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+              Tudo para{' '}
+              <span className="text-gradient-gold">revolucionar</span>
+              {' '}seu consultório
             </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Funcionalidades poderosas que economizam seu tempo e aumentam seus resultados
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card
+                <div
                   key={index}
-                  className="bg-slate-800/50 border-slate-700/50 hover:border-slate-600 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 group"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="card-hover group relative"
                 >
-                  <CardContent className="p-6">
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="w-7 h-7 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                      {feature.title}
-                    </h3>
-                    <p className="text-slate-400 leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-slate-900 to-slate-800">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Por que nutricionistas{' '}
-                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                  escolhem
-                </span>{' '}
-                a My Shape?
-              </h2>
-              <p className="text-xl text-slate-300 mb-8">
-                Não é apenas um software. É uma transformação completa na forma como você gerencia seu consultório.
-              </p>
-              <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                    </div>
-                    <p className="text-lg text-slate-300">{benefit}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-3xl blur-3xl" />
-              <Card className="relative bg-slate-800/80 border-slate-700 backdrop-blur-md p-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                      <TrendingUp className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-white">+40% Retenção</h3>
-                      <p className="text-slate-400">Aumento médio na retenção de pacientes</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                      <Clock className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-white">-15h/semana</h3>
-                      <p className="text-slate-400">Tempo economizado em organização</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                      <Award className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-white">100% Profissional</h3>
-                      <p className="text-slate-400">Relatórios e análises de nível empresarial</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 px-4 bg-slate-900/50">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Como{' '}
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                Funciona
-              </span>
-            </h2>
-            <p className="text-xl text-slate-400">
-              Em 3 passos simples, você está pronto para transformar seu consultório
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                step: '01',
-                title: 'Cadastre-se Grátis',
-                description: 'Crie sua conta em segundos. Sem cartão de crédito. Comece seu trial de 30 dias agora mesmo.',
-                icon: Shield
-              },
-              {
-                step: '02',
-                title: 'Organize seus Pacientes',
-                description: 'Importe ou cadastre seus pacientes. Tudo organizado e acessível em um só lugar.',
-                icon: Users
-              },
-              {
-                step: '03',
-                title: 'Transforme seu Negócio',
-                description: 'Acompanhe evoluções, gere insights e escale seu consultório com dados reais.',
-                icon: TrendingUp
-              }
-            ].map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <div key={index} className="relative">
-                  <Card className="bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50 transition-all duration-300 h-full">
-                    <CardContent className="p-8">
-                      <div className="text-6xl font-bold text-slate-700 mb-4">{item.step}</div>
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
-                        <Icon className="w-7 h-7 text-white" />
+                  <div className="absolute -inset-[1px] bg-gradient-to-b from-white/[0.06] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+                  <Card className="relative bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1] rounded-2xl overflow-hidden transition-colors duration-400">
+                    <CardContent className="p-7">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.accent} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                        <Icon className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-3">{item.title}</h3>
-                      <p className="text-slate-400 leading-relaxed">{item.description}</p>
+                      <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-amber-200/90 transition-colors duration-300">
+                        {feature.title}
+                      </h3>
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        {feature.description}
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -457,63 +445,204 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-20 px-4 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-cyan-600/20">
-        <div className="container mx-auto max-w-4xl text-center">
-          <div className="space-y-8">
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
-              Pronto para{' '}
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                transformar
-              </span>{' '}
-              seu consultório?
-            </h2>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Junte-se a nutricionistas que já estão revolucionando sua prática profissional
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button
-                size="lg"
-                onClick={handleStartTrial}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-lg px-8 py-6 h-auto shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
-              >
-                <Zap className="w-5 h-5 mr-2" />
-                Começar Trial Grátis Agora
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate('/pricing')}
-                className="border-2 border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white text-lg px-8 py-6 h-auto hover:border-slate-500 transition-all duration-300"
-              >
-                Ver Planos e Preços
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+      {/* ========== WHY MY SHAPE ========== */}
+      <section className="relative py-24 px-6">
+        {/* Section glow */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-amber-500/[0.05] to-transparent blur-3xl" />
+
+        <div className="container mx-auto max-w-6xl relative z-10">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]">
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Diferencial</span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  Por que nutricionistas{' '}
+                  <span className="text-gradient-gold">escolhem</span>
+                  {' '}a My Shape?
+                </h2>
+                <p className="text-lg text-slate-400 leading-relaxed">
+                  Não é apenas um software. É uma transformação completa na forma como você gerencia seu consultório.
+                </p>
+              </div>
+
+              <div className="space-y-3.5">
+                {benefits.map((benefit, index) => (
+                  <div key={index} className="flex items-start gap-3.5 group">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mt-0.5 shadow-md shadow-amber-500/20 group-hover:shadow-lg group-hover:shadow-amber-500/30 transition-shadow">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <p className="text-base text-slate-300 group-hover:text-white transition-colors">{benefit}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats Card */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-blue-500/10 rounded-3xl blur-3xl" />
+              <div className="relative space-y-4">
+                {[
+                  { icon: TrendingUp, value: '+40% Retenção', desc: 'Aumento médio na retenção de pacientes', color: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/20' },
+                  { icon: Clock, value: '-15h/semana', desc: 'Tempo economizado em organização', color: 'from-blue-500 to-cyan-500', shadow: 'shadow-blue-500/20' },
+                  { icon: Award, value: '100% Profissional', desc: 'Relatórios e análises de nível empresarial', color: 'from-emerald-500 to-green-500', shadow: 'shadow-emerald-500/20' },
+                ].map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={i} className="group relative">
+                      <div className="absolute -inset-[1px] bg-gradient-to-r from-white/[0.05] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative flex items-center gap-5 p-5 bg-white/[0.02] border border-white/[0.05] rounded-2xl hover:bg-white/[0.04] transition-colors">
+                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center flex-shrink-0 shadow-lg ${item.shadow}`}>
+                          <Icon className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-white">{item.value}</h3>
+                          <p className="text-sm text-slate-400">{item.desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 border-t border-slate-800">
+      {/* ========== HOW IT WORKS ========== */}
+      <section className="relative py-24 px-6">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-600/30 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-lg shadow-blue-500/20">
-                  <LineChart className="w-5 h-5 text-cyan-400" />
+          <div className="text-center mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Simples e Rápido</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white">
+              Como{' '}
+              <span className="text-gradient-gold">Funciona</span>
+            </h2>
+            <p className="text-lg text-slate-400">
+              Em 3 passos simples, você está pronto para transformar seu consultório
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                step: '01',
+                title: 'Cadastre-se Grátis',
+                description: 'Crie sua conta em segundos. Sem cartão de crédito. Comece seu trial de 30 dias agora mesmo.',
+                icon: Shield,
+                accent: 'from-amber-500 to-orange-500',
+              },
+              {
+                step: '02',
+                title: 'Organize seus Pacientes',
+                description: 'Importe ou cadastre seus pacientes. Tudo organizado e acessível em um só lugar.',
+                icon: Users,
+                accent: 'from-blue-500 to-cyan-500',
+              },
+              {
+                step: '03',
+                title: 'Transforme seu Negócio',
+                description: 'Acompanhe evoluções, gere insights e escale seu consultório com dados reais.',
+                icon: TrendingUp,
+                accent: 'from-emerald-500 to-green-500',
+              }
+            ].map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <div key={index} className="card-hover group relative">
+                  <div className="absolute -inset-[1px] bg-gradient-to-b from-white/[0.06] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Card className="relative bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1] rounded-2xl h-full transition-colors">
+                    <CardContent className="p-8">
+                      <div className="text-6xl font-black text-white/[0.08] mb-4 tracking-tighter">{item.step}</div>
+                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${item.accent} flex items-center justify-center mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-amber-200/90 transition-colors">{item.title}</h3>
+                      <p className="text-sm text-slate-400 leading-relaxed">{item.description}</p>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full border-2 border-slate-900 animate-pulse" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
-                  My Shape
-                </h1>
-                <p className="text-xs text-slate-400">Construindo Resultados</p>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== FINAL CTA ========== */}
+      <section className="relative py-28 px-6 overflow-hidden">
+        {/* CTA Background glow */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-gradient-to-r from-amber-500/[0.08] via-amber-400/[0.04] to-amber-500/[0.08] blur-3xl rounded-full" />
+        </div>
+
+        <div className="container mx-auto max-w-3xl text-center relative z-10 space-y-8">
+          {/* Logo as visual anchor */}
+          <div className="relative inline-block mb-2">
+            <div className="absolute inset-0 bg-amber-400/15 rounded-2xl blur-2xl scale-150" />
+            <img
+              src="/Logo.png"
+              alt="My Shape"
+              className="relative w-32 h-32 object-contain mx-auto drop-shadow-[0_0_25px_rgba(251,191,36,0.6)]"
+            />
+          </div>
+
+          <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+            Pronto para{' '}
+            <span className="text-gradient-gold">transformar</span>
+            {' '}seu consultório?
+          </h2>
+          <p className="text-lg text-slate-400 max-w-xl mx-auto">
+            Junte-se a nutricionistas que já estão revolucionando sua prática profissional
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <Button
+              size="lg"
+              onClick={handleStartTrial}
+              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 text-base font-semibold px-8 py-6 h-auto rounded-xl shadow-xl shadow-amber-500/25 hover:shadow-2xl hover:shadow-amber-500/35 transition-all duration-300 hover:scale-105 active:scale-[0.98]"
+            >
+              <Zap className="w-5 h-5 mr-2" />
+              Começar Trial Grátis Agora
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => navigate('/pricing')}
+              className="border border-white/[0.1] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15] text-base px-8 py-6 h-auto rounded-xl transition-all duration-300"
+            >
+              Ver Planos e Preços
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== FOOTER ========== */}
+      <footer className="relative py-10 px-6 border-t border-white/[0.04]">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Footer Logo */}
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/Logo.png"
+                alt="My Shape"
+                className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]"
+              />
+              <div className="flex flex-col">
+                <img
+                  src="/Texto.png"
+                  alt="My Shape"
+                  className="h-6 object-contain"
+                />
+                <p className="text-[8px] text-amber-400/70 tracking-[0.2em] uppercase text-center">Construindo Resultados</p>
               </div>
             </div>
-            <p className="text-slate-400 text-sm">
-              © 2025 My Shape. Transformando consultórios de nutrição.
+            <p className="text-slate-500 text-sm">
+              © 2025 My Shape. Transformando objetivos em resultados reais.
             </p>
           </div>
         </div>
@@ -521,4 +650,3 @@ export default function Landing() {
     </div>
   );
 }
-

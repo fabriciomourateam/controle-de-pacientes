@@ -224,19 +224,20 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarHeader className="p-4 border-b border-slate-700/50">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-600/30 rounded-xl flex items-center justify-center border border-blue-500/40 shadow-lg shadow-blue-500/20">
-              <LineChart className="w-5 h-5 text-cyan-400" />
-            </div>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full border-2 border-slate-900 animate-pulse" />
-          </div>
+        <div className="flex items-center gap-0.5">
+          <img
+            src="/Logo.png"
+            alt="My Shape"
+            className="w-16 h-16 object-contain rounded-lg drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+          />
           {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-lg text-cyan-400 tracking-tight">
-                My Shape
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5">Construindo Resultados</p>
+            <div className="flex flex-col">
+              <img
+                src="/Texto.png"
+                alt="My Shape"
+                className="h-9 object-contain"
+              />
+              <p className="text-[11px] text-slate-300 tracking-wider text-center -mt-0.5">Construindo Resultados</p>
             </div>
           )}
         </div>
