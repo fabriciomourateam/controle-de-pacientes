@@ -585,22 +585,34 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             <MessageSquarePlus className="w-4 h-4 mr-2" />
             Link Check-in
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/checkin-editor')}
-            className="border-purple-500/30 hover:bg-purple-500/10 text-purple-300 hover:text-purple-200 transition-all duration-300"
-          >
-            <Settings2 className="w-4 h-4 mr-2" />
-            Editor de Check-in
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/anamnesis-editor')}
-            className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 transition-all duration-300"
-          >
-            <Settings2 className="w-4 h-4 mr-2" />
-            Editor de Anamnese
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-white/[0.08] hover:bg-white/[0.06] text-slate-300 hover:text-white transition-all duration-300"
+              >
+                <Settings2 className="w-4 h-4 mr-2" />
+                Editores
+                <ChevronDown className="w-3 h-3 ml-2 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#0f1220] border-white/[0.08]">
+              <DropdownMenuItem
+                onClick={() => navigate('/checkin-editor')}
+                className="text-slate-300 hover:text-white hover:bg-white/[0.06] cursor-pointer"
+              >
+                <Settings2 className="w-4 h-4 mr-2" />
+                Editor de Check-in
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate('/anamnesis-editor')}
+                className="text-slate-300 hover:text-white hover:bg-white/[0.06] cursor-pointer"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Editor de Anamnese
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
         </div>
       </div>

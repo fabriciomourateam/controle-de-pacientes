@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bold, Italic, Palette, Link as LinkIcon } from 'lucide-react';
+import { Bold, Italic, Palette, Link as LinkIcon, Type } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -50,9 +50,9 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    // Se clicar em um link com Ctrl/Cmd, abrir em nova aba
-    if (target.tagName === 'A' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
+    // Se clicar em um link, abrir em nova aba
+    if (target.tagName === 'A') {
+      e.preventDefault(); // Evitar comportamento padrão de edição se for link
       const href = target.getAttribute('href');
       if (href) {
         window.open(href, '_blank', 'noopener,noreferrer');
@@ -71,18 +71,22 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
     setColorPickerOpen(false);
   };
 
+  const applyFontSize = (size: string) => {
+    applyFormat('fontSize', size);
+  };
+
   const insertLink = () => {
     if (!linkUrl) return;
-    
+
     const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
     const text = linkText || url;
-    
+
     // Criar link HTML com atributo contenteditable="false" para torná-lo clicável
     const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer" contenteditable="false" style="color: #3b82f6; text-decoration: underline; cursor: pointer; padding: 2px 4px; border-radius: 4px; background-color: #eff6ff; display: inline-block; margin: 0 2px;">${text}</a>`;
-    
+
     // Inserir no editor
     document.execCommand('insertHTML', false, linkHtml);
-    
+
     // Limpar e fechar
     setLinkUrl('');
     setLinkText('');
@@ -105,7 +109,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
         >
           <Bold className="w-4 h-4" />
         </Button>
-        
+
         <Button
           type="button"
           variant="ghost"
@@ -116,6 +120,30 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
         >
           <Italic className="w-4 h-4" />
         </Button>
+
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-gray-200 text-black"
+              title="Tamanho da fonte"
+            >
+              <Type className="w-4 h-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-40 p-1" align="start">
+            <div className="flex flex-col gap-1">
+              <Button variant="ghost" size="sm" onClick={() => applyFontSize('1')} className="justify-start h-8 text-xs">Pequeno</Button>
+              <Button variant="ghost" size="sm" onClick={() => applyFontSize('3')} className="justify-start h-8 text-sm">Normal</Button>
+              <Button variant="ghost" size="sm" onClick={() => applyFontSize('5')} className="justify-start h-8 text-lg">Grande</Button>
+              <Button variant="ghost" size="sm" onClick={() => applyFontSize('7')} className="justify-start h-8 text-xl">Enorme</Button>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
 
@@ -194,7 +222,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
                 />
               </div>
               <p className="text-xs text-gray-500">
-                💡 Dica: Ctrl+Clique no link para abrir
+                💡 Dica: O link abrirá em nova aba ao clicar
               </p>
               <div className="flex justify-end gap-2">
                 <Button
@@ -266,6 +294,6 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
           background-color: #dbeafe !important;
         }
       `}</style>
-    </div>
+    </div >
   );
 }

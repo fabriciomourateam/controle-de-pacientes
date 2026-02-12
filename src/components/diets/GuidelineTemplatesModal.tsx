@@ -8,18 +8,19 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RichTextEditor } from './RichTextEditor';
 import { useGuidelineTemplates } from '@/hooks/use-guideline-templates';
-import { 
-  Star, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Save, 
+import {
+  Star,
+  Plus,
+  Edit2,
+  Trash2,
+  Save,
   X,
   BookOpen,
   AlertCircle,
@@ -30,14 +31,16 @@ interface GuidelineTemplatesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode?: 'manage' | 'select';
-  onSelectTemplate?: (template: any) => void;
+  category?: 'general' | 'supplement';
+  onSelectTemplates?: (templates: any[]) => void;
 }
 
-export function GuidelineTemplatesModal({ 
-  open, 
+export function GuidelineTemplatesModal({
+  open,
   onOpenChange,
   mode = 'manage',
-  onSelectTemplate
+  category = 'general',
+  onSelectTemplates
 }: GuidelineTemplatesModalProps) {
   const {
     templates,
@@ -50,12 +53,40 @@ export function GuidelineTemplatesModal({
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    guideline_type: 'general',
+    guideline_type: category, // Initialize with passed category
     priority: 0
   });
+
+  // Filter templates based on category
+  const filteredTemplates = templates.filter(t => t.guideline_type === category || (!t.guideline_type && category === 'general'));
+
+  // Reset selection and form when modal opens/closes or category changes
+  if (!open && selectedIds.length > 0) {
+    setSelectedIds([]);
+  }
+
+  // Ensure formData uses correct category when creating
+  if (isCreating && formData.guideline_type !== category) {
+    setFormData(prev => ({ ...prev, guideline_type: category }));
+  }
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleConfirmSelection = () => {
+    const selectedTemplates = templates.filter(t => selectedIds.includes(t.id));
+    onSelectTemplates?.(selectedTemplates);
+    setSelectedIds([]);
+  };
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -63,8 +94,8 @@ export function GuidelineTemplatesModal({
     setFormData({
       title: '',
       content: '',
-      guideline_type: 'general',
-      priority: templates.length
+      guideline_type: category,
+      priority: filteredTemplates.length
     });
   };
 
@@ -85,7 +116,7 @@ export function GuidelineTemplatesModal({
     setFormData({
       title: '',
       content: '',
-      guideline_type: 'general',
+      guideline_type: category,
       priority: 0
     });
   };
@@ -113,14 +144,28 @@ export function GuidelineTemplatesModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-green-500/30 bg-white text-[#222222]">
         <DialogHeader className="pb-4 border-b border-gray-200">
-          <DialogTitle className="text-[#222222] flex items-center gap-2 text-xl">
-            <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-            {mode === 'select' ? 'Selecionar Orientação Favorita' : 'Orientações Favoritas (Templates)'}
+          <DialogTitle className="text-[#222222] flex items-center justify-between text-xl">
+            <div className="flex items-center gap-2">
+              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+              {mode === 'select'
+                ? (category === 'supplement' ? 'Selecionar Suplementos' : 'Selecionar Orientações')
+                : (category === 'supplement' ? 'Suplementos Favoritos' : 'Orientações Favoritas')}
+            </div>
+            {mode === 'select' && selectedIds.length > 0 && (
+              <Button
+                onClick={handleConfirmSelection}
+                className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
+                size="sm"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Adicionar Selecionados ({selectedIds.length})
+              </Button>
+            )}
           </DialogTitle>
           <DialogDescription className="text-[#777777]">
-            {mode === 'select' 
-              ? 'Selecione uma orientação favorita para adicionar ao plano alimentar.'
-              : 'Crie orientações que aparecerão automaticamente em todos os novos planos alimentares. Você pode desativar orientações específicas em cada plano individual.'
+            {mode === 'select'
+              ? `Selecione ${category === 'supplement' ? 'um suplemento' : 'uma orientação'} favorita para adicionar ao plano.`
+              : `Crie ${category === 'supplement' ? 'suplementos' : 'orientações'} que aparecerão automaticamente em todos os novos planos.`
             }
           </DialogDescription>
         </DialogHeader>
@@ -133,7 +178,7 @@ export function GuidelineTemplatesModal({
               className="w-full bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Criar Nova Orientação Favorita
+              {category === 'supplement' ? 'Criar Novo Suplemento' : 'Criar Nova Orientação'}
             </Button>
           )}
 
@@ -143,7 +188,10 @@ export function GuidelineTemplatesModal({
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-[#00C98A]" />
-                  {isCreating ? 'Nova Orientação Favorita' : 'Editar Orientação'}
+                  {isCreating
+                    ? (category === 'supplement' ? 'Novo Suplemento' : 'Nova Orientação')
+                    : (category === 'supplement' ? 'Editar Suplemento' : 'Editar Orientação')
+                  }
                 </h3>
                 <Button
                   variant="ghost"
@@ -157,12 +205,12 @@ export function GuidelineTemplatesModal({
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="title" className="text-[#222222]">Título da Orientação</Label>
+                  <Label htmlFor="title" className="text-[#222222]">Título</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Ex: Área de Membros, Hidratação, etc."
+                    placeholder={category === 'supplement' ? "Ex: Creatina, Whey Protein, etc." : "Ex: Área de Membros, Hidratação, etc."}
                     className="mt-1 border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </div>
@@ -173,7 +221,7 @@ export function GuidelineTemplatesModal({
                     <RichTextEditor
                       value={formData.content}
                       onChange={(value) => setFormData({ ...formData, content: value })}
-                      placeholder="Digite o conteúdo da orientação..."
+                      placeholder={category === 'supplement' ? "Digite os detalhes do suplemento..." : "Digite o conteúdo da orientação..."}
                     />
                   </div>
                 </div>
@@ -206,43 +254,41 @@ export function GuidelineTemplatesModal({
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : templates.length === 0 ? (
+          ) : filteredTemplates.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
               <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-[#222222] mb-2">
-                Nenhuma Orientação Favorita
+                Nenhum(a) {category === 'supplement' ? 'Suplemento' : 'Orientação'} Favorito(a)
               </h3>
               <p className="text-sm text-[#777777] mb-4">
-                Crie orientações que aparecerão automaticamente em todos os novos planos
+                Crie {category === 'supplement' ? 'suplementos' : 'orientações'} que aparecerão automaticamente em todos os novos planos
               </p>
               <Button
                 onClick={handleStartCreate}
                 className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Criar Primeira Orientação
+                Criar Primeiro(a)
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
-              {templates.map((template) => (
+              {filteredTemplates.map((template) => (
                 <div
                   key={template.id}
-                  className={`bg-white rounded-xl border p-4 transition-all ${
-                    template.is_active
-                      ? 'border-green-500/30 hover:border-green-500/50'
-                      : 'border-gray-200 opacity-60'
-                  }`}
+                  className={`bg-white rounded-xl border p-4 transition-all ${template.is_active
+                    ? 'border-green-500/30 hover:border-green-500/50'
+                    : 'border-gray-200 opacity-60'
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <Star
-                          className={`w-5 h-5 flex-shrink-0 ${
-                            template.is_active
-                              ? 'text-yellow-500 fill-yellow-500'
-                              : 'text-gray-300'
-                          }`}
+                          className={`w-5 h-5 flex-shrink-0 ${template.is_active
+                            ? 'text-yellow-500 fill-yellow-500'
+                            : 'text-gray-300'
+                            }`}
                         />
                         <h4 className="font-semibold text-[#222222] truncate">
                           {template.title}
@@ -262,14 +308,12 @@ export function GuidelineTemplatesModal({
 
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {mode === 'select' ? (
-                        // Modo Select: Mostrar apenas botão Selecionar
-                        <Button
-                          onClick={() => onSelectTemplate?.(template)}
-                          className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Selecionar
-                        </Button>
+                        // Modo Select: Mostrar Checkbox
+                        <Checkbox
+                          checked={selectedIds.includes(template.id)}
+                          onCheckedChange={() => toggleSelection(template.id)}
+                          className="border-green-500 data-[state=checked]:bg-green-500 data-[state=checked]:text-white w-5 h-5"
+                        />
                       ) : (
                         // Modo Manage: Mostrar Switch, Editar e Deletar
                         <>
@@ -318,10 +362,9 @@ export function GuidelineTemplatesModal({
               <div className="text-sm text-[#222222]">
                 <p className="font-semibold mb-1 text-[#222222]">Como funciona:</p>
                 <ul className="list-disc list-inside space-y-1 text-[#777777]">
-                  <li>Orientações <strong className="text-[#222222]">ativas</strong> são copiadas automaticamente para novos planos</li>
-                  <li>Você pode desativar orientações específicas em cada plano individual</li>
+                  <li>Itens <strong className="text-[#222222]">ativos</strong> são copiados automaticamente para novos planos</li>
+                  <li>Você pode desativar itens específicos em cada plano individual</li>
                   <li>Alterações em templates não afetam planos já criados</li>
-                  <li>Templates inativos não aparecem em novos planos</li>
                 </ul>
               </div>
             </div>

@@ -36,7 +36,35 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { dietService } from "@/lib/diet-service";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Calculator, Utensils, Clock, Star, Copy, ChevronDown, ChevronUp, GripVertical, BookOpen, RefreshCw, TrendingUp, BarChart3, History, GitCompare, AlertTriangle, Sparkles, Package, MoreVertical, CheckCircle, Eye, Layers, Heart, X } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  Save,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Utensils,
+  Sparkles,
+  BookOpen,
+  MoreVertical,
+  Calculator,
+  TrendingUp,
+  AlertTriangle,
+  BarChart3,
+  RefreshCw,
+  GitCompare,
+  Copy,
+  FolderOpen,
+  ArrowRight,
+  Database,
+  Star,
+  Eye,
+  X,
+  Layers,
+  Package
+} from 'lucide-react';
 import { TMBCalculator } from "./TMBCalculator";
 import { MacroDistributionModal } from "./MacroDistributionModal";
 import { TemplateLibraryModal } from "./TemplateLibraryModal";
@@ -215,7 +243,7 @@ export function DietPlanForm({
   const [expandedObservations, setExpandedObservations] = useState<Set<number>>(new Set());
   const [expandedGuidelines, setExpandedGuidelines] = useState<Set<number>>(new Set());
   const [patientData, setPatientData] = useState<any>(null);
-  
+
   // Estados para novos modais e funcionalidades
   const [macroDistributionOpen, setMacroDistributionOpen] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
@@ -241,7 +269,7 @@ export function DietPlanForm({
   const [showSuggestions, setShowSuggestions] = useState<{ mealIndex: number; foodIndex: number } | null>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  
+
   // Sensors para drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -307,7 +335,7 @@ export function DietPlanForm({
       // Limpar refs de macros originais ao abrir o modal
       originalQuantitiesRef.current.clear();
       originalMacrosRef.current.clear();
-      
+
       loadPatientData();
       // Lazy load: não carregar alimentos imediatamente, apenas quando necessário
       if (planId) {
@@ -341,7 +369,7 @@ export function DietPlanForm({
         .select('peso_inicial, altura_inicial, data_nascimento, genero, telefone')
         .eq('id', patientId)
         .single();
-      
+
       if (!error && data) {
         // Calcular idade
         let idade: number | undefined;
@@ -367,7 +395,7 @@ export function DietPlanForm({
 
         // Buscar peso mais recente dos check-ins
         let pesoAtual = data.peso_inicial;
-        
+
         // Só buscar checkin se o paciente tiver telefone
         if (data.telefone) {
           try {
@@ -379,7 +407,7 @@ export function DietPlanForm({
               .order('data_checkin', { ascending: false })
               .limit(1)
               .single();
-            
+
             if (!checkinError && checkinData?.peso) {
               pesoAtual = checkinData.peso;
             }
@@ -413,7 +441,7 @@ export function DietPlanForm({
         hasCached: !!cached,
         cachedCount: cached?.length || 0
       });
-      
+
       if (cached && cached.length > 0) {
         console.log('✅ [DietPlanForm] Usando alimentos do cache');
         setFoodDatabase(cached);
@@ -435,7 +463,7 @@ export function DietPlanForm({
       console.log('⏸️ [DietPlanForm] Já está carregando, abortando');
       return;
     }
-    
+
     setFoodDatabaseLoading(true);
     try {
       console.log('📡 [DietPlanForm] Chamando dietService.getFoodDatabase()...');
@@ -444,7 +472,7 @@ export function DietPlanForm({
         foodsCount: foods?.length || 0,
         firstFoods: foods?.slice(0, 3).map((f: any) => f.name) || []
       });
-      
+
       // Buscar alimentos customizados do usuário (se a tabela existir)
       let customFoods: any[] = [];
       try {
@@ -459,7 +487,7 @@ export function DietPlanForm({
         console.warn('⚠️ [DietPlanForm] Não foi possível carregar alimentos customizados (tabela pode não existir):', error.message);
         customFoods = [];
       }
-      
+
       // Converter alimentos customizados para o formato do banco de dados
       const customFoodsFormatted = customFoods.map((food) => ({
         name: food.name,
@@ -471,7 +499,7 @@ export function DietPlanForm({
         category: food.category || "Customizado",
         is_custom: true, // Flag para identificar alimentos customizados
       }));
-      
+
       // Combinar alimentos do banco com alimentos customizados
       // Alimentos customizados aparecem primeiro (ordenados por favoritos)
       const customFoodsSorted = customFoodsFormatted.sort((a, b) => {
@@ -481,9 +509,9 @@ export function DietPlanForm({
         if (!foodA?.is_favorite && foodB?.is_favorite) return 1;
         return a.name.localeCompare(b.name);
       });
-      
+
       const allFoods = [...customFoodsSorted, ...(foods || [])];
-      
+
       if (allFoods && allFoods.length > 0) {
         console.log('✅ [DietPlanForm] Salvando alimentos no state');
         setFoodDatabase(allFoods);
@@ -526,7 +554,7 @@ export function DietPlanForm({
           setFoodSelectionModalOpen(true);
         }
       }
-      
+
       // Escape: Fechar modais
       if (e.key === 'Escape') {
         if (foodSelectionModalOpen) {
@@ -537,7 +565,7 @@ export function DietPlanForm({
           setFavoriteMealsModalOpen(false);
         }
       }
-      
+
       // Ctrl/Cmd + S: Salvar (se não estiver em input/textarea)
       if ((e.ctrlKey || e.metaKey) && e.key === 's' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
@@ -552,7 +580,7 @@ export function DietPlanForm({
 
   const loadPlanData = async () => {
     if (!planId) return;
-    
+
     try {
       setLoading(true);
       const planData = await dietService.getById(planId);
@@ -598,7 +626,7 @@ export function DietPlanForm({
             } catch (e) {
               // Se não for JSON válido, usar notes como string normal
             }
-            
+
             const foodKey = `${mealIndex}_${foodIndex}`;
             const foodQuantity = food.quantity || 0;
             // Armazenar quantidade original e macros originais para recalcular depois (quando alimento não está no banco)
@@ -612,7 +640,7 @@ export function DietPlanForm({
                 fats: food.fats || 0,
               });
             }
-            
+
             return {
               food_name: food.food_name || "",
               quantity: foodQuantity,
@@ -664,7 +692,7 @@ export function DietPlanForm({
       total_protein: planData.total_protein,
       total_carbs: planData.total_carbs,
       total_fats: planData.total_fats,
-      meals: planData.meals,
+      meals: planData.meals as any,
     });
     setValidationResult(validation);
     return validation.valid;
@@ -672,7 +700,7 @@ export function DietPlanForm({
 
   // Observar mudanças apenas em meals para validação (otimização de performance)
   const watchedMeals = useWatch({ control: form.control, name: 'meals' });
-  
+
   // Validar quando o plano muda (com debounce aumentado para melhor performance)
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
@@ -681,12 +709,12 @@ export function DietPlanForm({
       if (validationTimeoutRef.current) {
         clearTimeout(validationTimeoutRef.current);
       }
-      
+
       // Aumentar debounce para 1000ms para reduzir validações frequentes
       validationTimeoutRef.current = setTimeout(() => {
         validatePlan();
       }, 1000);
-      
+
       return () => {
         if (validationTimeoutRef.current) {
           clearTimeout(validationTimeoutRef.current);
@@ -775,9 +803,9 @@ export function DietPlanForm({
     calculateTotals();
   };
 
-  const addGuideline = () => {
+  const addGuideline = (type: 'general' | 'supplement' = 'general') => {
     appendGuideline({
-      guideline_type: "general",
+      guideline_type: type,
       title: "",
       content: "",
       priority: guidelineFields.length,
@@ -795,12 +823,12 @@ export function DietPlanForm({
     if (oldIndex !== -1 && newIndex !== -1) {
       const meals = form.getValues("meals") || [];
       const reorderedMeals = arrayMove(meals, oldIndex, newIndex);
-      
+
       // Atualizar ordem
       reorderedMeals.forEach((meal, index) => {
         meal.meal_order = index + 1;
       });
-      
+
       form.setValue("meals", reorderedMeals);
     }
   };
@@ -830,7 +858,7 @@ export function DietPlanForm({
     const currentProtein = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.protein`) || 0;
     const currentCarbs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0;
     const currentFats = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.fats`) || 0;
-    
+
     // Se quantidade é 0 ou negativa, zerar todos os macros
     if (currentQuantity <= 0) {
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, 0);
@@ -845,7 +873,7 @@ export function DietPlanForm({
     const foodKey = `${mealIndex}_${foodIndex}`;
     let originalQuantity = originalQuantitiesRef.current.get(foodKey);
     let originalMacros = originalMacrosRef.current.get(foodKey);
-    
+
     // Se JÁ temos macros originais armazenados, SEMPRE usar eles para recalcular
     // Isso garante que o cálculo seja consistente mesmo após mudar o nome
     if (originalQuantity && originalQuantity > 0 && originalMacros) {
@@ -856,7 +884,7 @@ export function DietPlanForm({
         carbs: originalMacros.carbs / originalQuantity,
         fats: originalMacros.fats / originalQuantity,
       };
-      
+
       // Recalcular para a nova quantidade
       form.setValue(
         `meals.${mealIndex}.foods.${foodIndex}.calories`,
@@ -874,16 +902,16 @@ export function DietPlanForm({
         `meals.${mealIndex}.foods.${foodIndex}.fats`,
         Math.round(macrosPerUnit.fats * currentQuantity * 10) / 10
       );
-      
+
       // Recalcular macros da refeição e totais
       calculateMealMacros(mealIndex);
       calculateTotals();
       return;
     }
-    
+
     // Se NÃO temos macros originais, tentar buscar no banco de dados
     // Busca flexível: exata primeiro, depois parcial
-    let selectedFood = foodDatabase.find((f) => 
+    let selectedFood = foodDatabase.find((f) =>
       f.name.toLowerCase() === foodName.toLowerCase()
     );
 
@@ -891,7 +919,7 @@ export function DietPlanForm({
     if (!selectedFood) {
       const cleanName = foodName.split(/[,\(]/)[0].trim();
       const firstWord = cleanName.split(' ')[0];
-      selectedFood = foodDatabase.find((f) => 
+      selectedFood = foodDatabase.find((f) =>
         f.name.toLowerCase().startsWith(firstWord.toLowerCase()) ||
         f.name.toLowerCase().includes(cleanName.toLowerCase())
       );
@@ -910,7 +938,7 @@ export function DietPlanForm({
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, newProtein);
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, newCarbs);
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, newFats);
-      
+
       // Armazenar como macros originais
       originalQuantitiesRef.current.set(foodKey, currentQuantity);
       originalMacrosRef.current.set(foodKey, {
@@ -932,7 +960,7 @@ export function DietPlanForm({
           form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, Math.round(currentCarbs * ratio * 10) / 10);
           form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, Math.round(currentFats * ratio * 10) / 10);
         }
-        
+
         // Armazenar os valores atuais como referência original
         originalQuantitiesRef.current.set(foodKey, currentQuantity);
         originalMacrosRef.current.set(foodKey, {
@@ -952,29 +980,29 @@ export function DietPlanForm({
   const handleFoodSelect = async (mealIndex: number, foodIndex: number, foodName: string) => {
     // Busca flexível: exata primeiro, depois parcial
     let selectedFood = foodDatabase.find((f) => f.name === foodName);
-    
+
     // Se não encontrou exato, tentar busca case-insensitive
     if (!selectedFood) {
       selectedFood = foodDatabase.find((f) => f.name.toLowerCase() === foodName.toLowerCase());
     }
-    
+
     // Se ainda não encontrou, tentar busca parcial
     if (!selectedFood) {
       const cleanName = foodName.split(/[,\(]/)[0].trim();
       const firstWord = cleanName.split(' ')[0];
-      selectedFood = foodDatabase.find((f) => 
+      selectedFood = foodDatabase.find((f) =>
         f.name.toLowerCase().startsWith(firstWord.toLowerCase()) ||
         f.name.toLowerCase().includes(cleanName.toLowerCase())
       );
     }
-    
+
     if (selectedFood) {
       const quantity = form.watch(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 100;
       const multiplier = quantity / 100;
 
       // Armazenar quantidade original quando alimento é selecionado do banco
       const foodKey = `${mealIndex}_${foodIndex}`;
-      
+
       // Calorias arredondadas para inteiro, macros com 1 casa decimal
       const newCalories = Math.round(selectedFood.calories_per_100g * multiplier);
       const newProtein = Math.round(selectedFood.protein_per_100g * multiplier * 10) / 10;
@@ -1057,7 +1085,7 @@ export function DietPlanForm({
     form.setValue('total_protein', adjustedPlan.total_protein);
     form.setValue('total_carbs', adjustedPlan.total_carbs);
     form.setValue('total_fats', adjustedPlan.total_fats);
-    
+
     if (adjustedPlan.meals) {
       adjustedPlan.meals.forEach((meal: any, mealIndex: number) => {
         if (form.getValues(`meals.${mealIndex}`)) {
@@ -1065,7 +1093,7 @@ export function DietPlanForm({
           form.setValue(`meals.${mealIndex}.protein`, meal.protein);
           form.setValue(`meals.${mealIndex}.carbs`, meal.carbs);
           form.setValue(`meals.${mealIndex}.fats`, meal.fats);
-          
+
           if (meal.foods) {
             meal.foods.forEach((food: any, foodIndex: number) => {
               if (form.getValues(`meals.${mealIndex}.foods.${foodIndex}`)) {
@@ -1081,7 +1109,7 @@ export function DietPlanForm({
         }
       });
     }
-    
+
     calculateTotals();
     validatePlan();
   };
@@ -1097,7 +1125,7 @@ export function DietPlanForm({
         form.setValue('total_carbs', templatePlan.total_carbs);
         form.setValue('total_fats', templatePlan.total_fats);
         form.setValue('notes', templatePlan.notes || '');
-        
+
         // Copiar refeições
         if (templatePlan.diet_meals) {
           const mealsData = templatePlan.diet_meals.map((meal: any) => ({
@@ -1126,7 +1154,7 @@ export function DietPlanForm({
           }));
           form.setValue('meals', mealsData);
         }
-        
+
         calculateTotals();
         validatePlan();
         toast({
@@ -1196,7 +1224,7 @@ export function DietPlanForm({
             await supabase.from('diet_guidelines').delete().eq('id', guideline.id);
           }
         }
-        
+
         // Deletar observações antigas
         const oldObservations = existingPlan.diet_guidelines?.filter((g: any) => g.guideline_type === "between_meals") || [];
         for (const obs of oldObservations) {
@@ -1224,7 +1252,7 @@ export function DietPlanForm({
 
         const newPlan = await dietService.create(planData);
         currentPlanId = newPlan.id;
-        
+
         // Copiar templates de orientações para o novo plano
         try {
           await copyTemplatesToPlan(currentPlanId);
@@ -1261,7 +1289,7 @@ export function DietPlanForm({
           if (meal.foods && meal.foods.length > 0) {
             for (let i = 0; i < meal.foods.length; i++) {
               const food = meal.foods[i];
-              
+
               // Preparar notes com substituições se existirem
               let notesValue = food.notes || null;
               if (food.substitutions && food.substitutions.length > 0) {
@@ -1278,7 +1306,7 @@ export function DietPlanForm({
                 notesObj.substitutions = food.substitutions;
                 notesValue = JSON.stringify(notesObj);
               }
-              
+
               await dietService.createFood({
                 meal_id: newMeal.id,
                 food_name: food.food_name,
@@ -1358,33 +1386,40 @@ export function DietPlanForm({
       <Form {...form}>
         <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-24">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
-                <TabsTrigger 
-                  value="basic"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Início
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="meals"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-                >
-                  <Utensils className="w-4 h-4 mr-2" />
-                  Refeições
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="guidelines"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Orientações
-                </TabsTrigger>
-              </TabsList>
-              <div className="mt-4 space-y-4">
-                {/* ABA 1: Informações Básicas */}
-                {activeTab === "basic" && (
-                  <div className="space-y-4">
+            <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
+              <TabsTrigger
+                value="basic"
+                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Início
+              </TabsTrigger>
+              <TabsTrigger
+                value="meals"
+                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
+              >
+                <Utensils className="w-4 h-4 mr-2" />
+                Refeições
+              </TabsTrigger>
+              <TabsTrigger
+                value="guidelines"
+                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Orientações
+              </TabsTrigger>
+              <TabsTrigger
+                value="supplements"
+                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200 text-xs sm:text-sm px-1"
+              >
+                <Database className="w-4 h-4 mr-2" />
+                Suplementação, Manipulados e Ergogênicos
+              </TabsTrigger>
+            </TabsList>
+            <div className="mt-4 space-y-4">
+              {/* ABA 1: Informações Básicas */}
+              {activeTab === "basic" && (
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="name"
@@ -1392,10 +1427,10 @@ export function DietPlanForm({
                       <FormItem>
                         <FormLabel className="text-[#222222] font-medium">Nome do Plano *</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Ex: Plano Semanal - Perda de Peso" 
+                          <Input
+                            placeholder="Ex: Plano Semanal - Perda de Peso"
                             className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1592,12 +1627,12 @@ export function DietPlanForm({
                   {(() => {
                     const totalCalories = form.watch("total_calories") || 0;
                     const targetCalories = form.watch("target_calories") || 0;
-                    
+
                     if (totalCalories > 0 && targetCalories > 0) {
                       const difference = totalCalories - targetCalories;
                       const isSurplus = difference > 0;
                       const isDeficit = difference < 0;
-                      
+
                       return (
                         <div className="mt-3">
                           <Card className={`border-2 ${isSurplus ? 'border-green-400 bg-green-50' : isDeficit ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
@@ -1725,12 +1760,12 @@ export function DietPlanForm({
                     </div>
                   </div>
                 </div>
-                )}
+              )}
 
-                {/* ABA 2: Refeições */}
-                {activeTab === "meals" && (
-                  <div className="bg-white flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
-                    <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
+              {/* ABA 2: Refeições */}
+              {activeTab === "meals" && (
+                <div className="bg-white flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+                  <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
@@ -1741,91 +1776,91 @@ export function DietPlanForm({
                           Adicione as refeições do plano alimentar
                         </p>
                       </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              setFavoriteMealsMealIndex(null); // Não sobrepor, adicionar nova
-                              setFavoriteMealsLoading(true);
-                              try {
-                                const favorites = await dietMealFavoritesService.getFavoriteMeals();
-                                setFavoriteMeals(favorites);
-                                setFavoriteMealsModalOpen(true);
-                              } catch (error: any) {
-                                toast({
-                                  title: "Erro",
-                                  description: error.message || "Erro ao carregar favoritos",
-                                  variant: "destructive",
-                                });
-                              } finally {
-                                setFavoriteMealsLoading(false);
-                              }
-                            }}
-                            className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300"
-                          >
-                            <Star className="w-4 h-4 mr-2" />
-                            Adicionar Favoritos
-                          </Button>
-                      <Button 
-                        type="button" 
-                        onClick={addMeal} 
-                        size="sm"
-                        className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Refeição
-                      </Button>
-                        </div>
-                    </div>
-
-                      {/* Controles: Expandir/Colapsar Todas e Ordenação */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            const meals = form.getValues("meals") || [];
-                            if (allMealsExpanded) {
-                              setExpandedMeals(new Set());
-                            } else {
-                              setExpandedMeals(new Set(meals.map((_: any, idx: number) => idx)));
+                          onClick={async () => {
+                            setFavoriteMealsMealIndex(null); // Não sobrepor, adicionar nova
+                            setFavoriteMealsLoading(true);
+                            try {
+                              const favorites = await dietMealFavoritesService.getFavoriteMeals();
+                              setFavoriteMeals(favorites);
+                              setFavoriteMealsModalOpen(true);
+                            } catch (error: any) {
+                              toast({
+                                title: "Erro",
+                                description: error.message || "Erro ao carregar favoritos",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setFavoriteMealsLoading(false);
                             }
-                            setAllMealsExpanded(!allMealsExpanded);
                           }}
-                          className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300 text-xs"
+                          className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300"
                         >
-                          {allMealsExpanded ? (
-                            <>
-                              <ChevronUp className="w-3 h-3 mr-1" />
-                              Colapsar Todas
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="w-3 h-3 mr-1" />
-                              Expandir Todas
-                            </>
-                          )}
+                          <Star className="w-4 h-4 mr-2" />
+                          Adicionar Favoritos
                         </Button>
-                        
-                        <Select value={mealsSortBy} onValueChange={(value: any) => setMealsSortBy(value)}>
-                          <SelectTrigger className="h-8 w-36 text-xs border-green-500/30 bg-white">
-                            <SelectValue placeholder="Ordenar por..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="order">Ordem Original</SelectItem>
-                            <SelectItem value="time">Horário</SelectItem>
-                            <SelectItem value="name">Nome</SelectItem>
-                            <SelectItem value="calories">Calorias</SelectItem>
-                            <SelectItem value="protein">Proteína</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Button
+                          type="button"
+                          onClick={addMeal}
+                          size="sm"
+                          className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Adicionar Refeição
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pb-24">
+
+                    {/* Controles: Expandir/Colapsar Todas e Ordenação */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const meals = form.getValues("meals") || [];
+                          if (allMealsExpanded) {
+                            setExpandedMeals(new Set());
+                          } else {
+                            setExpandedMeals(new Set(meals.map((_: any, idx: number) => idx)));
+                          }
+                          setAllMealsExpanded(!allMealsExpanded);
+                        }}
+                        className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300 text-xs"
+                      >
+                        {allMealsExpanded ? (
+                          <>
+                            <ChevronUp className="w-3 h-3 mr-1" />
+                            Colapsar Todas
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-3 h-3 mr-1" />
+                            Expandir Todas
+                          </>
+                        )}
+                      </Button>
+
+                      <Select value={mealsSortBy} onValueChange={(value: any) => setMealsSortBy(value)}>
+                        <SelectTrigger className="h-8 w-36 text-xs border-green-500/30 bg-white">
+                          <SelectValue placeholder="Ordenar por..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="order">Ordem Original</SelectItem>
+                          <SelectItem value="time">Horário</SelectItem>
+                          <SelectItem value="name">Nome</SelectItem>
+                          <SelectItem value="calories">Calorias</SelectItem>
+                          <SelectItem value="protein">Proteína</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pb-24">
                     {mealFields.length === 0 ? (
                       <Card className="bg-green-500/10 border-green-500/30">
                         <CardContent className="p-12 text-center">
@@ -1836,9 +1871,9 @@ export function DietPlanForm({
                           <p className="text-[#777777] mb-6">
                             Comece adicionando refeições ao plano alimentar. Você pode adicionar alimentos e definir macros para cada refeição.
                           </p>
-                          <Button 
-                            type="button" 
-                            onClick={addMeal} 
+                          <Button
+                            type="button"
+                            onClick={addMeal}
                             className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
                           >
                             <Plus className="w-4 h-4 mr-2" />
@@ -1865,9 +1900,9 @@ export function DietPlanForm({
                                 const indexB = mealFields.indexOf(b);
                                 const mealA = meals[indexA];
                                 const mealB = meals[indexB];
-                                
+
                                 if (!mealA || !mealB) return 0;
-                                
+
                                 switch (mealsSortBy) {
                                   case 'time':
                                     const timeA = mealA.suggested_time || '';
@@ -1885,16 +1920,16 @@ export function DietPlanForm({
                                     return (mealA.meal_order || 0) - (mealB.meal_order || 0);
                                 }
                               });
-                              
+
                               return sortedMealFields;
                             })().map((meal) => {
                               // Encontrar o índice original no array não ordenado
                               const mealIndex = mealFields.findIndex(m => m.id === meal.id);
                               if (mealIndex === -1) return null;
                               const isExpanded = expandedMeals.has(mealIndex);
-                              
+
                               // Componente MealItem movido para fora do map para evitar redefinição
-                              return <MealItemComponent 
+                              return <MealItemComponent
                                 key={meal.id}
                                 meal={meal}
                                 mealIndex={mealIndex}
@@ -1932,13 +1967,13 @@ export function DietPlanForm({
                       </DndContext>
                     )}
 
-                    </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* ABA 3: Observações entre Refeições */}
-                {activeTab === "observations" && (
-                  <div className="space-y-4">
+              {/* ABA 3: Observações entre Refeições */}
+              {activeTab === "observations" && (
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
@@ -1949,11 +1984,11 @@ export function DietPlanForm({
                         Adicione observações que aparecerão entre as refeições na ordem definida
                       </p>
                     </div>
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       onClick={() => {
                         const meals = form.getValues("meals") || [];
-                        const maxOrder = observationFields.length > 0 
+                        const maxOrder = observationFields.length > 0
                           ? Math.max(...observationFields.map((obs: any) => obs.order || 0))
                           : meals.length;
                         appendObservation({
@@ -1961,7 +1996,7 @@ export function DietPlanForm({
                           order: maxOrder + 1,
                           position: "",
                         });
-                      }} 
+                      }}
                       size="sm"
                       className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
                     >
@@ -1970,99 +2005,99 @@ export function DietPlanForm({
                     </Button>
                   </div>
 
-                    {observationFields.length === 0 ? (
-                      <Card className="bg-green-400/10 border-green-500/30">
-                        <CardContent className="p-12 text-center">
-                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
-                            <AlertTriangle className="w-8 h-8 text-[#00C98A]" />
-                          </div>
+                  {observationFields.length === 0 ? (
+                    <Card className="bg-green-400/10 border-green-500/30">
+                      <CardContent className="p-12 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
+                          <AlertTriangle className="w-8 h-8 text-[#00C98A]" />
+                        </div>
                         <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhuma observação adicionada ainda</h3>
                         <p className="text-[#777777] mb-6">
-                            Adicione observações que aparecerão entre as refeições para orientar o paciente.
-                          </p>
-                          <Button 
-                            type="button" 
-                            onClick={() => {
-                              appendObservation({
-                                text: "",
-                                order: 1,
-                                position: "",
-                              });
-                            }} 
-                            className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adicionar Primeira Observação
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(event) => {
-                          const { active, over } = event;
-                          if (!over || active.id === over.id) return;
-
-                          const oldIndex = observationFields.findIndex((obs) => obs.id === active.id);
-                          const newIndex = observationFields.findIndex((obs) => obs.id === over.id);
-
-                          if (oldIndex !== -1 && newIndex !== -1) {
-                            const observations = form.getValues("observations") || [];
-                            const reordered = arrayMove(observations, oldIndex, newIndex);
-                            
-                            // Atualizar ordem
-                            reordered.forEach((obs, index) => {
-                              obs.order = index + 1;
+                          Adicione observações que aparecerão entre as refeições para orientar o paciente.
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            appendObservation({
+                              text: "",
+                              order: 1,
+                              position: "",
                             });
-                            
-                            form.setValue("observations", reordered);
-                          }
-                        }}
-                      >
-                        <SortableContext
-                          items={observationFields.map((obs) => obs.id)}
-                          strategy={verticalListSortingStrategy}
+                          }}
+                          className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
                         >
-                          <div className="space-y-4">
-                            {observationFields.map((observation, index) => {
-                              const ObservationItem = () => {
-                                const {
-                                  attributes,
-                                  listeners,
-                                  setNodeRef,
-                                  transform,
-                                  transition,
-                                  isDragging,
-                                } = useSortable({ id: observation.id });
+                          <Plus className="w-4 h-4 mr-2" />
+                          Adicionar Primeira Observação
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={(event) => {
+                        const { active, over } = event;
+                        if (!over || active.id === over.id) return;
 
-                                const style = {
-                                  transform: CSS.Transform.toString(transform),
-                                  transition,
-                                  opacity: isDragging ? 0.5 : 1,
-                                };
+                        const oldIndex = observationFields.findIndex((obs) => obs.id === active.id);
+                        const newIndex = observationFields.findIndex((obs) => obs.id === over.id);
 
-                                const isExpanded = expandedObservations.has(index);
+                        if (oldIndex !== -1 && newIndex !== -1) {
+                          const observations = form.getValues("observations") || [];
+                          const reordered = arrayMove(observations, oldIndex, newIndex);
 
-                                return (
-                                  <Card 
-                                    ref={setNodeRef} 
-                                    style={style}
-                                    className="bg-green-50/40 border border-green-200/50 hover:bg-green-50/60 transition-all duration-300 hover:shadow-md"
+                          // Atualizar ordem
+                          reordered.forEach((obs, index) => {
+                            obs.order = index + 1;
+                          });
+
+                          form.setValue("observations", reordered);
+                        }
+                      }}
+                    >
+                      <SortableContext
+                        items={observationFields.map((obs) => obs.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-4">
+                          {observationFields.map((observation, index) => {
+                            const ObservationItem = () => {
+                              const {
+                                attributes,
+                                listeners,
+                                setNodeRef,
+                                transform,
+                                transition,
+                                isDragging,
+                              } = useSortable({ id: observation.id });
+
+                              const style = {
+                                transform: CSS.Transform.toString(transform),
+                                transition,
+                                opacity: isDragging ? 0.5 : 1,
+                              };
+
+                              const isExpanded = expandedObservations.has(index);
+
+                              return (
+                                <Card
+                                  ref={setNodeRef}
+                                  style={style}
+                                  className="bg-green-50/40 border border-green-200/50 hover:bg-green-50/60 transition-all duration-300 hover:shadow-md"
+                                >
+                                  <Collapsible
+                                    open={isExpanded}
+                                    onOpenChange={(open) => {
+                                      const newExpanded = new Set(expandedObservations);
+                                      if (open) {
+                                        newExpanded.add(index);
+                                      } else {
+                                        newExpanded.delete(index);
+                                      }
+                                      setExpandedObservations(newExpanded);
+                                    }}
                                   >
-                                    <Collapsible
-                                      open={isExpanded}
-                                      onOpenChange={(open) => {
-                                        const newExpanded = new Set(expandedObservations);
-                                        if (open) {
-                                          newExpanded.add(index);
-                                        } else {
-                                          newExpanded.delete(index);
-                                        }
-                                        setExpandedObservations(newExpanded);
-                                      }}
-                                  >
-                                      <CardHeader className="pb-2 pt-3 px-4">
+                                    <CardHeader className="pb-2 pt-3 px-4">
                                       <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3 flex-1">
                                           <div
@@ -2075,143 +2110,125 @@ export function DietPlanForm({
                                           <CardTitle className="text-base font-semibold text-[#222222]">
                                             Observação {index + 1}
                                           </CardTitle>
-                                            <Badge className="bg-green-500/10 border-green-500/50 text-[#00A875] text-xs">
+                                          <Badge className="bg-green-500/10 border-green-500/50 text-[#00A875] text-xs">
                                             Ordem: {observation.order || index + 1}
                                           </Badge>
                                         </div>
-                                          <div className="flex items-center gap-1">
-                                            <CollapsibleTrigger asChild>
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
-                                              >
-                                                {isExpanded ? (
-                                                  <ChevronUp className="w-4 h-4" />
-                                                ) : (
-                                                  <ChevronDown className="w-4 h-4" />
-                                                )}
-                                              </Button>
-                                            </CollapsibleTrigger>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => removeObservation(index)}
-                                              className="h-7 w-7 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                          </div>
+                                        <div className="flex items-center gap-1">
+                                          <CollapsibleTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
+                                            >
+                                              {isExpanded ? (
+                                                <ChevronUp className="w-4 h-4" />
+                                              ) : (
+                                                <ChevronDown className="w-4 h-4" />
+                                              )}
+                                            </Button>
+                                          </CollapsibleTrigger>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeObservation(index)}
+                                            className="h-7 w-7 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </CardHeader>
-                                      <CollapsibleContent>
-                                        <CardContent className="space-y-4 pt-0">
-                                      <FormField
-                                        control={form.control}
-                                        name={`observations.${index}.text`}
-                                        render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-[#222222] font-medium">Texto da Observação *</FormLabel>
-                                            <FormControl>
-                                              <Textarea
-                                                placeholder="Ex: Beber água entre as refeições. Evitar líquidos durante as refeições..."
-                                                className="resize-none border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[100px]"
-                                                {...field}
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <div className="grid grid-cols-2 gap-4">
+                                    <CollapsibleContent>
+                                      <CardContent className="space-y-4 pt-0">
                                         <FormField
                                           control={form.control}
-                                          name={`observations.${index}.order`}
+                                          name={`observations.${index}.text`}
                                           render={({ field }) => (
                                             <FormItem>
-                                              <FormLabel className="text-[#222222] font-medium">Ordem</FormLabel>
+                                              <FormLabel className="text-[#222222] font-medium">Texto da Observação *</FormLabel>
                                               <FormControl>
-                                                <Input
-                                                  type="number"
-                                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
+                                                <Textarea
+                                                  placeholder="Ex: Beber água entre as refeições. Evitar líquidos durante as refeições..."
+                                                  className="resize-none border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[100px]"
                                                   {...field}
-                                                  onChange={(e) => {
-                                                    field.onChange(parseInt(e.target.value) || 0);
-                                                  }}
-                                                  value={field.value || index + 1}
                                                 />
                                               </FormControl>
-                                              <FormDescription className="text-xs text-[#777777]">
-                                                Define a posição da observação entre as refeições
-                                              </FormDescription>
                                               <FormMessage />
                                             </FormItem>
                                           )}
                                         />
-                                        <FormField
-                                          control={form.control}
-                                          name={`observations.${index}.position`}
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel className="text-[#222222] font-medium">Posição (opcional)</FormLabel>
-                                              <FormControl>
-                                                <Input
-                                                  placeholder="Ex: Após café da manhã"
-                                                  className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                                                  {...field}
-                                                />
-                                              </FormControl>
-                                              <FormDescription className="text-xs text-[#777777]">
-                                                Descrição opcional da posição
-                                              </FormDescription>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                      </div>
-                                    </CardContent>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                  </Card>
-                                );
-                              };
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <FormField
+                                            control={form.control}
+                                            name={`observations.${index}.order`}
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel className="text-[#222222] font-medium">Ordem</FormLabel>
+                                                <FormControl>
+                                                  <Input
+                                                    type="number"
+                                                    className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                      field.onChange(parseInt(e.target.value) || 0);
+                                                    }}
+                                                    value={field.value || index + 1}
+                                                  />
+                                                </FormControl>
+                                                <FormDescription className="text-xs text-[#777777]">
+                                                  Define a posição da observação entre as refeições
+                                                </FormDescription>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          <FormField
+                                            control={form.control}
+                                            name={`observations.${index}.position`}
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel className="text-[#222222] font-medium">Posição (opcional)</FormLabel>
+                                                <FormControl>
+                                                  <Input
+                                                    placeholder="Ex: Após café da manhã"
+                                                    className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
+                                                    {...field}
+                                                  />
+                                                </FormControl>
+                                                <FormDescription className="text-xs text-[#777777]">
+                                                  Descrição opcional da posição
+                                                </FormDescription>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                        </div>
+                                      </CardContent>
+                                    </CollapsibleContent>
+                                  </Collapsible>
+                                </Card>
+                              );
+                            };
 
-                              return <ObservationItem key={observation.id} />;
-                            })}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                  </div>
-                )}
+                            return <ObservationItem key={observation.id} />;
+                          })}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </div>
+              )}
 
-                {/* ABA 4: Orientações */}
-                {activeTab === "guidelines" && (
-                  <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-[#00C98A]" />
-                        Orientações
-                      </h3>
-                      <p className="text-sm text-[#777777] mt-1">
-                        Adicione orientações gerais para o paciente seguir o plano
-                      </p>
-                    </div>
+              {/* ABA 4: Orientações */}
+              {activeTab === "guidelines" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
                     <div className="flex gap-2">
-                      <Button 
-                        type="button" 
-                        onClick={() => setGuidelineTemplatesOpen(true)} 
-                        size="sm"
-                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
-                      >
-                        <Star className="w-4 h-4 mr-2 fill-white" />
-                        Gerenciar Favoritas
-                      </Button>
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         onClick={() => setIsSelectTemplateOpen(true)}
                         size="sm"
                         className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
@@ -2219,19 +2236,31 @@ export function DietPlanForm({
                         <BookOpen className="w-4 h-4 mr-2" />
                         Selecionar de Favoritas
                       </Button>
-                      <Button 
-                        type="button" 
-                        onClick={addGuideline} 
+                      <Button
+                        type="button"
+                        onClick={() => setGuidelineTemplatesOpen(true)}
                         size="sm"
-                        className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
                       >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Orientação
+                        <Star className="w-4 h-4 mr-2 fill-white" />
+                        Gerenciar Favoritas
                       </Button>
                     </div>
+                    <Button
+                      type="button"
+                      onClick={() => addGuideline('general')}
+                      size="sm"
+                      className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Orientação
+                    </Button>
                   </div>
 
-                  {guidelineFields.length === 0 ? (
+                  {guidelineFields.filter((_, index) => {
+                    const type = form.watch(`guidelines.${index}.guideline_type`) || 'general';
+                    return type === 'general';
+                  }).length === 0 ? (
                     <Card className="bg-green-400/10 border-green-500/30">
                       <CardContent className="p-12 text-center">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
@@ -2241,9 +2270,9 @@ export function DietPlanForm({
                         <p className="text-[#777777] mb-6">
                           Adicione orientações para ajudar o paciente a seguir o plano corretamente.
                         </p>
-                        <Button 
-                          type="button" 
-                          onClick={addGuideline} 
+                        <Button
+                          type="button"
+                          onClick={() => addGuideline('general')}
                           className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
                         >
                           <Plus className="w-4 h-4 mr-2" />
@@ -2255,8 +2284,13 @@ export function DietPlanForm({
                     <div className="space-y-4">
                       {guidelineFields.map((guideline, index) => {
                         const titleValue = form.watch(`guidelines.${index}.title`);
+                        const typeValue = form.watch(`guidelines.${index}.guideline_type`) || 'general';
+
+                        // Render only general guidelines in this tab
+                        if (typeValue !== 'general') return null;
+
                         const isExpanded = expandedGuidelines.has(index);
-                        
+
                         // Extrair texto puro do HTML para exibir no header
                         const getTitleText = (html: string) => {
                           if (!html) return `Orientação ${index + 1}`;
@@ -2265,9 +2299,9 @@ export function DietPlanForm({
                           const text = div.textContent || div.innerText || '';
                           return text.trim() || `Orientação ${index + 1}`;
                         };
-                        
+
                         return (
-                          <Card 
+                          <Card
                             key={guideline.id}
                             className="bg-green-400/10 border border-green-500/30 hover:bg-green-400/15 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20"
                           >
@@ -2342,7 +2376,7 @@ export function DietPlanForm({
                                 </div>
                               </div>
                             </CardHeader>
-                            
+
                             {isExpanded && (
                               <CardContent className="space-y-4">
                                 <FormField
@@ -2391,11 +2425,212 @@ export function DietPlanForm({
                     </div>
                   )}
                 </div>
-                )}
+              )}
 
-                {/* ABA 5: Resumo */}
-                {activeTab === "summary" && (
-                  <div className="space-y-6">
+              {/* ABA 4: Suplementação, Manipulados e Ergogênicos */}
+              {activeTab === "supplements" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => setIsSelectTemplateOpen(true)}
+                        size="sm"
+                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                      >
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Selecionar de Favoritas
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setGuidelineTemplatesOpen(true)}
+                        size="sm"
+                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
+                      >
+                        <Star className="w-4 h-4 mr-2 fill-white" />
+                        Gerenciar Favoritas
+                      </Button>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => addGuideline('supplement')}
+                      size="sm"
+                      className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Suplemento
+                    </Button>
+                  </div>
+
+                  {guidelineFields.filter((_, index) => {
+                    const type = form.watch(`guidelines.${index}.guideline_type`);
+                    return type === 'supplement';
+                  }).length === 0 ? (
+                    <Card className="bg-green-400/10 border-green-500/30">
+                      <CardContent className="p-12 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
+                          <Database className="w-8 h-8 text-[#00C98A]" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhum suplemento adicionado</h3>
+                        <p className="text-[#777777] mb-6">
+                          Adicione suplementos, manipulados ou ergogênicos ao plano do paciente.
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={() => addGuideline('supplement')}
+                          className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Adicionar Primeiro Suplemento
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {guidelineFields.map((field, index) => {
+                        const type = form.watch(`guidelines.${index}.guideline_type`);
+                        // Render only supplements
+                        if (type !== 'supplement') return null;
+
+                        const isExpanded = expandedGuidelines.has(index);
+                        const titleValue = form.watch(`guidelines.${index}.title`);
+
+                        const getTitleText = (html: string) => {
+                          if (!html) return "Novo Suplemento";
+                          const div = document.createElement("div");
+                          div.innerHTML = html;
+                          return div.textContent || div.innerText || "Novo Suplemento";
+                        };
+
+                        return (
+                          <Card
+                            key={field.id}
+                            className="bg-green-400/10 border border-green-500/30 hover:bg-green-400/15 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20"
+                          >
+                            <CardHeader className="pb-3 cursor-pointer" onClick={() => {
+                              const newExpanded = new Set(expandedGuidelines);
+                              if (isExpanded) {
+                                newExpanded.delete(index);
+                              } else {
+                                newExpanded.add(index);
+                              }
+                              setExpandedGuidelines(newExpanded);
+                            }}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 flex-1">
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-4 h-4 text-[#00C98A]" />
+                                  ) : (
+                                    <ChevronUp className="w-4 h-4 text-[#777777]" />
+                                  )}
+                                  <CardTitle className="text-base font-semibold text-[#222222]">
+                                    {getTitleText(titleValue)}
+                                  </CardTitle>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const guidelineData = form.getValues(`guidelines.${index}`);
+                                      if (guidelineData.title && guidelineData.content) {
+                                        createTemplate({
+                                          guideline_type: 'supplement',
+                                          title: guidelineData.title,
+                                          content: guidelineData.content,
+                                          priority: index
+                                        }).then(() => {
+                                          toast({
+                                            title: 'Suplemento favoritado!',
+                                            description: 'Este item aparecerá em novos planos',
+                                          });
+                                        }).catch((error) => {
+                                          console.error('Erro ao favoritar:', error);
+                                        });
+                                      } else {
+                                        toast({
+                                          title: 'Erro',
+                                          description: 'Preencha título e conteúdo antes de favoritar',
+                                          variant: 'destructive'
+                                        });
+                                      }
+                                    }}
+                                    className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                                    title="Salvar como favorito"
+                                  >
+                                    <Star className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeGuideline(index);
+                                    }}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
+
+                            {isExpanded && (
+                              <CardContent className="space-y-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`guidelines.${index}.title`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[#222222] font-medium">Título *</FormLabel>
+                                      <FormControl>
+                                        <RichTextEditor
+                                          value={field.value || ''}
+                                          onChange={field.onChange}
+                                          placeholder="Ex: Creatina Monohidratada"
+                                          className="min-h-[60px]"
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name={`guidelines.${index}.content`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[#222222] font-medium">Descrição e observações *</FormLabel>
+                                      <FormControl>
+                                        <RichTextEditor
+                                          value={field.value || ''}
+                                          onChange={field.onChange}
+                                          placeholder="Ex: Tomar 5g todos os dias..."
+                                          className="min-h-[120px]"
+                                          resizable={true}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </CardContent>
+                            )}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ABA 5: Resumo */}
+              {activeTab === "summary" && (
+                <div className="space-y-6">
                   <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700/40">
                     <CardHeader className="pb-4 border-b border-slate-700/50">
                       <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
@@ -2483,11 +2718,11 @@ export function DietPlanForm({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {form.watch("guidelines")?.map((guideline: any, index: number) => (
                             <div key={index} className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-lg hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300">
-                              <div 
+                              <div
                                 className="font-semibold text-emerald-300 mb-2"
                                 dangerouslySetInnerHTML={{ __html: guideline.title || '' }}
                               />
-                              <div 
+                              <div
                                 className="text-sm text-slate-300 prose prose-sm prose-invert max-w-none"
                                 dangerouslySetInnerHTML={{ __html: guideline.content || '' }}
                                 style={{
@@ -2502,580 +2737,583 @@ export function DietPlanForm({
                     </CardContent>
                   </Card>
                 </div>
-                )}
-              </div>
-            </Tabs>
-
-            {/* Botões de ação */}
-            <div className="pt-4 border-t border-gray-200 mt-4 flex justify-end gap-3">
-              {!isPageMode && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="border-gray-300 text-[#222222] hover:bg-gray-100"
-                >
-                  Cancelar
-                </Button>
               )}
+            </div>
+          </Tabs>
+
+          {/* Botões de ação */}
+          <div className="pt-4 border-t border-gray-200 mt-4 flex justify-end gap-3">
+            {!isPageMode && (
               <Button
                 type="button"
-                disabled={loading}
-                onClick={async () => {
-                  console.log('🖱️ Botão Salvar clicado!');
-                  console.log('📝 Valores do formulário:', form.getValues());
-                  
-                  // Forçar submit sem validação
-                  const values = form.getValues();
-                  await onSubmit(values as DietPlanFormData);
-                }}
-                className="bg-[#00C98A] hover:bg-[#00A875] text-white"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="border-gray-300 text-[#222222] hover:bg-gray-100"
               >
-                {loading ? "Salvando..." : "Salvar Plano"}
+                Cancelar
               </Button>
-            </div>
+            )}
+            <Button
+              type="button"
+              disabled={loading}
+              onClick={async () => {
+                console.log('🖱️ Botão Salvar clicado!');
+                console.log('📝 Valores do formulário:', form.getValues());
 
-            {/* Rodapé Fixo com Macros Totais */}
-            <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-slate-800 to-slate-900 border-t-2 border-green-500/30 shadow-2xl z-50 px-6 py-3">
-              <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                // Forçar submit sem validação
+                const values = form.getValues();
+                await onSubmit(values as DietPlanFormData);
+              }}
+              className="bg-[#00C98A] hover:bg-[#00A875] text-white"
+            >
+              {loading ? "Salvando..." : "Salvar Plano"}
+            </Button>
+          </div>
+
+          {/* Rodapé Fixo com Macros Totais */}
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-slate-800 to-slate-900 border-t-2 border-green-500/30 shadow-2xl z-50 px-6 py-3">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-green-400" />
+                <span className="text-sm font-semibold text-white">Totais do Plano:</span>
+              </div>
+              <div className="flex items-center gap-6">
+                {/* Calorias */}
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-green-400" />
-                  <span className="text-sm font-semibold text-white">Totais do Plano:</span>
+                  <div className="w-3 h-3 rounded-full bg-orange-400"></div>
+                  <span className="text-sm text-slate-300">Calorias:</span>
+                  <span className="text-base font-bold text-white">{Math.round(form.watch('total_calories') || 0)}</span>
                 </div>
-                <div className="flex items-center gap-6">
-                  {/* Calorias */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-orange-400"></div>
-                    <span className="text-sm text-slate-300">Calorias:</span>
-                    <span className="text-base font-bold text-white">{Math.round(form.watch('total_calories') || 0)}</span>
-                  </div>
-                  
-                  {/* Proteína */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                    <span className="text-sm text-slate-300">Proteína:</span>
-                    <span className="text-base font-bold text-white">{(form.watch('total_protein') || 0).toFixed(1)}g</span>
-                    {patientData?.peso && (
-                      <span className="text-xs text-slate-400">
-                        ({((form.watch('total_protein') || 0) / patientData.peso).toFixed(1)}g/kg)
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Carboidrato */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-purple-400"></div>
-                    <span className="text-sm text-slate-300">Carboidrato:</span>
-                    <span className="text-base font-bold text-white">{(form.watch('total_carbs') || 0).toFixed(1)}g</span>
-                    {patientData?.peso && (
-                      <span className="text-xs text-slate-400">
-                        ({((form.watch('total_carbs') || 0) / patientData.peso).toFixed(1)}g/kg)
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Gordura */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-                    <span className="text-sm text-slate-300">Gordura:</span>
-                    <span className="text-base font-bold text-white">{(form.watch('total_fats') || 0).toFixed(1)}g</span>
-                    {patientData?.peso && (
-                      <span className="text-xs text-slate-400">
-                        ({((form.watch('total_fats') || 0) / patientData.peso).toFixed(1)}g/kg)
-                      </span>
-                    )}
-                  </div>
 
-                  {/* Balanço Calórico (Superávit/Déficit) */}
-                  {(() => {
-                    const totalCalories = form.watch("total_calories") || 0;
-                    const targetCalories = form.watch("target_calories") || 0;
-                    
-                    if (totalCalories > 0 && targetCalories > 0) {
-                      const difference = totalCalories - targetCalories;
-                      const isSurplus = difference > 0;
-                      const isDeficit = difference < 0;
-                      
-                      return (
-                        <div className="flex items-center gap-2 pl-4 border-l border-slate-600">
-                          <GitCompare className={`w-4 h-4 ${isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-slate-400'}`} />
-                          <span className="text-sm text-slate-300">
-                            {isSurplus && 'Superávit: '}
-                            {isDeficit && 'Déficit: '}
-                          </span>
-                          <span className={`text-base font-bold ${isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-white'}`}>
-                            {Math.abs(difference).toFixed(0)} kcal
-                          </span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
+                {/* Proteína */}
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                  <span className="text-sm text-slate-300">Proteína:</span>
+                  <span className="text-base font-bold text-white">{(form.watch('total_protein') || 0).toFixed(1)}g</span>
+                  {patientData?.peso && (
+                    <span className="text-xs text-slate-400">
+                      ({((form.watch('total_protein') || 0) / patientData.peso).toFixed(1)}g/kg)
+                    </span>
+                  )}
                 </div>
+
+                {/* Carboidrato */}
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+                  <span className="text-sm text-slate-300">Carboidrato:</span>
+                  <span className="text-base font-bold text-white">{(form.watch('total_carbs') || 0).toFixed(1)}g</span>
+                  {patientData?.peso && (
+                    <span className="text-xs text-slate-400">
+                      ({((form.watch('total_carbs') || 0) / patientData.peso).toFixed(1)}g/kg)
+                    </span>
+                  )}
+                </div>
+
+                {/* Gordura */}
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                  <span className="text-sm text-slate-300">Gordura:</span>
+                  <span className="text-base font-bold text-white">{(form.watch('total_fats') || 0).toFixed(1)}g</span>
+                  {patientData?.peso && (
+                    <span className="text-xs text-slate-400">
+                      ({((form.watch('total_fats') || 0) / patientData.peso).toFixed(1)}g/kg)
+                    </span>
+                  )}
+                </div>
+
+                {/* Balanço Calórico (Superávit/Déficit) */}
+                {(() => {
+                  const totalCalories = form.watch("total_calories") || 0;
+                  const targetCalories = form.watch("target_calories") || 0;
+
+                  if (totalCalories > 0 && targetCalories > 0) {
+                    const difference = totalCalories - targetCalories;
+                    const isSurplus = difference > 0;
+                    const isDeficit = difference < 0;
+
+                    return (
+                      <div className="flex items-center gap-2 pl-4 border-l border-slate-600">
+                        <GitCompare className={`w-4 h-4 ${isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-slate-400'}`} />
+                        <span className="text-sm text-slate-300">
+                          {isSurplus && 'Superávit: '}
+                          {isDeficit && 'Déficit: '}
+                        </span>
+                        <span className={`text-base font-bold ${isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-white'}`}>
+                          {Math.abs(difference).toFixed(0)} kcal
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
-          </form>
-        </Form>
-      </>
-    );
+          </div>
+        </form>
+      </Form>
+    </>
+  );
 
   // Modais (renderizados fora do formContent para evitar problemas de estrutura)
   const modalsContent = (
     <>
       {/* Modais e Componentes Avançados */}
       <TemplateLibraryModal
-          open={templateLibraryOpen}
-          onOpenChange={setTemplateLibraryOpen}
-          patientId={patientId}
-          onTemplateSelected={handleTemplateSelected}
-        />
+        open={templateLibraryOpen}
+        onOpenChange={setTemplateLibraryOpen}
+        patientId={patientId}
+        onTemplateSelected={handleTemplateSelected}
+      />
 
-        <GuidelineTemplatesModal
-          open={guidelineTemplatesOpen}
-          onOpenChange={setGuidelineTemplatesOpen}
-        />
+      <GuidelineTemplatesModal
+        open={guidelineTemplatesOpen}
+        onOpenChange={setGuidelineTemplatesOpen}
+      />
 
-        <GuidelineTemplatesModal
-          open={isSelectTemplateOpen}
-          onOpenChange={setIsSelectTemplateOpen}
-          mode="select"
-          onSelectTemplate={(template) => {
+      <GuidelineTemplatesModal
+        open={isSelectTemplateOpen}
+        onOpenChange={setIsSelectTemplateOpen}
+        mode="select"
+        category={activeTab === 'supplements' ? 'supplement' : 'general'}
+        onSelectTemplates={(templates) => {
+          templates.forEach(template => {
             appendGuideline({
-              guideline_type: template.guideline_type,
+              guideline_type: template.guideline_type || (activeTab === 'supplements' ? 'supplement' : 'general'),
               title: template.title,
               content: template.content,
               priority: guidelineFields.length,
             });
-            setIsSelectTemplateOpen(false);
-            toast({
-              title: "Orientação adicionada!",
-              description: `A orientação "${template.title}" foi adicionada ao plano.`,
-            });
+          });
+          setIsSelectTemplateOpen(false);
+          toast({
+            title: activeTab === 'supplements' ? "Suplementos adicionados!" : "Orientações adicionadas!",
+            description: `${templates.length} itens foram adicionados ao plano.`,
+          });
+        }}
+      />
+
+      {form.watch('total_calories') && form.watch('meals')?.length > 0 && (
+        <MacroDistributionModal
+          open={macroDistributionOpen}
+          onOpenChange={setMacroDistributionOpen}
+          totalMacros={{
+            calories: form.watch('total_calories') || 0,
+            protein: form.watch('total_protein') || 0,
+            carbs: form.watch('total_carbs') || 0,
+            fats: form.watch('total_fats') || 0,
           }}
+          mealTypes={form.watch('meals')?.map((m: any) => m.meal_type) || []}
+          onApply={handleApplyMacroDistribution}
         />
+      )}
 
-        {form.watch('total_calories') && form.watch('meals')?.length > 0 && (
-          <MacroDistributionModal
-            open={macroDistributionOpen}
-            onOpenChange={setMacroDistributionOpen}
-            totalMacros={{
-              calories: form.watch('total_calories') || 0,
-              protein: form.watch('total_protein') || 0,
-              carbs: form.watch('total_carbs') || 0,
-              fats: form.watch('total_fats') || 0,
+
+
+      <FoodSubstitutionsModal
+        open={substitutionsModalOpen}
+        onOpenChange={(open) => {
+          setSubstitutionsModalOpen(open);
+          if (!open) setSubstitutionsFoodIndex(null);
+        }}
+        originalFoodName={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.food_name`) || '' : ''}
+        originalFoodQuantity={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.quantity`) || 100 : 100}
+        originalFoodUnit={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.unit`) || 'g' : 'g'}
+        originalFoodCalories={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.calories`) : undefined}
+        originalFoodProtein={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.protein`) : undefined}
+        originalFoodCarbs={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.carbs`) : undefined}
+        originalFoodFats={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.fats`) : undefined}
+        substitutions={(substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`) || [] : []) as any}
+        onSave={(substitutions) => {
+          if (substitutionsFoodIndex) {
+            form.setValue(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`, substitutions);
+          }
+        }}
+        onSwapWithMain={(substitution, substitutionMacros) => {
+          if (!substitutionsFoodIndex) return;
+
+          const { mealIndex, foodIndex } = substitutionsFoodIndex;
+
+          // Pegar dados do alimento principal atual
+          const currentFood = {
+            food_name: form.watch(`meals.${mealIndex}.foods.${foodIndex}.food_name`) || '',
+            quantity: form.watch(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 100,
+            unit: form.watch(`meals.${mealIndex}.foods.${foodIndex}.unit`) || 'g',
+            calories: form.watch(`meals.${mealIndex}.foods.${foodIndex}.calories`) || 0,
+            protein: form.watch(`meals.${mealIndex}.foods.${foodIndex}.protein`) || 0,
+            carbs: form.watch(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0,
+            fats: form.watch(`meals.${mealIndex}.foods.${foodIndex}.fats`) || 0,
+          };
+          const currentSubstitutions = form.watch(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
+
+          // Atualizar o alimento principal com os dados da substituição
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.food_name`, substitution.food_name);
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.quantity`, substitution.quantity);
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.unit`, substitution.unit);
+
+          // Usar macros calculados se disponíveis, senão zerar
+          if (substitutionMacros) {
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, substitutionMacros.calories);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, substitutionMacros.protein);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, substitutionMacros.carbs);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, substitutionMacros.fats);
+          } else {
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, 0);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, 0);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, 0);
+            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, 0);
+          }
+
+          // Atualizar lista de substituições: remover a que virou principal e adicionar o antigo principal
+          const newSubstitutions = currentSubstitutions
+            .filter((sub: any) => sub.food_name !== substitution.food_name)
+            .concat([{
+              food_name: currentFood.food_name,
+              quantity: currentFood.quantity,
+              unit: currentFood.unit,
+            }]);
+
+          form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, newSubstitutions);
+
+          // Atualizar macros originais para o novo alimento principal
+          const foodKey = `${mealIndex}_${foodIndex}`;
+          originalQuantitiesRef.current.set(foodKey, substitution.quantity);
+          if (substitutionMacros) {
+            originalMacrosRef.current.set(foodKey, {
+              calories: substitutionMacros.calories,
+              protein: substitutionMacros.protein,
+              carbs: substitutionMacros.carbs,
+              fats: substitutionMacros.fats,
+            });
+          }
+
+          // Recalcular totais
+          calculateMealMacros(mealIndex);
+          calculateTotals();
+        }}
+      />
+
+      <QuickPortionAdjustment
+        open={quickPortionAdjustmentOpen}
+        onOpenChange={setQuickPortionAdjustmentOpen}
+        plan={{
+          total_calories: form.watch('total_calories'),
+          total_protein: form.watch('total_protein'),
+          total_carbs: form.watch('total_carbs'),
+          total_fats: form.watch('total_fats'),
+          meals: form.watch('meals')?.map((meal: any) => ({
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fats: meal.fats,
+            foods: meal.foods?.map((food: any) => ({
+              quantity: food.quantity,
+              calories: food.calories,
+              protein: food.protein,
+              carbs: food.carbs,
+              fats: food.fats,
+            })),
+          })),
+        }}
+        onApply={handleApplyProportionalAdjustment}
+      />
+
+      <ProportionalAdjustmentModal
+        open={proportionalAdjustmentOpen}
+        onOpenChange={setProportionalAdjustmentOpen}
+        plan={{
+          total_calories: form.watch('total_calories'),
+          total_protein: form.watch('total_protein'),
+          total_carbs: form.watch('total_carbs'),
+          total_fats: form.watch('total_fats'),
+          meals: form.watch('meals')?.map((meal: any) => ({
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fats: meal.fats,
+            foods: meal.foods?.map((food: any) => ({
+              quantity: food.quantity,
+              calories: food.calories,
+              protein: food.protein,
+              carbs: food.carbs,
+              fats: food.fats,
+            })),
+          })),
+        }}
+        onApply={handleApplyProportionalAdjustment}
+      />
+
+      {planId && (
+        <>
+          <PlanVersionHistoryModal
+            open={versionHistoryOpen}
+            onOpenChange={setVersionHistoryOpen}
+            planId={planId}
+            onVersionRestored={() => {
+              loadPlanData();
+              onSuccess?.();
             }}
-            mealTypes={form.watch('meals')?.map((m: any) => m.meal_type) || []}
-            onApply={handleApplyMacroDistribution}
           />
-        )}
 
+          <PlanComparatorModal
+            open={comparatorOpen}
+            onOpenChange={setComparatorOpen}
+            currentPlanId={planId}
+          />
+        </>
+      )}
 
+      <TMBCalculator
+        open={tmbDialogOpen}
+        onOpenChange={setTmbDialogOpen}
+        onApplyMacros={(macros) => {
+          form.setValue("target_calories", macros.calorias);
+          form.setValue("target_protein", macros.proteinas);
+          form.setValue("target_carbs", macros.carboidratos);
+          form.setValue("target_fats", macros.gorduras);
+          validatePlan();
+          toast({
+            title: "Macros aplicados!",
+            description: "Os macros foram calculados e aplicados ao plano.",
+          });
+        }}
+        patientData={patientData}
+      />
 
-        <FoodSubstitutionsModal
-          open={substitutionsModalOpen}
+      {foodGroupsMealIndex !== null && (
+        <FoodGroupsModal
+          open={foodGroupsModalOpen}
           onOpenChange={(open) => {
-            setSubstitutionsModalOpen(open);
-            if (!open) setSubstitutionsFoodIndex(null);
+            setFoodGroupsModalOpen(open);
+            if (!open) setFoodGroupsMealIndex(null);
           }}
-          originalFoodName={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.food_name`) || '' : ''}
-          originalFoodQuantity={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.quantity`) || 100 : 100}
-          originalFoodUnit={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.unit`) || 'g' : 'g'}
-          originalFoodCalories={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.calories`) : undefined}
-          originalFoodProtein={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.protein`) : undefined}
-          originalFoodCarbs={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.carbs`) : undefined}
-          originalFoodFats={substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.fats`) : undefined}
-          substitutions={(substitutionsFoodIndex ? form.watch(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`) || [] : []) as any}
-          onSave={(substitutions) => {
-            if (substitutionsFoodIndex) {
-              form.setValue(`meals.${substitutionsFoodIndex.mealIndex}.foods.${substitutionsFoodIndex.foodIndex}.substitutions`, substitutions);
-            }
-          }}
-          onSwapWithMain={(substitution, substitutionMacros) => {
-            if (!substitutionsFoodIndex) return;
-            
-            const { mealIndex, foodIndex } = substitutionsFoodIndex;
-            
-            // Pegar dados do alimento principal atual
-            const currentFood = {
-              food_name: form.watch(`meals.${mealIndex}.foods.${foodIndex}.food_name`) || '',
-              quantity: form.watch(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 100,
-              unit: form.watch(`meals.${mealIndex}.foods.${foodIndex}.unit`) || 'g',
-              calories: form.watch(`meals.${mealIndex}.foods.${foodIndex}.calories`) || 0,
-              protein: form.watch(`meals.${mealIndex}.foods.${foodIndex}.protein`) || 0,
-              carbs: form.watch(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0,
-              fats: form.watch(`meals.${mealIndex}.foods.${foodIndex}.fats`) || 0,
-            };
-            const currentSubstitutions = form.watch(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
-            
-            // Atualizar o alimento principal com os dados da substituição
-            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.food_name`, substitution.food_name);
-            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.quantity`, substitution.quantity);
-            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.unit`, substitution.unit);
-            
-            // Usar macros calculados se disponíveis, senão zerar
-            if (substitutionMacros) {
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, substitutionMacros.calories);
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, substitutionMacros.protein);
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, substitutionMacros.carbs);
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, substitutionMacros.fats);
-            } else {
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, 0);
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, 0);
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, 0);
-              form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, 0);
-            }
-            
-            // Atualizar lista de substituições: remover a que virou principal e adicionar o antigo principal
-            const newSubstitutions = currentSubstitutions
-              .filter((sub: any) => sub.food_name !== substitution.food_name)
-              .concat([{
-                food_name: currentFood.food_name,
-                quantity: currentFood.quantity,
-                unit: currentFood.unit,
-              }]);
-            
-            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, newSubstitutions);
-            
-            // Atualizar macros originais para o novo alimento principal
-            const foodKey = `${mealIndex}_${foodIndex}`;
-            originalQuantitiesRef.current.set(foodKey, substitution.quantity);
-            if (substitutionMacros) {
-              originalMacrosRef.current.set(foodKey, {
-                calories: substitutionMacros.calories,
-                protein: substitutionMacros.protein,
-                carbs: substitutionMacros.carbs,
-                fats: substitutionMacros.fats,
-              });
-            }
-            
-            // Recalcular totais
-            calculateMealMacros(mealIndex);
+          mealIndex={foodGroupsMealIndex}
+          onGroupAdded={(foods) => {
+            const currentFoods = form.watch(`meals.${foodGroupsMealIndex}.foods`) || [];
+            form.setValue(`meals.${foodGroupsMealIndex}.foods`, [...currentFoods, ...foods]);
+            calculateMealMacros(foodGroupsMealIndex);
             calculateTotals();
-          }}
-        />
-
-        <QuickPortionAdjustment
-          open={quickPortionAdjustmentOpen}
-          onOpenChange={setQuickPortionAdjustmentOpen}
-          plan={{
-            total_calories: form.watch('total_calories'),
-            total_protein: form.watch('total_protein'),
-            total_carbs: form.watch('total_carbs'),
-            total_fats: form.watch('total_fats'),
-            meals: form.watch('meals')?.map((meal: any) => ({
-              calories: meal.calories,
-              protein: meal.protein,
-              carbs: meal.carbs,
-              fats: meal.fats,
-              foods: meal.foods?.map((food: any) => ({
-                quantity: food.quantity,
-                calories: food.calories,
-                protein: food.protein,
-                carbs: food.carbs,
-                fats: food.fats,
-              })),
-            })),
-          }}
-          onApply={handleApplyProportionalAdjustment}
-        />
-
-        <ProportionalAdjustmentModal
-          open={proportionalAdjustmentOpen}
-          onOpenChange={setProportionalAdjustmentOpen}
-          plan={{
-            total_calories: form.watch('total_calories'),
-            total_protein: form.watch('total_protein'),
-            total_carbs: form.watch('total_carbs'),
-            total_fats: form.watch('total_fats'),
-            meals: form.watch('meals')?.map((meal: any) => ({
-              calories: meal.calories,
-              protein: meal.protein,
-              carbs: meal.carbs,
-              fats: meal.fats,
-              foods: meal.foods?.map((food: any) => ({
-                quantity: food.quantity,
-                calories: food.calories,
-                protein: food.protein,
-                carbs: food.carbs,
-                fats: food.fats,
-              })),
-            })),
-          }}
-          onApply={handleApplyProportionalAdjustment}
-        />
-
-        {planId && (
-          <>
-            <PlanVersionHistoryModal
-              open={versionHistoryOpen}
-              onOpenChange={setVersionHistoryOpen}
-              planId={planId}
-              onVersionRestored={() => {
-                loadPlanData();
-                onSuccess?.();
-              }}
-            />
-
-            <PlanComparatorModal
-              open={comparatorOpen}
-              onOpenChange={setComparatorOpen}
-              currentPlanId={planId}
-            />
-          </>
-        )}
-
-        <TMBCalculator
-          open={tmbDialogOpen}
-          onOpenChange={setTmbDialogOpen}
-          onApplyMacros={(macros) => {
-            form.setValue("target_calories", macros.calorias);
-            form.setValue("target_protein", macros.proteinas);
-            form.setValue("target_carbs", macros.carboidratos);
-            form.setValue("target_fats", macros.gorduras);
             validatePlan();
-            toast({
-              title: "Macros aplicados!",
-              description: "Os macros foram calculados e aplicados ao plano.",
-            });
-          }}
-          patientData={patientData}
-        />
-
-        {foodGroupsMealIndex !== null && (
-          <FoodGroupsModal
-            open={foodGroupsModalOpen}
-            onOpenChange={(open) => {
-              setFoodGroupsModalOpen(open);
-              if (!open) setFoodGroupsMealIndex(null);
-            }}
-            mealIndex={foodGroupsMealIndex}
-            onGroupAdded={(foods) => {
-              const currentFoods = form.watch(`meals.${foodGroupsMealIndex}.foods`) || [];
-              form.setValue(`meals.${foodGroupsMealIndex}.foods`, [...currentFoods, ...foods]);
-              calculateMealMacros(foodGroupsMealIndex);
-              calculateTotals();
-              validatePlan();
-            }}
-          />
-        )}
-
-        <FoodSelectionModal
-          open={foodSelectionModalOpen}
-          onOpenChange={(open) => {
-            setFoodSelectionModalOpen(open);
-            if (!open) setFoodSelectionMealIndex(null);
-          }}
-          foodDatabase={foodDatabase}
-          mealType={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.meal_type`) || '' : ''}
-          existingFoods={foodSelectionMealIndex !== null ? (form.watch(`meals.${foodSelectionMealIndex}.foods`) || []).map((f: any) => f.food_name) : []}
-          targetCalories={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.calories`) : undefined}
-          targetProtein={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.protein`) : undefined}
-          targetCarbs={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.carbs`) : undefined}
-          targetFats={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.fats`) : undefined}
-          onSelect={(food) => {
-            if (foodSelectionMealIndex !== null) {
-              const meals = form.getValues("meals") || [];
-              const currentMeal = meals[foodSelectionMealIndex];
-              const currentFoods = currentMeal?.foods || [];
-              
-              // Adicionar novo alimento com os dados do alimento selecionado
-              const newFood = {
-                food_name: food.name,
-                quantity: 100,
-                unit: "g",
-                calories: 0,
-                protein: 0,
-                carbs: 0,
-                fats: 0,
-                notes: "",
-              };
-
-              form.setValue(`meals.${foodSelectionMealIndex}.foods`, [
-                ...currentFoods,
-                newFood,
-              ]);
-
-              // Calcular macros do alimento
-              setTimeout(() => {
-                const newFoodIndex = currentFoods.length;
-                handleFoodSelect(foodSelectionMealIndex, newFoodIndex, food.name);
-              }, 100);
-            }
-          }}
-          onFoodSaved={async () => {
-            // Recarregar banco de alimentos (incluindo customizados)
-            await loadFoodDatabase(true);
           }}
         />
+      )}
 
-        {/* Modal de Refeições Favoritas */}
-        <Dialog open={favoriteMealsModalOpen} onOpenChange={setFavoriteMealsModalOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
-            <DialogHeader>
-              <DialogTitle className="text-[#222222] flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                Refeições Favoritas
-              </DialogTitle>
-              <DialogDescription className="text-[#777777]">
-                Selecione uma refeição favorita para adicionar ao plano
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {favoriteMealsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin w-8 h-8 mx-auto mb-2 border-2 border-green-500 border-t-transparent rounded-full"></div>
-                  <p className="text-sm text-[#777777]">Carregando favoritos...</p>
-                </div>
-              ) : favoriteMeals.length === 0 ? (
-                <div className="text-center py-8">
-                  <Star className="w-12 h-12 mx-auto mb-3 text-[#777777] opacity-50" />
-                  <p className="text-sm text-[#222222] font-medium mb-1">Nenhuma refeição favoritada ainda</p>
-                  <p className="text-xs text-[#777777]">Use o ícone de estrela nas refeições para favoritá-las</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {favoriteMeals.map((favorite) => (
-                    <Card
-                      key={favorite.id}
-                      className="bg-green-50/30 border border-green-200/50 hover:bg-green-50/50 transition-all cursor-pointer"
-                      onClick={() => {
-                        const meals = form.getValues("meals") || [];
-                        const maxOrder = meals.length > 0 ? Math.max(...meals.map((m: any) => m.meal_order || 0)) : 0;
-                        
-                        const mealData = {
-                          meal_name: favorite.meal_name,
-                          suggested_time: favorite.suggested_time,
-                          start_time: favorite.start_time,
-                          end_time: favorite.end_time,
-                          calories: favorite.calories,
-                          protein: favorite.protein,
-                          carbs: favorite.carbs,
-                          fats: favorite.fats,
-                          instructions: favorite.instructions,
-                          foods: favorite.foods.map((food) => ({
-                            food_name: food.food_name,
-                            quantity: food.quantity,
-                            unit: food.unit,
-                            calories: food.calories,
-                            protein: food.protein,
-                            carbs: food.carbs,
-                            fats: food.fats,
-                            substitutions: food.substitutions || [],
-                          })),
-                          meal_type: '',
-                          meal_order: maxOrder + 1,
-                        };
-                        
-                        appendMeal(mealData);
-                        setFavoriteMealsModalOpen(false);
-                        toast({
-                          title: "Refeição adicionada!",
-                          description: "A refeição favorita foi adicionada ao plano.",
-                        });
-                      }}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold text-[#222222]">{favorite.meal_name}</h4>
-                              {favorite.suggested_time && (
-                                <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30 text-[#00A875]">
-                                  {favorite.suggested_time}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-[#777777] mb-2">
-                              <span>P: {favorite.protein.toFixed(1)}g</span>
-                              <span>C: {favorite.carbs.toFixed(1)}g</span>
-                              <span>G: {favorite.fats.toFixed(1)}g</span>
-                              <span className="font-semibold text-[#222222]">{favorite.calories} Kcal</span>
-                            </div>
-                            <div className="text-xs text-[#777777]">
-                              {favorite.foods.length} alimento(s): {favorite.foods.slice(0, 3).map(f => f.food_name).join(', ')}
-                              {favorite.foods.length > 3 && '...'}
-                            </div>
+      <FoodSelectionModal
+        open={foodSelectionModalOpen}
+        onOpenChange={(open) => {
+          setFoodSelectionModalOpen(open);
+          if (!open) setFoodSelectionMealIndex(null);
+        }}
+        foodDatabase={foodDatabase}
+        mealType={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.meal_type`) || '' : ''}
+        existingFoods={foodSelectionMealIndex !== null ? (form.watch(`meals.${foodSelectionMealIndex}.foods`) || []).map((f: any) => f.food_name) : []}
+        targetCalories={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.calories`) : undefined}
+        targetProtein={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.protein`) : undefined}
+        targetCarbs={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.carbs`) : undefined}
+        targetFats={foodSelectionMealIndex !== null ? form.watch(`meals.${foodSelectionMealIndex}.fats`) : undefined}
+        onSelect={(food) => {
+          if (foodSelectionMealIndex !== null) {
+            const meals = form.getValues("meals") || [];
+            const currentMeal = meals[foodSelectionMealIndex];
+            const currentFoods = currentMeal?.foods || [];
+
+            // Adicionar novo alimento com os dados do alimento selecionado
+            const newFood = {
+              food_name: food.name,
+              quantity: 100,
+              unit: "g",
+              calories: 0,
+              protein: 0,
+              carbs: 0,
+              fats: 0,
+              notes: "",
+            };
+
+            form.setValue(`meals.${foodSelectionMealIndex}.foods`, [
+              ...currentFoods,
+              newFood,
+            ]);
+
+            // Calcular macros do alimento
+            setTimeout(() => {
+              const newFoodIndex = currentFoods.length;
+              handleFoodSelect(foodSelectionMealIndex, newFoodIndex, food.name);
+            }, 100);
+          }
+        }}
+        onFoodSaved={async () => {
+          // Recarregar banco de alimentos (incluindo customizados)
+          await loadFoodDatabase(true);
+        }}
+      />
+
+      {/* Modal de Refeições Favoritas */}
+      <Dialog open={favoriteMealsModalOpen} onOpenChange={setFavoriteMealsModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#222222] flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500" />
+              Refeições Favoritas
+            </DialogTitle>
+            <DialogDescription className="text-[#777777]">
+              Selecione uma refeição favorita para adicionar ao plano
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {favoriteMealsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin w-8 h-8 mx-auto mb-2 border-2 border-green-500 border-t-transparent rounded-full"></div>
+                <p className="text-sm text-[#777777]">Carregando favoritos...</p>
+              </div>
+            ) : favoriteMeals.length === 0 ? (
+              <div className="text-center py-8">
+                <Star className="w-12 h-12 mx-auto mb-3 text-[#777777] opacity-50" />
+                <p className="text-sm text-[#222222] font-medium mb-1">Nenhuma refeição favoritada ainda</p>
+                <p className="text-xs text-[#777777]">Use o ícone de estrela nas refeições para favoritá-las</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {favoriteMeals.map((favorite) => (
+                  <Card
+                    key={favorite.id}
+                    className="bg-green-50/30 border border-green-200/50 hover:bg-green-50/50 transition-all cursor-pointer"
+                    onClick={() => {
+                      const meals = form.getValues("meals") || [];
+                      const maxOrder = meals.length > 0 ? Math.max(...meals.map((m: any) => m.meal_order || 0)) : 0;
+
+                      const mealData = {
+                        meal_name: favorite.meal_name,
+                        suggested_time: favorite.suggested_time,
+                        start_time: favorite.start_time,
+                        end_time: favorite.end_time,
+                        calories: favorite.calories,
+                        protein: favorite.protein,
+                        carbs: favorite.carbs,
+                        fats: favorite.fats,
+                        instructions: favorite.instructions,
+                        foods: favorite.foods.map((food) => ({
+                          food_name: food.food_name,
+                          quantity: food.quantity,
+                          unit: food.unit,
+                          calories: food.calories,
+                          protein: food.protein,
+                          carbs: food.carbs,
+                          fats: food.fats,
+                          substitutions: food.substitutions || [],
+                        })),
+                        meal_type: '',
+                        meal_order: maxOrder + 1,
+                      };
+
+                      appendMeal(mealData);
+                      setFavoriteMealsModalOpen(false);
+                      toast({
+                        title: "Refeição adicionada!",
+                        description: "A refeição favorita foi adicionada ao plano.",
+                      });
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-[#222222]">{favorite.meal_name}</h4>
+                            {favorite.suggested_time && (
+                              <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30 text-[#00A875]">
+                                {favorite.suggested_time}
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="bg-[#00C98A] hover:bg-[#00A875] text-white"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const meals = form.getValues("meals") || [];
-                                const maxOrder = meals.length > 0 ? Math.max(...meals.map((m: any) => m.meal_order || 0)) : 0;
-                                
-                                const mealData = {
-                                  meal_name: favorite.meal_name,
-                                  suggested_time: favorite.suggested_time,
-                                  start_time: favorite.start_time,
-                                  end_time: favorite.end_time,
-                                  calories: favorite.calories,
-                                  protein: favorite.protein,
-                                  carbs: favorite.carbs,
-                                  fats: favorite.fats,
-                                  instructions: favorite.instructions,
-                                  foods: favorite.foods.map((food) => ({
-                                    food_name: food.food_name,
-                                    quantity: food.quantity,
-                                    unit: food.unit,
-                                    calories: food.calories,
-                                    protein: food.protein,
-                                    carbs: food.carbs,
-                                    fats: food.fats,
-                                    substitutions: food.substitutions || [],
-                                  })),
-                                  meal_type: '',
-                                  meal_order: maxOrder + 1,
-                                };
-                                
-                                appendMeal(mealData);
-                                setFavoriteMealsModalOpen(false);
-                                toast({
-                                  title: "Refeição adicionada!",
-                                  description: "A refeição favorita foi adicionada ao plano.",
-                                });
-                              }}
-                            >
-                              Adicionar
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await dietMealFavoritesService.removeFavoriteMeal(favorite.id);
-                                  const updatedFavorites = favoriteMeals.filter(f => f.id !== favorite.id);
-                                  setFavoriteMeals(updatedFavorites);
-                                  toast({
-                                    title: "Favorito removido",
-                                    description: "A refeição foi removida dos seus favoritos.",
-                                  });
-                                } catch (error: any) {
-                                  toast({
-                                    title: "Erro",
-                                    description: error.message || "Erro ao remover favorito",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <div className="flex items-center gap-4 text-xs text-[#777777] mb-2">
+                            <span>P: {favorite.protein.toFixed(1)}g</span>
+                            <span>C: {favorite.carbs.toFixed(1)}g</span>
+                            <span>G: {favorite.fats.toFixed(1)}g</span>
+                            <span className="font-semibold text-[#222222]">{favorite.calories} Kcal</span>
+                          </div>
+                          <div className="text-xs text-[#777777]">
+                            {favorite.foods.length} alimento(s): {favorite.foods.slice(0, 3).map(f => f.food_name).join(', ')}
+                            {favorite.foods.length > 3 && '...'}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-[#00C98A] hover:bg-[#00A875] text-white"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const meals = form.getValues("meals") || [];
+                              const maxOrder = meals.length > 0 ? Math.max(...meals.map((m: any) => m.meal_order || 0)) : 0;
+
+                              const mealData = {
+                                meal_name: favorite.meal_name,
+                                suggested_time: favorite.suggested_time,
+                                start_time: favorite.start_time,
+                                end_time: favorite.end_time,
+                                calories: favorite.calories,
+                                protein: favorite.protein,
+                                carbs: favorite.carbs,
+                                fats: favorite.fats,
+                                instructions: favorite.instructions,
+                                foods: favorite.foods.map((food) => ({
+                                  food_name: food.food_name,
+                                  quantity: food.quantity,
+                                  unit: food.unit,
+                                  calories: food.calories,
+                                  protein: food.protein,
+                                  carbs: food.carbs,
+                                  fats: food.fats,
+                                  substitutions: food.substitutions || [],
+                                })),
+                                meal_type: '',
+                                meal_order: maxOrder + 1,
+                              };
+
+                              appendMeal(mealData);
+                              setFavoriteMealsModalOpen(false);
+                              toast({
+                                title: "Refeição adicionada!",
+                                description: "A refeição favorita foi adicionada ao plano.",
+                              });
+                            }}
+                          >
+                            Adicionar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await dietMealFavoritesService.removeFavoriteMeal(favorite.id);
+                                const updatedFavorites = favoriteMeals.filter(f => f.id !== favorite.id);
+                                setFavoriteMeals(updatedFavorites);
+                                toast({
+                                  title: "Favorito removido",
+                                  description: "A refeição foi removida dos seus favoritos.",
+                                });
+                              } catch (error: any) {
+                                toast({
+                                  title: "Erro",
+                                  description: error.message || "Erro ao remover favorito",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 
@@ -3104,7 +3342,7 @@ export function DietPlanForm({
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0">
-          {formContent}
+            {formContent}
           </div>
         </DialogContent>
       </Dialog>
@@ -3158,8 +3396,8 @@ const FoodItem = memo(function FoodItem({
   const calories = foodData?.calories || 0;
 
   return (
-    <Card 
-      ref={setNodeRef} 
+    <Card
+      ref={setNodeRef}
       style={style}
       className="bg-white border-0 shadow-none hover:bg-gray-50/50 transition-all duration-200"
     >
@@ -3237,7 +3475,7 @@ const FoodItem = memo(function FoodItem({
             name={`meals.${mealIndex}.foods.${foodIndex}.unit`}
             render={({ field }) => (
               <FormItem className="w-24">
-                <Select 
+                <Select
                   onValueChange={(value) => {
                     try {
                       field.onChange(value);
@@ -3245,18 +3483,18 @@ const FoodItem = memo(function FoodItem({
                     } catch (error) {
                       console.error('Erro ao alterar unidade:', error);
                     }
-                  }} 
+                  }}
                   value={field.value ?? ""}
                 >
                   <FormControl>
-                    <SelectTrigger 
+                    <SelectTrigger
                       className="h-8 text-sm border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <SelectValue placeholder="un" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent 
+                  <SelectContent
                     className="bg-white border-green-500/30 z-50"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -3307,13 +3545,12 @@ const FoodItem = memo(function FoodItem({
                       setSubstitutionsFoodIndex({ mealIndex, foodIndex });
                       setSubstitutionsModalOpenProp(true);
                     }}
-                    className={`h-7 w-7 p-0 relative ${
-                      foodData?.substitutions && foodData.substitutions.length > 0
-                        ? 'text-[#00C98A] hover:text-[#00A875] hover:bg-green-500/20 bg-green-500/10'
-                        : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
-                    }`}
-                    title={foodData?.substitutions && foodData.substitutions.length > 0 
-                      ? `${foodData.substitutions.length} substituição(ões) cadastrada(s)` 
+                    className={`h-7 w-7 p-0 relative ${foodData?.substitutions && foodData.substitutions.length > 0
+                      ? 'text-[#00C98A] hover:text-[#00A875] hover:bg-green-500/20 bg-green-500/10'
+                      : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
+                      }`}
+                    title={foodData?.substitutions && foodData.substitutions.length > 0
+                      ? `${foodData.substitutions.length} substituição(ões) cadastrada(s)`
                       : "Opções de Substituição"}
                     disabled={!foodNameField.value}
                   >
@@ -3476,7 +3713,7 @@ const MealItemComponent = memo(function MealItemComponent({
   const mealCarbs = mealData?.carbs || 0;
   const mealFats = mealData?.fats || 0;
   const mealFoods = mealData?.foods || [];
-  
+
   // Memoizar existingFoods para evitar re-renderizações desnecessárias
   const existingFoods = useMemo(() => {
     return mealFoods?.map((f: any) => f.food_name).filter(Boolean) || [];
@@ -3484,7 +3721,7 @@ const MealItemComponent = memo(function MealItemComponent({
 
   // Obter total de refeições para calcular progressão de cores
   const totalMeals = form.watch("meals")?.length || 1;
-  
+
   // Função para calcular cores baseadas no índice - usando verde bem leve
   const getMealCardColors = (index: number, total: number) => {
     // Todos os cards usam fundo verde clarinho com borda verde suave
@@ -3512,471 +3749,470 @@ const MealItemComponent = memo(function MealItemComponent({
 
   return (
     <div ref={setNodeRef} style={style}>
-                              <Collapsible
-                                open={isExpanded}
-                                onOpenChange={(open) => {
-                                  const newExpanded = new Set(expandedMeals);
-                                  if (open) {
-                                    newExpanded.add(mealIndex);
-                                  } else {
-                                    newExpanded.delete(mealIndex);
-                                  }
-                                  setExpandedMeals(newExpanded);
+      <Collapsible
+        open={isExpanded}
+        onOpenChange={(open) => {
+          const newExpanded = new Set(expandedMeals);
+          if (open) {
+            newExpanded.add(mealIndex);
+          } else {
+            newExpanded.delete(mealIndex);
+          }
+          setExpandedMeals(newExpanded);
+        }}
+      >
+        <Card className={`border transition-all duration-300 hover:shadow-md ${cardColors}`}>
+          <CardHeader className="pb-2 pt-3 px-4">
+            <div className="flex items-center justify-between gap-3">
+              {/* Lado esquerdo: Drag handle, horários editáveis, nome editável, macros compactados */}
+              <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 flex-wrap md:flex-nowrap">
+                {/* Drag handle */}
+                <div
+                  {...attributes}
+                  {...listeners}
+                  className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity flex-shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Arrastar para reordenar"
+                  role="button"
+                  aria-label={`Arrastar para reordenar ${mealName}`}
+                  tabIndex={0}
+                >
+                  <GripVertical className="w-4 h-4 text-[#555555]" aria-hidden="true" />
+                </div>
+
+                {/* Container de horários - responsivo */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* Horário inicial */}
+                  <FormField
+                    control={form.control}
+                    name={`meals.${mealIndex}.start_time`}
+                    render={({ field }) => (
+                      <FormItem className="flex-shrink-0">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="08:00"
+                            className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 font-medium text-center rounded-sm transition-all"
+                            {...field}
+                            value={field.value ?? ""}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Horário inicial da ${mealName}`}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Separador */}
+                  <span className="text-xs text-[#666666] font-medium">-</span>
+
+                  {/* Horário final */}
+                  <FormField
+                    control={form.control}
+                    name={`meals.${mealIndex}.end_time`}
+                    render={({ field }) => (
+                      <FormItem className="flex-shrink-0">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="09:00"
+                            className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 font-medium text-center rounded-sm transition-all"
+                            {...field}
+                            value={field.value ?? ""}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Horário final da ${mealName}`}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Nome da refeição editável - ocupa linha inteira em mobile */}
+                <FormField
+                  control={form.control}
+                  name={`meals.${mealIndex}.meal_name`}
+                  render={({ field }) => (
+                    <FormItem className="flex-1 min-w-0 w-full md:w-auto">
+                      <FormLabel className="sr-only">Nome da refeição {mealIndex + 1}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          placeholder={`REFEIÇÃO ${mealIndex + 1}`}
+                          className="h-7 text-sm border-0 bg-transparent text-[#111111] font-medium placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 rounded-sm transition-all"
+                          {...field}
+                          value={field.value || `REFEIÇÃO ${mealIndex + 1}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Nome da refeição ${mealIndex + 1}`}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Macros compactados - sempre visíveis com tooltip - oculto em mobile pequeno */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={`hidden sm:flex items-center gap-2 md:gap-3 flex-shrink-0 cursor-help ${form.watch(`meals.${mealIndex}.exclude_from_macros`) ? 'opacity-40' : ''}`}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-600" aria-hidden="true"></div>
+                        <span className="text-xs md:text-sm text-[#111111] font-medium">{mealProtein.toFixed(1)}g</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" aria-hidden="true"></div>
+                        <span className="text-xs md:text-sm text-[#111111] font-medium">{mealCarbs.toFixed(1)}g</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600" aria-hidden="true"></div>
+                        <span className="text-xs md:text-sm text-[#111111] font-medium">{mealFats.toFixed(1)}g</span>
+                        <span className="text-xs md:text-sm font-semibold text-[#111111] ml-1">{mealCalories} Kcal</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-gray-900 text-white text-xs p-3 rounded-md shadow-lg">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold">Macronutrientes:</p>
+                        <p className="text-xs">Proteínas: {mealProtein.toFixed(1)}g</p>
+                        <p className="text-xs">Carboidratos: {mealCarbs.toFixed(1)}g</p>
+                        <p className="text-xs">Gorduras: {mealFats.toFixed(1)}g</p>
+                        <p className="text-xs">Calorias: {mealCalories} Kcal</p>
+                        {form.watch(`meals.${mealIndex}.exclude_from_macros`) && (
+                          <p className="text-xs text-orange-400 font-semibold mt-2">⚠️ Não contabilizada nos totais</p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              {/* Lado direito: Botões de ação */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Botão expandir/colapsar */}
+                <CollapsibleTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+
+                {/* Botão ver alimentos (verde) */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 bg-[#00C98A] hover:bg-[#00A875] text-white text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newExpanded = new Set(expandedMeals);
+                    if (!isExpanded) {
+                      newExpanded.add(mealIndex);
+                    } else {
+                      newExpanded.delete(mealIndex);
+                    }
+                    setExpandedMeals(newExpanded);
+                  }}
+                  title={isExpanded ? "Ocultar alimentos" : "Ver alimentos"}
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  ver alimentos
+                </Button>
+
+                {/* Botão adicionar alimento (verde) */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 bg-[#00C98A] hover:bg-[#00A875] text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFoodSelectionMealIndex(mealIndex);
+                    setFoodSelectionModalOpen(true);
+                  }}
+                  title="Adicionar alimento"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+
+                {/* Botão para excluir dos macros */}
+                <FormField
+                  control={form.control}
+                  name={`meals.${mealIndex}.exclude_from_macros`}
+                  render={({ field }) => (
+                    <FormItem className="flex items-center flex-shrink-0">
+                      <FormControl>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className={`h-7 w-7 p-0 rounded ${field.value
+                                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                                  }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  field.onChange(!field.value);
+                                  calculateTotals();
                                 }}
                               >
-                                <Card className={`border transition-all duration-300 hover:shadow-md ${cardColors}`}>
-                                  <CardHeader className="pb-2 pt-3 px-4">
-                                    <div className="flex items-center justify-between gap-3">
-                                      {/* Lado esquerdo: Drag handle, horários editáveis, nome editável, macros compactados */}
-                                      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 flex-wrap md:flex-nowrap">
-                                        {/* Drag handle */}
-                                          <div
-                                            {...attributes}
-                                            {...listeners}
-                                          className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity flex-shrink-0"
-                                          onClick={(e) => e.stopPropagation()}
-                                          title="Arrastar para reordenar"
-                                          role="button"
-                                          aria-label={`Arrastar para reordenar ${mealName}`}
-                                          tabIndex={0}
-                                          >
-                                          <GripVertical className="w-4 h-4 text-[#555555]" aria-hidden="true" />
-                                          </div>
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-gray-900 text-white text-xs p-2">
+                              {field.value ? 'Não contabilizada nos totais' : 'Clique para não contabilizar nos totais'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-                                        {/* Container de horários - responsivo */}
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                          {/* Horário inicial */}
-                                          <FormField
-                                            control={form.control}
-                                            name={`meals.${mealIndex}.start_time`}
-                                            render={({ field }) => (
-                                              <FormItem className="flex-shrink-0">
-                                                <FormControl>
-                                                  <Input
-                                                    type="text"
-                                                    placeholder="08:00"
-                                                    className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none p-0 font-medium text-center"
-                                                    {...field}
-                                                    value={field.value ?? ""}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    aria-label={`Horário inicial da ${mealName}`}
-                                                  />
-                                                </FormControl>
-                                              </FormItem>
-                                            )}
-                                          />
-                                          
-                                          {/* Separador */}
-                                          <span className="text-xs text-[#666666] font-medium">-</span>
-                                          
-                                          {/* Horário final */}
-                                          <FormField
-                                            control={form.control}
-                                            name={`meals.${mealIndex}.end_time`}
-                                            render={({ field }) => (
-                                              <FormItem className="flex-shrink-0">
-                                                <FormControl>
-                                                  <Input
-                                                    type="text"
-                                                    placeholder="09:00"
-                                                    className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none p-0 font-medium text-center"
-                                                    {...field}
-                                                    value={field.value ?? ""}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    aria-label={`Horário final da ${mealName}`}
-                                                  />
-                                                </FormControl>
-                                              </FormItem>
-                                            )}
-                                          />
-                                        </div>
+                {/* Botão duplicar */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-[#777777] hover:text-blue-600 hover:bg-blue-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const meals = form.getValues("meals") || [];
+                    const mealToDuplicate = meals[mealIndex];
+                    const newMeal = {
+                      ...mealToDuplicate,
+                      meal_name: `${mealToDuplicate.meal_name} (Cópia)`,
+                      meal_order: meals.length + 1,
+                      foods: mealToDuplicate.foods?.map((food: any) => ({ ...food })) || [],
+                    };
+                    appendMeal(newMeal);
+                    toast({
+                      title: "Refeição duplicada!",
+                      description: "A refeição foi duplicada com sucesso.",
+                    });
+                  }}
+                  title="Duplicar refeição"
+                >
+                  <Layers className="w-4 h-4" />
+                </Button>
 
-                                        {/* Nome da refeição editável - ocupa linha inteira em mobile */}
-                                        <FormField
-                                          control={form.control}
-                                          name={`meals.${mealIndex}.meal_name`}
-                                          render={({ field }) => (
-                                            <FormItem className="flex-1 min-w-0 w-full md:w-auto">
-                                              <FormLabel className="sr-only">Nome da refeição {mealIndex + 1}</FormLabel>
-                                              <FormControl>
-                                                <Input
-                                                  type="text"
-                                                  placeholder={`REFEIÇÃO ${mealIndex + 1}`}
-                                                  className="h-7 text-sm border-0 bg-transparent text-[#111111] font-medium placeholder:text-[#666666] focus:ring-0 focus:outline-none p-0"
-                                                  {...field}
-                                                  value={field.value || `REFEIÇÃO ${mealIndex + 1}`}
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  aria-label={`Nome da refeição ${mealIndex + 1}`}
-                                                />
-                                              </FormControl>
-                                            </FormItem>
-                                          )}
-                                        />
+                {/* Botão favoritar/star */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-[#777777] hover:text-yellow-500 hover:bg-yellow-50"
+                  title="Adicionar aos favoritos"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const mealData = form.getValues(`meals.${mealIndex}`);
+                      await dietMealFavoritesService.saveFavoriteMeal({
+                        meal_name: mealData.meal_name || `REFEIÇÃO ${mealIndex + 1}`,
+                        suggested_time: mealData.suggested_time,
+                        start_time: mealData.start_time,
+                        end_time: mealData.end_time,
+                        calories: mealCalories,
+                        protein: mealProtein,
+                        carbs: mealCarbs,
+                        fats: mealFats,
+                        instructions: mealData.instructions,
+                        foods: (mealData.foods || []).map((food: any, idx: number) => ({
+                          food_name: food.food_name,
+                          quantity: food.quantity || 0,
+                          unit: food.unit || 'g',
+                          calories: food.calories || 0,
+                          protein: food.protein || 0,
+                          carbs: food.carbs || 0,
+                          fats: food.fats || 0,
+                          substitutions: food.substitutions || [],
+                          food_order: idx,
+                        })),
+                      });
+                      toast({
+                        title: "Refeição favoritada!",
+                        description: "A refeição foi salva nos seus favoritos.",
+                      });
+                    } catch (error: any) {
+                      toast({
+                        title: "Erro",
+                        description: error.message || "Erro ao favoritar refeição",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <Star className="w-4 h-4" aria-hidden="true" />
+                </Button>
 
-                                        {/* Macros compactados - sempre visíveis com tooltip - oculto em mobile pequeno */}
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <div className={`hidden sm:flex items-center gap-2 md:gap-3 flex-shrink-0 cursor-help ${form.watch(`meals.${mealIndex}.exclude_from_macros`) ? 'opacity-40' : ''}`}>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-red-600" aria-hidden="true"></div>
-                                                <span className="text-xs md:text-sm text-[#111111] font-medium">{mealProtein.toFixed(1)}g</span>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-yellow-600" aria-hidden="true"></div>
-                                                <span className="text-xs md:text-sm text-[#111111] font-medium">{mealCarbs.toFixed(1)}g</span>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600" aria-hidden="true"></div>
-                                                <span className="text-xs md:text-sm text-[#111111] font-medium">{mealFats.toFixed(1)}g</span>
-                                                <span className="text-xs md:text-sm font-semibold text-[#111111] ml-1">{mealCalories} Kcal</span>
-                                          </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="bg-gray-900 text-white text-xs p-3 rounded-md shadow-lg">
-                                              <div className="space-y-1">
-                                                <p className="text-xs font-semibold">Macronutrientes:</p>
-                                                <p className="text-xs">Proteínas: {mealProtein.toFixed(1)}g</p>
-                                                <p className="text-xs">Carboidratos: {mealCarbs.toFixed(1)}g</p>
-                                                <p className="text-xs">Gorduras: {mealFats.toFixed(1)}g</p>
-                                                <p className="text-xs">Calorias: {mealCalories} Kcal</p>
-                                                {form.watch(`meals.${mealIndex}.exclude_from_macros`) && (
-                                                  <p className="text-xs text-orange-400 font-semibold mt-2">⚠️ Não contabilizada nos totais</p>
-                                                )}
-                                          </div>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                          </div>
+                {/* Botão remover */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeMeal(mealIndex);
+                  }}
+                  aria-label={`Remover ${mealName}`}
+                  title="Remover refeição"
+                >
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-2 p-4">
+              {/* Campos ocultos mas mantidos no formulário (para estrutura n8n) */}
+              <div className="hidden">
+                <FormField
+                  control={form.control}
+                  name={`meals.${mealIndex}.meal_type`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            const selected = mealTypes.find((m) => m.value === value);
+                            if (selected) {
+                              form.setValue(`meals.${mealIndex}.meal_name`, selected.label);
+                            }
+                          }}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mealTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`meals.${mealIndex}.meal_order`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          value={field.value ?? mealIndex + 1}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-                                      {/* Lado direito: Botões de ação */}
-                                      <div className="flex items-center gap-1 flex-shrink-0">
-                                        {/* Botão expandir/colapsar */}
-                                        <CollapsibleTrigger asChild>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                    {isExpanded ? (
-                                              <ChevronUp className="w-4 h-4" />
-                                    ) : (
-                                              <ChevronDown className="w-4 h-4" />
-                                    )}
-                                          </Button>
-                                </CollapsibleTrigger>
+              {/* Alimentos da Refeição */}
+              <div className="space-y-2">
 
-                                        {/* Botão ver alimentos (verde) */}
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                          className="h-7 px-2 bg-[#00C98A] hover:bg-[#00A875] text-white text-xs"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                            const newExpanded = new Set(expandedMeals);
-                                            if (!isExpanded) {
-                                              newExpanded.add(mealIndex);
-                                            } else {
-                                              newExpanded.delete(mealIndex);
-                                            }
-                                            setExpandedMeals(newExpanded);
-                                          }}
-                                          title={isExpanded ? "Ocultar alimentos" : "Ver alimentos"}
-                                        >
-                                          <Eye className="w-3 h-3 mr-1" />
-                                          ver alimentos
-                                        </Button>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(e) => handleFoodDragEnd(e, mealIndex)}
+                >
+                  <SortableContext
+                    items={mealFoods.map((_: any, idx: number) => `food-${mealIndex}-${idx}`)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {mealFoods.map((food: any, foodIndex: number) => (
+                      <FoodItem
+                        key={`food-${mealIndex}-${foodIndex}`}
+                        mealIndex={mealIndex}
+                        foodIndex={foodIndex}
+                        form={form}
+                        foodDatabase={foodDatabase}
+                        handleFoodSelect={handleFoodSelect}
+                        recalculateFoodMacros={recalculateFoodMacros}
+                        removeFoodFromMeal={removeFoodFromMeal}
+                        setSubstitutionFoodIndex={setSubstitutionFoodIndex}
+                        setSubstitutionModalOpen={setSubstitutionModalOpen}
+                        setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
+                        setSubstitutionsModalOpen={setSubstitutionsModalOpenProp}
+                        mealType={mealData?.meal_type || ''}
+                        mealCalories={mealCalories}
+                        mealProtein={mealProtein}
+                        mealCarbs={mealCarbs}
+                        mealFats={mealFats}
+                        existingFoods={existingFoods}
+                        calculateMealMacros={calculateMealMacros}
+                        calculateTotals={calculateTotals}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
 
-                                        {/* Botão adicionar alimento (verde) */}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 w-7 p-0 bg-[#00C98A] hover:bg-[#00A875] text-white"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFoodSelectionMealIndex(mealIndex);
-                                            setFoodSelectionModalOpen(true);
-                                          }}
-                                          title="Adicionar alimento"
-                                        >
-                                          <Plus className="w-4 h-4" />
-                                        </Button>
+                {mealFoods.length === 0 && (
+                  <div className="p-8 text-center bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-lg border border-green-500/30">
+                    <Package className="w-10 h-10 mx-auto mb-3 text-[#777777]" />
+                    <p className="text-sm text-[#222222] mb-1">Nenhum alimento adicionado</p>
+                    <p className="text-xs text-[#777777]">Clique em "Adicionar Alimento" para começar</p>
+                  </div>
+                )}
 
-                                        {/* Botão para excluir dos macros */}
-                                        <FormField
-                                          control={form.control}
-                                          name={`meals.${mealIndex}.exclude_from_macros`}
-                                          render={({ field }) => (
-                                            <FormItem className="flex items-center flex-shrink-0">
-                                              <FormControl>
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className={`h-7 w-7 p-0 rounded ${
-                                                          field.value 
-                                                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
-                                                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                                                        }`}
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          field.onChange(!field.value);
-                                                          calculateTotals();
-                                                        }}
-                                                      >
-                                                        <X className="w-4 h-4" />
-                                                      </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="bg-gray-900 text-white text-xs p-2">
-                                                      {field.value ? 'Não contabilizada nos totais' : 'Clique para não contabilizar nos totais'}
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
-                                              </FormControl>
-                                            </FormItem>
-                                          )}
-                                        />
-
-                                        {/* Botão duplicar */}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 w-7 p-0 text-[#777777] hover:text-blue-600 hover:bg-blue-50"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                      const meals = form.getValues("meals") || [];
-                                      const mealToDuplicate = meals[mealIndex];
-                                      const newMeal = {
-                                        ...mealToDuplicate,
-                                        meal_name: `${mealToDuplicate.meal_name} (Cópia)`,
-                                        meal_order: meals.length + 1,
-                                        foods: mealToDuplicate.foods?.map((food: any) => ({ ...food })) || [],
-                                      };
-                                      appendMeal(newMeal);
-                                      toast({
-                                        title: "Refeição duplicada!",
-                                        description: "A refeição foi duplicada com sucesso.",
-                                      });
-                                    }}
-                                          title="Duplicar refeição"
-                                  >
-                                          <Layers className="w-4 h-4" />
-                                  </Button>
-
-                                        {/* Botão favoritar/star */}
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                          className="h-7 w-7 p-0 text-[#777777] hover:text-yellow-500 hover:bg-yellow-50"
-                                          title="Adicionar aos favoritos"
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            try {
-                                              const mealData = form.getValues(`meals.${mealIndex}`);
-                                              await dietMealFavoritesService.saveFavoriteMeal({
-                                                meal_name: mealData.meal_name || `REFEIÇÃO ${mealIndex + 1}`,
-                                                suggested_time: mealData.suggested_time,
-                                                start_time: mealData.start_time,
-                                                end_time: mealData.end_time,
-                                                calories: mealCalories,
-                                                protein: mealProtein,
-                                                carbs: mealCarbs,
-                                                fats: mealFats,
-                                                instructions: mealData.instructions,
-                                                foods: (mealData.foods || []).map((food: any, idx: number) => ({
-                                                  food_name: food.food_name,
-                                                  quantity: food.quantity || 0,
-                                                  unit: food.unit || 'g',
-                                                  calories: food.calories || 0,
-                                                  protein: food.protein || 0,
-                                                  carbs: food.carbs || 0,
-                                                  fats: food.fats || 0,
-                                                  substitutions: food.substitutions || [],
-                                                  food_order: idx,
-                                                })),
-                                              });
-                                              toast({
-                                                title: "Refeição favoritada!",
-                                                description: "A refeição foi salva nos seus favoritos.",
-                                              });
-                                            } catch (error: any) {
-                                              toast({
-                                                title: "Erro",
-                                                description: error.message || "Erro ao favoritar refeição",
-                                                variant: "destructive",
-                                              });
-                                            }
-                                          }}
-                                        >
-                                          <Star className="w-4 h-4" aria-hidden="true" />
-                                        </Button>
-
-                                        {/* Botão remover */}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            removeMeal(mealIndex);
-                                          }}
-                                          aria-label={`Remover ${mealName}`}
-                                          title="Remover refeição"
-                                  >
-                                          <Trash2 className="w-4 h-4" aria-hidden="true" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CollapsibleContent>
-                              <CardContent className="space-y-2 p-4">
-                            {/* Campos ocultos mas mantidos no formulário (para estrutura n8n) */}
-                            <div className="hidden">
-                              <FormField
-                                control={form.control}
-                                name={`meals.${mealIndex}.meal_type`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <Select
-                                        onValueChange={(value) => {
-                                          field.onChange(value);
-                                          const selected = mealTypes.find((m) => m.value === value);
-                                          if (selected) {
-                                            form.setValue(`meals.${mealIndex}.meal_name`, selected.label);
-                                          }
-                                        }}
-                                        value={field.value}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {mealTypes.map((type) => (
-                                            <SelectItem key={type.value} value={type.value}>
-                                              {type.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </FormControl>
-                                  </FormItem>
-                                )}
+                {/* Observação da Refeição - Minimizada por padrão */}
+                {mealFoods.length > 0 && (
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full justify-between pt-2 border-t border-green-200/30 text-[#222222] hover:bg-green-50/30"
+                      >
+                        <FormLabel className="text-[#222222] font-medium flex items-center gap-2 cursor-pointer">
+                          <BookOpen className="w-4 h-4 text-[#00C98A]" />
+                          Observação (opcional)
+                        </FormLabel>
+                        <ChevronDown className="w-4 h-4 text-[#777777]" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <FormField
+                        control={form.control}
+                        name={`meals.${mealIndex}.instructions`}
+                        render={({ field }) => (
+                          <FormItem className="pt-2">
+                            <FormControl>
+                              <Textarea
+                                placeholder="Observações específicas para esta refeição..."
+                                className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[60px]"
+                                {...field}
                               />
-                              <FormField
-                                control={form.control}
-                                name={`meals.${mealIndex}.meal_order`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <Input
-                                        type="number"
-                                        {...field}
-                                        value={field.value ?? mealIndex + 1}
-                                      />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
 
-                            {/* Alimentos da Refeição */}
-                            <div className="space-y-2">
-
-                              <DndContext
-                                sensors={sensors}
-                                collisionDetection={closestCenter}
-                                onDragEnd={(e) => handleFoodDragEnd(e, mealIndex)}
-                              >
-                                <SortableContext
-                                  items={mealFoods.map((_: any, idx: number) => `food-${mealIndex}-${idx}`)}
-                                  strategy={verticalListSortingStrategy}
-                                >
-                                  {mealFoods.map((food: any, foodIndex: number) => (
-                                    <FoodItem
-                                      key={`food-${mealIndex}-${foodIndex}`}
-                                      mealIndex={mealIndex}
-                                      foodIndex={foodIndex}
-                                      form={form}
-                                      foodDatabase={foodDatabase}
-                                      handleFoodSelect={handleFoodSelect}
-                                      recalculateFoodMacros={recalculateFoodMacros}
-                                      removeFoodFromMeal={removeFoodFromMeal}
-                                      setSubstitutionFoodIndex={setSubstitutionFoodIndex}
-                                      setSubstitutionModalOpen={setSubstitutionModalOpen}
-                                      setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
-                                      setSubstitutionsModalOpen={setSubstitutionsModalOpenProp}
-                                      mealType={mealData?.meal_type || ''}
-                                      mealCalories={mealCalories}
-                                      mealProtein={mealProtein}
-                                      mealCarbs={mealCarbs}
-                                      mealFats={mealFats}
-                                      existingFoods={existingFoods}
-                                      calculateMealMacros={calculateMealMacros}
-                                      calculateTotals={calculateTotals}
-                                    />
-                                  ))}
-                                </SortableContext>
-                              </DndContext>
-
-                              {mealFoods.length === 0 && (
-                                <div className="p-8 text-center bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-lg border border-green-500/30">
-                                  <Package className="w-10 h-10 mx-auto mb-3 text-[#777777]" />
-                                  <p className="text-sm text-[#222222] mb-1">Nenhum alimento adicionado</p>
-                                  <p className="text-xs text-[#777777]">Clique em "Adicionar Alimento" para começar</p>
-                                </div>
-                              )}
-
-                              {/* Observação da Refeição - Minimizada por padrão */}
-                              {mealFoods.length > 0 && (
-                                <Collapsible defaultOpen={false}>
-                                  <CollapsibleTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      className="w-full justify-between pt-2 border-t border-green-200/30 text-[#222222] hover:bg-green-50/30"
-                                    >
-                                      <FormLabel className="text-[#222222] font-medium flex items-center gap-2 cursor-pointer">
-                                        <BookOpen className="w-4 h-4 text-[#00C98A]" />
-                                        Observação (opcional)
-                                      </FormLabel>
-                                      <ChevronDown className="w-4 h-4 text-[#777777]" />
-                                    </Button>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent>
-                                <FormField
-                                  control={form.control}
-                                  name={`meals.${mealIndex}.instructions`}
-                                  render={({ field }) => (
-                                        <FormItem className="pt-2">
-                                      <FormControl>
-                                        <Textarea
-                                          placeholder="Observações específicas para esta refeição..."
-                                          className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[60px]"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              )}
-
-                            </div>
-                            </CardContent>
-                            </CollapsibleContent>
-                                </Card>
-                              </Collapsible>
-                              {!isLastMeal && (
-                                <div className="my-4 border-t-2 border-green-500/30"></div>
-                              )}
-                            </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+      {!isLastMeal && (
+        <div className="my-4 border-t-2 border-green-500/30"></div>
+      )}
+    </div>
   );
 });
 
