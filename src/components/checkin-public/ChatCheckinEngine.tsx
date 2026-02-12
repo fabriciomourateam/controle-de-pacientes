@@ -2,9 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Upload, X, Camera, Loader2, CheckCircle2 } from 'lucide-react';
+import { Send, Upload, X, Camera, Loader2, CheckCircle2, RotateCcw, Edit2 } from 'lucide-react';
 import { FlowStep } from '@/lib/checkin-flow-default';
 import { CheckinFlowTheme, DEFAULT_THEME } from '@/lib/checkin-flow-service';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ASTER = '[\\*\\uFF0A\\u2022]'; // * ＊ •
 /** Converte **texto** em negrito e *texto* em itálico; preserva quebras de linha. Não usa HTML bruto (seguro). */
@@ -43,6 +54,7 @@ interface ChatMessage {
   content: string;
   isTyping?: boolean;
   imageUrl?: string;
+  stepIndex?: number;
 }
 
 export interface ChatCheckinEngineProps {
@@ -92,6 +104,8 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
   const [isProcessing, setIsProcessing] = useState(false);
   const [multiInputValues, setMultiInputValues] = useState<Record<string, string>>({});
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+  const [messageToEdit, setMessageToEdit] = useState<ChatMessage | null>(null);
+
   const startedRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -115,9 +129,72 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     });
   };
 
-  const addUserMessage = (content: string) => {
-    setMessages(prev => [...prev, { id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, type: 'user', content }]);
+  const addUserMessage = (content: string, stepIndex?: number) => {
+    setMessages(prev => [...prev, {
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'user',
+      content,
+      stepIndex
+    }]);
     scrollToBottom();
+  };
+
+  // Resetar conversa
+  const handleReset = () => {
+    if (storageKey) {
+      localStorage.removeItem(storageKey);
+    }
+    setMessages([]);
+    setCurrentStepIndex(-1);
+    setData({});
+    setInputValue('');
+    setPhotos([]);
+    setPhotoPreviews([]);
+    setIsComplete(false);
+    setStepMessagesDone(false);
+    setIsProcessing(false);
+    setMultiInputValues({});
+    startedRef.current = false;
+
+    // Reiniciar
+    setTimeout(() => {
+      startFlow();
+    }, 100);
+  };
+
+  // Editar mensagem (rollback)
+  const handleEditMessage = (msg: ChatMessage) => {
+    if (msg.stepIndex === undefined) return;
+
+    // Encontrar índice da mensagem no array
+    const msgIndex = messages.findIndex(m => m.id === msg.id);
+    if (msgIndex === -1) return;
+
+    // Cortar mensagens a partir desta (inclusive)
+    const newMessages = messages.slice(0, msgIndex);
+    setMessages(newMessages);
+
+    // Voltar para o step correspondente
+    setCurrentStepIndex(msg.stepIndex);
+
+    // Limpar dados coletados neste step e posteriores (opcional, mas seguro)
+    // Na verdade, apenas voltamos o stepIndex. O `data` pode conter lixo de steps futuros,
+    // mas será sobrescrito se o usuário responder novamente.
+    // Para ser mais limpo, poderíamos limpar keys de steps futuros, mas é complexo calcular.
+
+    // Prefill input se possível?
+    // Se for multi-input, pode ser complexo preencher.
+    // Se for texto/número, podemos preencher o inputValue.
+    const step = flow[msg.stepIndex];
+    if (step && (step.type === 'text' || step.type === 'number')) {
+      setInputValue(msg.content);
+    }
+
+    setStepMessagesDone(true); // As mensagens do bot já foram dadas antes
+    setIsProcessing(false);
+    setIsComplete(false);
+
+    setMessageToEdit(null);
   };
 
   // Iniciar o fluxo ou restaurar sessão
@@ -241,7 +318,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     setIsProcessing(true); // Bloquear input imediatamente
 
     // Registrar resposta do usuário
-    addUserMessage(answer);
+    addUserMessage(answer, currentStepIndex);
 
     // Salvar dado
     const newData = { ...data };
@@ -288,9 +365,9 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
   const handlePhotoSubmit = async () => {
     setIsProcessing(true);
     if (photos.length > 0) {
-      addUserMessage(`📸 ${photos.length} foto${photos.length > 1 ? 's' : ''} enviada${photos.length > 1 ? 's' : ''}`);
+      addUserMessage(`📸 ${photos.length} foto${photos.length > 1 ? 's' : ''} enviada${photos.length > 1 ? 's' : ''}`, currentStepIndex);
     } else {
-      addUserMessage('Sem fotos desta vez');
+      addUserMessage('Sem fotos desta vez', currentStepIndex);
     }
     processNextStep(currentStepIndex + 1);
   };
@@ -306,41 +383,82 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
 
   return (
     <div className="flex flex-col min-h-full">
+      {/* Header com Reset */}
+      <div className="flex justify-end px-4 pt-2">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 text-xs">
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              Reiniciar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-slate-900 border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">Reiniciar conversa?</AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400">
+                Isso apagará todo o progresso atual e começará o check-in do zero.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleReset} className="bg-red-600 hover:bg-red-700 text-white">Reiniciar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+
       {/* Chat Messages */}
       <div className="flex-1 px-4 py-6 space-y-6">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}
+            className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500 group`}
           >
-            <div
-              className={`max-w-[85%] relative px-5 py-3.5 text-sm leading-relaxed shadow-md backdrop-blur-sm ${msg.type === 'user'
-                ? 'rounded-2xl rounded-tr-sm'
-                : 'rounded-2xl rounded-tl-sm'
-                }`}
-              style={msg.type === 'user'
-                ? {
-                  background: theme.user_bubble_bg || 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                  color: theme.user_bubble_text || '#ffffff',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                }
-                : {
-                  background: theme.bot_bubble_bg || 'rgba(255, 255, 255, 0.1)',
-                  color: theme.bot_bubble_text || '#e2e8f0',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                }
-              }
-            >
-              {msg.imageUrl && (
-                <div
-                  className="mb-3 rounded-xl overflow-hidden max-w-full border border-white/10 shadow-sm cursor-zoom-in hover:opacity-95 transition-opacity"
-                  onClick={() => setEnlargedImage(msg.imageUrl!)}
-                >
-                  <img src={msg.imageUrl} alt="Apoio" className="max-h-60 w-full object-cover" />
+            <div className="flex items-center gap-2 max-w-[85%]">
+
+              {/* Botão de editar para mensagens do usuário */}
+              {msg.type === 'user' && !isComplete && msg.stepIndex !== undefined && (
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-slate-500 hover:text-white hover:bg-white/10 rounded-full"
+                    onClick={() => setMessageToEdit(msg)}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
               )}
-              {msg.content ? <div className="tracking-wide font-normal text-[15px]">{renderFormattedText(msg.content)}</div> : null}
+
+              <div
+                className={`relative px-5 py-3.5 text-sm leading-relaxed shadow-md backdrop-blur-sm ${msg.type === 'user'
+                  ? 'rounded-2xl rounded-tr-sm'
+                  : 'rounded-2xl rounded-tl-sm'
+                  }`}
+                style={msg.type === 'user'
+                  ? {
+                    background: theme.user_bubble_bg || 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    color: theme.user_bubble_text || '#ffffff',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  }
+                  : {
+                    background: theme.bot_bubble_bg || 'rgba(255, 255, 255, 0.1)',
+                    color: theme.bot_bubble_text || '#e2e8f0',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  }
+                }
+              >
+                {msg.imageUrl && (
+                  <div
+                    className="mb-3 rounded-xl overflow-hidden max-w-full border border-white/10 shadow-sm cursor-zoom-in hover:opacity-95 transition-opacity"
+                    onClick={() => setEnlargedImage(msg.imageUrl!)}
+                  >
+                    <img src={msg.imageUrl} alt="Apoio" className="max-h-60 w-full object-cover" />
+                  </div>
+                )}
+                {msg.content ? <div className="tracking-wide font-normal text-[15px]">{renderFormattedText(msg.content)}</div> : null}
+              </div>
             </div>
           </div>
         ))}
@@ -415,7 +533,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
 
                       const combined = parts.join(' / ');
 
-                      addUserMessage(combined);
+                      addUserMessage(combined, currentStepIndex);
 
                       const newData = {
                         ...data,
@@ -573,6 +691,23 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
           </div>
         </div>
       )}
+      {/* Confirm Edit Modal */}
+      <AlertDialog open={!!messageToEdit} onOpenChange={(open) => !open && setMessageToEdit(null)}>
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Editar resposta?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Ao editar esta resposta, <strong>todas as respostas seguintes serão apagadas</strong> e você terá que respondê-las novamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => messageToEdit && handleEditMessage(messageToEdit)} className="bg-blue-600 hover:bg-blue-700 text-white">
+              Confirmar Edição
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
