@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PatientForm } from "@/components/forms/PatientForm";
-import { AutoSyncManager } from "@/components/auto-sync/AutoSyncManager";
+
 import { InteractiveChart } from "./InteractiveChart";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -593,7 +593,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             <Settings2 className="w-4 h-4 mr-2" />
             Editor de Check-in
           </Button>
-          <AutoSyncManager />
+
         </div>
       </div>
 

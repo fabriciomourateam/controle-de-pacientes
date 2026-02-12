@@ -190,8 +190,15 @@ export default function StudentEvolution() {
             setLoading(true);
             setError(null);
 
-            const [checkinsData, patientResult, bioResult] = await Promise.all([
-                checkinService.getByPhone(telefone),
+            console.log('🔍 Buscando dados público:', { telefone });
+
+            const [checkinsResult, patientResult, bioResult] = await Promise.all([
+                supabaseServiceRole
+                    .from('checkin')
+                    .select('*')
+                    .eq('telefone', telefone)
+                    .in('tipo_checkin', ['completo', 'evolucao', 'inicial'])
+                    .order('data_checkin', { ascending: false }),
                 supabaseServiceRole
                     .from('patients')
                     .select('*')
@@ -205,12 +212,20 @@ export default function StudentEvolution() {
                     .limit(50),
             ]);
 
+            console.log('📊 Resultados:', {
+                checkinsCount: checkinsResult.data?.length,
+                checkinsError: checkinsResult.error,
+                patientFound: !!patientResult.data,
+                patientError: patientResult.error,
+                bioCount: bioResult.data?.length,
+            });
+
             if (patientResult.error || !patientResult.data) {
                 throw new Error('Paciente não encontrado');
             }
 
             setPatient(patientResult.data);
-            setCheckins(checkinsData);
+            setCheckins(checkinsResult.data || []);
             if (bioResult.data) {
                 setBodyCompositions(bioResult.data);
             }

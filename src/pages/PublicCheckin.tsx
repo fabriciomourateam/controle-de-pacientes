@@ -297,7 +297,9 @@ export default function PublicCheckin() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...checkinData,
-            nome: patientName
+            nome: patientName,
+            nutri_id: userId,
+            nutri_nome: nutriName
           })
         });
       } catch (webhookError) {
