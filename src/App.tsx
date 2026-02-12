@@ -15,6 +15,7 @@ import "./test-theme.css";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import PortalLogin from "./pages/PortalLogin";
+import StudentEvolutionLogin from "./pages/StudentEvolutionLogin";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 
@@ -45,6 +46,7 @@ const PublicPortal = lazy(() => import("./pages/PublicPortal"));
 const NewPatientAnamnesis = lazy(() => import("./pages/NewPatientAnamnesis"));
 const PublicCheckin = lazy(() => import("./pages/PublicCheckin"));
 const CheckinFlowEditorPage = lazy(() => import("./pages/CheckinFlowEditorPage"));
+const StudentEvolution = lazy(() => import("./pages/StudentEvolution"));
 
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
@@ -109,6 +111,14 @@ const App = () => (
               <Route path="/checkin/:token" element={
                 <Suspense fallback={<PageLoader />}>
                   <PublicCheckin />
+                </Suspense>
+              } />
+
+              {/* Rota pública: Evolução do Aluno */}
+              <Route path="/evolucao-aluno" element={<StudentEvolutionLogin />} />
+              <Route path="/evolucao-aluno/:telefone" element={
+                <Suspense fallback={<PageLoader />}>
+                  <StudentEvolution />
                 </Suspense>
               } />
 
