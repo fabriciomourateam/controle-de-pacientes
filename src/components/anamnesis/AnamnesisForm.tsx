@@ -14,6 +14,22 @@ import {
 } from 'lucide-react';
 import { AnamnesisData } from '@/lib/anamnesis-service';
 import type { AnamnesisFlowStep, AnamnesisFieldDef } from '@/lib/anamnesis-flow-default';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Check, ChevronsUpDown, Search } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { countries, Country } from "@/lib/countries"
 
 interface FormData {
   nome: string;
@@ -185,6 +201,93 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
      Key = field ID (or 'telefone' for hardcoded), Value = the confirmation value typed by user.
   */
   const [confirmations, setConfirmations] = useState<Record<string, string>>({});
+
+  // Country Selector State
+  const [openCountry, setOpenCountry] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]); // Default BR
+  const [customDDI, setCustomDDI] = useState('');
+  const [phoneBody, setPhoneBody] = useState('');
+
+  // Init phone logic
+  useEffect(() => {
+    if (form.telefone) {
+      // Try to find matching country
+      // Sort by length desc to match +55 before +5
+      const sorted = [...countries].filter(c => c.code !== 'OT').sort((a, b) => b.dial_code.length - a.dial_code.length);
+      const match = sorted.find(c => form.telefone.startsWith(c.dial_code));
+
+      if (match) {
+        setSelectedCountry(match);
+        setPhoneBody(form.telefone.slice(match.dial_code.length));
+      } else {
+        // Maybe it's a custom DDI or just raw number?
+        // Check if starts with +
+        if (form.telefone.startsWith('+')) {
+          const ddiMatch = form.telefone.match(/^\+(\d+)/);
+          if (ddiMatch) {
+            // Assuming it's a custom one or one we missed
+            setSelectedCountry(countries.find(c => c.code === 'OT')!);
+            // Heuristic: take first 3 digits as DDI if we don't know?
+            // Actually we can just say "Other" and put the whole thing in custom DDI?
+            // Or simpler: put +digits in customDDI and rest in body.
+            // Let's try to extract first 2-3 digits.
+            // For now, let's just default to BR if really unknown or keep as is if we can't parse.
+            setCustomDDI(''); // Hard to guess split for unknown custom.
+            setPhoneBody(form.telefone); // Just put everything in body if unknown? No, that duplicates DDI.
+
+            // Better strategy: If starts with +, assume it has a DDI.
+            // Use a regex to grab until first space? Or fixed length?
+            // Let's just set Country to OT and CustomDDI to the extracted prefix if possible, or just user has to fix it.
+          }
+        } else {
+          setPhoneBody(form.telefone);
+        }
+      }
+    } else {
+      // Default BR
+      const br = countries.find(c => c.code === 'BR');
+      if (br) setSelectedCountry(br);
+    }
+  }, []);
+
+  // Sync phoneBody + selectedCountry -> form.telefone
+  useEffect(() => {
+    let finalDDI = selectedCountry.dial_code;
+    if (selectedCountry.code === 'OT') {
+      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+    }
+    // Only update if changed prevents loops? form.telefone update triggers this? No, this triggers form update.
+    // Use a specific handler for changes instead of effect to avoid circular dependency if possible.
+    // But form.telefone is source of truth? 
+    // Actually, let's update form.telefone ONLY when inputs change.
+  }, [selectedCountry, customDDI, phoneBody]);
+
+  const handlePhoneChange = (newBody: string) => {
+    setPhoneBody(newBody);
+    let finalDDI = selectedCountry.dial_code;
+    if (selectedCountry.code === 'OT') {
+      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+    }
+    updateField('telefone', finalDDI + newBody);
+  };
+
+  const handleCountryChange = (country: Country) => {
+    setSelectedCountry(country);
+    setOpenCountry(false);
+    let finalDDI = country.dial_code;
+    if (country.code === 'OT') {
+      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+    }
+    updateField('telefone', finalDDI + phoneBody);
+  };
+
+  const handleCustomDDIChange = (val: string) => {
+    // Keep only numbers
+    const nums = val.replace(/[^0-9]/g, '');
+    setCustomDDI(nums);
+    const finalDDI = `+${nums}`;
+    updateField('telefone', finalDDI + phoneBody);
+  };
 
   // Persistence: Load from localStorage on mount
   useEffect(() => {
@@ -459,92 +562,77 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             <span className="text-sm">📱</span> Telefone <span className="text-blue-400">*</span>
           </Label>
           <div className="flex gap-2">
-            {(() => {
-              const commonDDIs = [
-                { code: '55', label: '🇧🇷 +55' },
-                { code: '1', label: '🇺🇸 +1' },
-                { code: '351', label: '🇵🇹 +351' },
-                { code: '44', label: '🇬🇧 +44' },
-                { code: '34', label: '🇪🇸 +34' },
-                { code: '39', label: '🇮🇹 +39' },
-                { code: '33', label: '🇫🇷 +33' },
-                { code: '49', label: '🇩🇪 +49' },
-                { code: '41', label: '🇨🇭 +41' },
-                { code: '81', label: '🇯🇵 +81' },
-                { code: '61', label: '🇦🇺 +61' },
-                { code: '353', label: '🇮🇪 +353' },
-              ];
-
-              const currentDDI = commonDDIs.find(d => form.telefone.startsWith(d.code));
-              const showCustomInput = isCustomDDI || (form.telefone.length > 0 && !currentDDI);
-              const displayDDI = currentDDI ? currentDDI.code : '55';
-
-              if (showCustomInput) {
-                return (
-                  <div className="relative">
-                    <Input
-                      value={form.telefone.length > 0 && !currentDDI ? (form.telefone.match(/^\d{1,4}/)?.[0] || '') : ''}
-                      onChange={(e) => {
-                        const oldDDI = (form.telefone.match(/^\d{1,4}/)?.[0]) || '';
-                        const body = form.telefone.slice(oldDDI.length);
-                        updateField('telefone', e.target.value.replace(/[^0-9]/g, '') + body);
-                      }}
-                      placeholder="Código"
-                      className="w-[80px] bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 px-1 text-center text-xs"
-                    />
-                    <button
-                      onClick={() => { setIsCustomDDI(false); if (!currentDDI) updateField('telefone', '55' + form.telefone); }}
-                      className="absolute -top-2 -right-2 bg-slate-700 rounded-full p-0.5 text-[10px] w-4 h-4 flex items-center justify-center hover:bg-red-500 text-white border border-slate-500"
-                      title="Voltar para lista"
-                      type="button"
-                    >✕</button>
-                  </div>
-                );
-              }
-
-              return (
-                <Select
-                  value={displayDDI}
-                  onValueChange={(val) => {
-                    if (val === 'custom') {
-                      setIsCustomDDI(true);
-                    } else {
-                      const old = commonDDIs.find(d => form.telefone.startsWith(d.code))?.code || '55';
-                      const body = form.telefone.startsWith(old) ? form.telefone.slice(old.length) : form.telefone;
-                      updateField('telefone', val + body);
-                      setIsCustomDDI(false);
-                    }
-                  }}
+            <Popover open={openCountry} onOpenChange={setOpenCountry}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openCountry}
+                  className="w-[110px] bg-slate-800/20 border-slate-700/30 text-white justify-between h-11 px-3 hover:bg-slate-800/30 hover:text-white"
                 >
-                  <SelectTrigger className="w-[80px] bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 px-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {commonDDIs.map(d => (
-                      <SelectItem key={d.code} value={d.code}>{d.label}</SelectItem>
-                    ))}
-                    <SelectItem value="custom" className="text-blue-300 font-medium border-t border-slate-700 mt-1 pt-1">🌐 Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              );
-            })()}
+                  {selectedCountry.code !== 'OT' ? (
+                    <span className="flex items-center gap-2 truncate">
+                      <span>{selectedCountry.flag}</span>
+                      <span>{selectedCountry.dial_code}</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2 truncate">
+                      <span>🌍</span>
+                      <span>Outro</span>
+                    </span>
+                  )}
+                  <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0 bg-slate-900 border-slate-700 text-white max-h-[300px]">
+                <Command>
+                  <CommandInput placeholder="Buscar país..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>País não encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {countries.map((country) => (
+                        <CommandItem
+                          key={country.name}
+                          value={country.name}
+                          onSelect={() => handleCountryChange(country)}
+                          className="text-white hover:bg-slate-800 data-[selected=true]:bg-slate-800 cursor-pointer"
+                        >
+                          <span className="mr-2 text-lg">{country.flag}</span>
+                          <span className="flex-1">{country.name}</span>
+                          <span className="text-slate-400 text-xs ml-2">{country.dial_code}</span>
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4",
+                              selectedCountry.code === country.code ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            {selectedCountry.code === 'OT' && (
+              <div className="relative w-[80px]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">+</span>
+                <Input
+                  type="tel"
+                  value={customDDI}
+                  onChange={(e) => handleCustomDDIChange(e.target.value)}
+                  placeholder="DDI"
+                  className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 pl-6 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono"
+                />
+              </div>
+            )}
 
             <Input
               type="tel"
-              value={(() => {
-                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
-                const ddi = commonDDIs.find(d => form.telefone.startsWith(d)) ||
-                  (isCustomDDI ? (form.telefone.match(/^\d{1,4}/)?.[0] || '') : '55');
-
-                if (form.telefone.startsWith(ddi)) return form.telefone.slice(ddi.length);
-                return form.telefone;
-              })()}
+              value={phoneBody}
               onChange={(e) => {
-                const newBody = e.target.value.replace(/[^0-9]/g, '');
-                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
-                const matched = commonDDIs.find(d => form.telefone.startsWith(d));
-                const ddiToKeep = matched || (isCustomDDI ? (form.telefone.match(/^\d{1,4}/)?.[0] || '') : '55');
-                updateField('telefone', ddiToKeep + newBody);
+                const val = e.target.value.replace(/[^0-9\-\s]/g, '');
+                handlePhoneChange(val);
               }}
               placeholder="DDD + Número"
               className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
@@ -552,40 +640,37 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
           </div>
           <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
         </div>
+
         {/* Confirmação de Telefone (Hardcoded Step 1) */}
         <div className="space-y-1.5 mt-2">
           <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
             <span className="text-sm">🔄</span> Confirme o Telefone <span className="text-blue-400">*</span>
           </Label>
           <div className="flex gap-2">
-            {/* Mostrar DDI selecionado no campo principal apenas como visualização */}
-            <div className="w-[80px] bg-slate-800/20 border border-slate-700/30 text-slate-400 rounded-xl h-11 flex items-center justify-center text-sm cursor-not-allowed">
-              {(() => {
-                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
-                const ddi = commonDDIs.find(d => form.telefone.startsWith(d)) ||
-                  (form.telefone.startsWith('+') ? form.telefone.substring(1).match(/^\d{1,4}/)?.[0] : '55') || '55';
-                return `+${ddi}`;
-              })()}
+            <div className="w-[110px] bg-slate-800/20 border border-slate-700/30 text-slate-400 rounded-xl h-11 flex items-center justify-center text-sm cursor-not-allowed px-2 gap-2">
+              <span>{selectedCountry.flag}</span>
+              <span>{selectedCountry.code === 'OT' ? (customDDI ? `+${customDDI}` : '+?') : selectedCountry.dial_code}</span>
             </div>
             <Input
               type="tel"
               value={(() => {
-                const val = confirmations['telefone'] || '';
-                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
-                const currentDDI = commonDDIs.find(d => form.telefone.startsWith(d)) ||
-                  (form.telefone.match(/^\d{1,4}/)?.[0] || '55');
-                if (val.startsWith(currentDDI)) return val.slice(currentDDI.length);
-                return val;
+                const stored = confirmations['telefone'] || '';
+                let finalDDI = selectedCountry.dial_code;
+                if (selectedCountry.code === 'OT') {
+                  finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+                }
+                if (stored.startsWith(finalDDI)) return stored.slice(finalDDI.length);
+                return stored;
               })()}
               onChange={(e) => {
-                const newBody = e.target.value.replace(/[^0-9]/g, '');
-                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
-                const currentDDI = commonDDIs.find(d => form.telefone.startsWith(d)) ||
-                  (form.telefone.match(/^\d{1,4}/)?.[0] || '55');
-
-                setConfirmations(prev => ({ ...prev, 'telefone': currentDDI + newBody }));
+                const val = e.target.value.replace(/[^0-9\-\s]/g, '');
+                let finalDDI = selectedCountry.dial_code;
+                if (selectedCountry.code === 'OT') {
+                  finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+                }
+                setConfirmations(prev => ({ ...prev, 'telefone': finalDDI + val }));
               }}
-              placeholder="Repita o DDD + Número"
+              placeholder="Digite apenas o Número"
               onPaste={(e) => {
                 e.preventDefault();
                 toast({ title: 'Atenção', description: 'Por favor, digite o número novamente para confirmar.', variant: 'destructive' });
@@ -1024,6 +1109,138 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     }
 
     // text, number, date, time fields
+    // Special case for 'telefone' to use default country selector logic even in dynamic flow
+    if (fieldDef.id === 'telefone' || fieldDef.type === 'text' && fieldDef.field === 'telefone') {
+      return (
+        <div key={fieldDef.id} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+              <span className="text-sm">📱</span> {fieldDef.label} <span className="text-blue-400">*</span>
+            </Label>
+            <div className="flex gap-2">
+              <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCountry}
+                    className="w-[110px] bg-slate-800/20 border-slate-700/30 text-white justify-between h-11 px-3 hover:bg-slate-800/30 hover:text-white"
+                  >
+                    {selectedCountry.code !== 'OT' ? (
+                      <span className="flex items-center gap-2 truncate">
+                        <span>{selectedCountry.flag}</span>
+                        <span>{selectedCountry.dial_code}</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2 truncate">
+                        <span>🌍</span>
+                        <span>Outro</span>
+                      </span>
+                    )}
+                    <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0 bg-slate-900 border-slate-700 text-white max-h-[300px]">
+                  <Command>
+                    <CommandInput placeholder="Buscar país..." className="h-9" />
+                    <CommandList>
+                      <CommandEmpty>País não encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {countries.map((country) => (
+                          <CommandItem
+                            key={country.name}
+                            value={country.name}
+                            onSelect={() => handleCountryChange(country)}
+                            className="text-white hover:bg-slate-800 data-[selected=true]:bg-slate-800 cursor-pointer"
+                          >
+                            <span className="mr-2 text-lg">{country.flag}</span>
+                            <span className="flex-1">{country.name}</span>
+                            <span className="text-slate-400 text-xs ml-2">{country.dial_code}</span>
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                selectedCountry.code === country.code ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {selectedCountry.code === 'OT' && (
+                <div className="relative w-[80px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">+</span>
+                  <Input
+                    type="tel"
+                    value={customDDI}
+                    onChange={(e) => handleCustomDDIChange(e.target.value)}
+                    placeholder="DDI"
+                    className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 pl-6 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono"
+                  />
+                </div>
+              )}
+
+              <Input
+                type="tel"
+                value={phoneBody}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9\-\s]/g, '');
+                  handlePhoneChange(val);
+                }}
+                placeholder={fieldDef.placeholder || "DDD + Número"}
+                className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
+              />
+            </div>
+            <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
+          </div>
+
+          {/* Dynamic Confirmation */}
+          {fieldDef.requiresConfirmation && (
+            <div className="space-y-1.5 mt-2">
+              <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+                <span className="text-sm">🔄</span> Confirme: {fieldDef.label} <span className="text-blue-400">*</span>
+              </Label>
+              <div className="flex gap-2">
+                <div className="w-[110px] bg-slate-800/20 border border-slate-700/30 text-slate-400 rounded-xl h-11 flex items-center justify-center text-sm cursor-not-allowed px-2 gap-2">
+                  <span>{selectedCountry.flag}</span>
+                  <span>{selectedCountry.code === 'OT' ? (customDDI ? `+${customDDI}` : '+?') : selectedCountry.dial_code}</span>
+                </div>
+                <Input
+                  type="tel"
+                  value={(() => {
+                    const stored = confirmations[fieldDef.id] || '';
+                    let finalDDI = selectedCountry.dial_code;
+                    if (selectedCountry.code === 'OT') {
+                      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+                    }
+                    if (stored.startsWith(finalDDI)) return stored.slice(finalDDI.length);
+                    return stored;
+                  })()}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9\-\s]/g, '');
+                    let finalDDI = selectedCountry.dial_code;
+                    if (selectedCountry.code === 'OT') {
+                      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
+                    }
+                    setConfirmations(prev => ({ ...prev, [fieldDef.id]: finalDDI + val }));
+                  }}
+                  placeholder="Digite apenas o Número"
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    toast({ title: 'Atenção', description: 'Por favor, digite o número novamente para confirmar.', variant: 'destructive' });
+                  }}
+                  className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div key={fieldDef.id} className="space-y-4">
         <FieldInput
