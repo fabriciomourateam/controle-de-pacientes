@@ -180,6 +180,12 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
   const [previews, setPreviews] = useState({ frente: '', lado: '', lado2: '', costas: '' });
   const [isCustomDDI, setIsCustomDDI] = useState(false);
 
+  /* 
+     State for field confirmations (e.g. email or phone double-check).
+     Key = field ID (or 'telefone' for hardcoded), Value = the confirmation value typed by user.
+  */
+  const [confirmations, setConfirmations] = useState<Record<string, string>>({});
+
   // Persistence: Load from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('anamnesis-form-progress');
@@ -235,13 +241,17 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       toast({ title: 'Campo obrigatório', description: `O campo "${field}" é obrigatório. Se não souber, preencha com 0.`, variant: 'destructive' });
       return false;
     };
+    const showMismatch = (field: string) => {
+      toast({ title: 'Confirmação incorreta', description: `A confirmação do campo "${field}" não confere.`, variant: 'destructive' });
+      return false;
+    };
 
     // Validação dinâmica para fluxo customizado
     if (useCustomFlow) {
       const section = customFlow[step - 1];
       if (section) {
         for (const fieldDef of section.fields) {
-          if (!fieldDef.required) continue;
+          if (!fieldDef.required && !fieldDef.requiresConfirmation) continue;
           if (fieldDef.type === 'photo') continue; // photos are optional by nature
 
           // Check showIf condition
@@ -255,7 +265,16 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
           const val = fieldDef.targetField === 'form'
             ? (form as any)[fieldDef.field]
             : (form.anamnese as any)[fieldDef.field];
-          if (checkEmpty(val)) return showErr(fieldDef.label);
+
+          if (fieldDef.required && checkEmpty(val)) return showErr(fieldDef.label);
+
+          if (fieldDef.requiresConfirmation) {
+            const confirmVal = confirmations[fieldDef.id] || '';
+            // Para telefone, a verificação pode ser tricky por causa do DDI
+            // Se for 'telefone', comparamos string normal.
+            // O input de confirmação deve ser preenchido
+            if (val !== confirmVal) return showMismatch(fieldDef.label);
+          }
         }
       }
       return true;
@@ -264,6 +283,18 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     if (step === 1) {
       if (checkEmpty(form.nome)) return showErr('Nome Completo');
       if (checkEmpty(form.telefone)) return showErr('Telefone');
+
+      // Hardcoded check for phone confirmation in standard flow
+      const phoneConfirm = confirmations['telefone'] || '';
+      // form.telefone inclui DDI. Vamos simplificar: verificar se o que o user digitou no confirm (número)
+      // está contido no final de form.telefone?
+      // Ou melhor: Vamos forçar que o confirm tenha DDI?
+      // Não, a UI do confirm vai ser simples. Vamos verificar se phoneConfirm == form.telefone SEM O DDI ou algo assim.
+      // Melhor: Vamos salvar o telefone 'completo' na confirmação também?
+      // A implementação do renderDadosPessoais vai definir isso. Assumindo que confirmations['telefone'] tem o numero completo.
+      if (form.telefone !== phoneConfirm) return showMismatch('Telefone');
+
+      if (checkEmpty(form.data_nascimento)) return showErr('Data de Nascimento');
       if (checkEmpty(form.data_nascimento)) return showErr('Data de Nascimento');
       if (checkEmpty(form.cpf)) return showErr('CPF');
       if (checkEmpty(form.email)) return showErr('Email');
@@ -520,6 +551,49 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             />
           </div>
           <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
+        </div>
+        {/* Confirmação de Telefone (Hardcoded Step 1) */}
+        <div className="space-y-1.5 mt-2">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+            <span className="text-sm">🔄</span> Confirme o Telefone <span className="text-blue-400">*</span>
+          </Label>
+          <div className="flex gap-2">
+            {/* Mostrar DDI selecionado no campo principal apenas como visualização */}
+            <div className="w-[80px] bg-slate-800/20 border border-slate-700/30 text-slate-400 rounded-xl h-11 flex items-center justify-center text-sm cursor-not-allowed">
+              {(() => {
+                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
+                const ddi = commonDDIs.find(d => form.telefone.startsWith(d)) ||
+                  (form.telefone.startsWith('+') ? form.telefone.substring(1).match(/^\d{1,4}/)?.[0] : '55') || '55';
+                return `+${ddi}`;
+              })()}
+            </div>
+            <Input
+              type="tel"
+              value={(() => {
+                const val = confirmations['telefone'] || '';
+                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
+                const currentDDI = commonDDIs.find(d => form.telefone.startsWith(d)) ||
+                  (form.telefone.match(/^\d{1,4}/)?.[0] || '55');
+                if (val.startsWith(currentDDI)) return val.slice(currentDDI.length);
+                return val;
+              })()}
+              onChange={(e) => {
+                const newBody = e.target.value.replace(/[^0-9]/g, '');
+                const commonDDIs = ['55', '351', '1', '44', '34', '39', '33', '49', '41', '81', '61', '353'];
+                const currentDDI = commonDDIs.find(d => form.telefone.startsWith(d)) ||
+                  (form.telefone.match(/^\d{1,4}/)?.[0] || '55');
+
+                setConfirmations(prev => ({ ...prev, 'telefone': currentDDI + newBody }));
+              }}
+              placeholder="Repita o DDD + Número"
+              onPaste={(e) => {
+                e.preventDefault();
+                toast({ title: 'Atenção', description: 'Por favor, digite o número novamente para confirmar.', variant: 'destructive' });
+              }}
+              className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
+            />
+          </div>
+          <p className="text-slate-600 text-[10px]">Confirme o número para evitar erros de contato.</p>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -856,6 +930,27 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       if (condVal !== fieldDef.showIf.value) return null;
     }
 
+    // Confirmation Field Renderer
+    const renderConfirmation = () => {
+      if (!fieldDef.requiresConfirmation) return null;
+      return (
+        <FieldInput
+          label={`Confirme: ${fieldDef.label}`}
+          value={confirmations[fieldDef.id] || ''}
+          onChange={(v) => {
+            // Prevent paste
+            setConfirmations(prev => ({ ...prev, [fieldDef.id]: v }));
+          }}
+          placeholder={`Digite novamente: ${fieldDef.label}`}
+          type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
+          required={true}
+          icon="🔄"
+        // Add onPaste prevent via prop if FieldInput supported, but it doesn't. 
+        // We'll trust verification logic. Or add onPaste handler logic if critical.
+        />
+      );
+    };
+
     // photo fields
     if (fieldDef.type === 'photo') {
       const photoKey = fieldDef.field as 'foto_frente' | 'foto_lado' | 'foto_lado2' | 'foto_costas';
@@ -874,17 +969,33 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     // select fields
     if (fieldDef.type === 'select' && fieldDef.options) {
       return (
-        <div key={fieldDef.id} className="space-y-1.5">
-          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
-            {fieldDef.icon && <span className="text-sm">{fieldDef.icon}</span>}
-            {fieldDef.label}{fieldDef.required && <span className="text-blue-400">*</span>}
-          </Label>
-          <Select value={getValue()} onValueChange={setValue}>
-            <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {fieldDef.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div key={fieldDef.id} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+              {fieldDef.icon && <span className="text-sm">{fieldDef.icon}</span>}
+              {fieldDef.label}{fieldDef.required && <span className="text-blue-400">*</span>}
+            </Label>
+            <Select value={getValue()} onValueChange={setValue}>
+              <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {fieldDef.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Selects dont usually need confirmation but if configured... */}
+          {fieldDef.requiresConfirmation && (
+            <div className="space-y-1.5">
+              <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+                <span className="text-sm">🔄</span> Confirme: {fieldDef.label} <span className="text-blue-400">*</span>
+              </Label>
+              <Select value={confirmations[fieldDef.id] || ''} onValueChange={v => setConfirmations(prev => ({ ...prev, [fieldDef.id]: v }))}>
+                <SelectTrigger className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11"><SelectValue placeholder="Selecione novamente" /></SelectTrigger>
+                <SelectContent>
+                  {fieldDef.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       );
     }
@@ -892,28 +1003,40 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     // textarea fields
     if (fieldDef.type === 'textarea') {
       return (
-        <FieldTextarea
-          key={fieldDef.id}
-          label={fieldDef.label}
-          value={getValue()}
-          onChange={setValue}
-          placeholder={fieldDef.placeholder}
-        />
+        <div key={fieldDef.id} className="space-y-4">
+          <FieldTextarea
+            key={fieldDef.id}
+            label={fieldDef.label}
+            value={getValue()}
+            onChange={setValue}
+            placeholder={fieldDef.placeholder}
+          />
+          {fieldDef.requiresConfirmation && (
+            <FieldTextarea
+              label={`Confirme: ${fieldDef.label}`}
+              value={confirmations[fieldDef.id] || ''}
+              onChange={(v) => setConfirmations(prev => ({ ...prev, [fieldDef.id]: v }))}
+              placeholder="Digite novamente"
+            />
+          )}
+        </div>
       );
     }
 
     // text, number, date, time fields
     return (
-      <FieldInput
-        key={fieldDef.id}
-        label={fieldDef.label}
-        value={getValue()}
-        onChange={setValue}
-        placeholder={fieldDef.placeholder}
-        type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
-        required={fieldDef.required}
-        icon={fieldDef.icon}
-      />
+      <div key={fieldDef.id} className="space-y-4">
+        <FieldInput
+          label={fieldDef.label}
+          value={getValue()}
+          onChange={setValue}
+          placeholder={fieldDef.placeholder}
+          type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
+          required={fieldDef.required}
+          icon={fieldDef.icon}
+        />
+        {renderConfirmation()}
+      </div>
     );
   };
 

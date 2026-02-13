@@ -261,6 +261,11 @@ function FieldEditor({ field, onChange }: { field: AnamnesisFieldDef; onChange: 
             </div>
 
             <div className="flex items-center justify-between">
+                <Label className="text-slate-400 text-xs">Exigir Confirmação (digitar 2x)</Label>
+                <Switch checked={field.requiresConfirmation || false} onCheckedChange={v => update('requiresConfirmation', v)} />
+            </div>
+
+            <div className="flex items-center justify-between">
                 <Label className="text-slate-400 text-xs">Obrigatório</Label>
                 <Switch checked={field.required} onCheckedChange={v => update('required', v)} />
             </div>

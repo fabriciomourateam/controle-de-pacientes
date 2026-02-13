@@ -25,6 +25,7 @@ export interface AnamnesisFieldDef {
     showIf?: { field: string; value: string };
     gridCols?: number;
     icon?: string;
+    requiresConfirmation?: boolean;
 }
 
 export interface AnamnesisFlowStep {
@@ -57,7 +58,7 @@ export const DEFAULT_ANAMNESIS_FLOW: AnamnesisFlowStep[] = [
         sectionEmoji: '👤',
         fields: [
             { id: 'nome', type: 'text', label: 'Nome Completo', placeholder: 'Seu nome completo', required: true, field: 'nome', targetField: 'form', icon: '👤', gridCols: 2 },
-            { id: 'telefone', type: 'text', label: 'Telefone', placeholder: 'DDD + Número', required: true, field: 'telefone', targetField: 'form', icon: '📱', gridCols: 2 },
+            { id: 'telefone', type: 'text', label: 'Telefone', placeholder: 'DDD + Número', required: true, field: 'telefone', targetField: 'form', icon: '📱', gridCols: 2, requiresConfirmation: true },
             { id: 'data_nascimento', type: 'date', label: 'Data de Nascimento', required: true, field: 'data_nascimento', targetField: 'form', icon: '📅', gridCols: 2 },
             { id: 'genero', type: 'select', label: 'Sexo', required: false, field: 'genero', targetField: 'form', options: ['Masculino', 'Feminino', 'Outro'], gridCols: 2 },
             { id: 'cpf', type: 'text', label: 'CPF', placeholder: '000.000.000-00', required: true, field: 'cpf', targetField: 'form', icon: '🪪', gridCols: 2 },
