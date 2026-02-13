@@ -12,6 +12,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 import { RichTextEditor } from './RichTextEditor';
 import { useGuidelineTemplates } from '@/hooks/use-guideline-templates';
@@ -31,7 +38,7 @@ interface GuidelineTemplatesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode?: 'manage' | 'select';
-  category?: 'general' | 'supplement';
+  category?: 'general' | 'supplement' | 'supplement_suplementacao' | 'supplement_protocolo' | 'supplement_manipulados';
   onSelectTemplates?: (templates: any[]) => void;
 }
 
@@ -62,7 +69,18 @@ export function GuidelineTemplatesModal({
   });
 
   // Filter templates based on category
-  const filteredTemplates = templates.filter(t => t.guideline_type === category || (!t.guideline_type && category === 'general'));
+  const isSupplementCategory = (cat: string) => cat.startsWith('supplement');
+
+  const filteredTemplates = templates.filter(t => {
+    if (category === 'general') {
+      return !t.guideline_type || t.guideline_type === 'general';
+    }
+    if (isSupplementCategory(category)) {
+      // Show all supplement types if category is any supplement type
+      return t.guideline_type && t.guideline_type.startsWith('supplement');
+    }
+    return t.guideline_type === category;
+  });
 
   // Reset selection and form when modal opens/closes or category changes
   if (!open && selectedIds.length > 0) {
@@ -204,13 +222,34 @@ export function GuidelineTemplatesModal({
               </div>
 
               <div className="space-y-4">
+
+                {/* Tipo de Suplemento (apenas visualizado quando category for supplement) */}
+                {(category === 'supplement' || category.startsWith('supplement')) && (
+                  <div>
+                    <Label htmlFor="type" className="text-[#222222]">Tipo</Label>
+                    <Select
+                      value={formData.guideline_type}
+                      onValueChange={(value) => setFormData({ ...formData, guideline_type: value as any })}
+                    >
+                      <SelectTrigger className="mt-1 border-green-500/30 bg-white text-[#222222]">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-green-500/30">
+                        <SelectItem value="supplement_suplementacao">Suplementação</SelectItem>
+                        <SelectItem value="supplement_protocolo">Protocolo</SelectItem>
+                        <SelectItem value="supplement_manipulados">Manipulados</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div>
                   <Label htmlFor="title" className="text-[#222222]">Título</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder={category === 'supplement' ? "Ex: Creatina, Whey Protein, etc." : "Ex: Área de Membros, Hidratação, etc."}
+                    placeholder={category.startsWith('supplement') ? "Ex: Creatina, Whey Protein, etc." : "Ex: Área de Membros, Hidratação, etc."}
                     className="mt-1 border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </div>
@@ -291,7 +330,7 @@ export function GuidelineTemplatesModal({
                             }`}
                         />
                         <h4 className="font-semibold text-[#222222] truncate">
-                          {template.title}
+                          {template.title.replace(/<[^>]*>?/gm, "")}
                         </h4>
                         <Badge
                           variant={template.is_active ? 'default' : 'secondary'}
@@ -371,6 +410,6 @@ export function GuidelineTemplatesModal({
           )}
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }

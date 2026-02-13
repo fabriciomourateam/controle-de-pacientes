@@ -40,11 +40,33 @@ export default function NewPatientAnamnesis() {
 
       try {
         // O token é o user_id do nutricionista
-        const { data: profile, error } = await supabasePublic
+        // Tentar buscar por slug primeiro
+        let profile = null;
+        let error = null;
+
+        const { data: profileBySlug, error: slugError } = await supabasePublic
           .from('profiles')
           .select('id, full_name')
-          .eq('id', token)
+          .eq('checkin_slug', token)
           .maybeSingle();
+
+        if (profileBySlug) {
+          profile = profileBySlug;
+        } else {
+          // Se não achou por slug, verifica se é UUID válido antes de buscar por ID
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+
+          if (isUuid) {
+            const { data: profileById, error: idError } = await supabasePublic
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', token)
+              .maybeSingle();
+
+            profile = profileById;
+            error = idError;
+          }
+        }
 
         if (error || !profile) {
           setInvalidToken(true);

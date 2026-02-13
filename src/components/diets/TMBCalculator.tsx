@@ -84,7 +84,7 @@ export function TMBCalculator({
       if (alturaEmCm > 0 && alturaEmCm < 10) {
         alturaEmCm = alturaEmCm * 100;
       }
-      
+
       setCalculoDados({
         peso: patientData.peso?.toString() || "",
         altura: alturaEmCm > 0 ? alturaEmCm.toString() : "",
@@ -188,7 +188,7 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, peso: e.target.value })
                 }
                 placeholder="Ex: 75.5"
-                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
+                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-200 focus-visible:ring-1 focus-visible:ring-green-200 focus-visible:ring-offset-0 focus:bg-green-500/15"
               />
             </div>
             <div>
@@ -200,7 +200,7 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, altura: e.target.value })
                 }
                 placeholder="Ex: 175"
-                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
+                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-200 focus-visible:ring-1 focus-visible:ring-green-200 focus-visible:ring-offset-0 focus:bg-green-500/15"
               />
             </div>
           </div>
@@ -215,7 +215,7 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, idade: e.target.value })
                 }
                 placeholder="Ex: 30"
-                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15"
+                className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-200 focus-visible:ring-1 focus-visible:ring-green-200 focus-visible:ring-offset-0 focus:bg-green-500/15"
               />
             </div>
             <div>
@@ -226,7 +226,7 @@ export function TMBCalculator({
                   setCalculoDados({ ...calculoDados, sexo: value })
                 }
               >
-                <SelectTrigger className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15">
+                <SelectTrigger className="border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-200 focus-visible:ring-1 focus-visible:ring-green-200 focus-visible:ring-offset-0 focus:bg-green-500/15">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white">

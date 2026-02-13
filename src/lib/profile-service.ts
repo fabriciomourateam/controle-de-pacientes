@@ -10,6 +10,7 @@ export interface UserProfile {
   clinic: string;
   address: string;
   bio?: string;
+  checkin_slug?: string;
   avatar_url?: string;
   created_at?: string;
   updated_at?: string;
@@ -20,21 +21,21 @@ export const profileService = {
   async getProfile(): Promise<UserProfile | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
-        // Retornar null em vez de lançar erro quando não há usuário autenticado
         return null;
       }
 
-      const { data, error } = await supabase
-        .from('user_profiles')
+      // 1. Buscar dados principais do user_profiles view (sem tipagem na view)
+      const { data: userProfileData, error: userProfileError } = await supabase
+        .from('user_profiles' as any)
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Perfil não existe, retornar dados básicos do auth
+      if (userProfileError) {
+        if (userProfileError.code === 'PGRST116') {
+          // Perfil não existe, retornar dados básicos
           return {
             id: user.id,
             name: user.user_metadata?.full_name || '',
@@ -45,13 +46,26 @@ export const profileService = {
             clinic: '',
             address: '',
             bio: '',
+            checkin_slug: '',
             avatar_url: user.user_metadata?.avatar_url || null
           };
         }
-        throw error;
+        throw userProfileError;
       }
 
-      return data;
+      // 2. Buscar checkin_slug da tabela profiles original (que tem o campo novo)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('checkin_slug')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      // Merge dos dados
+      return {
+        ...userProfileData,
+        checkin_slug: profileData?.checkin_slug || ''
+      };
+
     } catch (error) {
       console.error('Erro ao buscar perfil:', error);
       throw error;
@@ -62,7 +76,7 @@ export const profileService = {
   async saveProfile(profile: UserProfile): Promise<UserProfile> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
@@ -73,18 +87,35 @@ export const profileService = {
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .upsert(profileData, { 
+      // Remover checkin_slug do objeto que vai para user_profiles (pois a view pode não ter o campo)
+      const { checkin_slug, ...viewData } = profileData;
+
+      // 1. Salvar dados gerais na view user_profiles
+      const { data: savedViewData, error: viewError } = await supabase
+        .from('user_profiles' as any)
+        .upsert(viewData, {
           onConflict: 'id',
-          ignoreDuplicates: false 
+          ignoreDuplicates: false
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (viewError) throw viewError;
 
-      return data;
+      // 2. Salvar checkin_slug diretamente na tabela profiles
+      if (checkin_slug !== undefined) {
+        const { error: slugError } = await supabase
+          .from('profiles')
+          .update({ checkin_slug: checkin_slug || null })
+          .eq('id', user.id);
+
+        if (slugError) throw slugError;
+      }
+
+      return {
+        ...savedViewData,
+        checkin_slug: checkin_slug || ''
+      };
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
       throw error;
@@ -109,7 +140,7 @@ export const profileService = {
   async uploadAvatar(file: File): Promise<string> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }

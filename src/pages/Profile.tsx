@@ -8,10 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useProfile } from "@/hooks/use-profile";
 import { useNavigate } from "react-router-dom";
-import { 
-  User, 
-  Calendar, 
-  Shield, 
+import {
+  User,
+  Calendar,
+  Shield,
   Save,
   Edit,
   Camera,
@@ -37,7 +37,8 @@ export default function Profile() {
     crm: '',
     clinic: '',
     address: '',
-    bio: ''
+    bio: '',
+    checkin_slug: ''
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -62,7 +63,8 @@ export default function Profile() {
         crm: profile.crm || '',
         clinic: profile.clinic || '',
         address: profile.address || '',
-        bio: profile.bio || ''
+        bio: profile.bio || '',
+        checkin_slug: profile.checkin_slug || ''
       });
     }
   }, [profile]);
@@ -110,7 +112,7 @@ export default function Profile() {
       alert('As senhas não coincidem');
       return;
     }
-    
+
     try {
       await updatePassword(passwordData.currentPassword, passwordData.newPassword);
       setPasswordData({
@@ -183,7 +185,7 @@ export default function Profile() {
               Gerencie suas informações pessoais
             </p>
           </div>
-          
+
           <div className="flex gap-3">
             {isEditing ? (
               <>
@@ -237,9 +239,9 @@ export default function Profile() {
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center">
                     {profile?.avatar_url ? (
-                      <img 
-                        src={profile.avatar_url} 
-                        alt="Avatar" 
+                      <img
+                        src={profile.avatar_url}
+                        alt="Avatar"
                         className="w-20 h-20 rounded-full object-cover"
                       />
                     ) : (
@@ -362,6 +364,51 @@ export default function Profile() {
               </CardContent>
             </Card>
 
+            {/* Configuração do Link de Check-in */}
+            <Card className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-slate-700/50">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <span className="text-xl">🔗</span>
+                  Link Personalizado de Check-in
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Crie um link fácil para seus pacientes (ex: seu nome)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="slug" className="text-slate-300">Seu Link</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-slate-800/50 px-3 py-2 rounded-l-md border border-r-0 border-slate-700 text-slate-500 text-sm whitespace-nowrap">
+                      .../checkin/
+                    </div>
+                    <Input
+                      id="slug"
+                      value={formData.checkin_slug}
+                      onChange={(e) => {
+                        // Apenas letras minúsculas, números e hífens
+                        const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        handleInputChange('checkin_slug', val);
+                      }}
+                      disabled={!isEditing}
+                      className="bg-slate-700/50 border-slate-600/50 text-white rounded-l-none pl-2"
+                      placeholder="seu-nome-aqui"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Use apenas letras minúsculas, números e hífens.
+                  </p>
+                </div>
+                {formData.checkin_slug && (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="text-xs text-blue-300 mb-1">Link para compartilhar:</p>
+                    <code className="text-xs text-blue-200 block break-all">
+                      {window.location.origin}/checkin/{formData.checkin_slug}
+                    </code>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar - Informações da Conta e Alterar Senha */}
@@ -423,19 +470,19 @@ export default function Profile() {
                     <Separator className="bg-slate-700" />
                     <div className="space-y-2">
                       <Label className="text-slate-300">Status</Label>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={
-                          subscription.status === 'active' 
+                          subscription.status === 'active'
                             ? 'bg-green-500/20 text-green-400 border-green-500/30'
                             : subscription.status === 'trial'
-                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                            : 'bg-red-500/20 text-red-400 border-red-500/30'
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                              : 'bg-red-500/20 text-red-400 border-red-500/30'
                         }
                       >
-                        {subscription.status === 'active' ? 'Ativo' : 
-                         subscription.status === 'trial' ? 'Trial' : 
-                         subscription.status === 'expired' ? 'Expirado' : 'Inativo'}
+                        {subscription.status === 'active' ? 'Ativo' :
+                          subscription.status === 'trial' ? 'Trial' :
+                            subscription.status === 'expired' ? 'Expirado' : 'Inativo'}
                       </Badge>
                     </div>
                     {subscription.current_period_end && (

@@ -60,6 +60,7 @@ import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import type { CheckinWithPatient } from "@/lib/checkin-service";
 import { userPreferencesService } from "@/lib/user-preferences-service";
+import { useProfile } from "@/hooks/use-profile";
 
 // Interface para templates de renovação
 interface RenewalTemplate {
@@ -72,6 +73,7 @@ export function DashboardOverview() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const { profile } = useProfile();
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics(filterThisMonth);
   const { data: chartData, isLoading: chartLoading } = useChartData(filterThisMonth);
@@ -559,7 +561,8 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             variant="outline"
             onClick={() => {
               if (user?.id) {
-                const link = `${window.location.origin}/anamnese/${user.id}`;
+                const token = profile?.checkin_slug || user.id;
+                const link = `${window.location.origin}/anamnese/${token}`;
                 navigator.clipboard.writeText(link);
                 toast({ title: 'Link copiado!', description: 'Cole e envie para o paciente preencher a anamnese.' });
               } else {
@@ -575,7 +578,8 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             variant="outline"
             onClick={() => {
               if (user?.id) {
-                const link = `${window.location.origin}/checkin/${user.id}`;
+                const token = profile?.checkin_slug || user.id;
+                const link = `${window.location.origin}/checkin/${token}`;
                 navigator.clipboard.writeText(link);
                 toast({ title: 'Link copiado!', description: 'Cole e envie para o paciente preencher o check-in mensal.' });
               }

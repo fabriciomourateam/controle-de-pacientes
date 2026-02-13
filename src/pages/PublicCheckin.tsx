@@ -41,20 +41,51 @@ export default function PublicCheckin() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Validar token
+  // Validar token (ID ou Slug)
   useEffect(() => {
     async function validate() {
       if (!token) { setInvalidToken(true); setValidating(false); return; }
+
       try {
-        const { data: profile } = await supabasePublic
+        let profile = null;
+
+        // 1. Tentar buscar por slug primeiro (campo texto, não gera erro de tipo)
+        const { data: profileBySlug } = await supabasePublic
           .from('profiles')
           .select('id, full_name')
-          .eq('id', token)
+          .eq('checkin_slug', token)
           .maybeSingle();
-        if (!profile) { setInvalidToken(true); }
-        else { setUserId(profile.id); setNutriName(profile.full_name || 'Nutricionista'); }
-      } catch { setInvalidToken(true); }
-      finally { setValidating(false); }
+
+        if (profileBySlug) {
+          profile = profileBySlug;
+        } else {
+          // 2. Se não achou por slug, verifica se é UUID válido antes de buscar por ID
+          // (evita erro "invalid input syntax for type uuid")
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+
+          if (isUuid) {
+            const { data: profileById } = await supabasePublic
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', token)
+              .maybeSingle();
+
+            profile = profileById;
+          }
+        }
+
+        if (!profile) {
+          setInvalidToken(true);
+        } else {
+          setUserId(profile.id);
+          setNutriName(profile.full_name || 'Nutricionista');
+        }
+      } catch (error) {
+        console.error('Erro na validação do token:', error);
+        setInvalidToken(true);
+      } finally {
+        setValidating(false);
+      }
     }
     validate();
   }, [token]);
