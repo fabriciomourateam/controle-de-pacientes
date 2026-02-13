@@ -595,7 +595,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
                           key={country.name}
                           value={country.name}
                           onSelect={() => handleCountryChange(country)}
-                          className="text-white hover:bg-slate-800 data-[selected=true]:bg-slate-800 cursor-pointer"
+                          className="text-white cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
                         >
                           <span className="mr-2 text-lg">{country.flag}</span>
                           <span className="flex-1">{country.name}</span>
@@ -1151,7 +1151,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
                             key={country.name}
                             value={country.name}
                             onSelect={() => handleCountryChange(country)}
-                            className="text-white hover:bg-slate-800 data-[selected=true]:bg-slate-800 cursor-pointer"
+                            className="text-white cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
                           >
                             <span className="mr-2 text-lg">{country.flag}</span>
                             <span className="flex-1">{country.name}</span>
