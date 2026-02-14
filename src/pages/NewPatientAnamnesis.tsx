@@ -130,7 +130,7 @@ export default function NewPatientAnamnesis() {
     setLoading(true);
 
     try {
-      const cleanTelefone = formData.telefone.trim().replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+      const cleanTelefone = formData.telefone.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
 
       // 1. Upload das fotos
       let fotoFrenteUrl: string | null = null;

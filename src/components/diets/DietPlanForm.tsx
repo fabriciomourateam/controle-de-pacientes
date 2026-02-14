@@ -3510,7 +3510,7 @@ const FoodItem = memo(function FoodItem({
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity"
+            className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity touch-none"
           >
             <GripVertical className="w-4 h-4 text-[#777777]" />
           </div>
@@ -3865,7 +3865,18 @@ const MealItemComponent = memo(function MealItemComponent({
         }}
       >
         <Card className={`border transition-all duration-300 hover:shadow-md ${cardColors}`}>
-          <CardHeader className="pb-2 pt-3 px-4">
+          <CardHeader
+            className="pb-2 pt-3 px-4 cursor-pointer"
+            onClick={() => {
+              const newExpanded = new Set(expandedMeals);
+              if (isExpanded) {
+                newExpanded.delete(mealIndex);
+              } else {
+                newExpanded.add(mealIndex);
+              }
+              setExpandedMeals(newExpanded);
+            }}
+          >
             <div className="flex items-center justify-between gap-3">
               {/* Lado esquerdo: Drag handle, horários editáveis, nome editável, macros compactados */}
               <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 flex-wrap md:flex-nowrap">
@@ -3873,7 +3884,7 @@ const MealItemComponent = memo(function MealItemComponent({
                 <div
                   {...attributes}
                   {...listeners}
-                  className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity flex-shrink-0"
+                  className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity flex-shrink-0 touch-none"
                   onClick={(e) => e.stopPropagation()}
                   title="Arrastar para reordenar"
                   role="button"
@@ -3882,6 +3893,23 @@ const MealItemComponent = memo(function MealItemComponent({
                 >
                   <GripVertical className="w-4 h-4 text-[#555555]" aria-hidden="true" />
                 </div>
+
+                {/* Botão expandir/colapsar - Movido para a esquerda */}
+                <CollapsibleTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100 flex-shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
 
                 {/* Container de horários - responsivo */}
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -3936,13 +3964,13 @@ const MealItemComponent = memo(function MealItemComponent({
                   control={form.control}
                   name={`meals.${mealIndex}.meal_name`}
                   render={({ field }) => (
-                    <FormItem className="flex-1 min-w-0 w-full md:w-auto">
+                    <FormItem className="flex-1 min-w-[100px] w-full md:w-auto">
                       <FormLabel className="sr-only">Nome da refeição {mealIndex + 1}</FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           placeholder={`REFEIÇÃO ${mealIndex + 1}`}
-                          className="h-7 text-sm border-0 bg-transparent text-[#111111] font-medium placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 rounded-sm transition-all"
+                          className="h-7 text-sm border-0 bg-transparent text-[#111111] font-medium placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 rounded-sm transition-all w-[90%] md:w-full"
                           {...field}
                           value={field.value || `REFEIÇÃO ${mealIndex + 1}`}
                           onClick={(e) => e.stopPropagation()}
@@ -3985,22 +4013,7 @@ const MealItemComponent = memo(function MealItemComponent({
 
               {/* Lado direito: Botões de ação */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                {/* Botão expandir/colapsar */}
-                <CollapsibleTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {isExpanded ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
+
 
                 {/* Botão ver alimentos (verde) */}
                 <Button

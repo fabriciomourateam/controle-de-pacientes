@@ -55,7 +55,7 @@ export const dietService = {
     let mealsWithFoods: any[] = [];
     if (mealsData && mealsData.length > 0) {
       const mealIds = mealsData.map((meal: any) => meal.id);
-      
+
       const { data: foodsData, error: foodsError } = await supabase
         .from('diet_foods')
         .select('*')
@@ -93,7 +93,7 @@ export const dietService = {
       diet_meals: mealsWithFoods,
       diet_guidelines: guidelinesData || []
     };
-    
+
     // Log para debug
     console.log('📦 Plano retornado do banco (método combinado):', {
       planId: combinedData?.id,
@@ -113,7 +113,7 @@ export const dietService = {
         })) || []
       })) || []
     });
-    
+
     return combinedData;
   },
 
@@ -146,7 +146,7 @@ export const dietService = {
   async release(planId: string) {
     const { data, error } = await supabase
       .from('diet_plans')
-      .update({ 
+      .update({
         status: 'active',
         is_released: true,
         active: true,
@@ -173,12 +173,12 @@ export const dietService = {
       console.error('❌ [diet-service] Erro ao buscar alimentos:', error);
       throw error;
     }
-    
+
     console.log('✅ [diet-service] Alimentos retornados:', {
       count: data?.length || 0,
       firstFoods: data?.slice(0, 3).map(f => f.name) || []
     });
-    
+
     return data;
   },
 
@@ -227,6 +227,55 @@ export const dietService = {
 
     if (error) throw error;
     return true;
+  },
+
+  // Obter favoritos
+  async getFavorites() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('food_favorites')
+      .select('food_name')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Erro ao buscar favoritos:', error);
+      return [];
+    }
+
+    return data.map((f: any) => f.food_name);
+  },
+
+  // Alternar favorito
+  async toggleFavorite(foodName: string, shouldBeFavorite: boolean) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
+    if (!shouldBeFavorite) {
+      // Remover (se shouldBeFavorite é false, significa que queremos remover, assumindo que antes era true ou apenas garantindo)
+      // Mas espere, a UI vai passar o *novo* estado desejado.
+      // Se eu quero que SEJA favorito (true), eu insiro.
+      // Se eu quero que NÃO SEJA favorito (false), eu deleto.
+
+      const { error } = await supabase
+        .from('food_favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('food_name', foodName);
+
+      if (error) throw error;
+    } else {
+      // Adicionar
+      const { error } = await supabase
+        .from('food_favorites')
+        .insert({
+          user_id: user.id,
+          food_name: foodName
+        });
+
+      if (error) throw error;
+    }
   }
 };
 

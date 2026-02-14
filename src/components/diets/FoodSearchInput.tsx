@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Plus, Save } from 'lucide-react';
+import { Search, Loader2, Plus, Save, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import FoodCacheService from '@/lib/food-cache-service';
+import { dietService } from '@/lib/diet-service';
 
 interface Food {
   name: string;
@@ -50,12 +51,58 @@ export function FoodSearchInput({
   const [isFocused, setIsFocused] = useState(false);
   const [hasSelected, setHasSelected] = useState(false);
   const [userWantsSearch, setUserWantsSearch] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSearchTerm(value);
   }, [value]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      const favs = await dietService.getFavorites();
+      setFavorites(new Set(favs));
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+    }
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent, foodName: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const isFav = favorites.has(foodName);
+    const newFavs = new Set(favorites);
+
+    if (isFav) {
+      newFavs.delete(foodName);
+    } else {
+      newFavs.add(foodName);
+    }
+    setFavorites(newFavs);
+
+    try {
+      await dietService.toggleFavorite(foodName, !isFav);
+      toast({
+        title: !isFav ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+        duration: 1500,
+      });
+      // Manter input focado
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error('Erro ao atualizar favorito:', error);
+      setFavorites(favorites);
+      toast({
+        title: 'Erro ao atualizar favorito',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Debounce para buscar apenas após o usuário parar de digitar
   // Só busca se o usuário realmente quer buscar (não está apenas editando)
@@ -76,19 +123,29 @@ export function FoodSearchInput({
         } else {
           // Buscar no banco de dados
           filtered = foodDatabase.filter((food) =>
-          food.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ).slice(0, 10);
+            food.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ).slice(0, 10);
           // Salvar no cache
-          FoodCacheService.cacheSearch(searchTerm, filtered);
+          FoodCacheService.cacheSearch(searchTerm, filtered.map(f => ({ ...f, cached_at: Date.now() })));
         }
+
+        // Ordenar: Favoritos primeiro
+        filtered.sort((a, b) => {
+          const aFav = favorites.has(a.name);
+          const bFav = favorites.has(b.name);
+          if (aFav && !bFav) return -1;
+          if (!aFav && bFav) return 1;
+          return 0;
+        });
+
         setFilteredFoods(filtered);
         setIsSearching(false);
-        
+
         const exactMatch = foodDatabase.find((food) =>
           food.name.toLowerCase() === searchTerm.toLowerCase()
         );
         setShowSaveOption(!exactMatch && searchTerm.length >= 3);
-        
+
         // Só abrir o popover se houver resultados ou opção de salvar
         if (filtered.length > 0 || (!exactMatch && searchTerm.length >= 3)) {
           setOpen(true);
@@ -117,7 +174,7 @@ export function FoodSearchInput({
     setSearchTerm(newValue);
     onChange(newValue);
     setHasSelected(false); // Permitir edição após seleção
-    
+
     // Se o usuário está digitando e já tinha selecionado algo, não buscar automaticamente
     // Só buscar se o usuário realmente quer (ex: ao focar novamente)
     if (hasSelected && newValue.length > 0) {
@@ -172,6 +229,16 @@ export function FoodSearchInput({
         const filtered = foodDatabase.filter((food) =>
           food.name.toLowerCase().includes(searchTerm.toLowerCase())
         ).slice(0, 10);
+
+        // Ordenar por favoritos
+        filtered.sort((a, b) => {
+          const aFav = favorites.has(a.name);
+          const bFav = favorites.has(b.name);
+          if (aFav && !bFav) return -1;
+          if (!aFav && bFav) return 1;
+          return 0;
+        });
+
         setFilteredFoods(filtered);
         const exactMatch = foodDatabase.find((food) =>
           food.name.toLowerCase() === searchTerm.toLowerCase()
@@ -279,6 +346,16 @@ export function FoodSearchInput({
                 const filtered = foodDatabase.filter((food) =>
                   food.name.toLowerCase().includes(searchTerm.toLowerCase())
                 ).slice(0, 10);
+
+                // Ordenar por favoritos
+                filtered.sort((a, b) => {
+                  const aFav = favorites.has(a.name);
+                  const bFav = favorites.has(b.name);
+                  if (aFav && !bFav) return -1;
+                  if (!aFav && bFav) return 1;
+                  return 0;
+                });
+
                 setFilteredFoods(filtered);
                 const exactMatch = foodDatabase.find((food) =>
                   food.name.toLowerCase() === searchTerm.toLowerCase()
@@ -306,6 +383,16 @@ export function FoodSearchInput({
                   const filtered = foodDatabase.filter((food) =>
                     food.name.toLowerCase().includes(searchTerm.toLowerCase())
                   ).slice(0, 10);
+
+                  // Ordenar por favoritos
+                  filtered.sort((a, b) => {
+                    const aFav = favorites.has(a.name);
+                    const bFav = favorites.has(b.name);
+                    if (aFav && !bFav) return -1;
+                    if (!aFav && bFav) return 1;
+                    return 0;
+                  });
+
                   setFilteredFoods(filtered);
                   const exactMatch = foodDatabase.find((food) =>
                     food.name.toLowerCase() === searchTerm.toLowerCase()
@@ -342,8 +429,18 @@ export function FoodSearchInput({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="font-medium text-[#222222]">{food.name}</div>
-                      <div className="text-xs text-[#777777] mt-1">
+                      <div className="font-medium text-[#222222] flex items-center gap-2">
+                        <div
+                          onClick={(e) => handleToggleFavorite(e, food.name)}
+                          className="cursor-pointer p-0.5 hover:bg-yellow-100 rounded-full transition-colors"
+                        >
+                          <Star
+                            className={`w-4 h-4 ${favorites.has(food.name) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+                          />
+                        </div>
+                        {food.name}
+                      </div>
+                      <div className="text-xs text-[#777777] mt-1 pl-6">
                         {Math.round(food.calories_per_100g)} kcal • P: {Math.round(food.protein_per_100g * 10) / 10}g • C: {Math.round(food.carbs_per_100g * 10) / 10}g • G: {Math.round(food.fats_per_100g * 10) / 10}g
                       </div>
                     </div>

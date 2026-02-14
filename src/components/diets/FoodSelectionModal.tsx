@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Save, X, Plus, Upload } from 'lucide-react';
+import { Search, Loader2, Save, X, Plus, Upload, Star } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { foodSuggestionsService } from '@/lib/diet-food-suggestions-service';
+import { dietService } from '@/lib/diet-service';
 import { Sparkles } from 'lucide-react';
 import FoodCacheService from '@/lib/food-cache-service';
 import { CustomFoodModal } from '@/components/diets/CustomFoodModal';
@@ -58,6 +59,7 @@ export function FoodSelectionModal({
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFoods, setFilteredFoods] = useState<Food[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -74,6 +76,8 @@ export function FoodSelectionModal({
       setFilteredFoods([]);
       // Carregar sugestões inteligentes quando o modal abrir
       loadSuggestions();
+      // Carregar favoritos
+      loadFavorites();
       // Carregar categorias para o modal de alimentos personalizados
       loadCategories();
       // Focar no input quando o modal abrir
@@ -92,6 +96,47 @@ export function FoodSelectionModal({
     }
   };
 
+  const loadFavorites = async () => {
+    try {
+      const favs = await dietService.getFavorites();
+      setFavorites(new Set(favs));
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+    }
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent, foodName: string) => {
+    e.stopPropagation(); // Impede seleção do alimento ao clicar na estrela
+
+    const isFav = favorites.has(foodName);
+    const newFavs = new Set(favorites);
+
+    // Atualização otimista
+    if (isFav) {
+      newFavs.delete(foodName);
+    } else {
+      newFavs.add(foodName);
+    }
+    setFavorites(newFavs);
+
+    try {
+      await dietService.toggleFavorite(foodName, !isFav);
+
+      toast({
+        title: !isFav ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+        duration: 1500,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar favorito:', error);
+      // Reverter em caso de erro
+      setFavorites(favorites);
+      toast({
+        title: 'Erro ao atualizar favorito',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleCreateCustomFood = async (data: CreateCustomFoodInput) => {
     try {
       await customFoodsService.createCustomFood(data);
@@ -101,7 +146,7 @@ export function FoodSelectionModal({
       });
       setCustomFoodModalOpen(false);
       onFoodSaved?.();
-      
+
       // Recarregar o banco de alimentos para incluir o novo alimento
       // O componente pai precisa recarregar a foodDatabase
       if (onFoodSaved) {
@@ -110,7 +155,7 @@ export function FoodSelectionModal({
     } catch (error: any) {
       console.error('Erro ao criar alimento personalizado:', error);
       const errorMessage = error.message || 'Não foi possível criar o alimento personalizado';
-      
+
       // Verificar se é erro de tabela não existente
       if (errorMessage.includes('não foi criada') || errorMessage.includes('does not exist') || errorMessage.includes('404')) {
         toast({
@@ -163,13 +208,23 @@ export function FoodSelectionModal({
           setIsSearching(false);
         } else {
           // Buscar no banco de dados
-        const filtered = foodDatabase.filter((food) =>
-          food.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ).slice(0, 20); // Mostrar até 20 resultados
-        setFilteredFoods(filtered);
+          const filtered = foodDatabase.filter((food) =>
+            food.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ).slice(0, 20); // Mostrar até 20 resultados
+
+          // Ordenar: Favoritos primeiro
+          filtered.sort((a, b) => {
+            const aFav = favorites.has(a.name);
+            const bFav = favorites.has(b.name);
+            if (aFav && !bFav) return -1;
+            if (!aFav && bFav) return 1;
+            return 0;
+          });
+
+          setFilteredFoods(filtered);
           // Salvar no cache
-          FoodCacheService.cacheSearch(searchTerm, filtered);
-        setIsSearching(false);
+          FoodCacheService.cacheSearch(searchTerm, filtered.map(f => ({ ...f, cached_at: Date.now() })));
+          setIsSearching(false);
         }
       }, 200);
     } else {
@@ -351,21 +406,29 @@ export function FoodSelectionModal({
                             <button
                               key={index}
                               onClick={() => handleSelectFood(food)}
-                              className="w-full text-left px-3 py-2.5 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none rounded-md"
+                              className="w-full text-left px-3 py-2.5 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none rounded-md group"
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <div className="font-medium text-[#222222] flex items-center gap-2 flex-wrap">
+                                    <div
+                                      onClick={(e) => handleToggleFavorite(e, food.name)}
+                                      className="cursor-pointer p-0.5 hover:bg-yellow-100 rounded-full transition-colors"
+                                    >
+                                      <Star
+                                        className={`w-4 h-4 ${favorites.has(food.name) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+                                      />
+                                    </div>
                                     {food.name}
                                     <span className="text-xs font-normal text-[#00C98A] bg-green-500/10 px-2 py-0.5 rounded">
                                       {suggestion.match_score}% match
                                     </span>
                                   </div>
-                                  <div className="text-xs text-[#777777] mt-1">
+                                  <div className="text-xs text-[#777777] mt-1 pl-6">
                                     {Math.round(food.calories_per_100g)} kcal • P: {Math.round(food.protein_per_100g * 10) / 10}g • C: {Math.round(food.carbs_per_100g * 10) / 10}g • G: {Math.round(food.fats_per_100g * 10) / 10}g
                                   </div>
                                   {suggestion.reason && (
-                                    <div className="text-xs text-[#00C98A] mt-1 italic">
+                                    <div className="text-xs text-[#00C98A] mt-1 italic pl-6">
                                       {suggestion.reason}
                                     </div>
                                   )}
@@ -413,12 +476,22 @@ export function FoodSelectionModal({
                   <button
                     key={index}
                     onClick={() => handleSelectFood(food)}
-                    className="w-full text-left px-4 py-3 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none"
+                    className="w-full text-left px-4 py-3 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-[#222222]">{food.name}</div>
-                        <div className="text-xs text-[#777777] mt-1">
+                        <div className="font-medium text-[#222222] flex items-center gap-2">
+                          <div
+                            onClick={(e) => handleToggleFavorite(e, food.name)}
+                            className="cursor-pointer p-0.5 hover:bg-yellow-100 rounded-full transition-colors"
+                          >
+                            <Star
+                              className={`w-4 h-4 ${favorites.has(food.name) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}
+                            />
+                          </div>
+                          {food.name}
+                        </div>
+                        <div className="text-xs text-[#777777] mt-1 pl-6">
                           {Math.round(food.calories_per_100g)} kcal • P: {Math.round(food.protein_per_100g * 10) / 10}g • C: {Math.round(food.carbs_per_100g * 10) / 10}g • G: {Math.round(food.fats_per_100g * 10) / 10}g
                         </div>
                       </div>

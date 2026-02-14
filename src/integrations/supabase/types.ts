@@ -1089,6 +1089,111 @@ export type Database = {
         }
         Relationships: []
       }
+      food_favorites: {
+        Row: {
+          id: string
+          user_id: string
+          food_name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          food_name: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          food_name?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      workspace_people: {
+        Row: {
+          id: string
+          name: string
+          color: string
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          color: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          color?: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_people_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      workspace_schedules: {
+        Row: {
+          id: string
+          week_start_date: string
+          day_of_week: number
+          hour: number
+          person_name: string | null
+          task_description: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          week_start_date: string
+          day_of_week: number
+          hour: number
+          person_name?: string | null
+          task_description?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          week_start_date?: string
+          day_of_week?: number
+          hour?: number
+          person_name?: string | null
+          task_description?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       user_food_database: {
         Row: {
           id: string
