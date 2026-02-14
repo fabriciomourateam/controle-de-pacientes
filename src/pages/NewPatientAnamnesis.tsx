@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@supabase/supabase-js';
 import { processPhotoFile } from '@/lib/heic-converter';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import type { AnamnesisFlowStep, FinalMessageConfig } from '@/lib/anamnesis-flow-default';
+import { AnamnesisFlowStep, FinalMessageConfig, DEFAULT_ANAMNESIS_FLOW } from '@/lib/anamnesis-flow-default';
 
 // Cliente com service role para acesso público (mesmo padrão do PublicPortal)
 const supabasePublic = createClient(
@@ -240,7 +240,24 @@ export default function NewPatientAnamnesis() {
         throw anamneseError;
       }
 
-      console.log('Anamnese salva com sucesso');
+      console.log('Anamnesis data before filling missing fields:', anamneseData);
+
+      // Preencher campos vazios com "Sem dados" baseando-se no fluxo ativo
+      const activeFlow = flowSteps || DEFAULT_ANAMNESIS_FLOW;
+
+      activeFlow.forEach(section => {
+        section.fields.forEach(field => {
+          if (field.targetField === 'anamnese') {
+            // Check if field exists in data. If not, or if it is empty string/null/undefined
+            const value = anamneseData[field.field];
+            if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+              anamneseData[field.field] = 'Sem dados';
+            }
+          }
+        });
+      });
+
+      console.log('Anamnese salva com sucesso (dados completos):', anamneseData);
 
       // 5. Enviar Webhook
       try {
@@ -324,7 +341,7 @@ export default function NewPatientAnamnesis() {
               .replace(/\n/g, '<br />')
           }} />
           <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            <p className="text-slate-500/80 text-sm">{fmFooter}</p>
+            <p className="text-white text-sm">{fmFooter}</p>
           </div>
         </div>
       </div>

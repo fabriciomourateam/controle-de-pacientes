@@ -11,11 +11,12 @@
  * - "time": campo de hora
  * - "photo": upload de foto
  * - "checkbox": checkbox (aceite de termos, etc.)
+ * - "phone": campo de telefone internacional com seletor de país
  */
 
 export interface AnamnesisFieldDef {
     id: string;
-    type: 'text' | 'textarea' | 'select' | 'number' | 'date' | 'time' | 'photo' | 'checkbox';
+    type: 'text' | 'textarea' | 'select' | 'number' | 'date' | 'time' | 'photo' | 'checkbox' | 'phone';
     label: string;
     placeholder?: string;
     required: boolean;
@@ -26,6 +27,7 @@ export interface AnamnesisFieldDef {
     gridCols?: number;
     icon?: string;
     requiresConfirmation?: boolean;
+    hasCountrySelector?: boolean;
 }
 
 export interface AnamnesisFlowStep {

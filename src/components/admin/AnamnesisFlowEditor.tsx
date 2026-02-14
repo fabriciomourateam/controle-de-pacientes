@@ -90,7 +90,7 @@ function SortableField({ field, isSelected, onSelect, onDelete }: {
 
     const TYPE_LABELS: Record<string, string> = {
         text: 'Texto', textarea: 'Área de Texto', select: 'Seletor', number: 'Número',
-        date: 'Data', time: 'Hora', photo: 'Foto', checkbox: 'Checkbox'
+        date: 'Data', time: 'Hora', photo: 'Foto', checkbox: 'Checkbox', phone: 'Telefone'
     };
 
     const TYPE_COLORS: Record<string, string> = {
@@ -102,6 +102,7 @@ function SortableField({ field, isSelected, onSelect, onDelete }: {
         time: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
         photo: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
         checkbox: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+        phone: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
     };
 
     return (
@@ -187,10 +188,24 @@ function FieldEditor({ field, onChange }: { field: AnamnesisFieldDef; onChange: 
                             <SelectItem value="time">Hora</SelectItem>
                             <SelectItem value="photo">Upload de foto</SelectItem>
                             <SelectItem value="checkbox">Checkbox</SelectItem>
+                            <SelectItem value="phone">Telefone</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             </div>
+
+            {field.type === 'phone' && (
+                <div className="flex items-center justify-between bg-slate-800/20 p-3 rounded-lg border border-slate-700/20">
+                    <Label className="text-slate-400 text-xs flex flex-col">
+                        <span>Habilitar seletor de país (DDI)</span>
+                        <span className="text-[10px] text-slate-500 font-normal">Exibe bandeira e código do país</span>
+                    </Label>
+                    <Switch
+                        checked={field.hasCountrySelector ?? true}
+                        onCheckedChange={v => update('hasCountrySelector', v)}
+                    />
+                </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">

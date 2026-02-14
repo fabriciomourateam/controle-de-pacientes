@@ -10,7 +10,7 @@ import { usePlans } from '@/hooks/use-supabase-data';
 import {
   User, Phone, MapPin, Ruler, Target, Heart,
   Utensils, Clock, Dumbbell, MessageSquare, ChevronLeft, ChevronRight,
-  Save, Loader2, CheckCircle2, Upload, X, Camera
+  Save, Loader2, CheckCircle2, Upload, X, Camera, FileText, Check, ChevronsUpDown, Search
 } from 'lucide-react';
 import { AnamnesisData } from '@/lib/anamnesis-service';
 import type { AnamnesisFlowStep, AnamnesisFieldDef } from '@/lib/anamnesis-flow-default';
@@ -27,7 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Check, ChevronsUpDown, Search } from "lucide-react"
+
 import { cn } from "@/lib/utils"
 import { countries, Country } from "@/lib/countries"
 
@@ -124,7 +124,7 @@ function FieldInput({ label, value, onChange, placeholder, type = 'text', requir
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean; icon?: string; labelClassName?: string;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="flex flex-col h-full gap-1.5">
       <Label className={`text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5 ${labelClassName}`}>
         {icon && <span className="text-sm">{icon}</span>}
         {label}{required && <span className="text-blue-400">*</span>}
@@ -134,18 +134,18 @@ function FieldInput({ label, value, onChange, placeholder, type = 'text', requir
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all"
+        className="mt-auto bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all"
       />
     </div>
   );
 }
 
-function FieldTextarea({ label, value, onChange, placeholder, rows = 3 }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
+function FieldTextarea({ label, value, onChange, placeholder, rows = 3, labelClassName }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; labelClassName?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-slate-300 text-xs font-medium tracking-wide">{label}</Label>
+      <Label className={`text-slate-300 text-xs font-medium tracking-wide ${labelClassName}`}>{label}</Label>
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -157,6 +157,135 @@ function FieldTextarea({ label, value, onChange, placeholder, rows = 3 }: {
   );
 }
 
+
+// ===== COMPONENTE REUTILIZÁVEL DE TELEFONE =====
+function PhoneInputField({ value, onChange, placeholder }: { value: string, onChange: (v: string) => void, placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const [internalCountry, setInternalCountry] = useState<Country>(countries.find(c => c.code === 'BR')!);
+  const [customDDI, setCustomDDI] = useState('');
+  const [body, setBody] = useState('');
+  const isInitialized = useRef(false);
+
+  // Parse initial value
+  useEffect(() => {
+    if (value && !isInitialized.current) {
+      const sorted = [...countries].filter(c => c.code !== 'OT').sort((a, b) => b.dial_code.length - a.dial_code.length);
+      const match = sorted.find(c => value.startsWith(c.dial_code));
+
+      if (match) {
+        setInternalCountry(match);
+        setBody(value.slice(match.dial_code.length).trim());
+      } else if (value.startsWith('+')) {
+        // Try to guess custom DDI
+        setInternalCountry(countries.find(c => c.code === 'OT')!);
+        // Simple heuristic: extract digits after + until space? Or just assume formatted?
+        // Since we don't know the split, we put everything in body for safety if we can't parse,
+        // OR we just assume it's a custom DDI scenario.
+        // Let's just set Country to OT and let user fix if needed.
+        setBody(value);
+      } else {
+        setBody(value);
+      }
+      isInitialized.current = true;
+    }
+  }, []);
+
+  // Update value when internal state changes
+  const notifyChange = (c: Country, d: string, b: string) => {
+    let prefix = c.dial_code;
+    if (c.code === 'OT') prefix = d.startsWith('+') ? d : (d ? `+${d}` : '');
+    onChange(`${prefix} ${b}`.trim());
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-[110px] bg-slate-800/20 border-slate-700/30 text-white justify-between h-11 px-3 hover:bg-slate-800/30 hover:text-white"
+          >
+            {internalCountry.code !== 'OT' ? (
+              <span className="flex items-center gap-2 truncate">
+                <span>{internalCountry.flag}</span>
+                <span>{internalCountry.dial_code}</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-2 truncate">
+                <span>🌍</span>
+                <span>Outro</span>
+              </span>
+            )}
+            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0 bg-slate-900 border-slate-700 text-white max-h-[300px]">
+          <Command>
+            <CommandInput placeholder="Buscar país..." className="h-9" />
+            <CommandList>
+              <CommandEmpty>País não encontrado.</CommandEmpty>
+              <CommandGroup>
+                {countries.map((country) => (
+                  <CommandItem
+                    key={country.name}
+                    value={country.name}
+                    onSelect={() => {
+                      setInternalCountry(country);
+                      setOpen(false);
+                      notifyChange(country, customDDI, body);
+                    }}
+                    className="text-white cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+                  >
+                    <span className="mr-2 text-lg">{country.flag}</span>
+                    <span className="flex-1">{country.name}</span>
+                    <span className="text-slate-400 text-xs ml-2">{country.dial_code}</span>
+                    <Check
+                      className={cn(
+                        "ml-auto h-4 w-4",
+                        internalCountry.code === country.code ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {internalCountry.code === 'OT' && (
+        <div className="relative w-[80px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">+</span>
+          <Input
+            type="tel"
+            value={customDDI}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^0-9]/g, '');
+              setCustomDDI(val);
+              notifyChange(internalCountry, val, body);
+            }}
+            placeholder="DDI"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 pl-6 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono"
+          />
+        </div>
+      )}
+
+      <Input
+        type="tel"
+        value={body}
+        onChange={(e) => {
+          const val = e.target.value.replace(/[^0-9\-\s]/g, '');
+          setBody(val);
+          notifyChange(internalCountry, customDDI, val);
+        }}
+        placeholder={placeholder || "DDD + Número"}
+        className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
+      />
+    </div>
+  );
+}
 
 // ===== COMPONENTE PRINCIPAL =====
 
@@ -202,92 +331,8 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
   */
   const [confirmations, setConfirmations] = useState<Record<string, string>>({});
 
-  // Country Selector State
-  const [openCountry, setOpenCountry] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]); // Default BR
-  const [customDDI, setCustomDDI] = useState('');
-  const [phoneBody, setPhoneBody] = useState('');
+  // State for field confirmations, etc. deleted old phone state
 
-  // Init phone logic
-  useEffect(() => {
-    if (form.telefone) {
-      // Try to find matching country
-      // Sort by length desc to match +55 before +5
-      const sorted = [...countries].filter(c => c.code !== 'OT').sort((a, b) => b.dial_code.length - a.dial_code.length);
-      const match = sorted.find(c => form.telefone.startsWith(c.dial_code));
-
-      if (match) {
-        setSelectedCountry(match);
-        setPhoneBody(form.telefone.slice(match.dial_code.length));
-      } else {
-        // Maybe it's a custom DDI or just raw number?
-        // Check if starts with +
-        if (form.telefone.startsWith('+')) {
-          const ddiMatch = form.telefone.match(/^\+(\d+)/);
-          if (ddiMatch) {
-            // Assuming it's a custom one or one we missed
-            setSelectedCountry(countries.find(c => c.code === 'OT')!);
-            // Heuristic: take first 3 digits as DDI if we don't know?
-            // Actually we can just say "Other" and put the whole thing in custom DDI?
-            // Or simpler: put +digits in customDDI and rest in body.
-            // Let's try to extract first 2-3 digits.
-            // For now, let's just default to BR if really unknown or keep as is if we can't parse.
-            setCustomDDI(''); // Hard to guess split for unknown custom.
-            setPhoneBody(form.telefone); // Just put everything in body if unknown? No, that duplicates DDI.
-
-            // Better strategy: If starts with +, assume it has a DDI.
-            // Use a regex to grab until first space? Or fixed length?
-            // Let's just set Country to OT and CustomDDI to the extracted prefix if possible, or just user has to fix it.
-          }
-        } else {
-          setPhoneBody(form.telefone);
-        }
-      }
-    } else {
-      // Default BR
-      const br = countries.find(c => c.code === 'BR');
-      if (br) setSelectedCountry(br);
-    }
-  }, []);
-
-  // Sync phoneBody + selectedCountry -> form.telefone
-  useEffect(() => {
-    let finalDDI = selectedCountry.dial_code;
-    if (selectedCountry.code === 'OT') {
-      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-    }
-    // Only update if changed prevents loops? form.telefone update triggers this? No, this triggers form update.
-    // Use a specific handler for changes instead of effect to avoid circular dependency if possible.
-    // But form.telefone is source of truth? 
-    // Actually, let's update form.telefone ONLY when inputs change.
-  }, [selectedCountry, customDDI, phoneBody]);
-
-  const handlePhoneChange = (newBody: string) => {
-    setPhoneBody(newBody);
-    let finalDDI = selectedCountry.dial_code;
-    if (selectedCountry.code === 'OT') {
-      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-    }
-    updateField('telefone', finalDDI + newBody);
-  };
-
-  const handleCountryChange = (country: Country) => {
-    setSelectedCountry(country);
-    setOpenCountry(false);
-    let finalDDI = country.dial_code;
-    if (country.code === 'OT') {
-      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-    }
-    updateField('telefone', finalDDI + phoneBody);
-  };
-
-  const handleCustomDDIChange = (val: string) => {
-    // Keep only numbers
-    const nums = val.replace(/[^0-9]/g, '');
-    setCustomDDI(nums);
-    const finalDDI = `+${nums}`;
-    updateField('telefone', finalDDI + phoneBody);
-  };
 
   // Persistence: Load from localStorage on mount
   useEffect(() => {
@@ -561,125 +606,26 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
           <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
             <span className="text-sm">📱</span> Telefone <span className="text-blue-400">*</span>
           </Label>
-          <div className="flex gap-2">
-            <Popover open={openCountry} onOpenChange={setOpenCountry}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openCountry}
-                  className="w-[110px] bg-slate-800/20 border-slate-700/30 text-white justify-between h-11 px-3 hover:bg-slate-800/30 hover:text-white"
-                >
-                  {selectedCountry.code !== 'OT' ? (
-                    <span className="flex items-center gap-2 truncate">
-                      <span>{selectedCountry.flag}</span>
-                      <span>{selectedCountry.dial_code}</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2 truncate">
-                      <span>🌍</span>
-                      <span>Outro</span>
-                    </span>
-                  )}
-                  <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0 bg-slate-900 border-slate-700 text-white max-h-[300px]">
-                <Command>
-                  <CommandInput placeholder="Buscar país..." className="h-9" />
-                  <CommandList>
-                    <CommandEmpty>País não encontrado.</CommandEmpty>
-                    <CommandGroup>
-                      {countries.map((country) => (
-                        <CommandItem
-                          key={country.name}
-                          value={country.name}
-                          onSelect={() => handleCountryChange(country)}
-                          className="text-white cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
-                        >
-                          <span className="mr-2 text-lg">{country.flag}</span>
-                          <span className="flex-1">{country.name}</span>
-                          <span className="text-slate-400 text-xs ml-2">{country.dial_code}</span>
-                          <Check
-                            className={cn(
-                              "ml-auto h-4 w-4",
-                              selectedCountry.code === country.code ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-
-            {selectedCountry.code === 'OT' && (
-              <div className="relative w-[80px]">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">+</span>
-                <Input
-                  type="tel"
-                  value={customDDI}
-                  onChange={(e) => handleCustomDDIChange(e.target.value)}
-                  placeholder="DDI"
-                  className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 pl-6 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono"
-                />
-              </div>
-            )}
-
-            <Input
-              type="tel"
-              value={phoneBody}
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9\-\s]/g, '');
-                handlePhoneChange(val);
-              }}
-              placeholder="DDD + Número"
-              className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
-            />
-          </div>
+          <PhoneInputField
+            value={form.telefone}
+            onChange={(v) => updateField('telefone', v)}
+            placeholder="DDD + Número"
+          />
           <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
         </div>
+      </div>
 
-        {/* Confirmação de Telefone (Hardcoded Step 1) */}
-        <div className="space-y-1.5 mt-2">
-          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
-            <span className="text-sm">🔄</span> Confirme o Telefone <span className="text-blue-400">*</span>
-          </Label>
-          <div className="flex gap-2">
-            <div className="w-[110px] bg-slate-800/20 border border-slate-700/30 text-slate-400 rounded-xl h-11 flex items-center justify-center text-sm cursor-not-allowed px-2 gap-2">
-              <span>{selectedCountry.flag}</span>
-              <span>{selectedCountry.code === 'OT' ? (customDDI ? `+${customDDI}` : '+?') : selectedCountry.dial_code}</span>
-            </div>
-            <Input
-              type="tel"
-              value={(() => {
-                const stored = confirmations['telefone'] || '';
-                let finalDDI = selectedCountry.dial_code;
-                if (selectedCountry.code === 'OT') {
-                  finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-                }
-                if (stored.startsWith(finalDDI)) return stored.slice(finalDDI.length);
-                return stored;
-              })()}
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9\-\s]/g, '');
-                let finalDDI = selectedCountry.dial_code;
-                if (selectedCountry.code === 'OT') {
-                  finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-                }
-                setConfirmations(prev => ({ ...prev, 'telefone': finalDDI + val }));
-              }}
-              placeholder="Digite apenas o Número"
-              onPaste={(e) => {
-                e.preventDefault();
-                toast({ title: 'Atenção', description: 'Por favor, digite o número novamente para confirmar.', variant: 'destructive' });
-              }}
-              className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
-            />
-          </div>
-          <p className="text-slate-600 text-[10px]">Confirme o número para evitar erros de contato.</p>
-        </div>
+      {/* Confirmação de Telefone (Hardcoded Step 1) */}
+      <div className="space-y-1.5 mt-2">
+        <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+          <span className="text-sm">🔄</span> Confirme o Telefone <span className="text-blue-400">*</span>
+        </Label>
+        <PhoneInputField
+          value={confirmations['telefone'] || ''}
+          onChange={(v) => setConfirmations(prev => ({ ...prev, 'telefone': v }))}
+          placeholder="Digite o número completo novamente"
+        />
+        <p className="text-slate-600 text-[10px]">Confirme o número para evitar erros de contato.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FieldInput icon="📅" label="Data de Nascimento" value={form.data_nascimento} onChange={v => updateField('data_nascimento', v)} type="date" />
@@ -1030,7 +976,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
           type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
           required={true}
           icon="🔄"
-        // Add onPaste prevent via prop if FieldInput supported, but it doesn't. 
+        // Add onPaste prevent via prop if FieldInput supported, but it doesn't.
         // We'll trust verification logic. Or add onPaste handler logic if critical.
         />
       );
@@ -1085,6 +1031,29 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       );
     }
 
+    if (fieldDef.id === 'indicacoes_amigos') {
+      return (
+        <div key={fieldDef.id} className="col-span-full">
+          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-6 space-y-4">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <span className="text-xl">🤝</span> {fieldDef.label}
+            </h3>
+            <p className="text-slate-400 text-sm">
+              Teria 2 ou 3 amigos/familiares para indicar que gostariam de ter um acompanhamento como o nosso?
+            </p>
+            <FieldTextarea
+              label=""
+              labelClassName="hidden"
+              value={getValue()}
+              onChange={setValue}
+              placeholder={fieldDef.placeholder || "Nome - Telefone"}
+              rows={3}
+            />
+          </div>
+        </div>
+      );
+    }
+
     // textarea fields
     if (fieldDef.type === 'textarea') {
       return (
@@ -1108,93 +1077,36 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       );
     }
 
+
+
     // text, number, date, time fields
     // Special case for 'telefone' to use default country selector logic even in dynamic flow
-    if (fieldDef.id === 'telefone' || fieldDef.type === 'text' && fieldDef.field === 'telefone') {
+    if (fieldDef.id === 'telefone' || (fieldDef.type === 'text' && fieldDef.field === 'telefone') || fieldDef.type === 'phone') {
       return (
         <div key={fieldDef.id} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
               <span className="text-sm">📱</span> {fieldDef.label} <span className="text-blue-400">*</span>
             </Label>
-            <div className="flex gap-2">
-              <Popover open={openCountry} onOpenChange={setOpenCountry}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openCountry}
-                    className="w-[110px] bg-slate-800/20 border-slate-700/30 text-white justify-between h-11 px-3 hover:bg-slate-800/30 hover:text-white"
-                  >
-                    {selectedCountry.code !== 'OT' ? (
-                      <span className="flex items-center gap-2 truncate">
-                        <span>{selectedCountry.flag}</span>
-                        <span>{selectedCountry.dial_code}</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2 truncate">
-                        <span>🌍</span>
-                        <span>Outro</span>
-                      </span>
-                    )}
-                    <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0 bg-slate-900 border-slate-700 text-white max-h-[300px]">
-                  <Command>
-                    <CommandInput placeholder="Buscar país..." className="h-9" />
-                    <CommandList>
-                      <CommandEmpty>País não encontrado.</CommandEmpty>
-                      <CommandGroup>
-                        {countries.map((country) => (
-                          <CommandItem
-                            key={country.name}
-                            value={country.name}
-                            onSelect={() => handleCountryChange(country)}
-                            className="text-white cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
-                          >
-                            <span className="mr-2 text-lg">{country.flag}</span>
-                            <span className="flex-1">{country.name}</span>
-                            <span className="text-slate-400 text-xs ml-2">{country.dial_code}</span>
-                            <Check
-                              className={cn(
-                                "ml-auto h-4 w-4",
-                                selectedCountry.code === country.code ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-
-              {selectedCountry.code === 'OT' && (
-                <div className="relative w-[80px]">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">+</span>
-                  <Input
-                    type="tel"
-                    value={customDDI}
-                    onChange={(e) => handleCustomDDIChange(e.target.value)}
-                    placeholder="DDI"
-                    className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 pl-6 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono"
-                  />
-                </div>
-              )}
-
-              <Input
+            {fieldDef.hasCountrySelector !== false ? (
+              <>
+                <PhoneInputField
+                  value={getValue()}
+                  onChange={setValue}
+                  placeholder={fieldDef.placeholder}
+                />
+                <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
+              </>
+            ) : (
+              <FieldInput
+                label=""
+                labelClassName="hidden"
+                value={getValue()}
+                onChange={setValue}
+                placeholder={fieldDef.placeholder || "Digite o telefone"}
                 type="tel"
-                value={phoneBody}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9\-\s]/g, '');
-                  handlePhoneChange(val);
-                }}
-                placeholder={fieldDef.placeholder || "DDD + Número"}
-                className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
               />
-            </div>
-            <p className="text-slate-600 text-[10px]">Selecione o país e digite o DDD + número.</p>
+            )}
           </div>
 
           {/* Dynamic Confirmation */}
@@ -1203,38 +1115,24 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
               <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
                 <span className="text-sm">🔄</span> Confirme: {fieldDef.label} <span className="text-blue-400">*</span>
               </Label>
-              <div className="flex gap-2">
-                <div className="w-[110px] bg-slate-800/20 border border-slate-700/30 text-slate-400 rounded-xl h-11 flex items-center justify-center text-sm cursor-not-allowed px-2 gap-2">
-                  <span>{selectedCountry.flag}</span>
-                  <span>{selectedCountry.code === 'OT' ? (customDDI ? `+${customDDI}` : '+?') : selectedCountry.dial_code}</span>
-                </div>
+              {fieldDef.hasCountrySelector !== false ? (
+                <PhoneInputField
+                  value={confirmations[fieldDef.id] || ''}
+                  onChange={(v) => setConfirmations(prev => ({ ...prev, [fieldDef.id]: v }))}
+                  placeholder="Digite o número completo novamente"
+                />
+              ) : (
                 <Input
-                  type="tel"
-                  value={(() => {
-                    const stored = confirmations[fieldDef.id] || '';
-                    let finalDDI = selectedCountry.dial_code;
-                    if (selectedCountry.code === 'OT') {
-                      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-                    }
-                    if (stored.startsWith(finalDDI)) return stored.slice(finalDDI.length);
-                    return stored;
-                  })()}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9\-\s]/g, '');
-                    let finalDDI = selectedCountry.dial_code;
-                    if (selectedCountry.code === 'OT') {
-                      finalDDI = customDDI.startsWith('+') ? customDDI : `+${customDDI}`;
-                    }
-                    setConfirmations(prev => ({ ...prev, [fieldDef.id]: finalDDI + val }));
-                  }}
-                  placeholder="Digite apenas o Número"
+                  value={confirmations[fieldDef.id] || ''}
+                  onChange={(e) => setConfirmations(prev => ({ ...prev, [fieldDef.id]: e.target.value }))}
+                  placeholder="Digite o número completo novamente"
                   onPaste={(e) => {
                     e.preventDefault();
-                    toast({ title: 'Atenção', description: 'Por favor, digite o número novamente para confirmar.', variant: 'destructive' });
+                    toast({ title: 'Atenção', description: 'Por favor, digite novamente para confirmar.', variant: 'destructive' });
                   }}
-                  className="flex-1 bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 font-mono tracking-wider"
+                  className="bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all"
                 />
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -1242,7 +1140,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     }
 
     return (
-      <div key={fieldDef.id} className="space-y-4">
+      <div key={fieldDef.id} className="space-y-4 h-full flex flex-col">
         <FieldInput
           label={fieldDef.label}
           value={getValue()}
@@ -1252,7 +1150,23 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
           required={fieldDef.required}
           icon={fieldDef.icon}
         />
-        {renderConfirmation()}
+        {fieldDef.requiresConfirmation && (
+          <div className="space-y-1.5">
+            <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+              <span className="text-sm">🔄</span> Confirme: {fieldDef.label} <span className="text-blue-400">*</span>
+            </Label>
+            <Input
+              value={confirmations[fieldDef.id] || ''}
+              onChange={(e) => setConfirmations(prev => ({ ...prev, [fieldDef.id]: e.target.value }))}
+              placeholder={`Confirme ${fieldDef.label}`}
+              onPaste={(e) => {
+                e.preventDefault();
+                toast({ title: 'Atenção', description: 'Por favor, digite novamente para confirmar.', variant: 'destructive' });
+              }}
+              className="bg-slate-800/40 border-slate-700/50 text-white placeholder:text-slate-600 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
+        )}
       </div>
     );
   };
@@ -1310,40 +1224,61 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
   const effectiveTermsText = customTermsText || 'Antes de seguir, é importante que você conheça os termos do nosso acompanhamento.\n\nEste é o **contrato que formaliza sua adesão ao plano escolhido** e explica de forma transparente como funciona o serviço, prazos, deveres e garantias — pra que tudo fique claro desde o início.';
 
   const renderTermsBlock = () => (
-    <div className="bg-slate-800/20 border border-slate-700/50 rounded-2xl p-6 mt-6 space-y-4">
-      <h3 className="text-white font-semibold flex items-center gap-2">
-        📝 Termo de Adesão ao Acompanhamento
-      </h3>
-      <p className="text-slate-300 text-sm leading-relaxed" dangerouslySetInnerHTML={{
-        __html: effectiveTermsText
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\n/g, '<br />')
-      }} />
-      <div className="py-2">
-        <a
-          href={effectiveTermsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300 underline text-sm flex items-center gap-1 transition-colors"
-        >
-          Clique aqui para ler o termo completo
-          <Upload className="w-3 h-3 rotate-90" />
-        </a>
-      </div>
-      <p className="text-slate-300 text-sm leading-relaxed">
-        👉🏼 A leitura é rápida e vai te ajudar a entender exatamente o que esperar do nosso trabalho juntos.
-      </p>
-      <div className="flex items-center space-x-3 pt-2">
-        <input
-          type="checkbox"
-          id="terms"
-          checked={termsAccepted}
-          onChange={(e) => setTermsAccepted(e.target.checked)}
-          className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer"
-        />
-        <Label htmlFor="terms" className="text-slate-300 text-sm cursor-pointer select-none">
-          Declaro que li e concordo com os termos. <span className="text-slate-500 text-xs block mt-0.5">*Ao clicar em aceite, será assinado digitalmente.</span>
-        </Label>
+    <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl shadow-xl mt-8">
+      {/* Decorative gradient blob */}
+      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full pointer-events-none" />
+
+      <div className="relative p-6 space-y-5">
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-lg">Termo de Adesão</h3>
+          </div>
+        </div>
+
+        <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/50">
+          <div className="prose prose-invert prose-sm max-w-none">
+            <p className="text-slate-300 text-sm leading-relaxed" dangerouslySetInnerHTML={{
+              __html: effectiveTermsText
+                .replace(/\*\*(.*?)\*\*/g, '<span class="text-white font-medium">$1</span>')
+                .replace(/\n/g, '<br />')
+            }} />
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-center">
+            <a
+              href={effectiveTermsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 hover:bg-blue-500/20 px-3 py-2 rounded-lg"
+            >
+              Ler contrato completo em PDF
+              <Upload className="w-3 h-3 rotate-90 transition-transform group-hover:-translate-y-0.5" />
+            </a>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl transition-colors hover:bg-blue-500/10">
+          <div className="flex items-center h-5 mt-0.5">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/50 cursor-pointer transition-all"
+            />
+          </div>
+          <Label htmlFor="terms" className="flex-1 cursor-pointer select-none">
+            <span className="text-slate-200 text-sm font-medium block">
+              Declaro que li e concordo com os termos de adesão.
+            </span>
+            <span className="text-slate-500 text-xs block mt-1">
+              *Ao marcar esta caixa, você assina digitalmente este contrato e concorda com todas as cláusulas apresentadas.
+            </span>
+          </Label>
+        </div>
       </div>
     </div>
   );
@@ -1353,14 +1288,21 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       <FieldTextarea label="Observações adicionais para a prescrição alimentar" value={form.anamnese.observacao_alimentar || ''} onChange={v => updateAnamnese('observacao_alimentar', v)} rows={4} />
       <FieldTextarea label="Observações para a prescrição dos treinos" value={form.anamnese.observacao_treinos || ''} onChange={v => updateAnamnese('observacao_treinos', v)} rows={4} />
       <FieldTextarea label="Observações gerais" value={form.observacao} onChange={v => updateField('observacao', v)} rows={3} />
-      <div className="bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/20 rounded-2xl p-5">
-        <h3 className="text-white font-semibold mb-2 text-sm flex items-center gap-2">
-          <span>🤝</span> Indicações
+      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-6 space-y-4">
+        <h3 className="text-white font-semibold flex items-center gap-2">
+          <span className="text-xl">🤝</span> Indicações
         </h3>
-        <p className="text-slate-500 text-xs mb-3">
-          Teria 2 ou 3 amigos/familiares para indicar que gostariam de ter um acompanhamento como o nosso? (nome e telefone)
+        <p className="text-slate-400 text-xs">
+          Teria 2 ou 3 amigos/familiares para indicar que gostariam de ter um acompanhamento como o nosso?
         </p>
-        <FieldTextarea label="" value={form.anamnese.indicacoes_amigos || ''} onChange={v => updateAnamnese('indicacoes_amigos', v)} placeholder="Nome - Telefone" rows={3} />
+        <FieldTextarea
+          label=""
+          labelClassName="hidden"
+          value={form.anamnese.indicacoes_amigos || ''}
+          onChange={v => updateAnamnese('indicacoes_amigos', v)}
+          placeholder="Nome - Telefone"
+          rows={3}
+        />
       </div>
       {renderTermsBlock()}
     </div>
