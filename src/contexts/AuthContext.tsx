@@ -28,14 +28,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Timeout de segurança para não travar no loading (5 segundos)
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     // Verificar sessão atual
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeoutId); // Limpar timeout se responder a tempo
       setUser(session?.user ?? null);
       if (session?.user) {
         loadProfile(session.user);
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      clearTimeout(timeoutId);
+      setLoading(false);
     });
 
     // Escutar mudanças de autenticação
@@ -75,9 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (memberData) {
         // É membro da equipe - atualizar último acesso
         await updateLastAccess(memberData.id);
-        
+
         const permissions = memberData.permissions || memberData.role?.permissions || {};
-        
+
         setProfile({
           id: user.id,
           email: user.email || '',

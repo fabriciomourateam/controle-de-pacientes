@@ -1,15 +1,16 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { RealtimeUpdater } from "@/components/RealtimeUpdater";
 import "./test-theme.css";
+import { useUpdateManager } from "@/hooks/use-update-manager";
 
 // Componentes leves - import direto
 import Index from "./pages/Index";
@@ -84,6 +85,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Componente que verifica atualização ao navegar
+function UpdateOnNavigation() {
+  const location = useLocation();
+  const { isUpdatePending, applyUpdate } = useUpdateManager();
+
+  useEffect(() => {
+    // Se houver atualização pendente ao mudar de rota, aplicar
+    if (isUpdatePending) {
+      console.log('Atualização pendente detectada na troca de rota. Aplicando...');
+      applyUpdate();
+    }
+  }, [location.pathname, isUpdatePending, applyUpdate]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -94,6 +111,7 @@ const App = () => (
           <UpdateNotification />
           <RealtimeUpdater />
           <BrowserRouter>
+            <UpdateOnNavigation />
             <Routes>
               {/* Rotas públicas - não requerem autenticação */}
               <Route path="/landing" element={<Landing />} />

@@ -2,10 +2,26 @@
 
 const VERSION_KEY = 'app_version';
 const LAST_CHECK_KEY = 'app_version_last_check';
-const CHECK_INTERVAL = 5 * 60 * 1000; // Verificar a cada 5 minutos
+// Aumentado para 60 minutos para evitar verificações excessivas
+const CHECK_INTERVAL = 5 * 60 * 1000; // Verificar a cada 5 minutos (silencioso)
 
 // Versão atual do app (será atualizada automaticamente no build)
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION || Date.now().toString();
+
+// Estado global de atualização
+let updateAvailable = false;
+const listeners: Set<(available: boolean) => void> = new Set();
+
+export const isUpdatePending = () => updateAvailable;
+
+export const subscribeToUpdates = (callback: (available: boolean) => void) => {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
+};
+
+const notifyListeners = () => {
+  listeners.forEach(listener => listener(updateAvailable));
+};
 
 /**
  * Verifica se há uma nova versão disponível
@@ -48,6 +64,8 @@ export async function checkForUpdates(): Promise<boolean> {
     // Se versão mudou, há atualização disponível
     if (storedVersion !== serverVersion) {
       console.log(`Nova versão disponível: ${serverVersion} (atual: ${storedVersion})`);
+      updateAvailable = true;
+      notifyListeners();
       return true;
     }
 
@@ -95,28 +113,23 @@ export function forceUpdate(): void {
 /**
  * Inicia verificação periódica de atualizações
  */
-export function startVersionChecker(onUpdateAvailable: () => void): () => void {
+export function startVersionChecker(onUpdateAvailable?: () => void): () => void {
   // Verificar imediatamente
   checkForUpdates().then(hasUpdate => {
-    if (hasUpdate) onUpdateAvailable();
+    if (hasUpdate && onUpdateAvailable) onUpdateAvailable();
   });
 
   // Verificar periodicamente
   const interval = setInterval(async () => {
     const hasUpdate = await checkForUpdates();
-    if (hasUpdate) onUpdateAvailable();
+    if (hasUpdate && onUpdateAvailable) onUpdateAvailable();
   }, CHECK_INTERVAL);
 
-  // Verificar quando a janela ganha foco
-  const handleFocus = async () => {
-    const hasUpdate = await checkForUpdates();
-    if (hasUpdate) onUpdateAvailable();
-  };
-  window.addEventListener('focus', handleFocus);
+  // Removido listener de focus para evitar checks excessivos na troca de aba
+  // window.addEventListener('focus', handleFocus);
 
   // Retornar função de cleanup
   return () => {
     clearInterval(interval);
-    window.removeEventListener('focus', handleFocus);
   };
 }

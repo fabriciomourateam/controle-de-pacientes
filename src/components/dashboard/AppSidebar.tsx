@@ -66,36 +66,13 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const isCollapsed = state === "collapsed";
-  const { profile } = useProfile();
-  const { hasPermission, isOwner } = useAuthContext();
+  const { profile, loading } = useProfile();
+  const { hasPermission, isOwner, user, profile: authProfile } = useAuthContext();
   const { toast } = useToast();
   const { canAccess } = useAccessControl();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isTeamMember, setIsTeamMember] = useState(false);
 
-  // Buscar email do usuário atual e verificar se é membro de equipe
-  useEffect(() => {
-    async function fetchUserData() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUserEmail(user?.email || null);
-
-        // Verificar se é membro de alguma equipe
-        if (user) {
-          const { data: teamMember, error } = await supabase
-            .from('team_members')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          setIsTeamMember(!!teamMember);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar dados do usuário:', error);
-      }
-    }
-    fetchUserData();
-  }, []);
+  const userEmail = user?.email || null;
+  const isTeamMember = !isOwner;
 
   // Função para fazer logout
   const handleLogout = async () => {
@@ -211,7 +188,7 @@ export function AppSidebar() {
 
   // Reuniões também para membros da equipe (que não são owners)
   // Usar isTeamMember que já foi verificado, ou verificar permissão de dashboard
-  if (!isOwner && userEmail !== ADMIN_EMAIL && (isTeamMember || profile?.permissions?.dashboard)) {
+  if (!isOwner && userEmail !== ADMIN_EMAIL && (isTeamMember || authProfile?.permissions?.dashboard)) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
 
@@ -317,44 +294,60 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 border-t border-slate-700/50">
-        {!isCollapsed ? (
-          <div className="flex items-center gap-2">
-            <Avatar className="w-7 h-7 border-slate-600/50">
-              <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">
-                {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-xs text-white truncate">
-                {profile?.name || 'Usuário'}
-              </p>
-              <p className="text-xs text-slate-400 truncate">
-                {profile?.email || 'email@exemplo.com'}
-              </p>
+        {loading ? (
+          !isCollapsed ? (
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-slate-700/50 animate-pulse" />
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="h-3 w-20 bg-slate-700/50 rounded animate-pulse" />
+                <div className="h-2 w-24 bg-slate-700/50 rounded animate-pulse" />
+              </div>
             </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleLogout();
-              }}
-              className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors cursor-pointer"
-              title="Sair"
-              type="button"
-            >
-              <LogOut className="w-3 h-3 text-slate-400" />
-            </button>
-          </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-7 h-7 rounded-full bg-slate-700/50 animate-pulse" />
+            </div>
+          )
         ) : (
-          <div className="flex justify-center">
-            <Avatar className="w-7 h-7 border-slate-600/50">
-              <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">
-                {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          !isCollapsed ? (
+            <div className="flex items-center gap-2">
+              <Avatar className="w-7 h-7 border-slate-600/50">
+                <AvatarImage src={profile?.avatar_url || ""} />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">
+                  {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-xs text-white truncate">
+                  {profile?.name || 'Usuário'}
+                </p>
+                <p className="text-xs text-slate-400 truncate">
+                  {profile?.email || 'email@exemplo.com'}
+                </p>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleLogout();
+                }}
+                className="p-1 hover:bg-slate-700/50 hover:text-white rounded-md transition-colors cursor-pointer"
+                title="Sair"
+                type="button"
+              >
+                <LogOut className="w-3 h-3 text-slate-400" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <Avatar className="w-7 h-7 border-slate-600/50">
+                <AvatarImage src={profile?.avatar_url || ""} />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 text-xs border border-blue-500/30">
+                  {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )
         )}
       </SidebarFooter>
     </Sidebar>
