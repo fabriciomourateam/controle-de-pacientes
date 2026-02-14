@@ -27,16 +27,19 @@ export const profileService = {
       }
 
       // 1. Buscar dados principais do user_profiles view (sem tipagem na view)
+      // 1. Buscar dados principais do user_profiles view (sem tipagem na view)
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('user_profiles' as any)
         .select('*')
         .eq('id', user.id)
         .single();
 
+      let baseProfileData: any = userProfileData;
+
       if (userProfileError) {
         if (userProfileError.code === 'PGRST116') {
-          // Perfil não existe, retornar dados básicos
-          return {
+          // Perfil não existe na view, usar dados básicos do auth
+          baseProfileData = {
             id: user.id,
             name: user.user_metadata?.full_name || '',
             email: user.email || '',
@@ -49,8 +52,9 @@ export const profileService = {
             checkin_slug: '',
             avatar_url: user.user_metadata?.avatar_url || null
           };
+        } else {
+          throw userProfileError;
         }
-        throw userProfileError;
       }
 
       // 2. Buscar checkin_slug da tabela profiles original (que tem o campo novo)
@@ -62,7 +66,7 @@ export const profileService = {
 
       // Merge dos dados
       return {
-        ...userProfileData,
+        ...(baseProfileData || {}),
         checkin_slug: profileData?.checkin_slug || ''
       };
 
@@ -113,7 +117,7 @@ export const profileService = {
       }
 
       return {
-        ...savedViewData,
+        ...(savedViewData || {}),
         checkin_slug: checkin_slug || ''
       };
     } catch (error) {

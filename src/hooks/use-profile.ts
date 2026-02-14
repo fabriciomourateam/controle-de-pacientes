@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { profileService, UserProfile } from '@/lib/profile-service';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export function useProfile() {
+  const { user } = useAuthContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -16,7 +18,7 @@ export function useProfile() {
       setLoading(true);
       setError(null);
       const profileData = await profileService.getProfile();
-      
+
       if (profileData) {
         setProfile(profileData);
       } else {
@@ -52,13 +54,13 @@ export function useProfile() {
     try {
       setSaving(true);
       setError(null);
-      
+
       // Verificar se o usuário está autenticado
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Usuário não autenticado. Faça login para salvar o perfil.');
       }
-      
+
       const savedProfile = await profileService.saveProfile(profileData);
       setProfile(savedProfile);
       toast({
@@ -110,12 +112,12 @@ export function useProfile() {
       setSaving(true);
       setError(null);
       const avatarUrl = await profileService.uploadAvatar(file);
-      
+
       if (profile) {
         const updatedProfile = { ...profile, avatar_url: avatarUrl };
         await saveProfile(updatedProfile);
       }
-      
+
       return avatarUrl;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer upload do avatar';
@@ -133,8 +135,12 @@ export function useProfile() {
 
   // Carregar perfil na inicialização
   useEffect(() => {
-    loadProfile();
-  }, []);
+    if (user) {
+      loadProfile();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   return {
     profile,
