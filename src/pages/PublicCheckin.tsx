@@ -316,6 +316,7 @@ export default function PublicCheckin() {
         foto_4: fotoUrls[3],
         // Pontuação
         ...scores,
+        user_id: userId,
       };
 
       const { error } = await supabasePublic.from('checkin').insert(checkinData);
