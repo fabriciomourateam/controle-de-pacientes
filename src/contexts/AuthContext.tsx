@@ -33,30 +33,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }, 5000);
 
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      clearTimeout(timeoutId); // Limpar timeout se responder a tempo
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user);
-      } else {
-        setLoading(false);
-      }
-    }).catch(() => {
-      clearTimeout(timeoutId);
-      setLoading(false);
-    });
+    // Função para recuperar sessão com tentativas
+    const recoverSession = async (retries = 3) => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-    // Escutar mudanças de autenticação
+        if (error) {
+          throw error;
+        }
+
+        if (session?.user) {
+          clearTimeout(timeoutId);
+          setUser(session.user);
+          loadProfile(session.user);
+        } else {
+          // Tentar refresh do token se não houver sessão válida
+          const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshedSession?.user) {
+            clearTimeout(timeoutId);
+            setUser(refreshedSession.user);
+            loadProfile(refreshedSession.user);
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Erro na verificação de sessão:', error);
+        if (retries > 0) {
+          // Tentar novamente em 1s
+          setTimeout(() => recoverSession(retries - 1), 1000);
+        } else {
+          clearTimeout(timeoutId);
+          setLoading(false);
+          // Só limpar se for um erro fatal de autenticação
+          if (error.message?.includes('invalid_grant') || error.message?.includes('Invalid Refresh Token')) {
+            console.log('Sessão inválida irrecuperável. Limpando dados.');
+            supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+          }
+        }
+      }
+    };
+
+    recoverSession();
+
+    // Escutar mudanças de autenticação com tratamento robusto
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event);
+
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token renovado com sucesso');
+      }
+
       if (session?.user) {
-        loadProfile(session.user);
-      } else {
+        setUser(session.user);
+        // Só recarregar perfil se mudou o usuário ou se ainda não tem perfil
+        if (!profile || profile.id !== session.user.id) {
+          loadProfile(session.user);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
         setProfile(null);
         setLoading(false);
+      } else if (event === 'SIGNED_IN') {
+        setUser(session?.user ?? null);
+        if (session?.user) loadProfile(session.user);
       }
     });
 

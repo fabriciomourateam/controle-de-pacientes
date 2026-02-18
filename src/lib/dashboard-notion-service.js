@@ -30,7 +30,7 @@ export class DashboardNotionService {
 
       while (hasMore) {
         console.log(`Buscando página ${Math.floor(allData.length / 100) + 1}...`);
-        
+
         const response = await this.notion.databases.query({
           database_id: databaseId,
           start_cursor: startCursor,
@@ -40,7 +40,7 @@ export class DashboardNotionService {
         allData = [...allData, ...response.results];
         hasMore = response.has_more;
         startCursor = response.next_cursor || undefined;
-        
+
         console.log(`Buscados ${allData.length} registros até agora...`);
       }
 
@@ -56,9 +56,9 @@ export class DashboardNotionService {
     try {
       // Usar a API Key que foi passada no construtor
       const apiKey = this.apiKey || this.notion.auth;
-      
+
       console.log('🔑 Usando API Key:', apiKey ? apiKey.substring(0, 10) + '...' : 'undefined');
-      
+
       const response = await fetch(getProxyUrl(), {
         method: 'POST',
         headers: {
@@ -89,41 +89,41 @@ export class DashboardNotionService {
 
   extractText(property) {
     if (!property) return null;
-    
+
     if (property.type === 'title' && property.title?.[0]?.plain_text) {
       return property.title[0].plain_text;
     }
-    
+
     if (property.type === 'rich_text' && property.rich_text?.[0]?.plain_text) {
       return property.rich_text[0].plain_text;
     }
-    
+
     if (property.type === 'select' && property.select?.name) {
       return property.select.name;
     }
-    
+
     return null;
   }
 
   extractNumber(property) {
     if (!property) return null;
-    
+
     if (property.type === 'number' && typeof property.number === 'number') {
       return property.number;
     }
-    
+
     if (property.type === 'rich_text' && property.rich_text?.[0]?.plain_text) {
       const text = property.rich_text[0].plain_text;
       const number = parseFloat(text.replace(/[^\d.-]/g, ''));
       return isNaN(number) ? null : number;
     }
-    
+
     return null;
   }
 
   extractPercentage(property) {
     if (!property) return null;
-    
+
     if (property.type === 'rich_text' && property.rich_text?.[0]?.plain_text) {
       const text = property.rich_text[0].plain_text;
       // Extrair número de strings como "+60%" ou "-5%"
@@ -132,19 +132,19 @@ export class DashboardNotionService {
         return parseFloat(match[1]);
       }
     }
-    
+
     return null;
   }
 
   getMonthNumber(monthName) {
     if (!monthName) return 1;
-    
+
     const months = {
       'janeiro': 1, 'fevereiro': 2, 'março': 3, 'abril': 4,
       'maio': 5, 'junho': 6, 'julho': 7, 'agosto': 8,
       'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
     };
-    
+
     return months[monthName.toLowerCase()] || 1;
   }
 
@@ -155,16 +155,16 @@ export class DashboardNotionService {
 
   mapNotionToDashboard(notionPage) {
     const properties = notionPage.properties || {};
-    
+
     console.log('📋 Mapeando página do Notion:', {
       id: notionPage.id,
       properties: Object.keys(properties)
     });
-    
+
     // Função auxiliar para extrair qualquer valor de forma segura
     const safeExtract = (prop, defaultValue = null) => {
       if (!prop) return defaultValue;
-      
+
       // Tentar diferentes tipos de propriedades
       if (prop.type === 'title' && prop.title?.[0]?.plain_text) {
         return prop.title[0].plain_text;
@@ -187,16 +187,16 @@ export class DashboardNotionService {
           return prop.formula.string;
         }
       }
-      
+
       return defaultValue;
     };
-    
+
     // Mapear campos com nomes flexíveis
     const mes = safeExtract(properties['Mês']) || safeExtract(properties['mês']) || 'Janeiro';
     const ano = safeExtract(properties['Ano']) || safeExtract(properties['ano']) || new Date().getFullYear();
     const mesNumero = safeExtract(properties['Mês Número']) || safeExtract(properties['mes_numero']) || this.getMonthNumber(mes);
     const dataReferencia = this.formatDate(ano, mesNumero);
-    
+
     const ativosTotal = safeExtract(properties['Ativos (Total início do mês)']) || safeExtract(properties['Ativos Total']) || 50;
     const saldoEntradaSaida = safeExtract(properties['Saldo (Entrada/Saída)']) || safeExtract(properties['Saldo']) || 5;
     const entraram = safeExtract(properties['Entraram']) || 10;
@@ -206,7 +206,7 @@ export class DashboardNotionService {
     const desistencia = safeExtract(properties['Desitência']) || safeExtract(properties['Desistencia']) || 2;
     const congelamento = safeExtract(properties['Congelamento']) || 0;
     const churnMax = safeExtract(properties['Churn Máx']) || safeExtract(properties['Churn Max']) || 10;
-    
+
     // Extrair percentuais com nomes flexíveis
     const percentualRenovacao = safeExtract(properties['% Renov: +60%']) || safeExtract(properties['% Renov']) || safeExtract(properties['Renovacao']) || 85;
     const percentualChurn = safeExtract(properties['% Churn: -5%']) || safeExtract(properties['% Churn']) || safeExtract(properties['Churn']) || 15;
@@ -228,7 +228,7 @@ export class DashboardNotionService {
       percentual_churn: percentualChurn.toString(),
       churn_max: churnMax.toString(),
     };
-    
+
     console.log('✅ Dados mapeados:', mappedData);
     return mappedData;
   }
@@ -236,7 +236,7 @@ export class DashboardNotionService {
   async syncToSupabase(databaseId) {
     try {
       console.log('🔄 Processando dados do Notion para métricas...');
-      
+
       // Usar apenas o proxy (SDK está com problemas)
       let notionData = [];
       try {
@@ -245,7 +245,7 @@ export class DashboardNotionService {
       } catch (proxyError) {
         console.log('❌ Proxy falhou:', proxyError);
         console.log('📊 Inserindo dados de exemplo para o dashboard funcionar...');
-        
+
         // Inserir dados de exemplo quando há erro na sincronização
         try {
           const exampleData = [
@@ -335,7 +335,7 @@ export class DashboardNotionService {
 
       // Mapear dados do Notion para formato do Supabase
       const mappedData = notionData.map(page => this.mapNotionToDashboard(page));
-      
+
       console.log(`📋 Dados mapeados: ${mappedData.length}`);
 
       let imported = 0;

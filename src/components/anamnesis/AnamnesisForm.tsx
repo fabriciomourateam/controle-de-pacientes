@@ -336,29 +336,29 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
 
   // Persistence: Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('anamnesis-form-progress');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('anamnesis-form-progress');
+      if (saved) {
         const parsed = JSON.parse(saved);
-        // Date objects or Files won't be restored perfectly from JSON. Files are lost.
-        // We only restore text fields.
         setForm(prev => ({
           ...prev,
           ...parsed,
-          // Convert string dates back if needed, specifically for local state logic if any
-          // But main form fields are strings anyway except files.
           foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null
         }));
-      } catch (e) {
-        console.error('Failed to load saved form', e);
       }
+    } catch (e) {
+      console.error('Failed to load saved form', e);
     }
   }, []);
 
   // Persistence: Save to localStorage on change
   useEffect(() => {
-    const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null };
-    localStorage.setItem('anamnesis-form-progress', JSON.stringify(dataToSave));
+    try {
+      const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null };
+      localStorage.setItem('anamnesis-form-progress', JSON.stringify(dataToSave));
+    } catch (e) {
+      console.error('Failed to save form progress', e);
+    }
   }, [form]);
 
   const updateField = (key: keyof FormData, value: any) => setForm(prev => ({ ...prev, [key]: value }));

@@ -40,7 +40,7 @@ interface CommercialMetricsData {
 export class N8NDataTableService {
   private static readonly N8N_BASE_URL = 'http://localhost:3002';
   private static readonly API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMzg3MmUxMy00YWE1LTRlNDAtYjRhNi03NTQ2ZjQyZGQ5NTgiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU5NTE0NTg5fQ.aI088L82zfQYwuTCLrN4IiSuD4XuFC6hxmtWMpys0ko';
-  
+
   // IDs das tabelas do N8N (baseado no seu JSON)
   private static readonly TABLES = {
     LEADS_QUE_ENTRARAM: '07P5hv4Q2O4fRA7t', // "Leads que Entraram"
@@ -63,14 +63,14 @@ export class N8NDataTableService {
 
       // Processar dados de leads diários
       const dailyLeads = this.processDailyLeads(leadsData);
-      
+
       // Processar dados de calls diários
       const dailyCalls = this.processDailyCalls(callsData);
-      
+
       // Processar métricas mensais
       const monthlyLeads = this.processMonthlyLeads(monthlyLeadsData);
       const monthlyCalls = this.processMonthlyCalls(callsData);
-      
+
       // Calcular totais
       const totalLeads = dailyLeads.reduce((sum, item) => sum + item.total, 0);
       const totalCalls = dailyCalls.reduce((sum, item) => sum + item.scheduled, 0);
@@ -165,7 +165,7 @@ export class N8NDataTableService {
   } {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    
+
     const currentMonthData = monthlyData.find(item => {
       const itemDate = new Date(item.LEADS || item.leads || '');
       return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
@@ -173,7 +173,7 @@ export class N8NDataTableService {
 
     const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    
+
     const previousMonthData = monthlyData.find(item => {
       const itemDate = new Date(item.LEADS || item.leads || '');
       return itemDate.getMonth() === previousMonth && itemDate.getFullYear() === previousYear;
@@ -193,7 +193,7 @@ export class N8NDataTableService {
   } {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    
+
     const currentMonthCalls = callsData
       .filter(item => {
         const itemDate = new Date(item.AGENDADAS || item.agendadas || '');
@@ -203,7 +203,7 @@ export class N8NDataTableService {
 
     const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    
+
     const previousMonthCalls = callsData
       .filter(item => {
         const itemDate = new Date(item.AGENDADAS || item.agendadas || '');
@@ -218,7 +218,7 @@ export class N8NDataTableService {
 
   private static formatDate(dateStr: string): string {
     if (!dateStr) return '';
-    
+
     try {
       // Tenta diferentes formatos de data
       const formats = [
@@ -253,7 +253,7 @@ export class N8NDataTableService {
   private static parseNumber(value: any): number {
     if (value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
-    
+
     const cleaned = value.toString().replace(/[^\d,.-]/g, '');
     const normalized = cleaned.replace(',', '.');
     return parseFloat(normalized) || 0;

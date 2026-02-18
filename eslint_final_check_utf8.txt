@@ -1,0 +1,18 @@
+﻿
+C:\Users\fhbom\STAR CONTROLE DE PACIENTES\controle-de-pacientes\src\components\anamnesis\AnamnesisForm.tsx
+  191:6    warning  React Hook useEffect has a missing dependency: 'value'. Either include it or remove the dependency array. If 'setBody' needs the current value of 'value', you can also switch to useReducer instead of useState and read 'value' in the reducer  react-hooks/exhaustive-deps
+  315:36   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  371:52   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  422:33   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  671:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  886:44   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  892:121  error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  955:60   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  956:32   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  967:29   error    Unexpected any. Specify a different type                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+
+C:\Users\fhbom\STAR CONTROLE DE PACIENTES\controle-de-pacientes\src\components\checkin-public\ChatCheckinEngine.tsx
+  250:6  warning  React Hook useEffect has a missing dependency: 'startFlow'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+Ô£û 11 problems (9 errors, 2 warnings)
+

@@ -243,19 +243,27 @@ export default function NewPatientAnamnesis() {
       console.log('Anamnesis data before filling missing fields:', anamneseData);
 
       // Preencher campos vazios com "Sem dados" baseando-se no fluxo ativo
-      const activeFlow = flowSteps || DEFAULT_ANAMNESIS_FLOW;
+      try {
+        const activeFlow = Array.isArray(flowSteps) ? flowSteps : DEFAULT_ANAMNESIS_FLOW;
 
-      activeFlow.forEach(section => {
-        section.fields.forEach(field => {
-          if (field.targetField === 'anamnese') {
-            // Check if field exists in data. If not, or if it is empty string/null/undefined
-            const value = anamneseData[field.field];
-            if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
-              anamneseData[field.field] = 'Sem dados';
+        if (Array.isArray(activeFlow)) {
+          activeFlow.forEach(section => {
+            if (section && Array.isArray(section.fields)) {
+              section.fields.forEach(field => {
+                if (field && field.targetField === 'anamnese' && field.field) {
+                  const value = anamneseData[field.field];
+                  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+                    anamneseData[field.field] = 'Sem dados';
+                  }
+                }
+              });
             }
-          }
-        });
-      });
+          });
+        }
+      } catch (flowError) {
+        console.error('Erro ao processar fluxo ativo (non-critical):', flowError);
+        // Não interrompe o fluxo principal
+      }
 
       console.log('Anamnese salva com sucesso (dados completos):', anamneseData);
 
@@ -285,7 +293,7 @@ export default function NewPatientAnamnesis() {
       console.error('Erro detalhado ao cadastrar:', JSON.stringify(error, null, 2));
       toast({
         title: 'Erro ao enviar',
-        description: error.message || 'Verifique o console para mais detalhes.',
+        description: error.message || 'Ocorreu um erro ao salvar seus dados. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
@@ -325,7 +333,9 @@ export default function NewPatientAnamnesis() {
   // Sucesso
   if (success) {
     const fmTitle = finalMessage?.title || 'Anamnese enviada!';
-    const fmSubtitle = finalMessage?.subtitle || 'Seus dados foram enviados com sucesso.\nEm até **72 horas úteis** seu planejamento será entregue!';
+    // Ensure subtitle is a string before replace and handle potential undefined/null
+    const rawSubtitle = finalMessage?.subtitle || 'Seus dados foram enviados com sucesso.\nEm até **72 horas úteis** seu planejamento será entregue!';
+    const fmSubtitle = String(rawSubtitle || '');
     const fmFooter = finalMessage?.footer || 'Tenho certeza que você terá ótimos resultados! 🎯';
 
     return (

@@ -78,8 +78,8 @@ export function DashboardOverview() {
   const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics(filterThisMonth);
   const { data: chartData, isLoading: chartLoading } = useChartData(filterThisMonth);
   const { data: expiringPatients = [], isLoading: expiringLoading } = useExpiringPatients();
-  const { data: recentCheckinsFromHook = [], isLoading: checkinsLoadingFromHook } = useRecentFeedbacks();
-  const { data: recentCheckins = [], isLoading: checkinsLoading } = useCheckinsWithPatient();
+  // Otimização: buscar apenas os 5 últimos check-ins para o dashboard
+  const { data: recentCheckins = [], isLoading: checkinsLoading } = useCheckinsWithPatient(5);
 
   const metrics = metricsData || {
     totalPatients: 0,
