@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR" translate="no" class="notranslate">
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Shape - Construindo Resultados</title>
   <meta name="description"
@@ -115,6 +116,25 @@
         return originalGetPrototypeOf.call(this, obj);
       };
     })();
+  </script>
+  <script>
+    // Suppress non-critical DOM errors caused by browser extensions (Google Translate, Grammarly, etc.)
+    // These extensions modify the DOM outside React's control, causing insertBefore/removeChild crashes.
+    window.addEventListener('error', function (event) {
+      var msg = (event.message || '').toLowerCase();
+      if (
+        msg.includes('insertbefore') ||
+        msg.includes('removechild') ||
+        msg.includes('appendchild') ||
+        msg.includes('not a child of this node') ||
+        msg.includes('notfounderror')
+      ) {
+        console.warn('[Global] Erro de DOM suprimido (extensão do navegador):', event.message);
+        event.preventDefault();
+        event.stopPropagation();
+        return true;
+      }
+    }, true);
   </script>
   <script type="module" src="/src/main.tsx"></script>
 

@@ -4,12 +4,21 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X, Camera, Phone, Calendar, Download } from 'lucide-react';
+import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X, Camera, Phone, Calendar, Download, Utensils } from 'lucide-react';
 import { useCheckinFeedback } from '../../hooks/use-checkin-feedback';
 import { useFeedbackTemplates } from '../../hooks/use-feedback-templates';
 import { useAllCheckins } from '../../hooks/use-all-checkins';
 import { extractMeasurements } from '../../lib/measurement-utils';
 import { PromptEditor } from '../evolution/PromptEditor';
+import { DietAdjustmentPromptEditor } from './DietAdjustmentPromptEditor';
+import { DietAdjustmentModal } from './DietAdjustmentModal';
+import { ManualDietAdjustmentModal } from './ManualDietAdjustmentModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CheckinWithPatient } from '@/lib/checkin-service';
@@ -63,6 +72,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     }
   };
   const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [showDietAdjustmentModal, setShowDietAdjustmentModal] = useState(false);
+  const [showManualDietModal, setShowManualDietModal] = useState(false);
   const [observedImprovements, setObservedImprovements] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [dietAdjustments, setDietAdjustments] = useState('');
@@ -791,8 +802,10 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
+                  className="space-y-3"
                 >
                   <PromptEditor />
+                  <DietAdjustmentPromptEditor />
                 </motion.div>
               )}
 
@@ -3691,6 +3704,35 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                       )}
                       {isGenerating ? 'Gerando...' : 'Gerar Feedback'}
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          title="Ajustar dieta do paciente"
+                        >
+                          <Utensils className="h-3 w-3 mr-1" />
+                          Ajuste Dieta
+                          <ChevronDown className="h-3 w-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                        <DropdownMenuItem
+                          onClick={() => setShowDietAdjustmentModal(true)}
+                          className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer"
+                        >
+                          <Sparkles className="h-3.5 w-3.5 mr-2 text-blue-400" />
+                          Ajuste pela IA
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setShowManualDietModal(true)}
+                          className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer"
+                        >
+                          <Utensils className="h-3.5 w-3.5 mr-2 text-emerald-400" />
+                          Ajuste Manual
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardContent>
               </Card>
@@ -3857,6 +3899,34 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
         onOpenChange={setShowBioimpedanciaModal}
         telefone={checkin.telefone}
         patientName={checkin.patient?.nome || checkin.nome || 'Paciente'}
+      />
+
+      {/* Modal de Ajuste de Dieta IA */}
+      <DietAdjustmentModal
+        open={showDietAdjustmentModal}
+        onOpenChange={setShowDietAdjustmentModal}
+        checkinId={checkin.id}
+        patientId={patientId || ''}
+        checkinData={checkin}
+        evolutionData={evolutionData}
+        patientName={checkin.patient?.nome || checkin.nome || 'Paciente'}
+        onAdjustmentComplete={() => {
+          refreshData();
+          onUpdate?.();
+        }}
+      />
+
+      {/* Modal de Ajuste Manual de Dieta */}
+      <ManualDietAdjustmentModal
+        open={showManualDietModal}
+        onOpenChange={setShowManualDietModal}
+        patientId={patientId || ''}
+        checkinData={checkin}
+        patientName={checkin.patient?.nome || checkin.nome || 'Paciente'}
+        onComplete={() => {
+          refreshData();
+          onUpdate?.();
+        }}
       />
     </div>
   );

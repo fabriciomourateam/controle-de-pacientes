@@ -1403,7 +1403,7 @@ export function DietPlanForm({
   const formContent = (
     <>
       <Form {...form}>
-        <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-24">
+        <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
               <TabsTrigger
@@ -1783,7 +1783,7 @@ export function DietPlanForm({
 
               {/* ABA 2: Refeições */}
               {activeTab === "meals" && (
-                <div className="bg-white flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+                <div className="bg-white flex flex-col" style={isPageMode ? {} : { height: 'calc(100vh - 200px)', minHeight: '600px' }}>
                   <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
                     <div className="flex items-center justify-between">
                       <div>

@@ -340,26 +340,30 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       const saved = localStorage.getItem('anamnesis-form-progress');
       if (saved) {
         const parsed = JSON.parse(saved);
+        const { _step, ...formFields } = parsed;
         setForm(prev => ({
           ...prev,
-          ...parsed,
+          ...formFields,
           foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null
         }));
+        if (_step && _step >= 1 && _step <= STEPS.length) {
+          setStep(_step);
+        }
       }
     } catch (e) {
       console.error('Failed to load saved form', e);
     }
   }, []);
 
-  // Persistence: Save to localStorage on change
+  // Persistence: Save to localStorage on change (includes current step)
   useEffect(() => {
     try {
-      const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null };
+      const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null, _step: step };
       localStorage.setItem('anamnesis-form-progress', JSON.stringify(dataToSave));
     } catch (e) {
       console.error('Failed to save form progress', e);
     }
-  }, [form]);
+  }, [form, step]);
 
   const updateField = (key: keyof FormData, value: any) => setForm(prev => ({ ...prev, [key]: value }));
   const updateAnamnese = (key: keyof AnamnesisData, value: string) => setForm(prev => ({ ...prev, anamnese: { ...prev.anamnese, [key]: value } }));

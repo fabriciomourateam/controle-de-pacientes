@@ -12,6 +12,23 @@ interface State {
     error: Error | null;
 }
 
+// Known non-critical DOM errors caused by browser extensions (Google Translate, Grammarly, etc.)
+const IGNORABLE_ERRORS = [
+    "insertBefore",
+    "removeChild",
+    "appendChild",
+    "The node before which the new node is to be inserted is not a child of this node",
+    "Failed to execute 'removeChild' on 'Node'",
+    "Failed to execute 'insertBefore' on 'Node'",
+    "Failed to execute 'appendChild' on 'Node'",
+    "NotFoundError",
+];
+
+function isIgnorableDOMError(error: Error): boolean {
+    const msg = error?.message || error?.toString() || "";
+    return IGNORABLE_ERRORS.some((pattern) => msg.includes(pattern));
+}
+
 export class ErrorBoundary extends Component<Props, State> {
     public state: State = {
         hasError: false,
@@ -19,10 +36,29 @@ export class ErrorBoundary extends Component<Props, State> {
     };
 
     public static getDerivedStateFromError(error: Error): State {
+        // If it's a DOM manipulation error from browser extensions, don't crash
+        if (isIgnorableDOMError(error)) {
+            console.warn(
+                "[ErrorBoundary] Suprimindo erro de DOM causado por extensão do navegador (Google Translate, etc.):",
+                error.message
+            );
+            return { hasError: false, error: null };
+        }
         return { hasError: true, error };
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        if (isIgnorableDOMError(error)) {
+            console.warn(
+                "[ErrorBoundary] Erro de DOM ignorado (provavelmente Google Translate):",
+                error.message
+            );
+            // Auto-recover: reset state after a short delay
+            setTimeout(() => {
+                this.setState({ hasError: false, error: null });
+            }, 100);
+            return;
+        }
         console.error("Uncaught error:", error, errorInfo);
     }
 

@@ -16,7 +16,8 @@ import {
   Inbox,
   RefreshCw,
   Clock,
-  Scale
+  Scale,
+  Utensils
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCheckinsWithScheduledRefetch, useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { getNextScheduledUpdate } from "@/hooks/use-scheduled-refetch";
 import { usePatientsWithBioimpedance } from "@/hooks/use-patients-with-bioimpedance";
+import { usePatientsWithDietPlan } from "@/hooks/use-patients-with-diet-plan";
 import { CheckinItemSkeleton, MetricCardSkeleton } from "@/components/ui/loading-skeleton";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
 import { CheckinForm } from "@/components/forms/CheckinForm";
@@ -164,6 +166,7 @@ export function CheckinsList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // Padrão: mais antigo primeiro (enviados primeiro no topo)
   const [filterWithBioimpedance, setFilterWithBioimpedance] = useState(false);
   const [patientsWithBioimpedance, setPatientsWithBioimpedance] = useState<Set<string>>(new Set());
+  const [patientsWithDietPlan, setPatientsWithDietPlan] = useState<Set<string>>(new Set());
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
 
   // Estado para controlar o limite de checkins carregados
@@ -260,12 +263,19 @@ export function CheckinsList() {
   // Carregar lista de telefones que têm bioimpedância
   // Otimizado: usa React Query com cache
   const { data: patientsWithBioimpedanceData } = usePatientsWithBioimpedance();
+  const { data: patientsWithDietPlanData } = usePatientsWithDietPlan();
 
   useEffect(() => {
     if (patientsWithBioimpedanceData) {
       setPatientsWithBioimpedance(patientsWithBioimpedanceData);
     }
   }, [patientsWithBioimpedanceData]);
+
+  useEffect(() => {
+    if (patientsWithDietPlanData) {
+      setPatientsWithDietPlan(patientsWithDietPlanData);
+    }
+  }, [patientsWithDietPlanData]);
 
   // Debounce na busca para melhorar performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -818,6 +828,7 @@ export function CheckinsList() {
 
               const telefoneCheckin = checkin.telefone || checkin.patient?.telefone;
               const hasBioimpedance = !!(telefoneCheckin && patientsWithBioimpedance.has(telefoneCheckin));
+              const hasDietPlan = !!(checkin.patient?.id && patientsWithDietPlan.has(checkin.patient.id));
 
               return (
                 <div key={checkin.id} className={`px-2.5 py-3 backdrop-blur-sm rounded-lg border border-slate-700/50 transition-all duration-300 ease-out ${assigneeColor
@@ -859,6 +870,20 @@ export function CheckinsList() {
                           </Tooltip>
                         </TooltipProvider>
                       )}
+                      {hasDietPlan && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                <Utensils className="w-3.5 h-3.5" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Paciente com plano alimentar cadastrado</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
 
                     {/* No mobile: uma linha com Status, Responsável e Ações. No desktop: cada um vira coluna do grid (md:contents) */}
@@ -882,66 +907,66 @@ export function CheckinsList() {
                         />
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0 justify-end w-full md:justify-end" data-no-expand>
-                      <CheckinQuickControls
-                        checkin={checkin}
-                        teamMembers={teamMembers}
-                        onUpdate={refetch}
-                        notesCount={checkin.notes_count || 0}
-                        showOnlyActions={true}
-                      />
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Link
-                              to={`/checkins/evolution/${checkin.telefone}`}
-                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-7 w-7 p-0"
-                              onContextMenu={(e) => {
-                                // Permite o menu de contexto padrão do navegador
-                                // O navegador já oferece "Abrir em nova aba" no menu de contexto
-                              }}
-                            >
-                              <FileText className="w-4 h-4" />
-                            </Link>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Ver dossiê de evolução (clique direito para abrir em nova aba)</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleViewCheckin(checkin)}
-                              className="h-7 w-7 p-0 hover:bg-slate-700/50"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Ver detalhes</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditCheckin(checkin)}
-                              className="h-7 w-7 p-0 hover:bg-slate-700/50"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Editar checkin</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                        <CheckinQuickControls
+                          checkin={checkin}
+                          teamMembers={teamMembers}
+                          onUpdate={refetch}
+                          notesCount={checkin.notes_count || 0}
+                          showOnlyActions={true}
+                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                to={`/checkins/evolution/${checkin.telefone}`}
+                                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-blue-500/20 hover:text-blue-300 h-7 w-7 p-0"
+                                onContextMenu={(e) => {
+                                  // Permite o menu de contexto padrão do navegador
+                                  // O navegador já oferece "Abrir em nova aba" no menu de contexto
+                                }}
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver dossiê de evolução (clique direito para abrir em nova aba)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleViewCheckin(checkin)}
+                                className="h-7 w-7 p-0 hover:bg-slate-700/50"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver detalhes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditCheckin(checkin)}
+                                className="h-7 w-7 p-0 hover:bg-slate-700/50"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar checkin</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </div>
