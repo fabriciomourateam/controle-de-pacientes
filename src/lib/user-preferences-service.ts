@@ -39,7 +39,7 @@ class UserPreferencesService {
     if (supabaseUserId) {
       return supabaseUserId;
     }
-    
+
     // Fallback para desenvolvimento ou quando não há autenticação
     let userId = localStorage.getItem('user_session_id');
     if (!userId) {
@@ -53,12 +53,12 @@ class UserPreferencesService {
   async getUserPreferences(): Promise<UserPreferences | null> {
     const supabaseUserId = await getCurrentUserId();
     const localStorageUserId = localStorage.getItem('user_session_id');
-    
+
     console.log('🔍 [UserPreferences] Buscando preferências:', {
       supabaseUserId,
       localStorageUserId
     });
-    
+
     try {
       // Primeiro tenta buscar com o user_id do Supabase (novo formato)
       if (supabaseUserId) {
@@ -70,7 +70,7 @@ class UserPreferencesService {
         if (!supabaseError && supabaseData && supabaseData.length > 0) {
           let prefs = supabaseData[0];
           const hasRenewals = prefs?.filters?.sent_renewals && prefs.filters.sent_renewals.length > 0;
-          
+
           console.log('✅ [UserPreferences] Encontradas preferências com Supabase user_id:', {
             user_id: prefs.user_id,
             sent_renewals_count: prefs?.filters?.sent_renewals?.length || 0,
@@ -78,24 +78,24 @@ class UserPreferencesService {
             filters_keys: Object.keys(prefs?.filters || {}),
             hasRenewals
           });
-          
+
           // Se não tem renovações, buscar em outras preferências do mesmo usuário
           if (!hasRenewals) {
             console.log('🔍 [UserPreferences] Nenhuma renovação encontrada, buscando em outras preferências...');
-            
+
             // Buscar todas as preferências que tenham sent_renewals (pode ser de user_id antigo)
             const { data: allPrefsWithRenewals, error: searchError } = await supabase
               .from('user_preferences')
               .select('*')
               .not('filters->sent_renewals', 'is', null);
-            
+
             if (!searchError && allPrefsWithRenewals && allPrefsWithRenewals.length > 0) {
               console.log('🔍 [UserPreferences] Encontradas outras preferências com sent_renewals:', {
                 count: allPrefsWithRenewals.length,
                 user_ids: allPrefsWithRenewals.map(p => p.user_id),
                 renewals_counts: allPrefsWithRenewals.map(p => p?.filters?.sent_renewals?.length || 0)
               });
-              
+
               // Tentar encontrar preferências que possam ser do mesmo usuário
               // (por exemplo, se o user_id antigo está relacionado de alguma forma)
               for (const otherPref of allPrefsWithRenewals) {
@@ -104,26 +104,26 @@ class UserPreferencesService {
                     other_user_id: otherPref.user_id,
                     renewals_count: otherPref.filters.sent_renewals.length
                   });
-                  
+
                   // Mesclar renovações
                   const mergedRenewals = [
                     ...(prefs?.filters?.sent_renewals || []),
                     ...(otherPref.filters.sent_renewals || [])
                   ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicatas
-                  
+
                   // Preservar renewal_templates de ambos (preferir o que tiver mais)
                   const prefsTemplates = prefs?.filters?.renewal_templates;
                   const otherTemplates = otherPref.filters?.renewal_templates;
                   const mergedTemplates = Array.isArray(prefsTemplates) && prefsTemplates.length > 0
                     ? prefsTemplates
                     : (Array.isArray(otherTemplates) && otherTemplates.length > 0 ? otherTemplates : prefsTemplates || []);
-                  
+
                   const mergedFilters = {
                     ...prefs.filters,
                     sent_renewals: mergedRenewals,
                     renewal_templates: mergedTemplates
                   };
-                  
+
                   const { data: updatedPrefs, error: updateError } = await supabase
                     .from('user_preferences')
                     .update({
@@ -133,7 +133,7 @@ class UserPreferencesService {
                     .eq('user_id', supabaseUserId)
                     .select()
                     .single();
-                  
+
                   if (!updateError && updatedPrefs) {
                     console.log('✅ [UserPreferences] Renovações migradas com sucesso:', {
                       total_renewals: mergedRenewals.length
@@ -144,7 +144,7 @@ class UserPreferencesService {
               }
             }
           }
-          
+
           // Extrair templates de um objeto filters (qualquer chave que seja array ou objeto de modelos)
           const extractTemplatesFromFilters = (filters: any): any[] => {
             if (!filters || typeof filters !== 'object') return [];
@@ -172,12 +172,15 @@ class UserPreferencesService {
           // Log para debug: quais chaves existem em filters (ajuda a achar onde os modelos estão)
           const filterKeys = Object.keys(prefs.filters || {});
           if (filterKeys.length) {
+            // Comentado para limpar o console
+            /*
             const keyInfo = filterKeys.map((k) => {
               const v = (prefs.filters as any)[k];
               const typ = Array.isArray(v) ? `array[${v.length}]` : typeof v;
               return `${k}: ${typ}`;
             });
             console.log('📋 [UserPreferences] Chaves em filters:', keyInfo.join(', '));
+            */
           }
           const seen = new Set<string>();
           const merged: any[] = [];
@@ -213,7 +216,7 @@ class UserPreferencesService {
               }).eq('user_id', supabaseUserId);
             }
           }
-          
+
           return prefs;
         }
 
@@ -232,9 +235,9 @@ class UserPreferencesService {
               newUserId: supabaseUserId,
               sent_renewals: oldData[0]?.filters?.sent_renewals?.length || 0
             });
-            
+
             const oldPreferences = oldData[0];
-            
+
             // Criar/atualizar com o novo user_id, mesclando com dados existentes se houver
             const { data: existingNewData } = await supabase
               .from('user_preferences')
@@ -308,7 +311,7 @@ class UserPreferencesService {
   // Método com fallback para problemas de schema cache
   async upsertUserPreferencesWithFallback(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
     console.log('Tentando salvar com fallback...', preferences);
-    
+
     // Se tiver read_notifications, tentar salvar no campo filters diretamente para evitar erro
     if (preferences.read_notifications) {
       const currentPrefs = await this.getUserPreferences();
@@ -316,12 +319,12 @@ class UserPreferencesService {
         ...(currentPrefs?.filters || {}),
         read_notifications: preferences.read_notifications
       };
-      
+
       return await this.upsertUserPreferences({
         filters: updatedFilters
       });
     }
-    
+
     // Para outros campos, usar método normal
     return await this.upsertUserPreferences(preferences);
   }
@@ -330,10 +333,10 @@ class UserPreferencesService {
   async upsertUserPreferences(preferences: Partial<UserPreferences>): Promise<UserPreferences | null> {
     const supabaseUserId = await getCurrentUserId();
     const userId = supabaseUserId || await this.getUserId(); // Usar Supabase ID se disponível
-    
+
     // Primeiro, buscar preferências existentes (isso também faz a migração se necessário)
     const existingPrefs = await this.getUserPreferences();
-    
+
     try {
       // Mesclar preferências existentes com as novas
       const mergedPreferences = {
@@ -353,14 +356,14 @@ class UserPreferencesService {
 
       if (error) {
         console.error('Erro ao salvar preferências:', error);
-        
+
         // Se o erro for por coluna não encontrada, tentar criar apenas com campos básicos
         if (error.code === 'PGRST204' && error.message.includes('read_notifications')) {
           console.warn('Coluna read_notifications não encontrada. Execute o SQL para adicionar a coluna.');
           console.warn('SQL necessário: ALTER TABLE user_preferences ADD COLUMN read_notifications JSONB DEFAULT \'[]\';');
           return null;
         }
-        
+
         throw error;
       }
 
@@ -375,16 +378,16 @@ class UserPreferencesService {
   async getReadNotifications(): Promise<string[]> {
     try {
       const preferences = await this.getUserPreferences();
-      
+
       // Tentar primeiro o campo read_notifications, depois usar fallback no filters
       let readNotifications: string[] = [];
-      
+
       if (preferences?.read_notifications) {
         readNotifications = preferences.read_notifications;
       } else if (preferences?.filters?.read_notifications) {
         readNotifications = preferences.filters.read_notifications;
       }
-      
+
       return readNotifications;
     } catch (error) {
       // Silenciar erros de notificações para evitar poluição do console
@@ -396,13 +399,13 @@ class UserPreferencesService {
   async markNotificationAsRead(notificationId: string): Promise<boolean> {
     try {
       const currentReadNotifications = await this.getReadNotifications();
-      
+
       if (currentReadNotifications.includes(notificationId)) {
         return true; // Já está marcada como lida
       }
 
       const updatedReadNotifications = [...currentReadNotifications, notificationId];
-      
+
       // Tentar salvar no campo dedicado primeiro, depois usar fallback
       let result = await this.upsertUserPreferencesWithFallback({
         read_notifications: updatedReadNotifications
@@ -419,15 +422,15 @@ class UserPreferencesService {
   async markMultipleNotificationsAsRead(notificationIds: string[]): Promise<boolean> {
     try {
       const currentReadNotifications = await this.getReadNotifications();
-      
+
       const newNotifications = notificationIds.filter(id => !currentReadNotifications.includes(id));
-      
+
       if (newNotifications.length === 0) {
         return true; // Todas já estão marcadas como lidas
       }
 
       const updatedReadNotifications = [...currentReadNotifications, ...newNotifications];
-      
+
       const result = await this.upsertUserPreferencesWithFallback({
         read_notifications: updatedReadNotifications
       });
@@ -498,7 +501,7 @@ class UserPreferencesService {
   async savePatientPreferences(preferences: PatientViewPreferences): Promise<PatientViewPreferences> {
     try {
       const currentPrefs = await this.getUserPreferences();
-      
+
       const updatedPrefs = await this.upsertUserPreferences({
         filters: {
           ...(currentPrefs?.filters || {}),

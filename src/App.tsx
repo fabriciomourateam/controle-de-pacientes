@@ -75,10 +75,10 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutos - dados considerados "frescos" por mais tempo
+      staleTime: 30 * 1000, // 30 segundos - dados considerados "frescos" por menos tempo
       gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido por mais tempo
-      refetchOnWindowFocus: false, // ❌ Desabilitado - usa Realtime para detectar mudanças
-      refetchOnReconnect: false, // ❌ Desabilitado - usa Realtime para detectar mudanças
+      refetchOnWindowFocus: true, // ✅ Reabilitado para melhor UX
+      refetchOnReconnect: true, // ✅ Reabilitado
       retry: 1, // Tentar apenas 1 vez em caso de erro
       refetchInterval: false, // Desabilitado por padrão - usa atualização agendada (4x ao dia)
     },
