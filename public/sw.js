@@ -1,5 +1,5 @@
 // Service Worker para PWA
-const CACHE_NAME = 'controle-pacientes-v5'; // Incrementar versão para forçar atualização
+const CACHE_NAME = 'controle-pacientes-v6'; // Incrementar versão para forçar atualização
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,7 +10,7 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
   // Forçar atualização imediata, não esperar pelo cache
   self.skipWaiting();
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -29,11 +29,23 @@ self.addEventListener('install', (event) => {
 
 // Interceptar requisições
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Não fazer cache de requisições de API, Supabase ou rotas do servidor do vite
+  if (
+    url.pathname.startsWith('/rest/v1/') ||
+    url.pathname.startsWith('/auth/v1/') ||
+    url.hostname.includes('supabase.co') ||
+    event.request.method !== 'GET'
+  ) {
+    return; // Deixar o navegador buscar normalmente
+  }
+
   // Não fazer cache de arquivos com hash - sempre buscar do servidor
   if (event.request.url.includes('/assets/')) {
     return; // Deixar o navegador buscar normalmente
   }
-  
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -43,7 +55,8 @@ self.addEventListener('fetch', (event) => {
         }
         return fetch(event.request);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Service Worker Fetch Erro:', error);
         // Em caso de erro, buscar do servidor
         return fetch(event.request);
       })

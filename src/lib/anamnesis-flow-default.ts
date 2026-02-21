@@ -92,7 +92,7 @@ export const DEFAULT_ANAMNESIS_FLOW: AnamnesisFlowStep[] = [
         sectionEmoji: '📏',
         fields: [
             { id: 'peso', type: 'number', label: 'Peso (kg)', placeholder: '70.5', required: true, field: 'peso', targetField: 'form', gridCols: 4 },
-            { id: 'altura', type: 'number', label: 'Altura (cm)', placeholder: '175', required: true, field: 'altura', targetField: 'form', gridCols: 4 },
+            { id: 'altura', type: 'text', label: 'Altura (m)', placeholder: '1,75', required: true, field: 'altura', targetField: 'form', gridCols: 4 },
             { id: 'cintura', type: 'number', label: 'Cintura (cm)', placeholder: '80', required: true, field: 'cintura', targetField: 'form', gridCols: 4 },
             { id: 'quadril', type: 'number', label: 'Quadril (cm)', placeholder: '95', required: true, field: 'quadril', targetField: 'form', gridCols: 4 },
             { id: 'foto_frente', type: 'photo', label: 'Frente', required: false, field: 'foto_frente', targetField: 'form', gridCols: 4 },

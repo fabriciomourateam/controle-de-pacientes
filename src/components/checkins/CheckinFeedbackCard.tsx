@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X, Camera, Phone, Calendar, Download, Utensils } from 'lucide-react';
+import { Loader2, Settings, MessageSquare, Copy, ExternalLink, Save, Send, ChevronDown, ChevronUp, Bot, TrendingUp, Sparkles, Check, X, Camera, Phone, Calendar, Download, Utensils, Target } from 'lucide-react';
 import { useCheckinFeedback } from '../../hooks/use-checkin-feedback';
 import { useFeedbackTemplates } from '../../hooks/use-feedback-templates';
 import { useAllCheckins } from '../../hooks/use-all-checkins';
@@ -827,17 +827,44 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           <ChevronDown className="w-4 h-4" />
                         )}
                       </Button>
-                      <TrendingUp className="w-4 h-4 text-green-400" />
-                      <Badge
-                        className="text-xs font-medium text-slate-200 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg cursor-pointer transition-all duration-200 px-2.5 py-1 border-0"
-                        onClick={() => handleExportEvolution('png')}
-                        title="Clique para baixar a evolução do paciente (PNG)"
-                      >
-                        <Download className="w-3 h-3 mr-1.5" />
-                        Evolução Comparativa
-                      </Badge>
+                      {/* Botões Minimalistas Evolução */}
+                      <div className="flex items-center gap-1 ml-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleExportEvolution('png')}
+                          className="h-7 w-7 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"
+                          title="Baixar Evolução do Aluno"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+
+                        {checkin?.telefone && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.open(`/checkins/evolution/${checkin.telefone}`, '_blank')}
+                            className="h-7 w-7 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
+                            title="Ver Dossiê de Evolução"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowAproveitamento(!showAproveitamento)}
+                        className={`h-7 w-7 flex items-center justify-center transition-all ${showAproveitamento
+                          ? 'bg-amber-500/20 hover:bg-amber-500/30 ring-1 ring-amber-500/30'
+                          : 'hover:bg-slate-700/50'
+                          }`}
+                        title={showAproveitamento ? "Ocultar aproveitamento" : "Mostrar aproveitamento"}
+                      >
+                        <span className="text-base leading-none">🎯</span>
+                      </Button>
                       {previousCheckins.length > 1 && (
                         <Button
                           variant="ghost"
@@ -850,18 +877,6 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                           {showAllCheckinsColumns ? 'Ocultar' : `Ver ${previousCheckins.length - 1}`} Check-ins
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAproveitamento(!showAproveitamento)}
-                        className={`text-xs h-7 px-3 font-semibold border transition-all ${showAproveitamento
-                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:text-amber-300 hover:bg-amber-500/30 hover:border-amber-500/50 shadow-sm shadow-amber-500/10'
-                          : 'bg-slate-700/30 text-slate-400 border-slate-600/30 hover:text-slate-300 hover:bg-slate-700/50 hover:border-slate-600/50'
-                          }`}
-                        title={showAproveitamento ? "Ocultar linha de Aproveitamento" : "Mostrar linha de Aproveitamento"}
-                      >
-                        🎯 {showAproveitamento ? 'Ocultar' : 'Mostrar'} Aproveitamento
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -902,8 +917,8 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                         transition={{ duration: 0.2 }}
                       >
                         {evolutionData?.tem_checkin_anterior && evolutionData ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
+                          <div className="overflow-x-auto w-full pb-2">
+                            <table className="w-full text-xs whitespace-nowrap">
                               <thead>
                                 <tr className="border-b border-white/20 bg-slate-800/60">
                                   <th className="text-left py-1.5 px-2 text-slate-300 font-medium sticky left-0 z-10">Métrica</th>

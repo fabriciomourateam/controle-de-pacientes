@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Activity, Plus, ExternalLink, Calculator } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  calcularIMC, 
-  calcularMassaGorda, 
-  calcularMassaMagra, 
+import {
+  calcularIMC,
+  calcularMassaGorda,
+  calcularMassaMagra,
   calcularTMB,
-  classificarIMC 
+  classificarIMC
 } from '@/lib/body-calculations';
 
 interface Bioimpedancia {
@@ -43,13 +43,13 @@ interface BioimpedanciaInputProps {
   autoOpen?: boolean; // Se true, abre o modal automaticamente
 }
 
-export function BioimpedanciaInput({ 
-  telefone, 
-  nome, 
-  idade, 
+export function BioimpedanciaInput({
+  telefone,
+  nome,
+  idade,
   altura,
-  pesoInicial, 
-  sexo, 
+  pesoInicial,
+  sexo,
   onSuccess,
   editingBio,
   onCancel,
@@ -60,7 +60,7 @@ export function BioimpedanciaInput({
   const [loading, setLoading] = useState(false);
   const [loadingLastBio, setLoadingLastBio] = useState(false);
   const [hasLastBio, setHasLastBio] = useState(false);
-  
+
   // Função para obter data local sem problema de timezone
   const getLocalDateString = () => {
     const now = new Date();
@@ -69,7 +69,7 @@ export function BioimpedanciaInput({
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-  
+
   // Inicializar formData com dados da bioimpedância sendo editada
   const getInitialFormData = () => {
     if (editingBio) {
@@ -108,11 +108,11 @@ export function BioimpedanciaInput({
   useEffect(() => {
     async function loadLastBioimpedancia() {
       if (!open || editingBio) return; // Não carregar se estiver editando
-      
+
       try {
         setLoadingLastBio(true);
         setHasLastBio(false);
-        
+
         // Buscar última bioimpedância do paciente
         const { data: lastBio } = await supabase
           .from('body_composition')
@@ -130,9 +130,9 @@ export function BioimpedanciaInput({
             // Altura já vem do cadastro do paciente, mantém se existir
             altura: prev.altura || ''
           }));
-          
+
           setHasLastBio(true);
-          
+
           toast({
             title: 'Dados carregados ✅',
             description: `Última avaliação: ${new Date(lastBio.data_avaliacao).toLocaleDateString('pt-BR')}`,
@@ -175,7 +175,7 @@ export function BioimpedanciaInput({
 
     const percentualGordura = parseFloat(gorduraMatch[1].replace(',', '.'));
     const classificacao = classificacaoMatch ? classificacaoMatch[1].trim() : null;
-    
+
     let dataAvaliacao = formData.data;
     if (dataMatch) {
       const [dia, mes, ano] = dataMatch[1].split('/');
@@ -194,16 +194,17 @@ export function BioimpedanciaInput({
     if (formData.peso && formData.altura && formData.textoGPT && formData.idade && formData.sexo) {
       try {
         const parsedData = parseGPTText(formData.textoGPT);
-        const peso = parseFloat(formData.peso);
-        const alturaNum = parseFloat(formData.altura);
+        const peso = parseFloat(formData.peso.toString().replace(',', '.'));
+        let alturaNum = parseFloat(formData.altura.toString().replace(',', '.'));
+        if (alturaNum > 3.0) alturaNum = alturaNum / 100;
         const idadeNum = parseInt(formData.idade);
-        
+
         if (peso && alturaNum && idadeNum && formData.sexo) {
           const imc = calcularIMC(peso, alturaNum);
           const massaGorda = calcularMassaGorda(peso, parsedData.percentual_gordura);
           const massaMagra = calcularMassaMagra(peso, massaGorda);
           const tmb = calcularTMB(peso, alturaNum, idadeNum, formData.sexo as 'M' | 'F');
-          
+
           setCalculosPreview({
             imc,
             massaGorda,
@@ -222,7 +223,7 @@ export function BioimpedanciaInput({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.peso || !formData.altura) {
       toast({
         title: 'Campos obrigatórios',
@@ -240,13 +241,14 @@ export function BioimpedanciaInput({
       });
       return;
     }
-    
+
     try {
       setLoading(true);
 
       const parsedData = parseGPTText(formData.textoGPT);
-      const peso = parseFloat(formData.peso);
-      const alturaNum = parseFloat(formData.altura);
+      const peso = parseFloat(formData.peso.toString().replace(',', '.'));
+      let alturaNum = parseFloat(formData.altura.toString().replace(',', '.'));
+      if (alturaNum > 3.0) alturaNum = alturaNum / 100;
       const idadeNum = parseInt(formData.idade);
 
       // Cálculos automáticos
@@ -309,8 +311,8 @@ export function BioimpedanciaInput({
       });
 
       setOpen(false);
-      setFormData({ 
-        data: getLocalDateString(), 
+      setFormData({
+        data: getLocalDateString(),
         textoGPT: '',
         peso: '',
         altura: altura?.toString() || '',
@@ -345,8 +347,8 @@ export function BioimpedanciaInput({
       )}
 
       {/* DIALOG PARA ADICIONAR/EDITAR BIOIMPEDÂNCIA */}
-      <Dialog 
-        open={open} 
+      <Dialog
+        open={open}
         onOpenChange={(isOpen) => {
           setOpen(isOpen);
           if (!isOpen && editingBio && onCancel) {
@@ -399,9 +401,9 @@ export function BioimpedanciaInput({
                 </Label>
                 <Input
                   id="peso"
-                  type="number"
-                  step="0.1"
-                  placeholder="75.5"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="75,5"
                   value={formData.peso}
                   onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
                   required
@@ -415,9 +417,9 @@ export function BioimpedanciaInput({
                 </Label>
                 <Input
                   id="altura"
-                  type="number"
-                  step="0.01"
-                  placeholder="1.75"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="1,75"
                   value={formData.altura}
                   onChange={(e) => setFormData({ ...formData, altura: e.target.value })}
                   required

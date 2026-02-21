@@ -156,7 +156,11 @@ export default function NewPatientAnamnesis() {
       };
 
       if (formData.peso) patientData.peso_inicial = parseFloat(formData.peso);
-      if (formData.altura) patientData.altura_inicial = parseFloat(formData.altura);
+      if (formData.altura) {
+        let altNum = parseFloat(formData.altura.toString().replace(',', '.'));
+        if (altNum > 3.0) altNum = altNum / 100; // Converte para metros se digitado em cm sem pontuação (ex: 165 -> 1.65)
+        patientData.altura_inicial = altNum;
+      }
       if (formData.cintura) patientData.medida_cintura_inicial = parseFloat(formData.cintura);
       if (formData.quadril) patientData.medida_quadril_inicial = parseFloat(formData.quadril);
       if (fotoFrenteUrl) patientData.foto_inicial_frente = fotoFrenteUrl;

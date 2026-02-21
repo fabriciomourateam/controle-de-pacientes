@@ -43,14 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (session?.user) {
-          clearTimeout(timeoutId);
           setUser(session.user);
           loadProfile(session.user);
         } else {
           // Tentar refresh do token se não houver sessão válida
           const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
           if (refreshedSession?.user) {
-            clearTimeout(timeoutId);
             setUser(refreshedSession.user);
             loadProfile(refreshedSession.user);
           } else {
@@ -107,14 +105,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadProfile = async (user: User) => {
+  const loadProfile = async (user: User, retries = 2) => {
     try {
-      // Buscar perfil do usuário
-      const { data: profileData } = await supabase
+      // Implementar um timeout interno para a busca do perfil para evitar travamentos em conexões ruins
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
+
+      const timeoutPromise = new Promise<{ data: any, error?: any }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error('O tempo de conexão com o servidor esgotou') }), 8000)
+      );
+
+      const { data: profileData, error: profileError } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
+      if (profileError) throw profileError;
 
       // Verificar se é membro de alguma equipe
       const { data: memberDataArray } = await supabase
@@ -152,7 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
-      // Se der erro, assume que é owner
+      if (retries > 0) {
+        console.log(`Tentando recarregar perfil... (${retries} tentativas restantes)`);
+        // Aguarda 1s e tenta novamente
+        setTimeout(() => loadProfile(user, retries - 1), 1000);
+        return; // Retorna para não setar o loading como false ainda
+      }
+
+      // Se der erro mesmo após as tentativas, assume que é owner (modo offline/fallback)
       setProfile({
         id: user.id,
         email: user.email || '',

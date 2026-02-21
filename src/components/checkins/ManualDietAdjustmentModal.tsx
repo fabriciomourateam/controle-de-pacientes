@@ -411,10 +411,10 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
                     </div>
 
                     {/* ═══════ MAIN CONTENT ═══════ */}
-                    <div className="flex-1 flex overflow-hidden min-h-0">
+                    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                         {/* Side Panel */}
                         {sidePanelOpen && (
-                            <div className="w-[380px] flex-shrink-0 border-r border-slate-700/30 overflow-y-auto" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
+                            <div className="w-full lg:w-[380px] max-h-[50vh] lg:max-h-none flex-shrink-0 border-b lg:border-b-0 lg:border-r border-slate-700/30 overflow-y-auto" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
                                 {/* Check-in Summary — Collapsible */}
                                 <div className="p-4 border-b border-slate-700/20">
                                     <button
