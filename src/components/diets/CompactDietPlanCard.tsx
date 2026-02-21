@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Utensils, Calendar, CheckCircle, Star, Copy, Trash2, Save, 
-  Edit, Eye, X, Power, PowerOff, MoreVertical 
+import {
+  Utensils, Calendar, CheckCircle, Star, Copy, Trash2, Save,
+  Edit, Eye, X, Power, PowerOff, MoreVertical, MessageSquare, Pencil, Check
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { calcularTotaisPlano } from '@/utils/diet-calculations';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CompactDietPlanCardProps {
   plan: any;
@@ -24,6 +27,7 @@ interface CompactDietPlanCardProps {
   onToggleReleased: (planId: string, planName: string, currentReleased: boolean) => void;
   onDuplicate: (plan: any) => void;
   onSaveAsTemplate: (planId: string) => void;
+  onRefresh?: () => void;
 }
 
 export function CompactDietPlanCard({
@@ -36,12 +40,56 @@ export function CompactDietPlanCard({
   onToggleReleased,
   onDuplicate,
   onSaveAsTemplate,
+  onRefresh,
 }: CompactDietPlanCardProps) {
   const isActive = plan.status === 'active' || plan.active;
   const totais = calcularTotaisPlano(plan);
 
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(plan.notes || '');
+  const [currentNote, setCurrentNote] = useState(plan.notes || '');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  const handleSaveNote = async () => {
+    setIsSavingNote(true);
+    try {
+      const trimmed = noteText.trim() || null;
+      await supabase
+        .from('diet_plans')
+        .update({ notes: trimmed } as any)
+        .eq('id', plan.id);
+      setCurrentNote(trimmed || '');
+      setIsEditingNote(false);
+      toast.success('Observação salva!');
+      onRefresh?.();
+    } catch {
+      toast.error('Erro ao salvar observação');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    setIsSavingNote(true);
+    try {
+      await supabase
+        .from('diet_plans')
+        .update({ notes: null } as any)
+        .eq('id', plan.id);
+      setCurrentNote('');
+      setNoteText('');
+      setIsEditingNote(false);
+      toast.success('Observação removida!');
+      onRefresh?.();
+    } catch {
+      toast.error('Erro ao remover observação');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
   return (
-    <Card 
+    <Card
       className={`
         bg-gradient-to-br from-slate-50 to-gray-50 border hover:shadow-lg transition-all duration-300 overflow-hidden
         ${isActive ? 'border-[#00C98A]/30 shadow-[#00C98A]/10' : 'border-gray-200 opacity-90 hover:opacity-100'}
@@ -54,11 +102,10 @@ export function CompactDietPlanCard({
             variant="ghost"
             size="sm"
             onClick={() => onToggleReleased(plan.id, plan.name, plan.is_released)}
-            className={`h-10 w-10 p-0 flex-shrink-0 rounded-lg border-2 transition-all duration-300 ${
-              plan.is_released
+            className={`h-10 w-10 p-0 flex-shrink-0 rounded-lg border-2 transition-all duration-300 ${plan.is_released
                 ? 'bg-green-500/10 border-green-500 hover:bg-green-500/20'
                 : 'bg-gray-100 border-gray-300 hover:bg-gray-200'
-            }`}
+              }`}
             title={plan.is_released ? 'Clique para ocultar do portal' : 'Clique para liberar no portal'}
           >
             {plan.is_released ? (
@@ -67,7 +114,7 @@ export function CompactDietPlanCard({
               <X className="w-5 h-5 text-gray-400" />
             )}
           </Button>
-          
+
           {/* Informações principais */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-3 mb-3">
@@ -76,8 +123,8 @@ export function CompactDietPlanCard({
                 {plan.name}
               </h3>
             </div>
-            
-            {/* Macros em mini cards alinhados - DEPOIS DO TÍTULO */}
+
+            {/* Macros em mini cards alinhados */}
             <div className="grid grid-cols-4 gap-2 mb-3">
               <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -87,7 +134,7 @@ export function CompactDietPlanCard({
                 <div className="font-bold text-base text-[#222222]">{totais.calorias.toLocaleString('pt-BR')}</div>
                 <div className="text-[11px] text-orange-600">kcal</div>
               </div>
-              
+
               <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
@@ -96,7 +143,7 @@ export function CompactDietPlanCard({
                 <div className="font-bold text-base text-[#222222]">{totais.proteinas.toFixed(0)}</div>
                 <div className="text-[11px] text-blue-600">gramas</div>
               </div>
-              
+
               <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <div className="w-2 h-2 rounded-full bg-purple-400" />
@@ -105,7 +152,7 @@ export function CompactDietPlanCard({
                 <div className="font-bold text-base text-[#222222]">{totais.carboidratos.toFixed(0)}</div>
                 <div className="text-[11px] text-purple-600">gramas</div>
               </div>
-              
+
               <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-lg p-2 text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -115,7 +162,7 @@ export function CompactDietPlanCard({
                 <div className="text-[11px] text-emerald-600">gramas</div>
               </div>
             </div>
-            
+
             {/* Apenas badge de Favorito */}
             {plan.favorite && (
               <div className="flex items-center gap-2 mb-2">
@@ -125,18 +172,74 @@ export function CompactDietPlanCard({
                 </Badge>
               </div>
             )}
-            
-            {plan.notes && (
-              <p className="text-xs text-[#777777] line-clamp-1 mb-2">{plan.notes}</p>
+
+            {/* Notes — inline editable */}
+            {isEditingNote ? (
+              <div className="mb-2 space-y-1.5">
+                <textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Observação / raciocínio clínico..."
+                  className="w-full text-xs bg-white border border-amber-300 rounded-lg px-2.5 py-1.5 text-gray-700 placeholder:text-gray-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 focus:outline-none resize-none min-h-[48px]"
+                  autoFocus
+                />
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveNote}
+                    disabled={isSavingNote}
+                    className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-500 text-white rounded"
+                  >
+                    <Check className="w-3 h-3 mr-0.5" /> Salvar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setIsEditingNote(false); setNoteText(currentNote); }}
+                    className="h-6 px-2 text-[10px] text-gray-500 hover:text-gray-700"
+                  >
+                    Cancelar
+                  </Button>
+                  {currentNote && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDeleteNote}
+                      disabled={isSavingNote}
+                      className="h-6 px-2 text-[10px] text-red-500 hover:text-red-700 ml-auto"
+                    >
+                      <Trash2 className="w-3 h-3 mr-0.5" /> Remover
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : currentNote ? (
+              <div
+                className="group/note flex items-start gap-1.5 mb-2 cursor-pointer hover:bg-amber-50/50 rounded-md px-1.5 py-1 -mx-1.5 transition-colors"
+                onClick={() => setIsEditingNote(true)}
+                title="Clique para editar"
+              >
+                <MessageSquare className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-[#777777] line-clamp-2 flex-1">{currentNote}</p>
+                <Pencil className="w-3 h-3 text-gray-400 opacity-0 group-hover/note:opacity-100 transition-opacity mt-0.5 flex-shrink-0" />
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditingNote(true)}
+                className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-amber-600 mb-2 transition-colors"
+              >
+                <MessageSquare className="w-3 h-3" />
+                <span>Adicionar observação</span>
+              </button>
             )}
-            
+
             {/* Data de criação */}
             <div className="flex items-center gap-1 text-xs text-[#777777]">
               <Calendar className="w-3 h-3" />
               {new Date(plan.created_at).toLocaleDateString('pt-BR')}
             </div>
           </div>
-          
+
           {/* Ações */}
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
             <div className="flex items-center gap-1">
@@ -148,12 +251,12 @@ export function CompactDietPlanCard({
               >
                 <Star className={`w-4 h-4 ${plan.favorite ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400'}`} />
               </Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 w-8 p-0 hover:bg-slate-100 border border-slate-300 bg-slate-50"
                   >
                     <MoreVertical className="w-4 h-4 text-slate-600" />
@@ -169,7 +272,7 @@ export function CompactDietPlanCard({
                     Salvar como Template
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => onToggleStatus(plan.id, plan.name, plan.status)}
                   >
                     {isActive ? (
@@ -185,7 +288,7 @@ export function CompactDietPlanCard({
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => onDelete(plan.id, plan.name)}
                     className="text-red-600 focus:text-red-600"
                   >
@@ -195,7 +298,7 @@ export function CompactDietPlanCard({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
+
             {/* Botões de Editar e Duplicar separados */}
             <div className="flex flex-col items-end gap-1 w-full">
               <Button

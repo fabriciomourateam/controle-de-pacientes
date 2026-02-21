@@ -22,6 +22,16 @@ import {
     Copy,
     ExternalLink,
     AlertCircle,
+    Activity,
+    Droplets,
+    Moon,
+    Target,
+    MessageSquare,
+    Sparkles,
+    Weight,
+    Dumbbell,
+    Heart,
+    Brain,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -31,6 +41,9 @@ import {
 } from '../../lib/diet-ai-adjustment-service';
 import { useDietAdjustmentTemplates } from '../../hooks/use-diet-adjustment-templates';
 import { dietService } from '../../lib/diet-service';
+import { checkinService } from '../../lib/checkin-service';
+
+const PHASES = ['Cutting', 'Bulking', 'Manutenção', 'Recomposição Corporal'] as const;
 
 interface DietAdjustmentModalProps {
     open: boolean;
@@ -40,6 +53,7 @@ interface DietAdjustmentModalProps {
     checkinData: any;
     evolutionData: any;
     patientName: string;
+    patientPhone?: string;
     onAdjustmentComplete?: () => void;
 }
 
@@ -51,6 +65,7 @@ export const DietAdjustmentModal: React.FC<DietAdjustmentModalProps> = ({
     checkinData,
     evolutionData,
     patientName,
+    patientPhone,
     onAdjustmentComplete,
 }) => {
     const [adjustment, setAdjustment] = useState<DietAdjustmentResult | null>(null);
@@ -61,14 +76,72 @@ export const DietAdjustmentModal: React.FC<DietAdjustmentModalProps> = ({
     const [suggestedDiet, setSuggestedDiet] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // New features state
+    const [customInstructions, setCustomInstructions] = useState('');
+    const [notes, setNotes] = useState('');
+    const [patientPhase, setPatientPhase] = useState<string | null>(null);
+    const [checkinHistory, setCheckinHistory] = useState<any[]>([]);
+    const [briefing, setBriefing] = useState('');
+    const [loadingContext, setLoadingContext] = useState(false);
+    const [currentDietMacros, setCurrentDietMacros] = useState<{
+        calories: number; protein: number; carbs: number; fats: number; name: string;
+    } | null>(null);
+
     const { activeTemplate } = useDietAdjustmentTemplates();
 
-    // Check for existing adjustment when modal opens
+    // Load context when modal opens
     useEffect(() => {
-        if (open && checkinId) {
+        if (open && patientId) {
+            loadPatientContext();
             checkExistingAdjustment();
         }
-    }, [open, checkinId]);
+    }, [open, patientId, checkinId]);
+
+    const loadPatientContext = async () => {
+        setLoadingContext(true);
+        try {
+            // Load phase, check-in history, and active diet in parallel
+            const [phase, history, plans] = await Promise.all([
+                dietAIAdjustmentService.getPatientPhase(patientId),
+                patientPhone
+                    ? checkinService.getPatientEvolution(patientPhone, 3)
+                    : Promise.resolve([]),
+                dietService.getByPatientId(patientId),
+            ]);
+
+            // Get active diet macros
+            const activePlan = plans?.find((p: any) => p.status === 'active') || plans?.[0];
+            if (activePlan) {
+                const fullPlan = await dietService.getById(activePlan.id);
+                if (fullPlan) {
+                    setCurrentDietMacros({
+                        calories: (fullPlan as any).total_calories || 0,
+                        protein: (fullPlan as any).total_protein || 0,
+                        carbs: (fullPlan as any).total_carbs || 0,
+                        fats: (fullPlan as any).total_fats || 0,
+                        name: (fullPlan as any).name || 'Dieta atual',
+                    });
+                }
+            }
+
+            setPatientPhase(phase);
+            const recentHistory = (history || []).slice(0, 5);
+            setCheckinHistory(recentHistory);
+
+            // Generate briefing
+            const briefingText = dietAIAdjustmentService.generatePatientBriefing(
+                patientName,
+                recentHistory,
+                phase,
+                checkinData
+            );
+            setBriefing(briefingText);
+        } catch (err) {
+            console.error('Erro ao carregar contexto:', err);
+        } finally {
+            setLoadingContext(false);
+        }
+    };
 
     const checkExistingAdjustment = async () => {
         try {
@@ -106,7 +179,10 @@ export const DietAdjustmentModal: React.FC<DietAdjustmentModalProps> = ({
                 checkinData,
                 evolutionData,
                 patientName,
-                activeTemplate || undefined
+                activeTemplate || undefined,
+                checkinHistory,
+                customInstructions || undefined,
+                patientPhase
             );
             setAdjustment(result);
             setEditableFeedback(result.feedbackText || '');
@@ -128,7 +204,13 @@ export const DietAdjustmentModal: React.FC<DietAdjustmentModalProps> = ({
             if (editableFeedback !== adjustment.feedbackText) {
                 await dietAIAdjustmentService.updateFeedbackText(adjustment.id, editableFeedback);
             }
-            await dietAIAdjustmentService.approveAdjustment(adjustment.id, activateDiet);
+            await dietAIAdjustmentService.approveAdjustment(adjustment.id, activateDiet, notes || undefined);
+
+            // Save phase if changed
+            if (patientPhase) {
+                await dietAIAdjustmentService.savePatientPhase(patientId, patientPhase);
+            }
+
             setAdjustment({ ...adjustment, status: 'approved' });
             toast.success(activateDiet ? 'Dieta aprovada e ativada!' : 'Ajuste aprovado!');
             onAdjustmentComplete?.();
@@ -287,31 +369,217 @@ export const DietAdjustmentModal: React.FC<DietAdjustmentModalProps> = ({
                     </DialogTitle>
                 </DialogHeader>
 
-                {/* No adjustment yet — generate button */}
+                {/* No adjustment yet — setup + generate */}
                 {!adjustment && !isGenerating && (
-                    <div className="text-center py-10">
+                    <div className="space-y-4">
                         {error && (
-                            <div className="flex items-center gap-2 bg-red-900/20 border border-red-800/50 text-red-300 p-3 rounded-lg mb-4 text-sm">
+                            <div className="flex items-center gap-2 bg-red-900/20 border border-red-800/50 text-red-300 p-3 rounded-lg text-sm">
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                                 {error}
                             </div>
                         )}
-                        <Utensils className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-400 text-sm mb-1">
-                            A IA irá analisar o check-in e sugerir ajustes na dieta atual.
-                        </p>
-                        <p className="text-slate-500 text-xs mb-4">
-                            {activeTemplate
-                                ? `Template ativo: ${activeTemplate.name}`
-                                : 'Usando prompt padrão (nenhum template personalizado ativo)'}
-                        </p>
-                        <Button
-                            onClick={handleGenerate}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                            <Utensils className="w-4 h-4 mr-2" />
-                            Gerar Ajuste de Dieta
-                        </Button>
+
+                        {/* Patient Briefing Card */}
+                        <Card className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 border-slate-700/50 overflow-hidden">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                                        <Brain className="w-4 h-4 text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-slate-100">Briefing do Paciente</h3>
+                                        <p className="text-[10px] text-slate-500">Contexto que a IA usará para ajustar</p>
+                                    </div>
+                                </div>
+
+                                {loadingContext ? (
+                                    <div className="flex items-center gap-2 py-3">
+                                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                                        <span className="text-xs text-slate-400">Carregando contexto...</span>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {/* Metrics Grid */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            {/* Weight */}
+                                            {checkinData?.peso && (
+                                                <div className="bg-slate-900/50 rounded-lg p-2.5 border border-slate-700/30">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <Weight className="w-3 h-3 text-blue-400" />
+                                                        <span className="text-[10px] text-slate-500">Peso</span>
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-slate-200">{checkinData.peso}kg</span>
+                                                    {(() => {
+                                                        const weights = checkinHistory
+                                                            .filter((c: any) => c.peso)
+                                                            .map((c: any) => parseFloat(c.peso))
+                                                            .filter((w: number) => !isNaN(w));
+                                                        if (weights.length >= 2) {
+                                                            const diff = parseFloat(checkinData.peso) - weights[1];
+                                                            return (
+                                                                <span className={`text-[10px] ml-1 ${diff > 0 ? 'text-amber-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                    {diff > 0 ? '↑' : diff < 0 ? '↓' : '→'}{Math.abs(diff).toFixed(1)}kg
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
+                                            )}
+                                            {/* Training */}
+                                            {checkinData?.treino && (
+                                                <div className="bg-slate-900/50 rounded-lg p-2.5 border border-slate-700/30">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <Dumbbell className="w-3 h-3 text-orange-400" />
+                                                        <span className="text-[10px] text-slate-500">Treino</span>
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-slate-200">{checkinData.treino}</span>
+                                                </div>
+                                            )}
+                                            {/* Cardio */}
+                                            {checkinData?.cardio && (
+                                                <div className="bg-slate-900/50 rounded-lg p-2.5 border border-slate-700/30">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <Heart className="w-3 h-3 text-red-400" />
+                                                        <span className="text-[10px] text-slate-500">Cardio</span>
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-slate-200">{checkinData.cardio}</span>
+                                                </div>
+                                            )}
+                                            {/* Adherence */}
+                                            {checkinData?.percentual_aproveitamento && (
+                                                <div className="bg-slate-900/50 rounded-lg p-2.5 border border-slate-700/30">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <Target className="w-3 h-3 text-emerald-400" />
+                                                        <span className="text-[10px] text-slate-500">Aderência</span>
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-slate-200">{checkinData.percentual_aproveitamento}%</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Current Diet Macros */}
+                                        {currentDietMacros && (
+                                            <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/30">
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                    <Utensils className="w-3 h-3 text-amber-400" />
+                                                    <span className="text-[10px] text-slate-500">Dieta Atual</span>
+                                                    <span className="text-[10px] text-slate-600 ml-auto truncate max-w-[150px]">{currentDietMacros.name}</span>
+                                                </div>
+                                                {(() => {
+                                                    const peso = parseFloat(String(checkinData?.peso || '').replace(',', '.'));
+                                                    const hasWeight = peso > 0 && !isNaN(peso);
+                                                    const perKg = (val: number) => hasWeight ? (val / peso).toFixed(1) : null;
+                                                    return (
+                                                        <div className="flex items-center gap-3 flex-wrap">
+                                                            <span className="text-sm font-bold text-amber-300">{currentDietMacros.calories} kcal</span>
+                                                            <div className="w-px h-3.5 bg-slate-700" />
+                                                            <div className="flex items-center gap-2.5 text-[11px]">
+                                                                <span className="text-blue-300">P: <b>{currentDietMacros.protein}g</b>{perKg(currentDietMacros.protein) && <span className="text-blue-400/60 ml-0.5">{perKg(currentDietMacros.protein)}g/kg</span>}</span>
+                                                                <span className="text-emerald-300">C: <b>{currentDietMacros.carbs}g</b>{perKg(currentDietMacros.carbs) && <span className="text-emerald-400/60 ml-0.5">{perKg(currentDietMacros.carbs)}g/kg</span>}</span>
+                                                                <span className="text-orange-300">G: <b>{currentDietMacros.fats}g</b>{perKg(currentDietMacros.fats) && <span className="text-orange-400/60 ml-0.5">{perKg(currentDietMacros.fats)}g/kg</span>}</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* Key info highlights */}
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {checkinData?.fome_algum_horario && checkinData.fome_algum_horario.toLowerCase() !== 'não' && checkinData.fome_algum_horario.toLowerCase() !== 'nao' && (
+                                                <Badge className="bg-amber-900/30 text-amber-300 border-0 text-[10px]">
+                                                    🍽️ Fome: {checkinData.fome_algum_horario}
+                                                </Badge>
+                                            )}
+                                            {checkinData?.alimento_para_incluir && (
+                                                <Badge className="bg-blue-900/30 text-blue-300 border-0 text-[10px]">
+                                                    ➕ Incluir: {checkinData.alimento_para_incluir}
+                                                </Badge>
+                                            )}
+                                            {checkinData?.dificuldades && (
+                                                <Badge className="bg-red-900/30 text-red-300 border-0 text-[10px]">
+                                                    ⚠️ {checkinData.dificuldades.slice(0, 60)}
+                                                </Badge>
+                                            )}
+                                            {checkinData?.sono && (
+                                                <Badge className="bg-indigo-900/30 text-indigo-300 border-0 text-[10px]">
+                                                    🌙 Sono: {checkinData.sono}
+                                                </Badge>
+                                            )}
+                                            {checkinData?.stress && (
+                                                <Badge className="bg-rose-900/30 text-rose-300 border-0 text-[10px]">
+                                                    🧠 Stress: {checkinData.stress}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        {/* History summary */}
+                                        {checkinHistory.length > 0 && (
+                                            <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                                <Activity className="w-3 h-3" />
+                                                {checkinHistory.length} check-in(s) no histórico sendo enviados à IA
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Phase Selector */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs text-slate-400 whitespace-nowrap">Fase:</span>
+                            <div className="flex gap-1.5 flex-wrap">
+                                {PHASES.map((phase) => (
+                                    <button
+                                        key={phase}
+                                        onClick={() => setPatientPhase(patientPhase === phase ? null : phase)}
+                                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border ${patientPhase === phase
+                                            ? phase === 'Cutting' ? 'bg-red-500/20 border-red-500/40 text-red-300'
+                                                : phase === 'Bulking' ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                                                    : phase === 'Manutenção' ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                                        : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                            : 'bg-slate-800/50 border-slate-700/30 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                                            }`}
+                                    >
+                                        {phase}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Custom Instructions */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                                <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                                <span className="text-xs font-medium text-slate-300">Instruções para a IA</span>
+                                <span className="text-[10px] text-slate-600">(opcional)</span>
+                            </div>
+                            <Textarea
+                                value={customInstructions}
+                                onChange={(e) => setCustomInstructions(e.target.value)}
+                                rows={2}
+                                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm placeholder:text-slate-600 resize-none"
+                                placeholder="Ex: Aumentar 200kcal priorizando proteína no pós-treino, paciente não gosta de ovo..."
+                            />
+                        </div>
+
+                        {/* Template info + Generate */}
+                        <div className="flex items-center justify-between">
+                            <p className="text-slate-500 text-[10px]">
+                                {activeTemplate
+                                    ? `Template: ${activeTemplate.name}`
+                                    : 'Prompt padrão'}
+                            </p>
+                            <Button
+                                onClick={handleGenerate}
+                                disabled={loadingContext}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Gerar Ajuste com IA
+                            </Button>
+                        </div>
                     </div>
                 )}
 
@@ -464,6 +732,24 @@ export const DietAdjustmentModal: React.FC<DietAdjustmentModalProps> = ({
                                     rows={6}
                                     className="bg-slate-800 border-slate-700 text-slate-200 text-sm"
                                     placeholder="Texto de feedback gerado pela IA..."
+                                />
+                            </CardContent>
+                        </Card>
+
+                        {/* Observation Notes */}
+                        <Card className="bg-slate-800/30 border-slate-700/50">
+                            <CardContent className="p-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                                    <span className="text-xs font-semibold text-slate-200">Observações / Raciocínio Clínico</span>
+                                    <span className="text-[10px] text-slate-600">(visível para a equipe)</span>
+                                </div>
+                                <Textarea
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    rows={2}
+                                    className="bg-slate-800 border-slate-700 text-slate-200 text-sm placeholder:text-slate-600 resize-none"
+                                    placeholder="Ex: Cortando 200kcal pois platô de peso há 3 semanas. Priorizei proteína no pós-treino..."
                                 />
                             </CardContent>
                         </Card>

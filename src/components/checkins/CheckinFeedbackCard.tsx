@@ -3910,6 +3910,7 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
         checkinData={checkin}
         evolutionData={evolutionData}
         patientName={checkin.patient?.nome || checkin.nome || 'Paciente'}
+        patientPhone={checkin.telefone || checkin.patient?.telefone}
         onAdjustmentComplete={() => {
           refreshData();
           onUpdate?.();

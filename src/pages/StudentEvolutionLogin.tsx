@@ -52,10 +52,39 @@ export default function StudentEvolutionLogin() {
         setLoading(true);
         try {
             // Buscar paciente usando service role (sem RLS)
+            // Build all possible phone format variants
             const variants = [cleanPhone];
-            if (cleanPhone.length === 11) {
-                variants.push(`(${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 7)}-${cleanPhone.slice(7)}`);
-                variants.push(`55${cleanPhone}`);
+
+            if (cleanPhone.length === 10) {
+                // 10 digits: DDD + 8-digit number (landline or old mobile)
+                const ddd = cleanPhone.slice(0, 2);
+                const num = cleanPhone.slice(2);
+                variants.push(`55${cleanPhone}`);                          // 55 + 10 digits
+                variants.push(`${ddd}9${num}`);                            // add 9th digit
+                variants.push(`55${ddd}9${num}`);                          // 55 + 11 digits with 9
+                variants.push(`(${ddd}) ${num.slice(0, 4)}-${num.slice(4)}`); // formatted 10-digit
+                variants.push(`(${ddd}) 9${num.slice(0, 4)}-${num.slice(4)}`); // formatted with 9
+            } else if (cleanPhone.length === 11) {
+                const ddd = cleanPhone.slice(0, 2);
+                const num = cleanPhone.slice(2);
+                variants.push(`(${ddd}) ${num.slice(0, 5)}-${num.slice(5)}`); // formatted
+                variants.push(`55${cleanPhone}`);                              // with country code
+                // Also try without the 9th digit (in case stored as 10 digits)
+                if (num.startsWith('9')) {
+                    const without9 = ddd + num.slice(1);
+                    variants.push(without9);
+                    variants.push(`55${without9}`);
+                }
+            } else if (cleanPhone.length === 12 || cleanPhone.length === 13) {
+                // Already has 55 prefix
+                const withoutCC = cleanPhone.slice(2);
+                variants.push(withoutCC);
+                if (withoutCC.length === 10) {
+                    const ddd = withoutCC.slice(0, 2);
+                    const num = withoutCC.slice(2);
+                    variants.push(`${ddd}9${num}`);
+                    variants.push(`55${ddd}9${num}`);
+                }
             }
 
             let found = false;

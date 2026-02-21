@@ -6,6 +6,7 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 import {
     Loader2,
     Utensils,
@@ -23,10 +24,17 @@ import {
     ChevronDown,
     ChevronUp,
     Pencil,
+    MessageSquare,
+    Sparkles,
+    Copy,
+    Eye,
+    TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { dietService } from '../../lib/diet-service';
 import { dietAIAdjustmentService } from '../../lib/diet-ai-adjustment-service';
+import { checkinFeedbackAI } from '../../lib/checkin-feedback-ai';
+import { useFeedbackTemplates } from '../../hooks/use-feedback-templates';
 import { DietPlanForm } from '../diets/DietPlanForm';
 import { TMBCalculator } from '../diets/TMBCalculator';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +66,16 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
     const [dietTitle, setDietTitle] = useState('');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [originalDietExpanded, setOriginalDietExpanded] = useState(false);
+    const [manualNotes, setManualNotes] = useState('');
+
+    // Feedback states
+    const [observedImprovements, setObservedImprovements] = useState('');
+    const [dietAdjustmentsText, setDietAdjustmentsText] = useState('');
+    const [generatedFeedback, setGeneratedFeedback] = useState('');
+    const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+    const [feedbackSectionExpanded, setFeedbackSectionExpanded] = useState(true);
+    const [checkinSummaryExpanded, setCheckinSummaryExpanded] = useState(true);
+    const { activeTemplate } = useFeedbackTemplates();
 
     // Load patient data for TMB calculator
     const loadPatientData = useCallback(async () => {
@@ -108,6 +126,11 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
             const newTitle = `${fullPlan.name || 'Plano'} - Ajuste Manual ${new Date().toLocaleDateString('pt-BR')}`;
             setDietTitle(newTitle);
 
+            // Pre-populate notes from original plan if available
+            if ((fullPlan as any)?.notes) {
+                setManualNotes((fullPlan as any).notes);
+            }
+
             const duplicatedId = await dietAIAdjustmentService.duplicateDietPlan(
                 activePlan.id,
                 patientId,
@@ -133,6 +156,7 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
             setDietTitle('');
             setIsEditingTitle(false);
             setOriginalDietExpanded(false);
+            setManualNotes('');
         }
     }, [open, initializeDiet, loadPatientData]);
 
@@ -165,6 +189,14 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
                 .update({ status: 'draft' } as any)
                 .eq('id', originalDiet.id);
 
+            // Save notes to the new plan if provided
+            if (manualNotes.trim()) {
+                await supabase
+                    .from('diet_plans')
+                    .update({ notes: manualNotes.trim() } as any)
+                    .eq('id', duplicatedPlanId);
+            }
+
             await dietService.release(duplicatedPlanId);
 
             toast.success('Nova dieta salva e ativada! A dieta anterior foi desativada.');
@@ -174,29 +206,111 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
             console.error('Erro ao salvar e ativar:', err);
             toast.error(err?.message || 'Erro ao ativar a nova dieta');
         }
-    }, [duplicatedPlanId, originalDiet, onComplete, onOpenChange]);
+    }, [duplicatedPlanId, originalDiet, onComplete, onOpenChange, manualNotes]);
 
     const handleSaveDraft = useCallback(async () => {
+        if (duplicatedPlanId && manualNotes.trim()) {
+            await supabase
+                .from('diet_plans')
+                .update({ notes: manualNotes.trim() } as any)
+                .eq('id', duplicatedPlanId);
+        }
         toast.success('Plano salvo como rascunho!');
         onComplete?.();
         onOpenChange(false);
-    }, [onComplete, onOpenChange]);
+    }, [onComplete, onOpenChange, duplicatedPlanId, manualNotes]);
 
     const handleTmbApply = useCallback((macros: { calorias: number; proteinas: number; carboidratos: number; gorduras: number }) => {
         setGetCalories(macros.calorias);
         toast.success(`GET atualizado: ${macros.calorias} kcal`);
     }, []);
 
-    // Check-in info items
+    // Generate AI feedback and save to DB (same table as CheckinFeedbackCard)
+    const handleGenerateFeedback = useCallback(async () => {
+        if (!activeTemplate) {
+            toast.error('Nenhum template de feedback ativo encontrado.');
+            return;
+        }
+
+        setIsGeneratingFeedback(true);
+        try {
+            const feedback = await checkinFeedbackAI.generateFeedback(
+                {
+                    patientName,
+                    checkinData,
+                    evolutionData: null,
+                    observedImprovements,
+                    dietAdjustments: dietAdjustmentsText,
+                },
+                activeTemplate
+            );
+
+            setGeneratedFeedback(feedback);
+
+            // Save to patient_feedback_records so it appears in CheckinFeedbackCard
+            const { data: { user } } = await supabase.auth.getUser();
+            const checkinDate = checkinData?.data_checkin?.split('T')[0] || new Date().toISOString().split('T')[0];
+
+            // Check for existing record first
+            const { data: existing } = await (supabase
+                .from('patient_feedback_records') as any)
+                .select('id')
+                .eq('patient_id', patientId)
+                .eq('checkin_id', checkinData?.id)
+                .maybeSingle();
+
+            const record = {
+                patient_id: patientId,
+                checkin_id: checkinData?.id || null,
+                checkin_date: checkinDate,
+                checkin_data: checkinData,
+                evolution_data: null,
+                observed_improvements: observedImprovements,
+                diet_adjustments: dietAdjustmentsText,
+                generated_feedback: feedback,
+                feedback_status: 'draft',
+                prompt_template_id: activeTemplate.id,
+                user_id: user?.id,
+            };
+
+            if (existing?.id) {
+                await (supabase.from('patient_feedback_records') as any)
+                    .update(record)
+                    .eq('id', existing.id);
+            } else {
+                await (supabase.from('patient_feedback_records') as any)
+                    .insert(record);
+            }
+
+            toast.success('Feedback gerado e salvo!');
+        } catch (err: any) {
+            console.error('Erro ao gerar feedback:', err);
+            toast.error(err?.message || 'Erro ao gerar feedback. Verifique sua configuração da API.');
+        } finally {
+            setIsGeneratingFeedback(false);
+        }
+    }, [activeTemplate, patientName, checkinData, observedImprovements, dietAdjustmentsText, patientId]);
+
+    // Check-in info items — expanded
     const checkinItems = useMemo(() => {
         const items: { icon: string; label: string; value: string; color: string }[] = [];
+        if (checkinData?.peso) items.push({ icon: '⚖️', label: 'Peso', value: `${checkinData.peso}kg`, color: 'text-blue-200' });
+        if (checkinData?.medida) items.push({ icon: '📏', label: 'Medida', value: `${checkinData.medida}cm`, color: 'text-blue-200' });
+        if (checkinData?.treino) items.push({ icon: '🏋️', label: 'Treino', value: checkinData.treino, color: 'text-orange-200' });
+        if (checkinData?.cardio) items.push({ icon: '🏃', label: 'Cardio', value: checkinData.cardio, color: 'text-cyan-200' });
+        if (checkinData?.agua) items.push({ icon: '💧', label: 'Água', value: checkinData.agua, color: 'text-sky-200' });
+        if (checkinData?.sono) items.push({ icon: '🌙', label: 'Sono', value: checkinData.sono, color: 'text-indigo-200' });
+        if (checkinData?.stress) items.push({ icon: '🧠', label: 'Stress', value: checkinData.stress, color: 'text-rose-200' });
+        if (checkinData?.melhora_visual) items.push({ icon: '👁️', label: 'Melhora visual', value: checkinData.melhora_visual, color: 'text-emerald-200' });
         if (checkinData?.objetivo) items.push({ icon: '🎯', label: 'Objetivo', value: checkinData.objetivo, color: 'text-slate-200' });
         if (checkinData?.dificuldades) items.push({ icon: '⚠️', label: 'Dificuldades', value: checkinData.dificuldades, color: 'text-amber-200' });
         if (checkinData?.fome_algum_horario) items.push({ icon: '🍴', label: 'Fome', value: checkinData.fome_algum_horario, color: 'text-yellow-200' });
         if (checkinData?.alimento_para_incluir) items.push({ icon: '🍌', label: 'Incluir', value: checkinData.alimento_para_incluir, color: 'text-emerald-200' });
+        if (checkinData?.ref_livre) items.push({ icon: '🍽️', label: 'Ref. livres', value: checkinData.ref_livre, color: 'text-slate-200' });
+        if (checkinData?.oq_comeu_ref_livre) items.push({ icon: '🍔', label: 'Comeu ref. livre', value: checkinData.oq_comeu_ref_livre, color: 'text-slate-200' });
+        if (checkinData?.beliscos) items.push({ icon: '🍪', label: 'Beliscos', value: checkinData.beliscos, color: 'text-orange-200' });
+        if (checkinData?.oq_beliscou) items.push({ icon: '🍩', label: 'O que beliscou', value: checkinData.oq_beliscou, color: 'text-orange-200' });
         if (checkinData?.comeu_menos) items.push({ icon: '📉', label: 'Comeu menos', value: checkinData.comeu_menos, color: 'text-slate-200' });
-        if (checkinData?.oq_beliscou) items.push({ icon: '🍪', label: 'Beliscou', value: checkinData.oq_beliscou, color: 'text-orange-200' });
-        if (checkinData?.oq_comeu_ref_livre) items.push({ icon: '🍽️', label: 'Ref. livre', value: checkinData.oq_comeu_ref_livre, color: 'text-slate-200' });
         return items;
     }, [checkinData]);
 
@@ -300,26 +414,37 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
                     <div className="flex-1 flex overflow-hidden min-h-0">
                         {/* Side Panel */}
                         {sidePanelOpen && (
-                            <div className="w-[300px] flex-shrink-0 border-r border-slate-700/30 overflow-y-auto" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
-                                {/* Check-in Summary */}
+                            <div className="w-[380px] flex-shrink-0 border-r border-slate-700/30 overflow-y-auto" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
+                                {/* Check-in Summary — Collapsible */}
                                 <div className="p-4 border-b border-slate-700/20">
-                                    <h3 className="text-[11px] font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
-                                        <ClipboardList className="w-3.5 h-3.5 text-blue-400" />
-                                        Resumo do Check-in
-                                    </h3>
-                                    <div className="space-y-2.5">
-                                        {checkinItems.map((item, idx) => (
-                                            <div key={idx} className="bg-slate-800/40 rounded-lg px-3 py-2 border border-slate-700/15">
-                                                <span className="text-[10px] font-bold text-white block mb-0.5">
-                                                    {item.icon} {item.label}
-                                                </span>
-                                                <span className={`text-[11px] leading-relaxed ${item.color}`}>{item.value}</span>
-                                            </div>
-                                        ))}
-                                        {checkinItems.length === 0 && (
-                                            <p className="text-[11px] text-slate-500 italic text-center py-3">Nenhum dado do check-in</p>
-                                        )}
-                                    </div>
+                                    <button
+                                        onClick={() => setCheckinSummaryExpanded(!checkinSummaryExpanded)}
+                                        className="flex items-center justify-between w-full text-left group mb-2"
+                                    >
+                                        <h3 className="text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                            <ClipboardList className="w-3.5 h-3.5 text-blue-400" />
+                                            Resumo do Check-in
+                                        </h3>
+                                        {checkinSummaryExpanded
+                                            ? <ChevronUp className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" />
+                                            : <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" />
+                                        }
+                                    </button>
+                                    {checkinSummaryExpanded && (
+                                        <div className="grid grid-cols-2 gap-1.5 animate-in slide-in-from-top-2 duration-200">
+                                            {checkinItems.map((item, idx) => (
+                                                <div key={idx} className="bg-slate-800/40 rounded-lg px-2.5 py-1.5 border border-slate-700/15">
+                                                    <span className="text-[11px] font-bold text-white block mb-0.5">
+                                                        {item.icon} {item.label}
+                                                    </span>
+                                                    <span className={`text-[11px] leading-snug ${item.color} line-clamp-2`}>{item.value}</span>
+                                                </div>
+                                            ))}
+                                            {checkinItems.length === 0 && (
+                                                <p className="text-[11px] text-slate-500 italic text-center py-3 col-span-2">Nenhum dado do check-in</p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Original Diet — Collapsible */}
@@ -375,16 +500,23 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
                                                         </div>
                                                     ))}
 
-                                                    {/* Totals */}
-                                                    <div className="bg-slate-700/30 rounded-lg p-2.5 border border-slate-600/20">
-                                                        <h4 className="text-[10px] font-bold text-white mb-1">📊 Total</h4>
-                                                        <div className="grid grid-cols-2 gap-1 text-[10px]">
-                                                            <span className="text-slate-400">Calorias: <span className="text-orange-300 font-medium">{originalMacros?.calories}kcal</span></span>
-                                                            <span className="text-slate-400">Proteína: <span className="text-blue-300 font-medium">{originalMacros?.protein}g</span></span>
-                                                            <span className="text-slate-400">Carbs: <span className="text-violet-300 font-medium">{originalMacros?.carbs}g</span></span>
-                                                            <span className="text-slate-400">Gordura: <span className="text-emerald-300 font-medium">{originalMacros?.fats}g</span></span>
-                                                        </div>
-                                                    </div>
+                                                    {/* Totals with g/kg */}
+                                                    {(() => {
+                                                        const peso = parseFloat(String(checkinData?.peso || '').replace(',', '.'));
+                                                        const hasW = peso > 0 && !isNaN(peso);
+                                                        const pk = (v: number) => hasW ? `(${(v / peso).toFixed(1)}g/kg)` : '';
+                                                        return (
+                                                            <div className="bg-slate-700/30 rounded-lg p-2.5 border border-slate-600/20">
+                                                                <h4 className="text-[10px] font-bold text-white mb-1">📊 Total</h4>
+                                                                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                                                                    <span className="text-slate-400">Calorias: <span className="text-orange-300 font-medium">{originalMacros?.calories}kcal</span></span>
+                                                                    <span className="text-slate-400">Proteína: <span className="text-blue-300 font-medium">{originalMacros?.protein}g</span> <span className="text-blue-400/50">{pk(originalMacros?.protein || 0)}</span></span>
+                                                                    <span className="text-slate-400">Carbs: <span className="text-violet-300 font-medium">{originalMacros?.carbs}g</span> <span className="text-violet-400/50">{pk(originalMacros?.carbs || 0)}</span></span>
+                                                                    <span className="text-slate-400">Gordura: <span className="text-emerald-300 font-medium">{originalMacros?.fats}g</span> <span className="text-emerald-400/50">{pk(originalMacros?.fats || 0)}</span></span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center justify-center py-6">
@@ -392,6 +524,87 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
                                                 </div>
                                             )}
                                         </>
+                                    )}
+                                </div>
+
+                                {/* ═══ Feedback Generation Section ═══ */}
+                                <div className="p-4 border-t border-slate-700/20">
+                                    <button
+                                        onClick={() => setFeedbackSectionExpanded(!feedbackSectionExpanded)}
+                                        className="flex items-center justify-between w-full text-left group mb-2"
+                                    >
+                                        <h3 className="text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                            <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                                            Feedback IA
+                                        </h3>
+                                        {feedbackSectionExpanded
+                                            ? <ChevronUp className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" />
+                                            : <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" />
+                                        }
+                                    </button>
+
+                                    {feedbackSectionExpanded && (
+                                        <div className="space-y-2.5 animate-in slide-in-from-top-2 duration-200">
+                                            <div>
+                                                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                                                    <Eye className="w-3 h-3 inline mr-1 text-emerald-400" />
+                                                    Melhoras Observadas
+                                                </label>
+                                                <Textarea
+                                                    value={observedImprovements}
+                                                    onChange={(e) => setObservedImprovements(e.target.value)}
+                                                    placeholder="Descreva as melhoras que você observou no paciente..."
+                                                    className="min-h-[60px] text-xs bg-slate-800/50 border-slate-700/30 text-slate-200 placeholder:text-slate-600 resize-none focus:border-emerald-500/40"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                                                    <TrendingUp className="w-3 h-3 inline mr-1 text-blue-400" />
+                                                    Ajustes Realizados na Dieta
+                                                </label>
+                                                <Textarea
+                                                    value={dietAdjustmentsText}
+                                                    onChange={(e) => setDietAdjustmentsText(e.target.value)}
+                                                    placeholder="Descreva os ajustes que você fez na dieta..."
+                                                    className="min-h-[60px] text-xs bg-slate-800/50 border-slate-700/30 text-slate-200 placeholder:text-slate-600 resize-none focus:border-blue-500/40"
+                                                />
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                onClick={handleGenerateFeedback}
+                                                disabled={isGeneratingFeedback || !activeTemplate}
+                                                className="w-full h-8 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded-lg shadow-lg shadow-violet-600/20"
+                                            >
+                                                {isGeneratingFeedback ? (
+                                                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Gerando...</>
+                                                ) : (
+                                                    <><Sparkles className="w-3.5 h-3.5 mr-1.5" /> Gerar Feedback IA</>
+                                                )}
+                                            </Button>
+
+                                            {/* Generated Feedback Display */}
+                                            {generatedFeedback && (
+                                                <div className="bg-violet-900/20 rounded-lg p-2.5 border border-violet-500/20">
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider">Feedback Gerado</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(generatedFeedback);
+                                                                toast.success('Feedback copiado!');
+                                                            }}
+                                                            className="h-5 px-1.5 text-[9px] text-violet-400 hover:text-white hover:bg-violet-800/30"
+                                                        >
+                                                            <Copy className="w-3 h-3 mr-0.5" /> Copiar
+                                                        </Button>
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                                                        {generatedFeedback}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -437,32 +650,46 @@ export const ManualDietAdjustmentModal: React.FC<ManualDietAdjustmentModalProps>
 
                     {/* ═══════ FOOTER ACTION BAR ═══════ */}
                     <div
-                        className="flex-shrink-0 px-5 py-3 border-t border-slate-700/40 flex items-center justify-between"
+                        className="flex-shrink-0 px-5 py-3 border-t border-slate-700/40 space-y-2"
                         style={{ background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(12px)', zIndex: 50 }}
                     >
-                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                            <Utensils className="w-3.5 h-3.5" />
-                            <span>Editor completo disponível — Edite refeições, alimentos e macros acima</span>
-                        </div>
+                        {/* Notes row */}
                         <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleSaveDraft}
-                                className="h-8 text-xs border-slate-600 text-slate-300 hover:bg-slate-700/60 bg-transparent rounded-lg"
-                            >
-                                <Save className="w-3.5 h-3.5 mr-1.5" />
-                                Salvar Rascunho
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={handleSaveAndActivate}
-                                disabled={!duplicatedPlanId}
-                                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-lg shadow-emerald-600/20"
-                            >
-                                <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
-                                Salvar e Ativar
-                            </Button>
+                            <MessageSquare className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                            <input
+                                type="text"
+                                value={manualNotes}
+                                onChange={(e) => setManualNotes(e.target.value)}
+                                placeholder="Observações / raciocínio clínico (visível para a equipe)..."
+                                className="flex-1 h-7 text-xs bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 text-slate-200 placeholder:text-slate-600 focus:border-emerald-500/40 focus:ring-0 focus:outline-none"
+                            />
+                        </div>
+                        {/* Actions row */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                                <Utensils className="w-3.5 h-3.5" />
+                                <span>Editor completo disponível — Edite refeições, alimentos e macros acima</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleSaveDraft}
+                                    className="h-8 text-xs border-slate-600 text-slate-300 hover:bg-slate-700/60 bg-transparent rounded-lg"
+                                >
+                                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                                    Salvar Rascunho
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    onClick={handleSaveAndActivate}
+                                    disabled={!duplicatedPlanId}
+                                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-lg shadow-emerald-600/20"
+                                >
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                                    Salvar e Ativar
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </DialogContent>

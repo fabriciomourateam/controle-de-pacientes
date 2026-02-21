@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { supabase } from '@/integrations/supabase/client';
 import { dietService } from './diet-service';
+import { checkinService } from './checkin-service';
 
 // Types
 export interface DietAdjustmentResult {
@@ -59,9 +60,16 @@ const DEFAULT_DIET_ADJUSTMENT_PROMPT = `Você é um assistente de nutrição esp
 
 ## DADOS DO PACIENTE
 Nome: {patientName}
+Fase atual: {patientPhase}
+
+## BRIEFING DO PACIENTE
+{patientBriefing}
 
 ## CHECK-IN ATUAL
 {checkinData}
+
+## HISTÓRICO DE CHECK-INS (últimos check-ins)
+{checkinHistory}
 
 ## DIETA ATUAL DO PACIENTE
 {currentDiet}
@@ -69,17 +77,26 @@ Nome: {patientName}
 ## DADOS DE EVOLUÇÃO (comparação com check-in anterior)
 {evolutionData}
 
-## INSTRUÇÕES
-Analise os dados do check-in e a dieta atual. Baseado nas informações, sugira ajustes na dieta.
+## INSTRUÇÕES DO NUTRICIONISTA
+{customInstructions}
 
-### REGRAS DE AJUSTE:
-1. Se o paciente relata GANHO MUSCULAR ou está no objetivo de HIPERTROFIA → considere AUMENTAR carboidratos
-2. Se o paciente relata PERDA DE GORDURA ou está em CUTTING → considere DIMINUIR carboidratos
-3. Se o paciente pediu para INCLUIR algum alimento → faça a substituição mantendo macros similares
-4. Se o paciente relata FOME em algum horário → redistribua calorias ou aumente fibras/proteínas naquele horário
-5. Se o paciente NÃO está conseguindo seguir as refeições → simplifique as opções
-6. Se o paciente relata muito stress ou pouco sono → considere manter ou reduzir levemente a restrição calórica
-7. Se não houver necessidade de mudança significativa → mantenha a dieta e explique por quê
+## REGRAS DE AJUSTE
+Analise os dados do check-in, o histórico e a dieta atual. Baseado nas informações e nas instruções do nutricionista, sugira ajustes na dieta.
+
+### REGRAS OBRIGATÓRIAS:
+1. **ARREDONDAMENTO**: SEMPRE arredonde quantidades para múltiplos de 10g (ex: 130g, 150g, 200g). NUNCA use valores quebrados como 123g ou 147g
+2. **SUBSTITUTOS**: Se uma refeição tem alimentos substitutos, ajuste-os PROPORCIONALMENTE para manter equivalência calórica
+3. Se o nutricionista pediu para AUMENTAR ou DIMINUIR calorias, distribua o ajuste de forma inteligente baseado no que o paciente relatou no check-in
+4. Se o paciente relatou FOME em algum horário → concentre mais calorias nesse horário
+5. Se o paciente relatou falta de ENERGIA no treino → reforce pré e pós-treino
+6. Se o paciente relatou BELISCOS frequentes → considere adicionar um lanche intermediário
+7. Se o paciente relata GANHO MUSCULAR ou está em HIPERTROFIA/BULKING → considere AUMENTAR carboidratos
+8. Se o paciente relata PERDA DE GORDURA ou está em CUTTING → considere DIMINUIR carboidratos
+9. Se o paciente pediu para INCLUIR algum alimento → faça a substituição mantendo macros similares
+10. Se o paciente NÃO está conseguindo seguir as refeições → simplifique as opções
+11. Se o paciente relata muito stress ou pouco sono → considere manter ou reduzir levemente a restrição calórica
+12. Se não houver necessidade de mudança significativa → mantenha a dieta e explique por quê
+13. Leve em conta o HISTÓRICO de check-ins para identificar padrões (ex: fome recorrente, platô de peso, melhora consistente)
 
 ### FORMATO DE RESPOSTA (OBRIGATÓRIO - RESPONDA EXCLUSIVAMENTE EM JSON):
 \`\`\`json
@@ -326,6 +343,114 @@ class DietAIAdjustmentService {
     }
 
     /**
+     * Format check-in history for AI context
+     */
+    formatCheckinHistory(checkins: any[]): string {
+        if (!checkins || checkins.length === 0) return 'Sem histórico de check-ins anteriores.';
+
+        return checkins.map((c: any, i: number) => {
+            const date = c.data_checkin || c.data_preenchimento || 'Data desconhecida';
+            const lines = [`### Check-in ${i + 1} (${date})`];
+            if (c.peso) lines.push(`  Peso: ${c.peso}kg`);
+            if (c.treino) lines.push(`  Treinos: ${c.treino}`);
+            if (c.cardio) lines.push(`  Cardio: ${c.cardio}`);
+            if (c.agua) lines.push(`  Água: ${c.agua}`);
+            if (c.sono) lines.push(`  Sono: ${c.sono}`);
+            if (c.ref_livre) lines.push(`  Refeições livres: ${c.ref_livre}`);
+            if (c.beliscos) lines.push(`  Beliscos: ${c.beliscos}`);
+            if (c.comeu_menos) lines.push(`  Comeu menos: ${c.comeu_menos}`);
+            if (c.fome_algum_horario) lines.push(`  Fome: ${c.fome_algum_horario}`);
+            if (c.dificuldades) lines.push(`  Dificuldades: ${c.dificuldades}`);
+            if (c.objetivo) lines.push(`  Objetivo: ${c.objetivo}`);
+            if (c.stress) lines.push(`  Stress: ${c.stress}`);
+            if (c.total_pontuacao) lines.push(`  Pontuação: ${c.total_pontuacao}`);
+            if (c.percentual_aproveitamento) lines.push(`  Aproveitamento: ${c.percentual_aproveitamento}%`);
+            return lines.join('\n');
+        }).join('\n\n');
+    }
+
+    /**
+     * Generate a patient briefing summary from check-in history
+     */
+    generatePatientBriefing(
+        patientName: string,
+        checkinHistory: any[],
+        patientPhase?: string | null,
+        currentCheckin?: any
+    ): string {
+        if (!checkinHistory || checkinHistory.length === 0) {
+            return `${patientName || 'Paciente'} — sem histórico de check-ins anteriores.`;
+        }
+
+        const parts: string[] = [];
+        parts.push(`**${patientName || 'Paciente'}**`);
+        if (patientPhase) parts.push(`Fase: ${patientPhase}`);
+
+        // Weight trend
+        const weights = checkinHistory
+            .filter((c: any) => c.peso)
+            .map((c: any) => parseFloat(c.peso))
+            .filter((w: number) => !isNaN(w));
+
+        if (weights.length >= 2) {
+            const first = weights[weights.length - 1];
+            const last = weights[0];
+            const diff = last - first;
+            const trend = diff > 0.3 ? '📈 Subindo' : diff < -0.3 ? '📉 Descendo' : '➡️ Estável';
+            parts.push(`Peso: ${last}kg (${trend}, ${diff > 0 ? '+' : ''}${diff.toFixed(1)}kg)`);
+        } else if (weights.length === 1) {
+            parts.push(`Peso: ${weights[0]}kg`);
+        }
+
+        // Training frequency pattern
+        const treinos = checkinHistory
+            .filter((c: any) => c.treino)
+            .map((c: any) => c.treino);
+        if (treinos.length > 0) {
+            parts.push(`Treino: ${treinos[0]}`);
+        }
+
+        // Cardio pattern
+        const cardios = checkinHistory
+            .filter((c: any) => c.cardio)
+            .map((c: any) => c.cardio);
+        if (cardios.length > 0) {
+            parts.push(`Cardio: ${cardios[0]}`);
+        }
+
+        // Adherence score trend
+        const scores = checkinHistory
+            .filter((c: any) => c.percentual_aproveitamento)
+            .map((c: any) => parseFloat(c.percentual_aproveitamento))
+            .filter((s: number) => !isNaN(s));
+        if (scores.length > 0) {
+            const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+            parts.push(`Aderência média: ${avg.toFixed(0)}%`);
+        }
+
+        // Recurring difficulties
+        const difficulties = checkinHistory
+            .filter((c: any) => c.dificuldades && c.dificuldades.trim())
+            .map((c: any) => c.dificuldades);
+        if (difficulties.length > 0) {
+            parts.push(`Dificuldades recentes: ${difficulties.slice(0, 2).join('; ')}`);
+        }
+
+        // Hunger patterns
+        const hungerReports = checkinHistory
+            .filter((c: any) => c.fome_algum_horario && c.fome_algum_horario.toLowerCase() !== 'não' && c.fome_algum_horario.toLowerCase() !== 'nao')
+            .map((c: any) => c.fome_algum_horario);
+        if (hungerReports.length > 0) {
+            parts.push(`Fome relatada: ${hungerReports[0]}`);
+        }
+
+        // Number of check-ins
+        parts.push(`Total de check-ins: ${checkinHistory.length}`);
+
+        return parts.join(' | ');
+    }
+
+    /**
      * Build the AI prompt from template
      */
     private buildPrompt(
@@ -334,13 +459,22 @@ class DietAIAdjustmentService {
         checkinData: any,
         dietData: any,
         evolutionData: any,
-        feedbackTemplateText?: string
+        feedbackTemplateText?: string,
+        checkinHistory?: any[],
+        customInstructions?: string,
+        patientPhase?: string | null
     ): string {
+        const briefing = this.generatePatientBriefing(patientName, checkinHistory || [], patientPhase, checkinData);
+
         return template
             .replace(/{patientName}/g, patientName || 'Paciente')
+            .replace(/{patientPhase}/g, patientPhase || 'Não definida')
+            .replace(/{patientBriefing}/g, briefing)
             .replace(/{checkinData}/g, this.formatCheckinData(checkinData))
+            .replace(/{checkinHistory}/g, this.formatCheckinHistory(checkinHistory || []))
             .replace(/{currentDiet}/g, this.formatDietData(dietData))
             .replace(/{evolutionData}/g, this.formatEvolutionData(evolutionData))
+            .replace(/{customInstructions}/g, customInstructions || 'Nenhuma instrução adicional. Analise livremente e sugira os melhores ajustes.')
             .replace(/{objetivo}/g, checkinData?.objetivo || 'Não informado')
             .replace(/{fome_horario}/g, checkinData?.fome_algum_horario || 'Não informado')
             .replace(/{alimento_incluir}/g, checkinData?.alimento_para_incluir || 'Nenhum')
@@ -389,7 +523,10 @@ class DietAIAdjustmentService {
         checkinData: any,
         evolutionData: any,
         patientName: string,
-        template?: DietAdjustmentPromptTemplate
+        template?: DietAdjustmentPromptTemplate,
+        checkinHistory?: any[],
+        customInstructions?: string,
+        patientPhase?: string | null
     ): Promise<DietAdjustmentResult> {
         // 1. Get the latest active diet plan for this patient
         const plans = await dietService.getByPatientId(patientId);
@@ -435,7 +572,10 @@ class DietAIAdjustmentService {
             checkinData,
             fullPlan,
             evolutionData,
-            feedbackTemplateText
+            feedbackTemplateText,
+            checkinHistory,
+            customInstructions,
+            patientPhase
         );
 
         const client = this.getAnthropicClient();
@@ -474,6 +614,7 @@ class DietAIAdjustmentService {
                 ai_model: model,
                 prompt_template_id: template?.id || null,
                 raw_ai_response: aiResponse,
+                custom_instructions: customInstructions || null,
             })
             .select()
             .single();
@@ -735,22 +876,24 @@ class DietAIAdjustmentService {
     /**
      * Approve an adjustment and optionally activate the suggested diet
      */
-    async approveAdjustment(adjustmentId: string, activateDiet: boolean = false): Promise<void> {
+    async approveAdjustment(adjustmentId: string, activateDiet: boolean = false, notes?: string): Promise<void> {
         const { data: { user } } = await supabase.auth.getUser();
+
+        const updateData: any = {
+            status: 'approved',
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: user?.id,
+        };
+        if (notes !== undefined) updateData.notes = notes;
 
         const { error } = await supabase
             .from('diet_ai_adjustments' as any)
-            .update({
-                status: 'approved',
-                reviewed_at: new Date().toISOString(),
-                reviewed_by: user?.id,
-            })
+            .update(updateData)
             .eq('id', adjustmentId);
 
         if (error) throw error;
 
         if (activateDiet) {
-            // Get the adjustment to know the suggested plan
             const { data } = await supabase
                 .from('diet_ai_adjustments' as any)
                 .select('suggested_plan_id')
@@ -761,6 +904,44 @@ class DietAIAdjustmentService {
                 await dietService.release((data as any).suggested_plan_id);
             }
         }
+    }
+
+    /**
+     * Update notes on an adjustment
+     */
+    async updateNotes(adjustmentId: string, notes: string): Promise<void> {
+        const { error } = await supabase
+            .from('diet_ai_adjustments' as any)
+            .update({ notes })
+            .eq('id', adjustmentId);
+
+        if (error) throw error;
+    }
+
+    /**
+     * Save patient phase tag
+     */
+    async savePatientPhase(patientId: string, phase: string | null): Promise<void> {
+        const { error } = await supabase
+            .from('patients')
+            .update({ fase_atual: phase } as any)
+            .eq('id', patientId);
+
+        if (error) throw error;
+    }
+
+    /**
+     * Get patient phase tag
+     */
+    async getPatientPhase(patientId: string): Promise<string | null> {
+        const { data, error } = await supabase
+            .from('patients')
+            .select('fase_atual' as any)
+            .eq('id', patientId)
+            .single();
+
+        if (error || !data) return null;
+        return (data as any).fase_atual || null;
     }
 
     /**
