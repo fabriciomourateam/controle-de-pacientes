@@ -957,6 +957,17 @@ export default function PatientEvolution() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {/* Botão de Plano Alimentar destacado */}
+            {patient?.id && (
+              <Button
+                onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
+                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all font-medium border-none"
+              >
+                <Utensils className="w-4 h-4 mr-2" />
+                Plano Alimentar
+              </Button>
+            )}
+
             {/* Menu agrupado para ações rápidas */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -975,15 +986,6 @@ export default function PatientEvolution() {
                   Editar Paciente
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                {patient?.id && (
-                  <DropdownMenuItem
-                    onClick={() => navigate(`/patients/${patient.id}?tab=diets`)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
-                  >
-                    <Utensils className="w-4 h-4 mr-2" />
-                    Plano Alimentar
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem
                   onClick={async () => {
                     try {
@@ -1337,19 +1339,19 @@ export default function PatientEvolution() {
 
               return (
                 <Card className={`bg-gradient-to-br transition-all duration-300 group hover:shadow-lg ${isNeutral
-                    ? 'from-slate-600/20 via-slate-500/15 to-gray-500/10 border-slate-500/30 hover:border-slate-400/50 hover:shadow-slate-500/20'
-                    : isNegative
-                      ? 'from-emerald-600/20 via-emerald-500/15 to-green-500/10 border-emerald-500/30 hover:border-emerald-400/50 hover:shadow-emerald-500/20'
-                      : 'from-orange-600/20 via-orange-500/15 to-amber-500/10 border-orange-500/30 hover:border-orange-400/50 hover:shadow-orange-500/20'
+                  ? 'from-slate-600/20 via-slate-500/15 to-gray-500/10 border-slate-500/30 hover:border-slate-400/50 hover:shadow-slate-500/20'
+                  : isNegative
+                    ? 'from-emerald-600/20 via-emerald-500/15 to-green-500/10 border-emerald-500/30 hover:border-emerald-400/50 hover:shadow-emerald-500/20'
+                    : 'from-orange-600/20 via-orange-500/15 to-amber-500/10 border-orange-500/30 hover:border-orange-400/50 hover:shadow-orange-500/20'
                   }`}>
                   <CardHeader className="pb-2">
                     <CardTitle className={`text-sm flex items-center gap-2 ${isNeutral ? 'text-slate-200' : isNegative ? 'text-emerald-200' : 'text-orange-200'
                       }`}>
                       <div className={`p-1.5 rounded-lg transition-colors ${isNeutral
-                          ? 'bg-slate-500/20 group-hover:bg-slate-500/30'
-                          : isNegative
-                            ? 'bg-emerald-500/20 group-hover:bg-emerald-500/30'
-                            : 'bg-orange-500/20 group-hover:bg-orange-500/30'
+                        ? 'bg-slate-500/20 group-hover:bg-slate-500/30'
+                        : isNegative
+                          ? 'bg-emerald-500/20 group-hover:bg-emerald-500/30'
+                          : 'bg-orange-500/20 group-hover:bg-orange-500/30'
                         }`}>
                         <TrendingUp className={`w-4 h-4 ${isNeutral ? 'text-slate-400' : isNegative ? 'text-emerald-400' : 'text-orange-400'
                           }`} />
@@ -1359,10 +1361,10 @@ export default function PatientEvolution() {
                   </CardHeader>
                   <CardContent>
                     <div className={`text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${isNeutral
-                        ? 'from-slate-300 to-gray-300'
-                        : isNegative
-                          ? 'from-emerald-300 to-green-300'
-                          : 'from-orange-300 to-amber-300'
+                      ? 'from-slate-300 to-gray-300'
+                      : isNegative
+                        ? 'from-emerald-300 to-green-300'
+                        : 'from-orange-300 to-amber-300'
                       }`}>
                       {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange}
                       <span className="text-lg ml-1">kg</span>
