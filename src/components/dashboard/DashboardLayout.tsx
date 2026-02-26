@@ -18,17 +18,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { status, showBlockedModal, loading: subscriptionLoading } = useSubscriptionCheck();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Redirecionar para login se não estiver autenticado
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login', { replace: true });
     }
   }, [authLoading, user, navigate]);
-  
+
   // Não mostrar modal de bloqueio na página de pricing (para permitir escolher plano)
   const isPricingPage = location.pathname === '/pricing';
-  
+
   // Mostrar loading enquanto verifica autenticação
   if (authLoading || subscriptionLoading) {
     return (
@@ -44,7 +44,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
     );
   }
-  
+
   // Se não está logado, não renderizar nada (vai redirecionar)
   if (!user) {
     return null;
@@ -70,7 +70,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        
+
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="h-16 sm:h-18 nav-premium sticky top-0 z-50 border-b border-slate-700/30">
@@ -79,7 +79,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <SidebarTrigger className="hover:bg-surface-hover hover:text-primary transition-colors" />
                 <GlobalSearch />
               </div>
-              
+
               <div className="flex items-center gap-1 sm:gap-2">
                 <NotificationsPanel />
               </div>

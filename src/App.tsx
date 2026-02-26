@@ -50,6 +50,14 @@ const CheckinFlowEditorPage = lazy(() => import("./pages/CheckinFlowEditorPage")
 const AnamnesisFlowEditorPage = lazy(() => import("./pages/AnamnesisFlowEditorPage"));
 const StudentEvolution = lazy(() => import("./pages/StudentEvolution"));
 
+// --- Módulo POP ---
+const PopLayout = lazy(() => import("./components/pop/PopLayout"));
+const PopDashboard = lazy(() => import("./pages/pop/PopDashboard"));
+const PopContent = lazy(() => import("./pages/pop/PopContent"));
+const PopEditor = lazy(() => import("./pages/pop/PopEditor"));
+const PopSessionExecute = lazy(() => import("./pages/pop/PopSessionExecute"));
+const PopSessionReview = lazy(() => import("./pages/pop/PopSessionReview"));
+
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
   const { telefone } = useParams<{ telefone: string }>();
@@ -273,6 +281,21 @@ const App = () => (
                   <DietPlanEditor />
                 </Suspense>
               } />
+
+              {/* ---------- MÓDULO POP (Treinamento) ---------- */}
+              <Route path="/admin/pop" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PopLayout />
+                </Suspense>
+              }>
+                <Route index element={<PopDashboard />} />
+                <Route path="content" element={<PopContent />} />
+                <Route path="editor" element={<PopEditor />} />
+                <Route path="execute/new" element={<PopSessionExecute />} />
+                <Route path="execute/:id" element={<PopSessionExecute />} />
+                <Route path="review/:id" element={<PopSessionReview />} />
+              </Route>
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

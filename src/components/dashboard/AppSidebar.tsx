@@ -113,6 +113,7 @@ export function AppSidebar() {
 
   const isActive = (path: string) => {
     if (path === "/") return currentPath === "/";
+    if (path === "/admin") return currentPath === "/admin" || currentPath === "/admin/";
     return currentPath.startsWith(path);
   };
 
@@ -177,11 +178,15 @@ export function AppSidebar() {
 
   // Admin só para o email específico
   if (userEmail === ADMIN_EMAIL) {
+    adminNavItems.push({ title: "Treinamento (POP)", url: "/admin/pop", icon: Target });
     adminNavItems.push({ title: "Admin", url: "/admin", icon: Shield });
   }
 
   // Gestão de Equipe apenas para owner ou admin
   if (userEmail === ADMIN_EMAIL || isOwner) {
+    if (!adminNavItems.find(item => item.url === '/admin/pop')) {
+      adminNavItems.push({ title: "Treinamento (POP)", url: "/admin/pop", icon: Target });
+    }
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
