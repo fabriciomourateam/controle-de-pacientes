@@ -110,7 +110,7 @@ export function ProtocolNotesHistory({ telefone }: ProtocolNotesHistoryProps) {
     };
 
     return (
-        <Card className="bg-slate-800/30 border-slate-700/50">
+        <Card className="bg-slate-700/40 border-slate-600/50">
             <CardContent className="p-3 space-y-3">
                 {/* Header */}
                 <div className="flex items-center justify-between">
