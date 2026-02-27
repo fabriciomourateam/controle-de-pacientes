@@ -1182,8 +1182,7 @@ export default function PatientEvolution() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowProtocolNotes(!showProtocolNotes)}
-                    className={`border-blue-500/30 text-blue-300 hover:bg-blue-500/10 hover:text-blue-200 transition-all ${showProtocolNotes ? 'bg-blue-500/15 border-blue-400/50' : ''
-                      }`}
+                    className="bg-blue-500/15 border-blue-400/50 text-blue-300 hover:bg-blue-500/25 hover:text-blue-200 transition-all"
                   >
                     <ScrollText className="w-3.5 h-3.5 mr-1.5" />
                     📋 Histórico do Paciente
