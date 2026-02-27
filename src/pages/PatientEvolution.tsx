@@ -1978,7 +1978,7 @@ export default function PatientEvolution() {
                   </Card>
                 )}
 
-              {/* Histórico de Protocolo do Paciente */}
+              {/* Histórico do Paciente */}
               {(patient?.telefone || telefone) && (
                 <ProtocolNotesHistory telefone={patient?.telefone || telefone!} />
               )}

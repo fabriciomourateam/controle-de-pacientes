@@ -3684,6 +3684,9 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                     </div>
                   </div>
 
+                  {/* Histórico do Paciente */}
+                  <ProtocolNotesHistory telefone={checkin.telefone} />
+
                   <div className="flex gap-2">
                     {/* Botão Salvar (mostra antes de gerar feedback) */}
                     {!generatedFeedback && (
@@ -3752,9 +3755,6 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Histórico de Protocolo */}
-              <ProtocolNotesHistory telefone={checkin.telefone} />
 
               {/* Feedback Gerado */}
               {generatedFeedback && (

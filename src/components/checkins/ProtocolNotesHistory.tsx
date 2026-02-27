@@ -128,7 +128,7 @@ export function ProtocolNotesHistory({ telefone }: ProtocolNotesHistoryProps) {
                             )}
                         </Button>
                         <h4 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                            📋 Histórico de Protocolo
+                            📋 Histórico do Paciente
                             {notes.length > 0 && (
                                 <Badge className="text-[10px] bg-blue-500/20 text-blue-300 border-blue-500/30">
                                     {notes.length}
