@@ -70,7 +70,8 @@ import {
   Phone,
   Edit,
   Link2,
-  Copy
+  Copy,
+  ScrollText
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -101,6 +102,7 @@ export default function PatientEvolution() {
 
   // Estados para controlar visibilidade dos cards opcionais
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showProtocolNotes, setShowProtocolNotes] = useState(false);
 
   // Estado para controlar o limite de bioimpedâncias carregadas
   const [bioLimit, setBioLimit] = useState<number | null>(50); // Padrão: 50 avaliações
@@ -1174,6 +1176,19 @@ export default function PatientEvolution() {
                     </span>
                   </div>
                 )}
+                {/* Botão Histórico do Paciente */}
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowProtocolNotes(!showProtocolNotes)}
+                    className={`border-blue-500/30 text-blue-300 hover:bg-blue-500/10 hover:text-blue-200 transition-all ${showProtocolNotes ? 'bg-blue-500/15 border-blue-400/50' : ''
+                      }`}
+                  >
+                    <ScrollText className="w-3.5 h-3.5 mr-1.5" />
+                    📋 Histórico do Paciente
+                  </Button>
+                </div>
                 {(patient as any)?.objetivo && (
                   <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-600/30">
                     <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
@@ -1186,6 +1201,11 @@ export default function PatientEvolution() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Histórico do Paciente - Expansível */}
+        {showProtocolNotes && (patient?.telefone || telefone) && (
+          <ProtocolNotesHistory telefone={patient?.telefone || telefone!} />
+        )}
 
         {/* Cards de Resumo - Movidos do EvolutionCharts */}
         {checkins.length > 0 && (
@@ -1977,11 +1997,6 @@ export default function PatientEvolution() {
                     </CardContent>
                   </Card>
                 )}
-
-              {/* Histórico do Paciente */}
-              {(patient?.telefone || telefone) && (
-                <ProtocolNotesHistory telefone={patient?.telefone || telefone!} />
-              )}
 
               {/* Gráfico de Evolução do Peso (Inicial vs Atual) */}
               {((patient as any)?.peso_inicial && (patient as any)?.peso_atual) && (
