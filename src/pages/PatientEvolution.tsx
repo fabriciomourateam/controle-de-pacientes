@@ -38,6 +38,7 @@ import { GoogleDriveImage } from '@/components/ui/google-drive-image';
 import { isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { CertificateButton } from '@/components/evolution/CertificateButton';
 import { EvolutionExportPage } from '@/components/evolution/EvolutionExportPage';
+import { ProtocolNotesHistory } from '@/components/checkins/ProtocolNotesHistory';
 import { PatientForm } from '@/components/forms/PatientForm';
 import html2canvas from 'html2canvas';
 import { detectAchievements } from '@/lib/achievement-system';
@@ -1976,6 +1977,11 @@ export default function PatientEvolution() {
                     </CardContent>
                   </Card>
                 )}
+
+              {/* Histórico de Protocolo do Paciente */}
+              {(patient?.telefone || telefone) && (
+                <ProtocolNotesHistory telefone={patient?.telefone || telefone!} />
+              )}
 
               {/* Gráfico de Evolução do Peso (Inicial vs Atual) */}
               {((patient as any)?.peso_inicial && (patient as any)?.peso_atual) && (

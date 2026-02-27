@@ -28,6 +28,7 @@ import { CheckinPhotosViewer } from './CheckinPhotosViewer';
 import { InitialDataInput } from '../evolution/InitialDataInput';
 import { PhotoComparisonModal } from './PhotoComparisonModal';
 import { BioimpedanciaModal } from './BioimpedanciaModal';
+import { ProtocolNotesHistory } from './ProtocolNotesHistory';
 
 interface CheckinFeedbackCardProps {
   checkin: CheckinWithPatient;
@@ -3751,6 +3752,9 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Histórico de Protocolo */}
+              <ProtocolNotesHistory telefone={checkin.telefone} />
 
               {/* Feedback Gerado */}
               {generatedFeedback && (
