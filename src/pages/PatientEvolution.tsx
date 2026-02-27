@@ -979,14 +979,6 @@ export default function PatientEvolution() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
                 <DropdownMenuItem
-                  onClick={handleEditPatient}
-                  className="text-white hover:bg-slate-700 cursor-pointer"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar Paciente
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
                   onClick={async () => {
                     try {
                       // Importar dinamicamente o serviço
@@ -1118,6 +1110,17 @@ export default function PatientEvolution() {
                 }}
               />
             )}
+
+            {/* Botão Editar Paciente isolado, movido para cá */}
+            <Button
+              onClick={handleEditPatient}
+              variant="outline"
+              size="icon"
+              className="bg-blue-900/40 border-blue-700/50 text-blue-300 hover:text-white hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-500/40"
+              title="Editar Paciente"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
