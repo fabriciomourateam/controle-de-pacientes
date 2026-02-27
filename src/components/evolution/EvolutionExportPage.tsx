@@ -53,9 +53,9 @@ interface EvolutionExportPageProps {
   onDirectExport?: (exportRef: HTMLDivElement, format: 'png' | 'pdf') => void;
 }
 
-export function EvolutionExportPage({ 
-  patient, 
-  checkins, 
+export function EvolutionExportPage({
+  patient,
+  checkins,
   bodyCompositions = [],
   onClose,
   directExportMode,
@@ -111,17 +111,17 @@ export function EvolutionExportPage({
 
   // Calcular dados
   const idade = calcularIdade(patient.data_nascimento);
-  
+
   // Peso inicial: usar do paciente ou do primeiro check-in
   const primeiroCheckin = checkins.length > 0 ? checkins[checkins.length - 1] : null;
   const pesoInicialPaciente = patient.peso_inicial ? parseFloat(patient.peso_inicial.toString()) : null;
   const pesoInicialCheckin = primeiroCheckin?.peso ? parseFloat(primeiroCheckin.peso.replace(',', '.')) : null;
   const pesoInicial = pesoInicialPaciente || pesoInicialCheckin;
-  
+
   // Peso atual: usar do último check-in
   const ultimoCheckin = checkins[0];
   const pesoAtual = ultimoCheckin?.peso ? parseFloat(ultimoCheckin.peso.replace(',', '.')) : null;
-  
+
   // Variação: calcular se tiver ambos os pesos
   const variacao = pesoInicial && pesoAtual && checkins.length > 1 ? (pesoAtual - pesoInicial) : null;
   const isNegative = variacao !== null && variacao < 0;
@@ -132,7 +132,7 @@ export function EvolutionExportPage({
   // Altura em metros para cálculos
   const alturaMetros = patient.altura_inicial ? parseFloat(patient.altura_inicial.toString()) : null;
   const pesoParaCalculo = pesoAtual || pesoInicial;
-  
+
   // Calcular IMC
   const imc = pesoParaCalculo && alturaMetros ? pesoParaCalculo / (alturaMetros * alturaMetros) : null;
   const getIMCClassificacao = (imc: number) => {
@@ -141,21 +141,25 @@ export function EvolutionExportPage({
     if (imc < 30) return { texto: 'Sobrepeso', cor: 'text-orange-400' };
     return { texto: 'Obesidade', cor: 'text-red-400' };
   };
-  
+
   // Percentual de gordura (do paciente ou da última composição corporal)
-  const percentualGordura = lastBodyComp?.bodyFat || lastBodyComp?.percentual_gordura || 
+  const percentualGordura = lastBodyComp?.bodyFat || lastBodyComp?.percentual_gordura ||
     (patient.percentual_gordura_inicial ? parseFloat(patient.percentual_gordura_inicial.toString()) : null);
-  
+
+  // Peso específico para composição corporal (prioriza bioimpedância)
+  const pesoBioAtual = lastBodyComp?.peso ? parseFloat(lastBodyComp.peso.toString()) : null;
+  const pesoComposicaoAtual = pesoBioAtual || pesoParaCalculo;
+
   // Calcular Massa Gorda e Massa Magra
-  const massaGorda = pesoParaCalculo && percentualGordura ? (pesoParaCalculo * percentualGordura / 100) : null;
-  const massaMagra = pesoParaCalculo && percentualGordura ? (pesoParaCalculo * (100 - percentualGordura) / 100) : null;
-  
+  const massaGorda = pesoComposicaoAtual && percentualGordura ? (pesoComposicaoAtual * percentualGordura / 100) : null;
+  const massaMagra = pesoComposicaoAtual && percentualGordura ? (pesoComposicaoAtual * (100 - percentualGordura) / 100) : null;
+
   // Calcular TMB (Taxa Metabólica Basal) - Fórmula de Mifflin-St Jeor
   const calcularTMB = (peso: number) => {
     if (!peso || !alturaMetros || !idade) return null;
     const alturaCm = alturaMetros * 100;
     const sexo = patient.sexo?.toLowerCase();
-    
+
     if (sexo === 'masculino' || sexo === 'm') {
       // Homens: TMB = 10 × peso(kg) + 6.25 × altura(cm) - 5 × idade + 5
       return Math.round(10 * peso + 6.25 * alturaCm - 5 * idade + 5);
@@ -173,24 +177,22 @@ export function EvolutionExportPage({
     // Buscar dados da avaliação anterior e atual
     const gorduraAnterior = previousBodyComp.bodyFat || previousBodyComp.percentual_gordura || null;
     const gorduraAtual = lastBodyComp.bodyFat || lastBodyComp.percentual_gordura || null;
-    
-    // Buscar peso da avaliação anterior e atual (da bioimpedância)
+
+    // Buscar peso da avaliação anterior (da bioimpedância)
     const pesoAnterior = previousBodyComp.peso ? parseFloat(previousBodyComp.peso.toString()) : null;
-    const pesoAtualBio = lastBodyComp.peso ? parseFloat(lastBodyComp.peso.toString()) : null;
-    
-    // Usar peso da bioimpedância se disponível, senão usar do checkin ou inicial
+
+    // Usar peso da bioimpedância se disponível, senão usar do checkin/inicial
     const pesoParaCalcAnterior = pesoAnterior || pesoInicial;
-    const pesoParaCalcAtual = pesoAtualBio || pesoParaCalculo;
-    
+
     // Calcular valores anteriores
-    const massaGordaAnterior = pesoParaCalcAnterior && gorduraAnterior 
-      ? (pesoParaCalcAnterior * gorduraAnterior / 100) 
+    const massaGordaAnterior = pesoParaCalcAnterior && gorduraAnterior
+      ? (pesoParaCalcAnterior * gorduraAnterior / 100)
       : null;
-    const massaMagraAnterior = pesoParaCalcAnterior && gorduraAnterior 
-      ? (pesoParaCalcAnterior * (100 - gorduraAnterior) / 100) 
+    const massaMagraAnterior = pesoParaCalcAnterior && gorduraAnterior
+      ? (pesoParaCalcAnterior * (100 - gorduraAnterior) / 100)
       : null;
-    const imcAnterior = pesoParaCalcAnterior && alturaMetros 
-      ? pesoParaCalcAnterior / (alturaMetros * alturaMetros) 
+    const imcAnterior = pesoParaCalcAnterior && alturaMetros
+      ? pesoParaCalcAnterior / (alturaMetros * alturaMetros)
       : null;
     const tmbAnterior = calcularTMB(pesoParaCalcAnterior || 0);
 
@@ -200,11 +202,11 @@ export function EvolutionExportPage({
       massaGorda: massaGordaAnterior && massaGorda ? (massaGorda - massaGordaAnterior) : null,
       massaMagra: massaMagraAnterior && massaMagra ? (massaMagra - massaMagraAnterior) : null,
       tmb: tmbAnterior && tmb ? (tmb - tmbAnterior) : null,
-      gorduraVisceral: previousBodyComp.visceralFat && lastBodyComp.visceralFat 
+      gorduraVisceral: previousBodyComp.visceralFat && lastBodyComp.visceralFat
         ? (parseFloat((lastBodyComp.visceralFat || 0).toString()) - parseFloat((previousBodyComp.visceralFat || 0).toString()))
         : previousBodyComp.gordura_visceral && lastBodyComp.gordura_visceral
-        ? (parseFloat((lastBodyComp.gordura_visceral || 0).toString()) - parseFloat((previousBodyComp.gordura_visceral || 0).toString()))
-        : null
+          ? (parseFloat((lastBodyComp.gordura_visceral || 0).toString()) - parseFloat((previousBodyComp.gordura_visceral || 0).toString()))
+          : null
     };
   };
 
@@ -213,22 +215,25 @@ export function EvolutionExportPage({
   // Função para formatar diferença com cor apropriada
   const formatarDiferenca = (valor: number | null, tipo: 'gordura' | 'imc' | 'massaGorda' | 'massaMagra' | 'tmb' | 'gorduraVisceral') => {
     if (valor === null || Math.abs(valor) < 0.01) return null;
-    
+
     const isPositive = valor > 0;
     const isNegative = valor < 0;
-    
+
     // Para gordura e massa gorda: negativo é bom (redução)
     // Para massa magra e TMB: positivo é bom (aumento)
     // Para IMC: depende do contexto, mas geralmente negativo é bom
     // Para gordura visceral: negativo é bom (redução)
-    
+
     let cor = '';
     let simbolo = '';
-    
+
     if (tipo === 'gordura' || tipo === 'massaGorda' || tipo === 'gorduraVisceral') {
       cor = isNegative ? 'text-emerald-400' : 'text-red-400';
       simbolo = isNegative ? '↓' : '↑';
     } else if (tipo === 'massaMagra' || tipo === 'tmb') {
+      // Se for Massa Magra e for negativa, retornar null para não exibir e não desmotivar o paciente
+      if (tipo === 'massaMagra' && isNegative) return null;
+
       cor = isPositive ? 'text-emerald-400' : 'text-red-400';
       simbolo = isPositive ? '↑' : '↓';
     } else if (tipo === 'imc') {
@@ -236,11 +241,11 @@ export function EvolutionExportPage({
       cor = isNegative ? 'text-emerald-400' : 'text-amber-400';
       simbolo = isNegative ? '↓' : '↑';
     }
-    
+
     const valorFormatado = Math.abs(valor).toFixed(1);
     const sinal = valor > 0 ? '+' : '-';
     const unidade = tipo === 'gordura' ? '%' : tipo === 'imc' ? '' : tipo === 'tmb' ? ' kcal' : ' kg';
-    
+
     return { texto: `${sinal}${valorFormatado}${unidade}`, cor };
   };
 
@@ -251,9 +256,9 @@ export function EvolutionExportPage({
   }
   [...checkins].reverse().forEach(c => {
     if (c.peso) {
-      weightData.push({ 
-        date: formatDate(c.data_checkin), 
-        peso: parseFloat(c.peso.replace(',', '.')) 
+      weightData.push({
+        date: formatDate(c.data_checkin),
+        peso: parseFloat(c.peso.replace(',', '.'))
       });
     }
   });
@@ -289,7 +294,7 @@ export function EvolutionExportPage({
 
   // Dados de medidas (cintura e quadril) para o gráfico
   const measurementsData: { date: string; cintura: number | null; quadril: number | null }[] = [];
-  
+
   // Adicionar medidas iniciais se existirem
   const patientAny = patient as any;
   if (patientAny.medida_cintura_inicial || patientAny.medida_quadril_inicial) {
@@ -302,7 +307,7 @@ export function EvolutionExportPage({
       });
     }
   }
-  
+
   // Adicionar medidas dos check-ins usando extractMeasurements
   [...checkins].reverse().forEach(c => {
     if (c.medida) {
@@ -361,7 +366,7 @@ export function EvolutionExportPage({
       });
 
       const dataURL = canvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.95 : 1.0);
-      
+
       const link = document.createElement('a');
       link.download = `evolucao-${patient.nome?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.${format}`;
       link.href = dataURL;
@@ -407,7 +412,7 @@ export function EvolutionExportPage({
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdfWidth = 210;
       const imgHeightMM = (canvas.height * pdfWidth) / canvas.width;
-      
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -435,20 +440,20 @@ export function EvolutionExportPage({
   };
 
   // Componente de Card de Métrica (estilo portal - sem gradientes para exportação)
-  const MetricCard = ({ 
-    title, 
-    value, 
-    unit, 
-    subtitle, 
-    bgColor, 
-    iconBg, 
+  const MetricCard = ({
+    title,
+    value,
+    unit,
+    subtitle,
+    bgColor,
+    iconBg,
     textColor,
-    icon 
-  }: { 
-    title: string; 
-    value: string | number; 
-    unit?: string; 
-    subtitle: string; 
+    icon
+  }: {
+    title: string;
+    value: string | number;
+    unit?: string;
+    subtitle: string;
     bgColor: string;
     iconBg: string;
     textColor: string;
@@ -483,38 +488,38 @@ export function EvolutionExportPage({
           </div>
         </div>
       )}
-      
+
       {/* Botões de ação - só mostrar no modo preview */}
       {!directExportMode && (
         <div className="fixed top-4 right-4 flex gap-2" style={{ zIndex: 10000 }}>
-        <Button
-          onClick={() => exportAsImage('png')}
-          disabled={exporting || !ready}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          <FileImage className="w-4 h-4 mr-2" />
-          PNG
-        </Button>
-        <Button
-          onClick={exportAsPDF}
-          disabled={exporting || !ready}
-          className="bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          PDF
-        </Button>
-        <Button
-          onClick={onClose}
-          variant="outline"
-          className="border-white/20 text-white hover:bg-white/10"
-        >
-          <X className="w-4 h-4" />
-        </Button>
+          <Button
+            onClick={() => exportAsImage('png')}
+            disabled={exporting || !ready}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <FileImage className="w-4 h-4 mr-2" />
+            PNG
+          </Button>
+          <Button
+            onClick={exportAsPDF}
+            disabled={exporting || !ready}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
+          <Button
+            onClick={onClose}
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </div>
       )}
 
       {/* Conteúdo para exportação */}
-      <div 
+      <div
         ref={exportRef}
         className="w-[900px] min-h-screen"
         style={{
@@ -616,8 +621,8 @@ export function EvolutionExportPage({
                 title="Peso Inicial"
                 value={pesoInicial.toFixed(1)}
                 unit="kg"
-                subtitle={pesoInicialPaciente 
-                  ? (patient.created_at ? formatDate(patient.created_at) : 'Cadastro') 
+                subtitle={pesoInicialPaciente
+                  ? (patient.created_at ? formatDate(patient.created_at) : 'Cadastro')
                   : (primeiroCheckin?.data_checkin ? formatDate(primeiroCheckin.data_checkin) : '1º Check-in')}
                 bgColor="rgba(16, 185, 129, 0.25)"
                 iconBg="bg-emerald-500/30"
@@ -648,9 +653,9 @@ export function EvolutionExportPage({
                 unit="kg"
                 subtitle={isNeutral ? 'Sem variação' : isNegative ? 'Perda de peso' : 'Ganho de peso'}
                 bgColor={
-                  isNeutral 
+                  isNeutral
                     ? 'rgba(100, 116, 139, 0.25)'
-                    : isNegative 
+                    : isNegative
                       ? 'rgba(16, 185, 129, 0.25)'
                       : 'rgba(245, 158, 11, 0.25)'
                 }
@@ -693,7 +698,7 @@ export function EvolutionExportPage({
                     <p className="text-xs text-orange-300 mt-1">Gordura corporal</p>
                   </div>
                 )}
-                
+
                 {/* IMC */}
                 {imc && (
                   <div className="rounded-xl p-4 border border-blue-500/30" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }}>
@@ -714,7 +719,7 @@ export function EvolutionExportPage({
                     <p className={`text-xs mt-1 ${getIMCClassificacao(imc).cor}`}>{getIMCClassificacao(imc).texto}</p>
                   </div>
                 )}
-                
+
                 {/* Massa Gorda */}
                 {massaGorda && (
                   <div className="rounded-xl p-4 border border-amber-500/30" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)' }}>
@@ -734,7 +739,7 @@ export function EvolutionExportPage({
                     <p className="text-3xl font-bold text-white">{massaGorda.toFixed(1)}<span className="text-lg">kg</span></p>
                   </div>
                 )}
-                
+
                 {/* Massa Magra */}
                 {massaMagra && (
                   <div className="rounded-xl p-4 border border-green-500/30" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)' }}>
@@ -755,7 +760,7 @@ export function EvolutionExportPage({
                     {percentualGordura && <p className="text-xs text-green-300 mt-1">{(100 - percentualGordura).toFixed(1)}% do peso</p>}
                   </div>
                 )}
-                
+
                 {/* TMB */}
                 {tmb && (
                   <div className="rounded-xl p-4 border border-purple-500/30" style={{ backgroundColor: 'rgba(139, 92, 246, 0.2)' }}>
@@ -776,7 +781,7 @@ export function EvolutionExportPage({
                     <p className="text-xs text-purple-300 mt-1">Gasto em repouso/dia</p>
                   </div>
                 )}
-                
+
                 {/* Gordura Visceral (se tiver da avaliação) */}
                 {lastBodyComp && (lastBodyComp.visceralFat || lastBodyComp.gordura_visceral) && (
                   <div className="rounded-xl p-4 border border-red-500/30" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}>
@@ -807,25 +812,25 @@ export function EvolutionExportPage({
             const padding = { top: 30, right: 40, bottom: 40, left: 50 };
             const chartWidth = svgWidth - padding.left - padding.right;
             const chartHeight = svgHeight - padding.top - padding.bottom;
-            
+
             const points = weightData.map((d, i) => {
               // Se só tem 1 ponto, centralizar
-              const x = weightData.length === 1 
-                ? padding.left + chartWidth / 2 
+              const x = weightData.length === 1
+                ? padding.left + chartWidth / 2
                 : padding.left + (i / (weightData.length - 1)) * chartWidth;
               const y = padding.top + chartHeight - ((d.peso - minPeso) / rangePeso) * chartHeight;
               return { x, y, peso: d.peso, date: d.date, isFirst: i === 0, isLast: i === weightData.length - 1 };
             });
-            
-            const linePath = weightData.length > 1 
+
+            const linePath = weightData.length > 1
               ? points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
               : '';
-            
+
             return (
               <div className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 border border-slate-700/50">
                 <h3 className="text-lg font-bold text-white mb-2">📈 Evolução do Peso</h3>
                 <p className="text-slate-400 text-sm mb-4">Acompanhamento do peso ao longo do tempo</p>
-                
+
                 <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="overflow-visible">
                   {/* Linhas de grade horizontais */}
                   {[0, 1, 2, 3, 4].map(i => {
@@ -838,10 +843,10 @@ export function EvolutionExportPage({
                       </g>
                     );
                   })}
-                  
+
                   {/* Linha do gráfico (só se tiver mais de 1 ponto) */}
                   {linePath && <path d={linePath} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                  
+
                   {/* Pontos e labels */}
                   {points.map((p, i) => (
                     <g key={i}>
@@ -851,7 +856,7 @@ export function EvolutionExportPage({
                     </g>
                   ))}
                 </svg>
-                
+
                 <div className="flex justify-center gap-6 mt-2 text-xs text-slate-400">
                   <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: '#10b981' }}></span> Peso Inicial</span>
                   <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: '#3b82f6' }}></span> Peso Atual</span>
@@ -867,25 +872,25 @@ export function EvolutionExportPage({
             const padding = { top: 30, right: 40, bottom: 40, left: 50 };
             const chartWidth = svgWidth - padding.left - padding.right;
             const chartHeight = svgHeight - padding.top - padding.bottom;
-            
+
             const points = bodyFatData.map((d, i) => {
               // Se só tem 1 ponto, centralizar
-              const x = bodyFatData.length === 1 
-                ? padding.left + chartWidth / 2 
+              const x = bodyFatData.length === 1
+                ? padding.left + chartWidth / 2
                 : padding.left + (i / (bodyFatData.length - 1)) * chartWidth;
               const y = padding.top + chartHeight - ((d.value - minFat) / rangeFat) * chartHeight;
               return { x, y, value: d.value, date: d.date, isLast: i === bodyFatData.length - 1 };
             });
-            
-            const linePath = bodyFatData.length > 1 
+
+            const linePath = bodyFatData.length > 1
               ? points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
               : '';
-            
+
             return (
               <div className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 border border-slate-700/50">
                 <h3 className="text-lg font-bold text-white mb-2">🔥 Evolução do % de Gordura Corporal</h3>
                 <p className="text-slate-400 text-sm mb-4">Acompanhamento da composição corporal</p>
-                
+
                 <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="overflow-visible">
                   {/* Linhas de grade horizontais */}
                   {[0, 1, 2, 3].map(i => {
@@ -898,10 +903,10 @@ export function EvolutionExportPage({
                       </g>
                     );
                   })}
-                  
+
                   {/* Linha do gráfico (só se tiver mais de 1 ponto) */}
                   {linePath && <path d={linePath} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                  
+
                   {/* Pontos e labels */}
                   {points.map((p, i) => (
                     <g key={i}>
@@ -922,44 +927,44 @@ export function EvolutionExportPage({
             const padding = { top: 30, right: 40, bottom: 40, left: 50 };
             const chartWidth = svgWidth - padding.left - padding.right;
             const chartHeight = svgHeight - padding.top - padding.bottom;
-            
+
             // Calcular pontos para cintura
             const cinturaPoints = measurementsData
               .map((d, i) => {
                 if (d.cintura === null) return null;
-                const x = measurementsData.length === 1 
-                  ? padding.left + chartWidth / 2 
+                const x = measurementsData.length === 1
+                  ? padding.left + chartWidth / 2
                   : padding.left + (i / (measurementsData.length - 1)) * chartWidth;
                 const y = padding.top + chartHeight - ((d.cintura - minMeasurement) / rangeMeasurement) * chartHeight;
                 return { x, y, value: d.cintura, date: d.date };
               })
               .filter((p): p is { x: number; y: number; value: number; date: string } => p !== null);
-            
+
             // Calcular pontos para quadril
             const quadrilPoints = measurementsData
               .map((d, i) => {
                 if (d.quadril === null) return null;
-                const x = measurementsData.length === 1 
-                  ? padding.left + chartWidth / 2 
+                const x = measurementsData.length === 1
+                  ? padding.left + chartWidth / 2
                   : padding.left + (i / (measurementsData.length - 1)) * chartWidth;
                 const y = padding.top + chartHeight - ((d.quadril - minMeasurement) / rangeMeasurement) * chartHeight;
                 return { x, y, value: d.quadril, date: d.date };
               })
               .filter((p): p is { x: number; y: number; value: number; date: string } => p !== null);
-            
-            const cinturaLinePath = cinturaPoints.length > 1 
+
+            const cinturaLinePath = cinturaPoints.length > 1
               ? cinturaPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
               : '';
-            
-            const quadrilLinePath = quadrilPoints.length > 1 
+
+            const quadrilLinePath = quadrilPoints.length > 1
               ? quadrilPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
               : '';
-            
+
             return (
               <div className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 border border-slate-700/50">
                 <h3 className="text-lg font-bold text-white mb-2">📏 Evolução de Medidas</h3>
                 <p className="text-slate-400 text-sm mb-4">Acompanhamento de cintura e quadril ao longo do tempo</p>
-                
+
                 <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="overflow-visible">
                   {/* Linhas de grade horizontais */}
                   {[0, 1, 2, 3, 4].map(i => {
@@ -972,13 +977,13 @@ export function EvolutionExportPage({
                       </g>
                     );
                   })}
-                  
+
                   {/* Linha de cintura (só se tiver mais de 1 ponto) */}
                   {cinturaLinePath && <path d={cinturaLinePath} fill="none" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                  
+
                   {/* Linha de quadril (só se tiver mais de 1 ponto) */}
                   {quadrilLinePath && <path d={quadrilLinePath} fill="none" stroke="#ec4899" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                  
+
                   {/* Pontos de cintura */}
                   {cinturaPoints.map((p, i) => (
                     <g key={`cintura-${i}`}>
@@ -986,7 +991,7 @@ export function EvolutionExportPage({
                       <text x={p.x} y={p.y - 14} fill="#a855f7" fontSize="11" fontWeight="bold" textAnchor="middle">{p.value.toFixed(0)}</text>
                     </g>
                   ))}
-                  
+
                   {/* Pontos de quadril */}
                   {quadrilPoints.map((p, i) => (
                     <g key={`quadril-${i}`}>
@@ -994,18 +999,18 @@ export function EvolutionExportPage({
                       <text x={p.x} y={p.y + 20} fill="#ec4899" fontSize="11" fontWeight="bold" textAnchor="middle">{p.value.toFixed(0)}</text>
                     </g>
                   ))}
-                  
+
                   {/* Labels de data no eixo X */}
                   {measurementsData.map((d, i) => {
-                    const x = measurementsData.length === 1 
-                      ? padding.left + chartWidth / 2 
+                    const x = measurementsData.length === 1
+                      ? padding.left + chartWidth / 2
                       : padding.left + (i / (measurementsData.length - 1)) * chartWidth;
                     return (
                       <text key={i} x={x} y={svgHeight - 8} fill="#94a3b8" fontSize="10" textAnchor="middle">{d.date}</text>
                     );
                   })}
                 </svg>
-                
+
                 <div className="flex justify-center gap-6 mt-2 text-xs text-slate-400">
                   <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: '#a855f7' }}></span> Cintura (cm)</span>
                   <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: '#ec4899' }}></span> Quadril (cm)</span>
@@ -1022,7 +1027,7 @@ export function EvolutionExportPage({
             const chartWidth = svgWidth - padding.left - padding.right;
             const chartHeight = svgHeight - padding.top - padding.bottom;
             const maxScore = 10; // Pontuação máxima por categoria
-            
+
             // Definir categorias com cores
             const categories = [
               { key: 'treino', name: 'Treino', color: '#f59e0b' },
@@ -1033,29 +1038,29 @@ export function EvolutionExportPage({
               { key: 'refeicoesLivres', name: 'Ref. Livres', color: '#ec4899' },
               { key: 'beliscadas', name: 'Beliscadas', color: '#f97316' },
             ];
-            
+
             // Calcular pontos para cada categoria
             const getPoints = (key: string) => {
               return scoreData.map((d, i) => {
                 const value = (d as any)[key] || 0;
-                const x = scoreData.length > 1 
+                const x = scoreData.length > 1
                   ? padding.left + (i / (scoreData.length - 1)) * chartWidth
                   : padding.left + chartWidth / 2;
                 const y = padding.top + chartHeight - (value / maxScore) * chartHeight;
                 return { x, y, value };
               });
             };
-            
+
             // Filtrar categorias que têm dados
-            const activeCategories = categories.filter(cat => 
+            const activeCategories = categories.filter(cat =>
               scoreData.some(d => ((d as any)[cat.key] || 0) > 0)
             );
-            
+
             return (
               <div className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 border border-slate-700/50">
                 <h3 className="text-lg font-bold text-white mb-2">🏆 Evolução das Pontuações</h3>
                 <p className="text-slate-400 text-sm mb-4">Performance em diferentes categorias</p>
-                
+
                 <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="overflow-visible">
                   {/* Linhas de grade horizontais */}
                   {[0, 2, 4, 6, 8, 10].map((val, i) => {
@@ -1067,7 +1072,7 @@ export function EvolutionExportPage({
                       </g>
                     );
                   })}
-                  
+
                   {/* Linhas de cada categoria */}
                   {activeCategories.map((cat) => {
                     const points = getPoints(cat.key);
@@ -1082,10 +1087,10 @@ export function EvolutionExportPage({
                       </g>
                     );
                   })}
-                  
+
                   {/* Labels de data no eixo X */}
                   {scoreData.map((d, i) => {
-                    const x = scoreData.length > 1 
+                    const x = scoreData.length > 1
                       ? padding.left + (i / (scoreData.length - 1)) * chartWidth
                       : padding.left + chartWidth / 2;
                     return (
@@ -1093,7 +1098,7 @@ export function EvolutionExportPage({
                     );
                   })}
                 </svg>
-                
+
                 {/* Legenda com todas as cores */}
                 <div className="flex flex-wrap justify-center gap-3 mt-2 text-xs text-slate-400">
                   {activeCategories.map(cat => (
@@ -1108,9 +1113,9 @@ export function EvolutionExportPage({
 
           {/* Footer */}
           <div className="text-center text-slate-400 text-sm py-4 border-t border-slate-700/50">
-            Relatório gerado em {new Date().toLocaleDateString('pt-BR', { 
-              day: '2-digit', 
-              month: 'long', 
+            Relatório gerado em {new Date().toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
               year: 'numeric',
               hour: '2-digit',
               minute: '2-digit'

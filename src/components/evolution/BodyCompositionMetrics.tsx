@@ -46,10 +46,10 @@ export function BodyCompositionMetrics({ data }: BodyCompositionMetricsProps) {
           Composição Corporal Atual
         </CardTitle>
         <CardDescription className="text-slate-400">
-          Última avaliação: {new Date(ultima.data_avaliacao).toLocaleDateString('pt-BR', { 
-            day: '2-digit', 
-            month: 'long', 
-            year: 'numeric' 
+          Última avaliação: {new Date(ultima.data_avaliacao).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
           })}
         </CardDescription>
       </CardHeader>
