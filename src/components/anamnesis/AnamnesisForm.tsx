@@ -863,7 +863,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             value={form.anamnese.horario_acordar || ''}
             onChange={e => updateAnamnese('horario_acordar', handleTimeMask(e.target.value))}
             placeholder="00:00"
-            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-lg font-mono tracking-widest w-28"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-sm font-mono tracking-widest w-28"
           />
         </div>
         <div className="space-y-1.5">
@@ -875,7 +875,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             value={form.anamnese.horario_dormir || ''}
             onChange={e => updateAnamnese('horario_dormir', handleTimeMask(e.target.value))}
             placeholder="00:00"
-            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-lg font-mono tracking-widest w-28"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-sm font-mono tracking-widest w-28"
           />
         </div>
       </div>
@@ -918,7 +918,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
                 />
               </div>
             </div>
-            <FieldTextarea label="O que come na refeição atualmente e o que gostaria de comer" value={(form.anamnese as any)[r.refKey] || ''} onChange={v => updateAnamnese(r.refKey, v)} placeholder={r.ex || 'Descreva...'} rows={2} />
+            <FieldTextarea label="O que come na refeição atualmente e o que gostaria de comer" value={(form.anamnese as any)[r.refKey] || ''} onChange={v => updateAnamnese(r.refKey, v)} placeholder={r.ex || 'Descreva...'} rows={3} />
           </div>
         ))}
       </div>
@@ -1190,7 +1190,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             value={getValue()}
             onChange={e => setValue(handleTimeMask(e.target.value))}
             placeholder="00:00"
-            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-lg font-mono tracking-widest w-28"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-sm font-mono tracking-widest w-28"
           />
         </div>
       );
