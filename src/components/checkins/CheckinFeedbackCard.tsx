@@ -143,9 +143,9 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
       });
     }
   }, [previousCheckins, isExpanded, checkin.telefone, checkin.id, checkin.data_checkin, checkin.data_preenchimento, showAllCheckinsColumns]);
-  // Normalizar quebras de linha ao carregar feedback salvo (mesma lógica de cleanFeedback)
+  // Normalizar quebras de linha ao carregar feedback salvo
   const normalizeLineBreaks = (text: string) =>
-    text.replace(/\n{2,}/g, '\n').replace(/[ \t]{2,}/g, ' ').trim();
+    text.replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
 
   // Carregar dados existentes quando disponível do hook
   React.useEffect(() => {
@@ -331,12 +331,17 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
     checkPreviousPhotos();
   }, [previousCheckinId]);
 
-  // Função para normalizar quebras de linha: no máximo uma quebra entre linhas/parágrafos
+  // Função para normalizar quebras de linha: garantir espaço entre seções
   const cleanFeedback = useCallback((text: string): string => {
-    return text
-      .replace(/\n{2,}/g, '\n') // Duas ou mais quebras viram uma só (evita "muitas linhas em branco")
+    let cleaned = text
+      .replace(/\n{3,}/g, '\n\n') // Três ou mais quebras viram duas (máximo uma linha em branco)
       .replace(/[ \t]{2,}/g, ' ') // Substituir espaços/tabs múltiplos por um único espaço
       .trim();
+
+    // Garantir uma linha em branco antes dos emojis de seção (📈💡🔄📢) para legibilidade
+    cleaned = cleaned.replace(/([^\n])\n(📈|💡|🔄|📢)/g, '$1\n\n$2');
+
+    return cleaned;
   }, []);
 
   const handleGenerateFeedback = useCallback(async () => {

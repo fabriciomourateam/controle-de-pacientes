@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { ChevronLeft, ChevronRight, X, Camera } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Camera, Download } from 'lucide-react';
 import { getMediaType } from '@/lib/media-utils';
 import { convertGoogleDriveUrl, isGoogleDriveUrl } from '@/lib/google-drive-utils';
 import { GoogleDriveImage } from '../ui/google-drive-image';
@@ -77,7 +77,7 @@ export function CheckinPhotosViewer({
       // 2. Buscar checkin anterior (SOMENTE se photoSource for 'all' ou 'previous')
       if (photoSource === 'all' || photoSource === 'previous') {
         let previousCheckinData = null;
-        
+
         // Se temos o ID do checkin anterior, usar diretamente (mais eficiente)
         if (previousCheckinId) {
           const { data } = await supabase
@@ -85,7 +85,7 @@ export function CheckinPhotosViewer({
             .select('id, foto_1, foto_2, foto_3, foto_4, data_checkin')
             .eq('id', previousCheckinId)
             .single();
-          
+
           if (data) {
             previousCheckinData = data;
           }
@@ -135,10 +135,10 @@ export function CheckinPhotosViewer({
 
         if (patient) {
           setPatientData(patient);
-          const initialDate = patient.data_fotos_iniciais 
+          const initialDate = patient.data_fotos_iniciais
             ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR')
             : 'Dados Iniciais';
-          
+
           const initialPhotos = [
             { url: patient.foto_inicial_frente, label: 'Frente' },
             { url: patient.foto_inicial_lado, label: 'Lado D' },
@@ -237,6 +237,31 @@ export function CheckinPhotosViewer({
     return url;
   };
 
+  const handleDownload = async () => {
+    if (!currentPhoto) return;
+    try {
+      const fetchUrl = getPhotoUrl(currentPhoto.url);
+      const response = await fetch(fetchUrl);
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+
+      const ext = blob.type.split('/')[1] || 'jpg';
+      const cleanLabel = currentPhoto.label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      link.download = `${cleanLabel}_${telefone}.${ext}`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('Erro ao baixar a imagem:', error);
+      // Fallback
+      window.open(getPhotoUrl(currentPhoto.url), '_blank');
+    }
+  };
+
   const getSourceBadgeColor = (source: string) => {
     switch (source) {
       case 'current':
@@ -272,14 +297,28 @@ export function CheckinPhotosViewer({
               <Camera className="w-4 h-4" />
               Visualização de Fotos
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="text-slate-400 hover:text-white h-6 w-6 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {currentPhoto && !currentPhoto.isVideo && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="text-slate-400 hover:text-blue-400 hover:bg-slate-800/50 h-8 px-2 transition-colors"
+                  title="Baixar foto"
+                >
+                  <Download className="w-4 h-4 mr-1.5" />
+                  <span className="text-xs font-medium">Baixar</span>
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="text-slate-400 hover:text-white hover:bg-slate-800/50 h-8 w-8 p-0 ml-2"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -292,8 +331,8 @@ export function CheckinPhotosViewer({
             <div className="text-center text-slate-400">
               <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p className="mb-4">
-                {photoSource === 'initial' 
-                  ? 'Nenhuma foto inicial disponível' 
+                {photoSource === 'initial'
+                  ? 'Nenhuma foto inicial disponível'
                   : 'Nenhuma foto disponível para este check-in'}
               </p>
               {photoSource === 'initial' && onAddInitialPhotos && (
@@ -389,11 +428,10 @@ export function CheckinPhotosViewer({
                     <button
                       key={index}
                       onClick={() => setCurrentIndex(index)}
-                      className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
-                        index === currentIndex
-                          ? 'border-blue-500 ring-2 ring-blue-500/50'
-                          : 'border-slate-600 hover:border-slate-500 opacity-60 hover:opacity-100'
-                      }`}
+                      className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${index === currentIndex
+                        ? 'border-blue-500 ring-2 ring-blue-500/50'
+                        : 'border-slate-600 hover:border-slate-500 opacity-60 hover:opacity-100'
+                        }`}
                     >
                       {photo.isVideo ? (
                         <div className="w-full h-full bg-slate-700 flex items-center justify-center">

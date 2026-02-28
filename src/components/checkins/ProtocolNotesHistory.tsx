@@ -23,7 +23,7 @@ export function ProtocolNotesHistory({ telefone }: ProtocolNotesHistoryProps) {
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const loadNotes = useCallback(async () => {
         if (!telefone) return;
@@ -31,6 +31,9 @@ export function ProtocolNotesHistory({ telefone }: ProtocolNotesHistoryProps) {
             setLoading(true);
             const data = await protocolNotesService.getNotes(telefone);
             setNotes(data);
+            if (data.length > 0) {
+                setIsExpanded(true);
+            }
         } catch (err) {
             console.error('Error loading protocol notes:', err);
         } finally {
