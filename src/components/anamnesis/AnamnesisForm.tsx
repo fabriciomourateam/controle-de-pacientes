@@ -847,8 +847,8 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       <FieldInput label="Quanto tempo do dia fica em pé?" value={form.anamnese.tempo_em_pe || ''} onChange={v => updateAnamnese('tempo_em_pe', v)} />
       <FieldInput label="Horário de treino (ou pretende treinar)" value={form.anamnese.horario_treino || ''} onChange={v => updateAnamnese('horario_treino', v)} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FieldInput label="Acorda que horas?" value={form.anamnese.horario_acordar || ''} onChange={v => updateAnamnese('horario_acordar', v)} type="time" />
-        <FieldInput label="Dorme que horas?" value={form.anamnese.horario_dormir || ''} onChange={v => updateAnamnese('horario_dormir', v)} type="time" />
+        <FieldInput label="Acorda que horas?" value={form.anamnese.horario_acordar || ''} onChange={v => updateAnamnese('horario_acordar', v)} placeholder="Ex: 06:00" />
+        <FieldInput label="Dorme que horas?" value={form.anamnese.horario_dormir || ''} onChange={v => updateAnamnese('horario_dormir', v)} placeholder="Ex: 23:00" />
       </div>
       <FieldInput label="Quantas horas dorme por noite?" value={form.anamnese.horas_sono || ''} onChange={v => updateAnamnese('horas_sono', v)} />
       <FieldTextarea label="Como é seu sono? Usa remédio para dormir?" value={form.anamnese.qualidade_sono || ''} onChange={v => updateAnamnese('qualidade_sono', v)} />
@@ -879,9 +879,10 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
               <div className="space-y-1">
                 <Label className="text-slate-500 text-[10px] font-medium">Horário em que costuma fazer essa refeição</Label>
                 <Input
-                  type="time"
+                  type="text"
                   value={(form.anamnese as any)[r.horKey] || ''}
                   onChange={e => updateAnamnese(r.horKey, e.target.value)}
+                  placeholder="Ex: 08:00"
                   className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-9 text-sm w-32"
                 />
               </div>
@@ -977,7 +978,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             setConfirmations(prev => ({ ...prev, [fieldDef.id]: v }));
           }}
           placeholder={`Digite novamente: ${fieldDef.label}`}
-          type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
+          type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : 'text'}
           required={true}
           icon="🔄"
         // Add onPaste prevent via prop if FieldInput supported, but it doesn't.
@@ -1150,7 +1151,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
           value={getValue()}
           onChange={setValue}
           placeholder={fieldDef.placeholder}
-          type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : fieldDef.type === 'time' ? 'time' : 'text'}
+          type={fieldDef.type === 'number' ? 'number' : fieldDef.type === 'date' ? 'date' : 'text'}
           required={fieldDef.required}
           icon={fieldDef.icon}
         />
