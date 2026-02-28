@@ -1190,7 +1190,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             value={getValue()}
             onChange={e => setValue(handleTimeMask(e.target.value))}
             placeholder="00:00"
-            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-sm font-mono tracking-widest w-28"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-sm font-mono tracking-widest w-full max-w-[8rem]"
           />
         </div>
       );
@@ -1241,8 +1241,12 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     const flushGrid = () => {
       if (gridGroup.length > 0) {
         const cols = currentGridCols || 1;
+        const hasTimeField = gridGroup.some(f => f.type === 'time');
+        const gridClass = hasTimeField
+          ? 'grid grid-cols-[auto_1fr] gap-4 items-start'
+          : `grid grid-cols-1 md:grid-cols-${cols} gap-4`;
         renderedFields.push(
-          <div key={`grid-${renderedFields.length}`} className={`grid grid-cols-1 md:grid-cols-${cols} gap-4`}>
+          <div key={`grid-${renderedFields.length}`} className={gridClass}>
             {gridGroup.map(f => renderDynamicField(f))}
           </div>
         );
