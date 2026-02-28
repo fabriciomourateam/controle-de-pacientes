@@ -1179,7 +1179,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     if (fieldDef.type === 'time') {
       return (
         <div key={fieldDef.id} className="space-y-1.5">
-          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-end gap-1.5 min-h-[2.5rem]">
             {fieldDef.icon && <span className="text-sm">{fieldDef.icon}</span>}
             {fieldDef.label}{fieldDef.required && <span className="text-blue-400">*</span>}
           </Label>
