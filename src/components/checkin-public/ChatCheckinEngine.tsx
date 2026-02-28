@@ -254,10 +254,10 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
 
   const startFlow = async () => {
     await addBotMessage(`Olá, ${patientName}! 😊`);
-    processNextStep(0);
+    processNextStep(0, data);
   };
 
-  const processNextStep = async (index: number) => {
+  const processNextStep = async (index: number, currentData: Record<string, string>) => {
     if (index >= flow.length) {
       setIsComplete(true);
       return;
@@ -266,8 +266,8 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     const step = flow[index];
 
     // Verificar showIf
-    if (step.showIf && !evaluateCondition(step.showIf, data)) {
-      processNextStep(index + 1);
+    if (step.showIf && !evaluateCondition(step.showIf, currentData)) {
+      processNextStep(index + 1, currentData);
       return;
     }
 
@@ -302,7 +302,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
         setIsComplete(true);
         return;
       }
-      processNextStep(index + 1);
+      processNextStep(index + 1, currentData);
     }
 
     scrollToBottom();
@@ -342,7 +342,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     }
 
     // Próximo step
-    processNextStep(currentStepIndex + 1);
+    processNextStep(currentStepIndex + 1, newData);
   };
 
   const handlePhotoUpload = (files: FileList | null) => {
@@ -369,7 +369,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
     } else {
       addUserMessage('Sem fotos desta vez', currentStepIndex);
     }
-    processNextStep(currentStepIndex + 1);
+    processNextStep(currentStepIndex + 1, data);
   };
 
   const handleComplete = async () => {
@@ -544,7 +544,7 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
 
                       setMultiInputValues({});
                       setIsProcessing(true);
-                      processNextStep(currentStepIndex + 1);
+                      processNextStep(currentStepIndex + 1, newData);
                     }}
                     disabled={!currentStep.inputs?.every(i => multiInputValues[i.field]?.trim())}
                     className="self-end w-full sm:w-auto px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
@@ -603,23 +603,44 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
                     </div>
                   )}
 
-                  <div className="flex gap-3 items-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={photos.length >= 4}
-                      className="flex-1 bg-slate-800/50 border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-2xl h-12 transition-all duration-300"
-                    >
-                      <Camera className="w-5 h-5 mr-2" />
-                      {photos.length >= 4 ? 'Limite atingido' : `Adicionar Foto (${photos.length}/4)`}
-                    </Button>
-                    <Button
-                      onClick={handlePhotoSubmit}
-                      className="w-12 h-12 rounded-full p-0 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
-                    >
-                      <Send className="w-5 h-5 ml-0.5" />
-                    </Button>
-                  </div>
+                  {photos.length === 0 ? (
+                    <div className="flex gap-3 items-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 bg-slate-800/50 border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-2xl h-12 transition-all duration-300"
+                      >
+                        <Camera className="w-5 h-5 mr-2" />
+                        Adicionar Foto
+                      </Button>
+                      <Button
+                        onClick={handlePhotoSubmit}
+                        className="w-12 h-12 rounded-full p-0 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
+                      >
+                        <Send className="w-5 h-5 ml-0.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <Button
+                        onClick={handlePhotoSubmit}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-2xl h-12 font-medium shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center p-0"
+                        style={{ background: theme.button_bg, color: theme.button_text }}
+                      >
+                        <Send className="w-5 h-5 mr-2" />
+                        Enviar {photos.length} Foto{photos.length > 1 ? 's' : ''} e Continuar
+                      </Button>
+                      {photos.length < 4 && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full text-slate-400 hover:text-white h-10"
+                        >
+                          + Adicionar mais fotos ({photos.length}/4)
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -628,12 +649,14 @@ export function ChatCheckinEngine({ flow, patientName, onComplete, loading, them
                     className="hidden"
                     onChange={(e) => handlePhotoUpload(e.target.files)}
                   />
-                  <button
-                    onClick={handlePhotoSubmit}
-                    className="w-full text-slate-500 text-xs py-1 hover:text-slate-300 transition-colors"
-                  >
-                    Pular envio de fotos
-                  </button>
+                  {photos.length === 0 && (
+                    <button
+                      onClick={handlePhotoSubmit}
+                      className="w-full text-slate-500 text-xs py-1 hover:text-slate-300 transition-colors"
+                    >
+                      Pular envio de fotos
+                    </button>
+                  )}
                 </div>
               )}
             </div>
