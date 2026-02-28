@@ -677,8 +677,29 @@ export function EvolutionExportPage({
                   </span>
                 ) : null}
               </h3>
-              <div className="grid grid-cols-5 gap-4">
-                {/* % Gordura Corporal - PRIMEIRO CARD */}
+              <div className="grid grid-cols-6 gap-4">
+                {/* Peso Atual (na composição) */}
+                {pesoComposicaoAtual && (
+                  <div className="rounded-xl p-4 border border-indigo-500/30" style={{ backgroundColor: 'rgba(99, 102, 241, 0.2)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-indigo-500/30">
+                          <span>⚖️</span>
+                        </div>
+                        <p className="text-indigo-200 text-sm font-medium">Peso</p>
+                      </div>
+                      {variacao !== null && (
+                        <span className={`text-xs font-semibold ${isNeutral ? 'text-slate-300' : isNegative ? 'text-emerald-400' : 'text-orange-400'}`}>
+                          {variacao > 0 ? '+' : ''}{variacao.toFixed(1)}kg
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-3xl font-bold text-white">{pesoComposicaoAtual.toFixed(1)}<span className="text-lg">kg</span></p>
+                    <p className="text-xs text-indigo-300 mt-1">Peso atual</p>
+                  </div>
+                )}
+
+                {/* % Gordura Corporal - SEGUNDA CARD */}
                 {percentualGordura && (
                   <div className="rounded-xl p-4 border border-orange-500/30" style={{ backgroundColor: 'rgba(249, 115, 22, 0.2)' }}>
                     <div className="flex items-center justify-between mb-2">
