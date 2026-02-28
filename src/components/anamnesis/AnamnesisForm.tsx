@@ -1175,6 +1175,27 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       );
     }
 
+    // Time fields - compact masked input
+    if (fieldDef.type === 'time') {
+      return (
+        <div key={fieldDef.id} className="space-y-1.5">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide flex items-center gap-1.5">
+            {fieldDef.icon && <span className="text-sm">{fieldDef.icon}</span>}
+            {fieldDef.label}{fieldDef.required && <span className="text-blue-400">*</span>}
+          </Label>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            value={getValue()}
+            onChange={e => setValue(handleTimeMask(e.target.value))}
+            placeholder="00:00"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-lg font-mono tracking-widest w-28"
+          />
+        </div>
+      );
+    }
+
     return (
       <div key={fieldDef.id} className="space-y-4 h-full flex flex-col">
         <FieldInput
