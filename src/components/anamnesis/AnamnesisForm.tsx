@@ -600,6 +600,13 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
     updateField('vencimento', d.toISOString().split('T')[0]);
   };
 
+  // ===== MÁSCARA DE HORÁRIO (HH:MM) =====
+  const handleTimeMask = (raw: string): string => {
+    const digits = raw.replace(/\D/g, '').slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  };
+
   // ===== SEÇÕES =====
 
   const renderDadosPessoais = () => (
@@ -846,9 +853,31 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
       <FieldInput label="Trabalha em pé ou sentado?" value={form.anamnese.trabalha_pe_sentado || ''} onChange={v => updateAnamnese('trabalha_pe_sentado', v)} />
       <FieldInput label="Quanto tempo do dia fica em pé?" value={form.anamnese.tempo_em_pe || ''} onChange={v => updateAnamnese('tempo_em_pe', v)} />
       <FieldInput label="Horário de treino (ou pretende treinar)" value={form.anamnese.horario_treino || ''} onChange={v => updateAnamnese('horario_treino', v)} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FieldInput label="Acorda que horas?" value={form.anamnese.horario_acordar || ''} onChange={v => updateAnamnese('horario_acordar', v)} placeholder="Ex: 06:00" />
-        <FieldInput label="Dorme que horas?" value={form.anamnese.horario_dormir || ''} onChange={v => updateAnamnese('horario_dormir', v)} placeholder="Ex: 23:00" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide">Acorda que horas?</Label>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            value={form.anamnese.horario_acordar || ''}
+            onChange={e => updateAnamnese('horario_acordar', handleTimeMask(e.target.value))}
+            placeholder="00:00"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-lg font-mono tracking-widest w-28"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-slate-300 text-xs font-medium tracking-wide">Dorme que horas?</Label>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            value={form.anamnese.horario_dormir || ''}
+            onChange={e => updateAnamnese('horario_dormir', handleTimeMask(e.target.value))}
+            placeholder="00:00"
+            className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-11 text-center text-lg font-mono tracking-widest w-28"
+          />
+        </div>
       </div>
       <FieldInput label="Quantas horas dorme por noite?" value={form.anamnese.horas_sono || ''} onChange={v => updateAnamnese('horas_sono', v)} />
       <FieldTextarea label="Como é seu sono? Usa remédio para dormir?" value={form.anamnese.qualidade_sono || ''} onChange={v => updateAnamnese('qualidade_sono', v)} />
@@ -877,13 +906,15 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             <div className="flex items-center justify-between gap-3">
               <h4 className="text-white font-medium text-sm">Refeição {r.num}</h4>
               <div className="space-y-1">
-                <Label className="text-slate-500 text-[10px] font-medium">Horário em que costuma fazer essa refeição</Label>
+                <Label className="text-slate-500 text-[10px] font-medium">Horário</Label>
                 <Input
                   type="text"
+                  inputMode="numeric"
+                  maxLength={5}
                   value={(form.anamnese as any)[r.horKey] || ''}
-                  onChange={e => updateAnamnese(r.horKey, e.target.value)}
-                  placeholder="Ex: 08:00"
-                  className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-9 text-sm w-32"
+                  onChange={e => updateAnamnese(r.horKey, handleTimeMask(e.target.value))}
+                  placeholder="00:00"
+                  className="bg-slate-800/40 border-slate-700/50 text-white rounded-xl h-9 text-center font-mono tracking-widest w-24"
                 />
               </div>
             </div>
