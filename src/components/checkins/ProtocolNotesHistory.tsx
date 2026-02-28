@@ -231,13 +231,21 @@ export function ProtocolNotesHistory({ telefone }: ProtocolNotesHistoryProps) {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                /* View mode */
+                                                /* View mode - Timeline layout */
                                                 <>
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[13px] text-slate-200 whitespace-pre-wrap break-words">
-                                                                {note.content}
-                                                            </p>
+                                                    {/* Header: Data | Autor | Ações */}
+                                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                                        <div className="flex items-center gap-2 text-[11px]">
+                                                            <span className="text-slate-400 font-mono">
+                                                                {formatDate(note.created_at)}
+                                                            </span>
+                                                            <span className="text-slate-600">|</span>
+                                                            <span className="text-blue-400 font-semibold">
+                                                                {note.author_name}
+                                                            </span>
+                                                            {note.updated_at !== note.created_at && (
+                                                                <span className="text-[10px] text-slate-600 italic">(editado)</span>
+                                                            )}
                                                         </div>
                                                         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                                             <Button
@@ -260,21 +268,10 @@ export function ProtocolNotesHistory({ telefone }: ProtocolNotesHistoryProps) {
                                                             </Button>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2 mt-1.5">
-                                                        <span className="text-[11px] text-blue-400 font-medium">
-                                                            {note.author_name}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-500">•</span>
-                                                        <span className="text-[11px] text-slate-500">
-                                                            {formatDate(note.created_at)}
-                                                        </span>
-                                                        {note.updated_at !== note.created_at && (
-                                                            <>
-                                                                <span className="text-[10px] text-slate-500">•</span>
-                                                                <span className="text-[10px] text-slate-600 italic">editado</span>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                    {/* Conteúdo do ajuste */}
+                                                    <p className="text-[13px] text-slate-200 whitespace-pre-wrap break-words pl-0.5 border-l-2 border-blue-500/30 pl-3">
+                                                        {note.content}
+                                                    </p>
                                                 </>
                                             )}
                                         </div>
