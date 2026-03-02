@@ -16,7 +16,8 @@ import {
   Target,
   AlertTriangle,
   LineChart,
-  Shield
+  Shield,
+  BookOpen
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
@@ -48,7 +49,6 @@ const mainNavItems = [
   { title: "Planos de Acompanhamento", url: "/plans", icon: Calendar, ownerOnly: true }, // Apenas owner
   { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },
   { title: "Métricas Comerciais", url: "/commercial-metrics", icon: Target },
-  { title: "Workspace", url: "/workspace", icon: Monitor },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
 
@@ -137,10 +137,6 @@ export function AppSidebar() {
 
   // Filtrar itens do menu baseado em permissões + controle de acesso do admin
   const filteredMainNavItems = mainNavItems.filter(item => {
-    // Workspace só aparece para o admin
-    if (item.title === "Workspace") {
-      return userEmail === ADMIN_EMAIL;
-    }
 
     // Admin da plataforma sempre vê tudo
     if (userEmail === ADMIN_EMAIL) {
@@ -173,26 +169,28 @@ export function AppSidebar() {
     return true;
   });
 
-  // Adicionar Admin Dashboard e Gestão de Equipe
+  // Adicionar Treinamentos, Admin Dashboard e Gestão de Equipe
+  const trainingNavItems = [];
   const adminNavItems = [];
+
+  // Treinamentos para todos (owner, admin e membros da equipe)
+  if (userEmail === ADMIN_EMAIL || isOwner || isTeamMember) {
+    trainingNavItems.push({ title: "POP Plano Alimentar", url: "/admin/pop", icon: BookOpen });
+  }
 
   // Admin só para o email específico
   if (userEmail === ADMIN_EMAIL) {
-    adminNavItems.push({ title: "Treinamento (POP)", url: "/admin/pop", icon: Target });
     adminNavItems.push({ title: "Admin", url: "/admin", icon: Shield });
   }
 
   // Gestão de Equipe apenas para owner ou admin
   if (userEmail === ADMIN_EMAIL || isOwner) {
-    if (!adminNavItems.find(item => item.url === '/admin/pop')) {
-      adminNavItems.push({ title: "Treinamento (POP)", url: "/admin/pop", icon: Target });
-    }
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
+    adminNavItems.push({ title: "Workspace", url: "/workspace", icon: Monitor });
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
 
   // Reuniões também para membros da equipe (que não são owners)
-  // Usar isTeamMember que já foi verificado, ou verificar permissão de dashboard
   if (!isOwner && userEmail !== ADMIN_EMAIL && (isTeamMember || authProfile?.permissions?.dashboard)) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
@@ -248,6 +246,31 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {trainingNavItems.length > 0 && (
+          <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className={`text-slate-400 text-xs font-medium ${isCollapsed ? "sr-only" : ""}`}>
+              Treinamentos
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {trainingNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className={`${getNavCls(item.url)} transition-colors duration-200`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {adminNavItems.length > 0 && (
           <SidebarGroup className="mt-4">
