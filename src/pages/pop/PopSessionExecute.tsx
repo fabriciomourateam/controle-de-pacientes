@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Save, CheckCircle, ArrowLeft, AlertCircle, Check, ChevronsUpDown, Sparkles, AlertTriangle } from "lucide-react";
+import { Save, CheckCircle, ArrowLeft, AlertCircle, Check, ChevronsUpDown, Sparkles, AlertTriangle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PopSessionExecute() {
@@ -81,11 +81,11 @@ export default function PopSessionExecute() {
 
     const loadData = async () => {
         setLoading(true);
-        const activeVersion = popService.getActiveVersion();
+        const activeVersion = await popService.getActiveVersion();
         setVersion(activeVersion);
 
         if (id && id !== 'new') {
-            const existingSession = popService.getSessionId(id);
+            const existingSession = await popService.getSessionId(id);
             if (existingSession) {
                 setSession(existingSession);
                 setCaseData(existingSession.patient_case);
@@ -168,7 +168,7 @@ export default function PopSessionExecute() {
         calculateScore(newChecked);
     };
 
-    const saveDraft = (isAutoSave = false) => {
+    const saveDraft = async (isAutoSave = false) => {
         if (!version) return;
 
         const currentUser = popService.getCurrentUser();
@@ -191,7 +191,7 @@ export default function PopSessionExecute() {
             score: calculatedScore
         };
 
-        popService.saveSession(newSession);
+        await popService.saveSession(newSession);
         setSession(newSession);
 
         // Also save to generic localstorage for crash recovery
@@ -203,7 +203,25 @@ export default function PopSessionExecute() {
         }
     };
 
-    const submitForReview = () => {
+    const clearDraft = () => {
+        if (confirm("Deseja apagar o rascunho atual e começar uma nova montagem do zero?")) {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            setSession(null);
+            setCaseData({
+                patient_id: "", name: "", objective: "", weight: 0, height: 0, tmb: 0,
+                get_base: 0, can_weigh_food: false, intolerances: "", wake_time: "", work_time: "",
+                study_time: "", training_time: "", sleep_time: "", highest_hunger_time: "", lowest_hunger_time: "",
+                likes: "", dislikes: "", must_have: "", supplements: "", current_habits: "", observations: ""
+            });
+            setCheckedItems(new Set());
+            setCompletedSteps(new Set());
+            setCalculatedScore(0);
+            setAiSuggestions([]);
+            toast({ title: "Rascunho excluído", description: "Você pode iniciar uma nova montagem." });
+        }
+    };
+
+    const submitForReview = async () => {
         if (calculatedScore < 80) {
             toast({ title: "Atenção", description: "Score baixo. Revise os itens do checklist antes de enviar.", variant: "destructive" });
             return;
@@ -234,7 +252,7 @@ export default function PopSessionExecute() {
         // Clean up draft cache
         localStorage.removeItem(DRAFT_STORAGE_KEY);
 
-        popService.saveSession(newSession);
+        await popService.saveSession(newSession);
         toast({ title: "Enviado para revisão!" });
         navigate('/admin/pop');
     };
@@ -263,6 +281,12 @@ export default function PopSessionExecute() {
                     <div className={`px-3 py-1 rounded-full text-sm font-bold ${calculatedScore >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                         Score: {calculatedScore}%
                     </div>
+                    {id === 'new' && session && (
+                        <Button variant="ghost" onClick={clearDraft} className="text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent">
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Limpar Rascunho
+                        </Button>
+                    )}
                     <Button variant="outline" onClick={() => saveDraft(false)}>
                         <Save className="w-4 h-4 mr-2" />
                         Salvar Rascunho
@@ -304,51 +328,52 @@ export default function PopSessionExecute() {
                             </div>
                         )}
 
-                        {(!session || id === 'new') && (
-                            <div className="space-y-2 flex flex-col">
-                                <Label>Selecionar Paciente (Opcional)</Label>
-                                <Popover open={patientComboboxOpen} onOpenChange={setPatientComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={patientComboboxOpen}
-                                            className="w-full justify-between"
-                                        >
-                                            {caseData.patient_id
-                                                ? patients.find((p) => p.id === caseData.patient_id)?.nome
-                                                : "Digite para buscar um paciente..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar paciente por nome..." />
-                                            <CommandList>
-                                                <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {patients.map((p) => (
-                                                        <CommandItem
-                                                            key={p.id}
-                                                            value={p.nome}
-                                                            onSelect={() => handlePatientSelect(p.id)}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    caseData.patient_id === p.id ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {p.nome}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                        )}
+                        <div className="space-y-2 flex flex-col">
+                            <Label>Selecionar Paciente (Opcional)</Label>
+                            <Popover open={patientComboboxOpen} onOpenChange={setPatientComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={patientComboboxOpen}
+                                        className="w-full justify-between"
+                                    >
+                                        {caseData.patient_id
+                                            ? patients.find((p) => p.id === caseData.patient_id)?.nome
+                                            : "Digite para buscar um paciente..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[300px] p-0" align="start">
+                                    <Command filter={(value, search) => {
+                                        if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                                        return 0;
+                                    }}>
+                                        <CommandInput placeholder="Buscar paciente por nome..." />
+                                        <CommandList>
+                                            <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
+                                            <CommandGroup>
+                                                {patients.map((p) => (
+                                                    <CommandItem
+                                                        key={p.id}
+                                                        value={p.nome}
+                                                        onSelect={() => handlePatientSelect(p.id)}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                caseData.patient_id === p.id ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {p.nome}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
 
                         <div className="space-y-2">
                             <Label>Nome do Aluno</Label>
@@ -569,12 +594,12 @@ export default function PopSessionExecute() {
                                                 <div className="mt-3 space-y-3 text-sm">
                                                     <div>
                                                         <span className="font-semibold text-slate-700 block text-xs uppercase mb-1">Impacto no Paciente</span>
-                                                        <p className="text-slate-600">{err.impact}</p>
+                                                        <p className="text-slate-600 whitespace-pre-wrap">{err.impact}</p>
                                                     </div>
 
                                                     <div>
                                                         <span className="font-semibold text-emerald-700 block text-xs uppercase mb-1">Como Evitar</span>
-                                                        <p className="text-slate-600">{err.how_to_avoid}</p>
+                                                        <p className="text-slate-600 whitespace-pre-wrap">{err.how_to_avoid}</p>
                                                     </div>
                                                 </div>
                                             </div>

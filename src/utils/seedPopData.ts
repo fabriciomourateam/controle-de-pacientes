@@ -3,11 +3,11 @@ import { popService } from "@/services/popService";
 
 const uuidv4 = () => crypto.randomUUID();
 
-export const seedPopData = () => {
+export const seedPopData = async () => {
     // Check for existing versions
-    if (popService.getVersions().length > 0) {
+    const versions = await popService.getVersions();
+    if (versions.length > 0) {
         // Patch for old v1.0 step 3 caching
-        const versions = popService.getVersions();
         const v1 = versions.find(v => v.version === "v1.0");
         if (v1) {
             const step3 = v1.steps.find(s => s.order === 3);
@@ -22,7 +22,7 @@ export const seedPopData = () => {
             Horários de maior/menor fome, hábitos atuais (ex.: café com açúcar) e suplementos ativos.<br>
             Validar se consegue pesar alimentos ou se precisa de medidas caseiras.
         </p>`;
-                popService.saveVersion(v1);
+                await popService.saveVersion(v1);
             }
         }
         return;
@@ -225,5 +225,5 @@ export const seedPopData = () => {
         ]
     };
 
-    popService.saveVersion(initialVersion);
+    await popService.saveVersion(initialVersion);
 };

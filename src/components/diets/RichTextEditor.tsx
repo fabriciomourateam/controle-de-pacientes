@@ -103,6 +103,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
           type="button"
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormat('bold')}
           className="h-8 w-8 p-0 hover:bg-gray-200 text-black"
           title="Negrito (Ctrl+B)"
@@ -114,6 +115,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
           type="button"
           variant="ghost"
           size="sm"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormat('italic')}
           className="h-8 w-8 p-0 hover:bg-gray-200 text-black"
           title="Itálico (Ctrl+I)"
@@ -129,6 +131,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
               type="button"
               variant="ghost"
               size="sm"
+              onMouseDown={(e) => e.preventDefault()}
               className="h-8 w-8 p-0 hover:bg-gray-200 text-black"
               title="Tamanho da fonte"
             >
@@ -153,6 +156,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
               type="button"
               variant="ghost"
               size="sm"
+              onMouseDown={(e) => e.preventDefault()}
               className="h-8 w-8 p-0 hover:bg-gray-200 text-black"
               title="Cor do texto"
             >
@@ -183,6 +187,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
               type="button"
               variant="ghost"
               size="sm"
+              onMouseDown={(e) => e.preventDefault()}
               className="h-8 w-8 p-0 hover:bg-gray-200 text-black"
               title="Inserir link (Ctrl+Clique para abrir)"
             >
@@ -257,6 +262,7 @@ export function RichTextEditor({ value, onChange, placeholder, className = '', r
         ref={editorRef}
         contentEditable
         onInput={handleInput}
+        onBlur={handleInput}
         onMouseDown={handleMouseDown}
         className={`min-h-[100px] p-3 text-[#222222] focus:outline-none focus:ring-0 focus-visible:ring-0 bg-white ${resizable ? 'resize-y overflow-auto' : ''}`}
         data-placeholder={placeholder}

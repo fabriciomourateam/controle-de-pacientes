@@ -19,18 +19,23 @@ export default function PopSessionReview() {
     const [feedback, setFeedback] = useState("");
 
     useEffect(() => {
-        if (id) {
-            const s = popService.getSessionId(id);
-            if (s) {
-                setSession(s);
-                setFeedback(s.supervisor_feedback || "");
-                const allVers = popService.getVersions();
-                setVersion(allVers.find(v => v.id === s.version_id) || null);
+        let isMounted = true;
+        const loadSession = async () => {
+            if (id) {
+                const s = await popService.getSessionId(id);
+                if (s && isMounted) {
+                    setSession(s);
+                    setFeedback(s.supervisor_feedback || "");
+                    const allVers = await popService.getVersions();
+                    if (isMounted) setVersion(allVers.find(v => v.id === s.version_id) || null);
+                }
             }
-        }
+        };
+        loadSession();
+        return () => { isMounted = false; };
     }, [id]);
 
-    const handleReview = (approved: boolean) => {
+    const handleReview = async (approved: boolean) => {
         if (!session) return;
         const currentUser = popService.getCurrentUser();
 
@@ -42,13 +47,17 @@ export default function PopSessionReview() {
             updated_at: new Date().toISOString()
         };
 
-        popService.saveSession(updated);
-        setSession(updated);
-        toast({
-            title: approved ? "Montagem Aprovada!" : "Enviado para Correção",
-            variant: approved ? "default" : "destructive"
-        });
-        navigate('/admin/pop');
+        try {
+            await popService.saveSession(updated);
+            setSession(updated);
+            toast({
+                title: approved ? "Montagem Aprovada!" : "Enviado para Correção",
+                variant: approved ? "default" : "destructive"
+            });
+            navigate('/admin/pop');
+        } catch (e) {
+            toast({ title: "Erro", description: "Falha ao salvar a revisão.", variant: "destructive" });
+        }
     };
 
     if (!session || !version) return <div className="p-8">Carregando Sessão...</div>;
@@ -103,10 +112,10 @@ export default function PopSessionReview() {
                             <div><span className="font-semibold">Balança:</span> {session.patient_case.can_weigh_food ? 'Sim' : 'Medidas Caseiras'}</div>
                             <hr />
                             <div><span className="font-semibold text-xs text-slate-500 block uppercase mb-1">Dificuldades do Estagiário:</span>
-                                {session.intern_general_notes || 'Nenhuma nota informada.'}
+                                <div className="whitespace-pre-wrap">{session.intern_general_notes || 'Nenhuma nota informada.'}</div>
                             </div>
                             <div><span className="font-semibold text-xs text-slate-500 block uppercase mb-1">Dúvidas:</span>
-                                {session.intern_questions || 'Nenhuma dúvida.'}
+                                <div className="whitespace-pre-wrap">{session.intern_questions || 'Nenhuma dúvida.'}</div>
                             </div>
                         </CardContent>
                     </Card>

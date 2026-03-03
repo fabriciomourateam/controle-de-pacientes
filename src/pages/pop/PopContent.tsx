@@ -12,8 +12,17 @@ export default function PopContent() {
     const [version, setVersion] = useState<PopVersion | null>(null);
 
     useEffect(() => {
-        const activeVersion = popService.getActiveVersion();
-        setVersion(activeVersion);
+        let isMounted = true;
+        const fetchVersion = async () => {
+            try {
+                const activeVersion = await popService.getActiveVersion();
+                if (isMounted) setVersion(activeVersion);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchVersion();
+        return () => { isMounted = false; };
     }, []);
 
     if (!version) {
@@ -61,8 +70,8 @@ export default function PopContent() {
 
             <div className="space-y-4">
                 <h3 className="text-lg font-bold text-slate-900 mt-8 mb-4">Etapas da Montagem</h3>
-                <Accordion type="single" collapsible className="w-full bg-white rounded-xl shadow-sm border border-slate-200" defaultValue={version.steps[0]?.id}>
-                    {version.steps.map((step, index) => (
+                <Accordion type="single" collapsible className="w-full bg-white rounded-xl shadow-sm border border-slate-200" defaultValue={version.steps?.[0]?.id}>
+                    {version.steps?.map((step, index) => (
                         <AccordionItem key={step.id} value={step.id} className="border-b last:border-0 px-2">
                             <AccordionTrigger className="hover:no-underline hover:bg-slate-50 px-4 py-4 rounded-lg data-[state=open]:text-amber-700 data-[state=open]:bg-amber-50/50">
                                 <span className="text-left font-bold text-base text-slate-800">

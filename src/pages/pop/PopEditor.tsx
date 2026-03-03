@@ -32,7 +32,7 @@ export default function PopEditor() {
                 const deepClone = JSON.parse(JSON.stringify(active));
                 const currentVersionStr = active.version || "v1.0";
                 const numericPart = parseFloat(currentVersionStr.replace(/[^0-9.]/g, '')) || 1.0;
-                setVersion({ ...deepClone, id: crypto.randomUUID(), version: "v" + (numericPart + 0.1).toFixed(1) });
+                setVersion({ ...deepClone, id: crypto.randomUUID(), version: "v" + (numericPart + 0.1).toFixed(1), published_at: new Date().toISOString() });
             }
         };
         init();
