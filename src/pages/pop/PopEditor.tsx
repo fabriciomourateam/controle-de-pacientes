@@ -19,24 +19,34 @@ export default function PopEditor() {
     const [version, setVersion] = useState<PopVersion | null>(null);
 
     useEffect(() => {
-        // Clone active version to edit as a new draft - deep clone to avoid mutating local storage pointer
-        let active = popService.getActiveVersion();
+        let isMounted = true;
+        const init = async () => {
+            let active = await popService.getActiveVersion();
 
-        if (!active) {
-            seedPopData();
-            active = popService.getActiveVersion();
-        }
+            if (!active) {
+                await seedPopData();
+                active = await popService.getActiveVersion();
+            }
 
-        if (active) {
-            const deepClone = JSON.parse(JSON.stringify(active));
-            setVersion({ ...deepClone, id: crypto.randomUUID(), version: "v" + (parseFloat(active.version.replace('v', '')) + 0.1).toFixed(1) });
-        }
+            if (active && isMounted) {
+                const deepClone = JSON.parse(JSON.stringify(active));
+                const currentVersionStr = active.version || "v1.0";
+                const numericPart = parseFloat(currentVersionStr.replace(/[^0-9.]/g, '')) || 1.0;
+                setVersion({ ...deepClone, id: crypto.randomUUID(), version: "v" + (numericPart + 0.1).toFixed(1) });
+            }
+        };
+        init();
+        return () => { isMounted = false; };
     }, []);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!version) return;
-        popService.saveVersion(version);
-        toast({ title: "Nova versão do POP publicada!", description: `Versão ${version.version} agora está ativa.` });
+        try {
+            await popService.saveVersion(version);
+            toast({ title: "Nova versão do POP publicada!", description: `Versão ${version.version} agora está ativa.` });
+        } catch (e) {
+            toast({ title: "Erro ao salvar", description: "Não foi possível conectar ao banco.", variant: "destructive" });
+        }
     };
 
     const handleReset = () => {
