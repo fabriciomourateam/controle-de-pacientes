@@ -32,7 +32,7 @@ export const popService = {
 
     // --- VERSION MANAGEMENT (Supabase) ---
     getVersions: async (): Promise<PopVersion[]> => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('pop_versions')
             .select('*')
             .order('published_at', { ascending: false });
@@ -45,7 +45,7 @@ export const popService = {
     },
 
     getActiveVersion: async (): Promise<PopVersion | null> => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('pop_versions')
             .select('*')
             .eq('is_active', true)
@@ -61,13 +61,13 @@ export const popService = {
 
     saveVersion: async (version: PopVersion) => {
         if (version.is_active) {
-            await supabase
+            await (supabase as any)
                 .from('pop_versions')
                 .update({ is_active: false })
                 .neq('id', version.id); // Deactivate all others
         }
 
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('pop_versions')
             .upsert({
                 id: version.id,
@@ -90,7 +90,7 @@ export const popService = {
 
     // --- SESSION MANAGEMENT (Supabase) ---
     getSessions: async (): Promise<PopSession[]> => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('pop_sessions')
             .select('*')
             .order('updated_at', { ascending: false });
@@ -103,7 +103,7 @@ export const popService = {
     },
 
     getSessionId: async (id: string): Promise<PopSession | null> => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('pop_sessions')
             .select('*')
             .eq('id', id)
@@ -119,7 +119,7 @@ export const popService = {
     saveSession: async (session: PopSession) => {
         session.updated_at = new Date().toISOString();
 
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('pop_sessions')
             .upsert({
                 id: session.id,
@@ -147,7 +147,7 @@ export const popService = {
     },
 
     deleteSession: async (sessionId: string) => {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
             .from('pop_sessions')
             .delete()
             .eq('id', sessionId);
@@ -161,7 +161,7 @@ export const popService = {
     // --- PATIENTS INTEGRATION (Real DB but minimal fetch) ---
     getPatientsForMock: async () => {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from('patients')
                 .select('id, nome')
                 .order('nome')
@@ -180,7 +180,7 @@ export const popService = {
             const result: Partial<PopPatientCase> = {};
 
             // 1. Fetch Patient Info
-            const { data: patient } = await supabase
+            const { data: patient } = await (supabase as any)
                 .from('patients')
                 .select('nome, data_nascimento, genero, telefone, altura_inicial, peso_inicial')
                 .eq('id', patientId)
@@ -196,7 +196,7 @@ export const popService = {
 
             // 2. Fetch Latest Evolution for Weight, Height, TMB
             if (telefone) {
-                const { data: latestEvo } = await supabase
+                const { data: latestEvo } = await (supabase as any)
                     .from('body_composition')
                     .select('peso, tmb')
                     .eq('telefone', telefone)
@@ -211,7 +211,7 @@ export const popService = {
             }
 
             // 3. Fetch Anamnesis for Preferences and Habits
-            const { data: anamnesis } = await supabase
+            const { data: anamnesis } = await (supabase as any)
                 .from('patient_anamnesis')
                 .select('data')
                 .eq('patient_id', patientId)
