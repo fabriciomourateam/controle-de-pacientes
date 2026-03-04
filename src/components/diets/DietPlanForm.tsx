@@ -65,7 +65,8 @@ import {
   Layers,
   Package,
   Beaker,
-  FlaskConical
+  FlaskConical,
+  Settings
 } from 'lucide-react';
 import { TMBCalculator } from "./TMBCalculator";
 import { MacroDistributionModal } from "./MacroDistributionModal";
@@ -1404,1444 +1405,1061 @@ export function DietPlanForm({
     <>
       <Form {...form}>
         <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg border border-gray-200 gap-1">
-              <TabsTrigger
-                value="basic"
-                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Início
-              </TabsTrigger>
-              <TabsTrigger
-                value="meals"
-                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-              >
-                <Utensils className="w-4 h-4 mr-2" />
-                Refeições
-              </TabsTrigger>
-              <TabsTrigger
-                value="guidelines"
-                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                Orientações
-              </TabsTrigger>
-              <TabsTrigger
-                value="supplements"
-                className="data-[state=active]:bg-white data-[state=active]:text-[#00C98A] data-[state=active]:shadow-sm text-[#777777] transition-all duration-200 text-xs sm:text-sm px-1"
-              >
-                <Database className="w-4 h-4 mr-2" />
-                Suplementos
-              </TabsTrigger>
-            </TabsList>
-            <div className="mt-4 space-y-4">
-              {/* ABA 1: Informações Básicas */}
-              {activeTab === "basic" && (
-                <div className="space-y-4">
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[#222222] font-medium">Nome do Plano *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ex: Plano Semanal - Perda de Peso"
+                      className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Header Colapsável - Configurações do Plano */}
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger asChild>
+                <button type="button" className="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all duration-200 group">
+                  <span className="text-sm font-medium text-[#777777] flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Configurações do Plano
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-[#777777] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3 space-y-4">
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[#222222] font-medium">Observações</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Observações gerais sobre o plano..."
+                          className="resize-none border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+
+                {/* Macros Totais e Metas em Mini Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* Calorias Totais */}
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="total_calories"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[#222222] font-medium">Nome do Plano *</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ex: Plano Semanal - Perda de Peso"
-                            className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                            {...field}
-                          />
-                        </FormControl>
+                        <Card className="border-orange-300 bg-orange-50">
+                          <CardContent className="p-3">
+                            <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                              Calorias Totais
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="0"
+                                className="border-orange-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-200 focus-visible:ring-1 focus-visible:ring-orange-200 focus-visible:ring-offset-0 h-10"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                }}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs text-gray-500 mt-1">kcal</FormDescription>
+                          </CardContent>
+                        </Card>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
+                  {/* Proteína Total */}
                   <FormField
                     control={form.control}
-                    name="notes"
+                    name="total_protein"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[#222222] font-medium">Observações</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Observações gerais sobre o plano..."
-                            className="resize-none border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-200"
-                            {...field}
-                          />
-                        </FormControl>
+                        <Card className="border-blue-300 bg-blue-50">
+                          <CardContent className="p-3">
+                            <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              Proteínas
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="0"
+                                className="border-blue-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200 focus-visible:ring-1 focus-visible:ring-blue-200 focus-visible:ring-offset-0 h-10"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                }}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
+                          </CardContent>
+                        </Card>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
+                  {/* Carboidratos Total */}
+                  <FormField
+                    control={form.control}
+                    name="total_carbs"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Card className="border-purple-300 bg-purple-50">
+                          <CardContent className="p-3">
+                            <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                              Carboidratos
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="0"
+                                className="border-purple-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-200 focus-visible:ring-1 focus-visible:ring-purple-200 focus-visible:ring-offset-0 h-10"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                }}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
+                          </CardContent>
+                        </Card>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  {/* Macros Totais e Metas em Mini Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {/* Calorias Totais */}
-                    <FormField
-                      control={form.control}
-                      name="total_calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Card className="border-orange-300 bg-orange-50">
-                            <CardContent className="p-3">
-                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                                Calorias Totais
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  className="border-orange-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-200 focus-visible:ring-1 focus-visible:ring-orange-200 focus-visible:ring-offset-0 h-10"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-gray-500 mt-1">kcal</FormDescription>
-                            </CardContent>
-                          </Card>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Gorduras Total */}
+                  <FormField
+                    control={form.control}
+                    name="total_fats"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Card className="border-emerald-300 bg-emerald-50">
+                          <CardContent className="p-3">
+                            <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Gorduras
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="0"
+                                className="border-emerald-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200 focus-visible:ring-1 focus-visible:ring-emerald-200 focus-visible:ring-offset-0 h-10"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                }}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
+                          </CardContent>
+                        </Card>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    {/* Proteína Total */}
-                    <FormField
-                      control={form.control}
-                      name="total_protein"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Card className="border-blue-300 bg-blue-50">
-                            <CardContent className="p-3">
-                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                Proteínas
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  placeholder="0"
-                                  className="border-blue-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200 focus-visible:ring-1 focus-visible:ring-blue-200 focus-visible:ring-offset-0 h-10"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
-                            </CardContent>
-                          </Card>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* GET (Gasto Diário) */}
+                  <FormField
+                    control={form.control}
+                    name="target_calories"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Card className="border-cyan-300 bg-cyan-50">
+                          <CardContent className="p-3">
+                            <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
+                              <TrendingUp className="w-3 h-3 text-cyan-600" />
+                              GET (Gasto Diário)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="0"
+                                className="border-cyan-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-200 focus-visible:ring-1 focus-visible:ring-cyan-200 focus-visible:ring-offset-0 h-10"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                }}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs text-gray-500 mt-1">kcal</FormDescription>
+                          </CardContent>
+                        </Card>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                    {/* Carboidratos Total */}
-                    <FormField
-                      control={form.control}
-                      name="total_carbs"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Card className="border-purple-300 bg-purple-50">
-                            <CardContent className="p-3">
-                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                                Carboidratos
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  placeholder="0"
-                                  className="border-purple-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-200 focus-visible:ring-1 focus-visible:ring-purple-200 focus-visible:ring-offset-0 h-10"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
-                            </CardContent>
-                          </Card>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                {/* Card de Comparação Calórica (Superávit/Déficit) */}
+                {(() => {
+                  const totalCalories = form.watch("total_calories") || 0;
+                  const targetCalories = form.watch("target_calories") || 0;
 
-                    {/* Gorduras Total */}
-                    <FormField
-                      control={form.control}
-                      name="total_fats"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Card className="border-emerald-300 bg-emerald-50">
-                            <CardContent className="p-3">
-                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                Gorduras
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  placeholder="0"
-                                  className="border-emerald-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-200 focus-visible:ring-1 focus-visible:ring-emerald-200 focus-visible:ring-offset-0 h-10"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-gray-500 mt-1">gramas</FormDescription>
-                            </CardContent>
-                          </Card>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  if (totalCalories > 0 && targetCalories > 0) {
+                    const difference = totalCalories - targetCalories;
+                    const isSurplus = difference > 0;
+                    const isDeficit = difference < 0;
 
-                    {/* GET (Gasto Diário) */}
-                    <FormField
-                      control={form.control}
-                      name="target_calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Card className="border-cyan-300 bg-cyan-50">
-                            <CardContent className="p-3">
-                              <FormLabel className="text-xs text-gray-600 flex items-center gap-1.5 mb-2">
-                                <TrendingUp className="w-3 h-3 text-cyan-600" />
-                                GET (Gasto Diário)
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  className="border-cyan-300 bg-white text-gray-900 text-base font-semibold placeholder:text-gray-400 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-200 focus-visible:ring-1 focus-visible:ring-cyan-200 focus-visible:ring-offset-0 h-10"
-                                  {...field}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                                  }}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs text-gray-500 mt-1">kcal</FormDescription>
-                            </CardContent>
-                          </Card>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Card de Comparação Calórica (Superávit/Déficit) */}
-                  {(() => {
-                    const totalCalories = form.watch("total_calories") || 0;
-                    const targetCalories = form.watch("target_calories") || 0;
-
-                    if (totalCalories > 0 && targetCalories > 0) {
-                      const difference = totalCalories - targetCalories;
-                      const isSurplus = difference > 0;
-                      const isDeficit = difference < 0;
-
-                      return (
-                        <div className="mt-3">
-                          <Card className={`border-2 ${isSurplus ? 'border-green-400 bg-green-50' : isDeficit ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <GitCompare className={`w-5 h-5 ${isSurplus ? 'text-green-600' : isDeficit ? 'text-red-600' : 'text-gray-600'}`} />
-                                  <div>
-                                    <p className="text-xs text-gray-600 mb-1">Balanço Calórico</p>
-                                    <p className={`text-lg ${isSurplus ? 'text-green-700' : isDeficit ? 'text-red-700' : 'text-gray-700'}`}>
-                                      {isSurplus && <span className="font-semibold">Superávit Calórico:</span>}
-                                      {isDeficit && <span className="font-semibold">Déficit Calórico:</span>}
-                                      {' '}{Math.abs(difference).toFixed(0)} kcal
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-gray-500">Total vs GET</p>
-                                  <p className="text-sm font-semibold text-gray-700">
-                                    {totalCalories.toFixed(0)} / {targetCalories.toFixed(0)} kcal
+                    return (
+                      <div className="mt-3">
+                        <Card className={`border-2 ${isSurplus ? 'border-green-400 bg-green-50' : isDeficit ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <GitCompare className={`w-5 h-5 ${isSurplus ? 'text-green-600' : isDeficit ? 'text-red-600' : 'text-gray-600'}`} />
+                                <div>
+                                  <p className="text-xs text-gray-600 mb-1">Balanço Calórico</p>
+                                  <p className={`text-lg ${isSurplus ? 'text-green-700' : isDeficit ? 'text-red-700' : 'text-gray-700'}`}>
+                                    {isSurplus && <span className="font-semibold">Superávit Calórico:</span>}
+                                    {isDeficit && <span className="font-semibold">Déficit Calórico:</span>}
+                                    {' '}{Math.abs(difference).toFixed(0)} kcal
                                   </p>
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  <div className="space-y-3">
-                    {/* Validação */}
-                    {validationResult && (
-                      <DietValidationAlerts validation={validationResult} />
-                    )}
-
-                    {/* Botões de Ação */}
-                    <div className="flex items-center gap-2 pt-2 flex-wrap">
-                      <Button
-                        type="button"
-                        onClick={() => setTmbDialogOpen(true)}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 text-white border-0"
-                      >
-                        <Calculator className="w-4 h-4 mr-2" />
-                        Calcular TMB/GET
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTemplateLibraryOpen(true)}
-                        className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Biblioteca
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
-                          {form.watch('total_calories') && form.watch('meals') && form.watch('meals').length > 0 && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => setMacroDistributionOpen(true)}
-                                className="text-white hover:bg-slate-700 cursor-pointer"
-                              >
-                                <TrendingUp className="w-4 h-4 mr-2" />
-                                Distribuir Macros
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setQuickPortionAdjustmentOpen(true)}
-                                className="text-white hover:bg-slate-700 cursor-pointer"
-                              >
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Ajuste Rápido
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setProportionalAdjustmentOpen(true)}
-                                className="text-white hover:bg-slate-700 cursor-pointer"
-                              >
-                                <BarChart3 className="w-4 h-4 mr-2" />
-                                Ajuste Avançado
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            onClick={calculateTotals}
-                            className="text-white hover:bg-slate-700 cursor-pointer"
-                          >
-                            <Calculator className="w-4 h-4 mr-2" />
-                            Calcular Totais
-                          </DropdownMenuItem>
-                          {isEditing && planId && (
-                            <DropdownMenuItem
-                              onClick={() => setComparatorOpen(true)}
-                              className="text-white hover:bg-slate-700 cursor-pointer"
-                            >
-                              <GitCompare className="w-4 h-4 mr-2" />
-                              Comparar
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      {isEditing && planId && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setVersionHistoryOpen(true)}
-                          className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
-                        >
-                          <History className="w-4 h-4 mr-2" />
-                          Versões
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ABA 2: Refeições */}
-              {activeTab === "meals" && (
-                <div className="bg-white flex flex-col" style={isPageMode ? {} : { height: 'calc(100vh - 200px)', minHeight: '600px' }}>
-                  <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
-                          <Utensils className="w-5 h-5 text-[#00C98A]" />
-                          Refeições
-                        </h3>
-                        <p className="text-sm text-[#777777] mt-1">
-                          Adicione as refeições do plano alimentar
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            setFavoriteMealsMealIndex(null); // Não sobrepor, adicionar nova
-                            setFavoriteMealsLoading(true);
-                            try {
-                              const favorites = await dietMealFavoritesService.getFavoriteMeals();
-                              setFavoriteMeals(favorites);
-                              setFavoriteMealsModalOpen(true);
-                            } catch (error: any) {
-                              toast({
-                                title: "Erro",
-                                description: error.message || "Erro ao carregar favoritos",
-                                variant: "destructive",
-                              });
-                            } finally {
-                              setFavoriteMealsLoading(false);
-                            }
-                          }}
-                          className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300"
-                        >
-                          <Star className="w-4 h-4 mr-2" />
-                          Adicionar Favoritos
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={addMeal}
-                          size="sm"
-                          className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Adicionar Refeição
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Controles: Expandir/Colapsar Todas e Ordenação */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const meals = form.getValues("meals") || [];
-                          if (allMealsExpanded) {
-                            setExpandedMeals(new Set());
-                          } else {
-                            setExpandedMeals(new Set(meals.map((_: any, idx: number) => idx)));
-                          }
-                          setAllMealsExpanded(!allMealsExpanded);
-                        }}
-                        className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300 text-xs"
-                      >
-                        {allMealsExpanded ? (
-                          <>
-                            <ChevronUp className="w-3 h-3 mr-1" />
-                            Colapsar Todas
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-3 h-3 mr-1" />
-                            Expandir Todas
-                          </>
-                        )}
-                      </Button>
-
-                      <Select value={mealsSortBy} onValueChange={(value: any) => setMealsSortBy(value)}>
-                        <SelectTrigger className="h-8 w-36 text-xs border-green-500/30 bg-white">
-                          <SelectValue placeholder="Ordenar por..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="order">Ordem Original</SelectItem>
-                          <SelectItem value="time">Horário</SelectItem>
-                          <SelectItem value="name">Nome</SelectItem>
-                          <SelectItem value="calories">Calorias</SelectItem>
-                          <SelectItem value="protein">Proteína</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pb-24">
-                    {mealFields.length === 0 ? (
-                      <Card className="bg-green-500/10 border-green-500/30">
-                        <CardContent className="p-12 text-center">
-                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border border-[#00C98A]/50 mb-4">
-                            <Utensils className="w-8 h-8 text-[#00C98A]" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhuma refeição adicionada ainda</h3>
-                          <p className="text-[#777777] mb-6">
-                            Comece adicionando refeições ao plano alimentar. Você pode adicionar alimentos e definir macros para cada refeição.
-                          </p>
-                          <Button
-                            type="button"
-                            onClick={addMeal}
-                            className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adicionar Primeira Refeição
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleMealDragEnd}
-                      >
-                        <SortableContext
-                          items={mealFields.map((meal) => meal.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="space-y-4">
-                            {(() => {
-                              // Ordenar refeições baseado no critério selecionado
-                              const meals = form.getValues("meals") || [];
-                              const sortedMealFields = [...mealFields].sort((a, b) => {
-                                const indexA = mealFields.indexOf(a);
-                                const indexB = mealFields.indexOf(b);
-                                const mealA = meals[indexA];
-                                const mealB = meals[indexB];
-
-                                if (!mealA || !mealB) return 0;
-
-                                switch (mealsSortBy) {
-                                  case 'time':
-                                    const timeA = mealA.suggested_time || '';
-                                    const timeB = mealB.suggested_time || '';
-                                    return timeA.localeCompare(timeB);
-                                  case 'name':
-                                    const nameA = mealA.meal_name || '';
-                                    const nameB = mealB.meal_name || '';
-                                    return nameA.localeCompare(nameB);
-                                  case 'calories':
-                                    return (mealB.calories || 0) - (mealA.calories || 0);
-                                  case 'protein':
-                                    return (mealB.protein || 0) - (mealA.protein || 0);
-                                  default:
-                                    return (mealA.meal_order || 0) - (mealB.meal_order || 0);
-                                }
-                              });
-
-                              return sortedMealFields;
-                            })().map((meal) => {
-                              // Encontrar o índice original no array não ordenado
-                              const mealIndex = mealFields.findIndex(m => m.id === meal.id);
-                              if (mealIndex === -1) return null;
-                              const isExpanded = expandedMeals.has(mealIndex);
-
-                              // Componente MealItem movido para fora do map para evitar redefinição
-                              return <MealItemComponent
-                                key={meal.id}
-                                meal={meal}
-                                mealIndex={mealIndex}
-                                isExpanded={isExpanded}
-                                form={form}
-                                expandedMeals={expandedMeals}
-                                setExpandedMeals={setExpandedMeals}
-                                removeMeal={removeMeal}
-                                appendMeal={appendMeal}
-                                toast={toast}
-                                sensors={sensors}
-                                handleFoodDragEnd={handleFoodDragEnd}
-                                handleMealDragEnd={handleMealDragEnd}
-                                foodDatabase={foodDatabase}
-                                handleFoodSelect={handleFoodSelect}
-                                recalculateFoodMacros={recalculateFoodMacros}
-                                addFoodToMeal={addFoodToMeal}
-                                removeFoodFromMeal={removeFoodFromMeal}
-                                calculateMealMacros={calculateMealMacros}
-                                calculateTotals={calculateTotals}
-                                setFoodGroupsMealIndex={setFoodGroupsMealIndex}
-                                setFoodGroupsModalOpen={setFoodGroupsModalOpen}
-                                setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
-                                setSubstitutionsModalOpen={setSubstitutionsModalOpen}
-                                setFoodSelectionMealIndex={setFoodSelectionMealIndex}
-                                setFoodSelectionModalOpen={setFoodSelectionModalOpen}
-                                setFavoriteMealsMealIndex={setFavoriteMealsMealIndex}
-                                setFavoriteMealsModalOpen={setFavoriteMealsModalOpen}
-                                setFavoriteMeals={setFavoriteMeals}
-                                setFavoriteMealsLoading={setFavoriteMealsLoading}
-                              />;
-                            })}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-
-                  </div>
-                </div>
-              )}
-
-              {/* ABA 3: Observações entre Refeições */}
-              {activeTab === "observations" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-[#00C98A]" />
-                        Observações entre Refeições
-                      </h3>
-                      <p className="text-sm text-[#777777] mt-1">
-                        Adicione observações que aparecerão entre as refeições na ordem definida
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        const meals = form.getValues("meals") || [];
-                        const maxOrder = observationFields.length > 0
-                          ? Math.max(...observationFields.map((obs: any) => obs.order || 0))
-                          : meals.length;
-                        appendObservation({
-                          text: "",
-                          order: maxOrder + 1,
-                          position: "",
-                        });
-                      }}
-                      size="sm"
-                      className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Observação
-                    </Button>
-                  </div>
-
-                  {observationFields.length === 0 ? (
-                    <Card className="bg-green-400/10 border-green-500/30">
-                      <CardContent className="p-12 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
-                          <AlertTriangle className="w-8 h-8 text-[#00C98A]" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhuma observação adicionada ainda</h3>
-                        <p className="text-[#777777] mb-6">
-                          Adicione observações que aparecerão entre as refeições para orientar o paciente.
-                        </p>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            appendObservation({
-                              text: "",
-                              order: 1,
-                              position: "",
-                            });
-                          }}
-                          className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Adicionar Primeira Observação
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={(event) => {
-                        const { active, over } = event;
-                        if (!over || active.id === over.id) return;
-
-                        const oldIndex = observationFields.findIndex((obs) => obs.id === active.id);
-                        const newIndex = observationFields.findIndex((obs) => obs.id === over.id);
-
-                        if (oldIndex !== -1 && newIndex !== -1) {
-                          const observations = form.getValues("observations") || [];
-                          const reordered = arrayMove(observations, oldIndex, newIndex);
-
-                          // Atualizar ordem
-                          reordered.forEach((obs, index) => {
-                            obs.order = index + 1;
-                          });
-
-                          form.setValue("observations", reordered);
-                        }
-                      }}
-                    >
-                      <SortableContext
-                        items={observationFields.map((obs) => obs.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-4">
-                          {observationFields.map((observation, index) => {
-                            const ObservationItem = () => {
-                              const {
-                                attributes,
-                                listeners,
-                                setNodeRef,
-                                transform,
-                                transition,
-                                isDragging,
-                              } = useSortable({ id: observation.id });
-
-                              const style = {
-                                transform: CSS.Transform.toString(transform),
-                                transition,
-                                opacity: isDragging ? 0.5 : 1,
-                              };
-
-                              const isExpanded = expandedObservations.has(index);
-
-                              return (
-                                <Card
-                                  ref={setNodeRef}
-                                  style={style}
-                                  className="bg-green-50/40 border border-green-200/50 hover:bg-green-50/60 transition-all duration-300 hover:shadow-md"
-                                >
-                                  <Collapsible
-                                    open={isExpanded}
-                                    onOpenChange={(open) => {
-                                      const newExpanded = new Set(expandedObservations);
-                                      if (open) {
-                                        newExpanded.add(index);
-                                      } else {
-                                        newExpanded.delete(index);
-                                      }
-                                      setExpandedObservations(newExpanded);
-                                    }}
-                                  >
-                                    <CardHeader className="pb-2 pt-3 px-4">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3 flex-1">
-                                          <div
-                                            {...attributes}
-                                            {...listeners}
-                                            className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity"
-                                          >
-                                            <GripVertical className="w-4 h-4 text-[#777777]" />
-                                          </div>
-                                          <CardTitle className="text-base font-semibold text-[#222222]">
-                                            Observação {index + 1}
-                                          </CardTitle>
-                                          <Badge className="bg-green-500/10 border-green-500/50 text-[#00A875] text-xs">
-                                            Ordem: {observation.order || index + 1}
-                                          </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <CollapsibleTrigger asChild>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-7 w-7 p-0 text-[#777777] hover:text-[#222222] hover:bg-gray-100"
-                                            >
-                                              {isExpanded ? (
-                                                <ChevronUp className="w-4 h-4" />
-                                              ) : (
-                                                <ChevronDown className="w-4 h-4" />
-                                              )}
-                                            </Button>
-                                          </CollapsibleTrigger>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeObservation(index)}
-                                            className="h-7 w-7 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </CardHeader>
-                                    <CollapsibleContent>
-                                      <CardContent className="space-y-4 pt-0">
-                                        <FormField
-                                          control={form.control}
-                                          name={`observations.${index}.text`}
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel className="text-[#222222] font-medium">Texto da Observação *</FormLabel>
-                                              <FormControl>
-                                                <Textarea
-                                                  placeholder="Ex: Beber água entre as refeições. Evitar líquidos durante as refeições..."
-                                                  className="resize-none border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[100px]"
-                                                  {...field}
-                                                />
-                                              </FormControl>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <FormField
-                                            control={form.control}
-                                            name={`observations.${index}.order`}
-                                            render={({ field }) => (
-                                              <FormItem>
-                                                <FormLabel className="text-[#222222] font-medium">Ordem</FormLabel>
-                                                <FormControl>
-                                                  <Input
-                                                    type="number"
-                                                    className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                                                    {...field}
-                                                    onChange={(e) => {
-                                                      field.onChange(parseInt(e.target.value) || 0);
-                                                    }}
-                                                    value={field.value || index + 1}
-                                                  />
-                                                </FormControl>
-                                                <FormDescription className="text-xs text-[#777777]">
-                                                  Define a posição da observação entre as refeições
-                                                </FormDescription>
-                                                <FormMessage />
-                                              </FormItem>
-                                            )}
-                                          />
-                                          <FormField
-                                            control={form.control}
-                                            name={`observations.${index}.position`}
-                                            render={({ field }) => (
-                                              <FormItem>
-                                                <FormLabel className="text-[#222222] font-medium">Posição (opcional)</FormLabel>
-                                                <FormControl>
-                                                  <Input
-                                                    placeholder="Ex: Após café da manhã"
-                                                    className="border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                                                    {...field}
-                                                  />
-                                                </FormControl>
-                                                <FormDescription className="text-xs text-[#777777]">
-                                                  Descrição opcional da posição
-                                                </FormDescription>
-                                                <FormMessage />
-                                              </FormItem>
-                                            )}
-                                          />
-                                        </div>
-                                      </CardContent>
-                                    </CollapsibleContent>
-                                  </Collapsible>
-                                </Card>
-                              );
-                            };
-
-                            return <ObservationItem key={observation.id} />;
-                          })}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  )}
-                </div>
-              )}
-
-              {/* ABA 4: Orientações */}
-              {activeTab === "guidelines" && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => setIsSelectTemplateOpen(true)}
-                        size="sm"
-                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Selecionar de Favoritas
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => setGuidelineTemplatesOpen(true)}
-                        size="sm"
-                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
-                      >
-                        <Star className="w-4 h-4 mr-2 fill-white" />
-                        Gerenciar Favoritas
-                      </Button>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => addGuideline('general')}
-                      size="sm"
-                      className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Orientação
-                    </Button>
-                  </div>
-
-                  {guidelineFields.filter((_, index) => {
-                    const type = form.watch(`guidelines.${index}.guideline_type`) || 'general';
-                    return type === 'general';
-                  }).length === 0 ? (
-                    <Card className="bg-green-400/10 border-green-500/30">
-                      <CardContent className="p-12 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
-                          <BookOpen className="w-8 h-8 text-[#00C98A]" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhuma orientação adicionada ainda</h3>
-                        <p className="text-[#777777] mb-6">
-                          Adicione orientações para ajudar o paciente a seguir o plano corretamente.
-                        </p>
-                        <Button
-                          type="button"
-                          onClick={() => addGuideline('general')}
-                          className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Adicionar Primeira Orientação
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-4">
-                      {guidelineFields.map((guideline, index) => {
-                        const titleValue = form.watch(`guidelines.${index}.title`);
-                        const typeValue = form.watch(`guidelines.${index}.guideline_type`) || 'general';
-
-                        // Render only general guidelines in this tab
-                        if (typeValue !== 'general') return null;
-
-                        const isExpanded = expandedGuidelines.has(index);
-
-                        // Extrair texto puro do HTML para exibir no header
-                        const getTitleText = (html: string) => {
-                          if (!html) return `Orientação ${index + 1}`;
-                          const div = document.createElement('div');
-                          div.innerHTML = html;
-                          const text = div.textContent || div.innerText || '';
-                          return text.trim() || `Orientação ${index + 1}`;
-                        };
-
-                        return (
-                          <Card
-                            key={guideline.id}
-                            className="bg-green-400/10 border border-green-500/30 hover:bg-green-400/15 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20"
-                          >
-                            <CardHeader className="pb-3 cursor-pointer" onClick={() => {
-                              const newExpanded = new Set(expandedGuidelines);
-                              if (isExpanded) {
-                                newExpanded.delete(index);
-                              } else {
-                                newExpanded.add(index);
-                              }
-                              setExpandedGuidelines(newExpanded);
-                            }}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 flex-1">
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-4 h-4 text-[#00C98A]" />
-                                  ) : (
-                                    <ChevronUp className="w-4 h-4 text-[#777777]" />
-                                  )}
-                                  <CardTitle className="text-base font-semibold text-[#222222]">
-                                    {getTitleText(titleValue)}
-                                  </CardTitle>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Salvar como template
-                                      const guidelineData = form.getValues(`guidelines.${index}`);
-                                      if (guidelineData.title && guidelineData.content) {
-                                        createTemplate({
-                                          guideline_type: guidelineData.guideline_type || 'general',
-                                          title: guidelineData.title,
-                                          content: guidelineData.content,
-                                          priority: index
-                                        }).then(() => {
-                                          toast({
-                                            title: 'Orientação favoritada!',
-                                            description: 'Esta orientação aparecerá em novos planos',
-                                          });
-                                        }).catch((error) => {
-                                          console.error('Erro ao favoritar:', error);
-                                        });
-                                      } else {
-                                        toast({
-                                          title: 'Erro',
-                                          description: 'Preencha título e conteúdo antes de favoritar',
-                                          variant: 'destructive'
-                                        });
-                                      }
-                                    }}
-                                    className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-                                    title="Salvar como favorita"
-                                  >
-                                    <Star className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeGuideline(index);
-                                    }}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500">Total vs GET</p>
+                                <p className="text-sm font-semibold text-gray-700">
+                                  {totalCalories.toFixed(0)} / {targetCalories.toFixed(0)} kcal
+                                </p>
                               </div>
-                            </CardHeader>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
-                            {isExpanded && (
-                              <CardContent className="space-y-4">
-                                <FormField
-                                  control={form.control}
-                                  name={`guidelines.${index}.title`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-[#222222] font-medium">Título *</FormLabel>
-                                      <FormControl>
-                                        <RichTextEditor
-                                          value={field.value || ''}
-                                          onChange={field.onChange}
-                                          placeholder="Ex: Hidratação"
-                                          className="min-h-[60px]"
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={form.control}
-                                  name={`guidelines.${index}.content`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-[#222222] font-medium">Conteúdo *</FormLabel>
-                                      <FormControl>
-                                        <RichTextEditor
-                                          value={field.value || ''}
-                                          onChange={field.onChange}
-                                          placeholder="Ex: Beber 2-3L de água por dia..."
-                                          className="min-h-[120px]"
-                                          resizable={true}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </CardContent>
-                            )}
-                          </Card>
-                        );
-                      })}
-                    </div>
+                <div className="space-y-3">
+                  {/* Validação */}
+                  {validationResult && (
+                    <DietValidationAlerts validation={validationResult} />
                   )}
-                </div>
-              )}
 
-              {/* ABA 4: Suplementos (Suplementação / Protocolo / Manipulados) */}
-              {activeTab === "supplements" && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => setIsSelectTemplateOpen(true)}
-                        size="sm"
-                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Selecionar de Favoritas
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => setGuidelineTemplatesOpen(true)}
-                        size="sm"
-                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
-                      >
-                        <Star className="w-4 h-4 mr-2 fill-white" />
-                        Gerenciar Favoritas
-                      </Button>
-                    </div>
+                  {/* Botões de Ação */}
+                  <div className="flex items-center gap-2 pt-2 flex-wrap">
+                    <Button
+                      type="button"
+                      onClick={() => setTmbDialogOpen(true)}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 text-white border-0"
+                    >
+                      <Calculator className="w-4 h-4 mr-2" />
+                      Calcular TMB/GET
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTemplateLibraryOpen(true)}
+                      className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Biblioteca
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           type="button"
+                          variant="outline"
                           size="sm"
-                          className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                          className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Adicionar Item
-                          <ChevronDown className="w-3 h-3 ml-1" />
+                          <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => addGuideline('supplement_suplementacao')}>
-                          <Database className="w-4 h-4 mr-2 text-emerald-500" />
-                          Suplementação
+                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700 text-white">
+                        {form.watch('total_calories') && form.watch('meals') && form.watch('meals').length > 0 && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => setMacroDistributionOpen(true)}
+                              className="text-white hover:bg-slate-700 cursor-pointer"
+                            >
+                              <TrendingUp className="w-4 h-4 mr-2" />
+                              Distribuir Macros
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setQuickPortionAdjustmentOpen(true)}
+                              className="text-white hover:bg-slate-700 cursor-pointer"
+                            >
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                              Ajuste Rápido
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setProportionalAdjustmentOpen(true)}
+                              className="text-white hover:bg-slate-700 cursor-pointer"
+                            >
+                              <BarChart3 className="w-4 h-4 mr-2" />
+                              Ajuste Avançado
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        <DropdownMenuItem
+                          onClick={calculateTotals}
+                          className="text-white hover:bg-slate-700 cursor-pointer"
+                        >
+                          <Calculator className="w-4 h-4 mr-2" />
+                          Calcular Totais
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => addGuideline('supplement_protocolo')}>
-                          <FlaskConical className="w-4 h-4 mr-2 text-blue-500" />
-                          Protocolo
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => addGuideline('supplement_manipulados')}>
-                          <Beaker className="w-4 h-4 mr-2 text-amber-500" />
-                          Manipulados
-                        </DropdownMenuItem>
+                        {isEditing && planId && (
+                          <DropdownMenuItem
+                            onClick={() => setComparatorOpen(true)}
+                            className="text-white hover:bg-slate-700 cursor-pointer"
+                          >
+                            <GitCompare className="w-4 h-4 mr-2" />
+                            Comparar
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    {isEditing && planId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setVersionHistoryOpen(true)}
+                        className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0 transition-all duration-300"
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Versões
+                      </Button>
+                    )}
                   </div>
+                </div>
 
-                  {/* Check if there are any supplement items at all */}
-                  {guidelineFields.filter((_, index) => {
-                    const type = form.watch(`guidelines.${index}.guideline_type`) || '';
-                    return isSupplementType(type);
-                  }).length === 0 ? (
-                    <Card className="bg-green-400/10 border-green-500/30">
-                      <CardContent className="p-12 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
-                          <Database className="w-8 h-8 text-[#00C98A]" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhum item adicionado</h3>
-                        <p className="text-[#777777] mb-6">
-                          Adicione suplementos, protocolos ou manipulados ao plano do paciente.
-                        </p>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Adicionar Primeiro Item
-                              <ChevronDown className="w-3 h-3 ml-1" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="center">
-                            <DropdownMenuItem onClick={() => addGuideline('supplement_suplementacao')}>
-                              <Database className="w-4 h-4 mr-2 text-emerald-500" />
-                              Suplementação
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => addGuideline('supplement_protocolo')}>
-                              <FlaskConical className="w-4 h-4 mr-2 text-blue-500" />
-                              Protocolo
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => addGuideline('supplement_manipulados')}>
-                              <Beaker className="w-4 h-4 mr-2 text-amber-500" />
-                              Manipulados
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </CardContent>
-                    </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          {/* ═══ DIVISÓRIA: REFEIÇÕES ═══ */}
+          <div className="border-t-2 border-[#00C98A]/30 my-6" />
+
+          <div className="bg-white flex flex-col" style={isPageMode ? {} : { height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+            <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#222222] flex items-center gap-2">
+                    <Utensils className="w-5 h-5 text-[#00C98A]" />
+                    Refeições
+                  </h3>
+                  <p className="text-sm text-[#777777] mt-1">
+                    Adicione as refeições do plano alimentar
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setFavoriteMealsMealIndex(null); // Não sobrepor, adicionar nova
+                      setFavoriteMealsLoading(true);
+                      try {
+                        const favorites = await dietMealFavoritesService.getFavoriteMeals();
+                        setFavoriteMeals(favorites);
+                        setFavoriteMealsModalOpen(true);
+                      } catch (error: any) {
+                        toast({
+                          title: "Erro",
+                          description: error.message || "Erro ao carregar favoritos",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setFavoriteMealsLoading(false);
+                      }
+                    }}
+                    className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300"
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    Adicionar Favoritos
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={addMeal}
+                    size="sm"
+                    className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Refeição
+                  </Button>
+                </div>
+              </div>
+
+              {/* Controles: Expandir/Colapsar Todas e Ordenação */}
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const meals = form.getValues("meals") || [];
+                    if (allMealsExpanded) {
+                      setExpandedMeals(new Set());
+                    } else {
+                      setExpandedMeals(new Set(meals.map((_: any, idx: number) => idx)));
+                    }
+                    setAllMealsExpanded(!allMealsExpanded);
+                  }}
+                  className="bg-green-500/10 border-green-500/30 text-[#00C98A] hover:bg-green-500/15 hover:border-green-500/50 transition-all duration-300 text-xs"
+                >
+                  {allMealsExpanded ? (
+                    <>
+                      <ChevronUp className="w-3 h-3 mr-1" />
+                      Colapsar Todas
+                    </>
                   ) : (
-                    <div className="space-y-6">
-                      {/* Render each subcategory section */}
-                      {supplementSubcategories.map((subcategory) => {
-                        const subcategoryItems = guidelineFields
-                          .map((field, index) => ({ field, index }))
-                          .filter(({ index }) => {
-                            const type = form.watch(`guidelines.${index}.guideline_type`) || '';
-                            return getSupplementSubcategory(type) === subcategory.value;
-                          });
+                    <>
+                      <ChevronDown className="w-3 h-3 mr-1" />
+                      Expandir Todas
+                    </>
+                  )}
+                </Button>
 
-                        const IconComponent = subcategory.icon;
-                        const colorMap = {
-                          emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', hover: 'hover:bg-emerald-500/15', shadow: 'hover:shadow-emerald-500/20', text: 'text-emerald-500', headerBg: 'bg-emerald-500/5', headerBorder: 'border-emerald-500/20' },
-                          blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', hover: 'hover:bg-blue-500/15', shadow: 'hover:shadow-blue-500/20', text: 'text-blue-500', headerBg: 'bg-blue-500/5', headerBorder: 'border-blue-500/20' },
-                          amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', hover: 'hover:bg-amber-500/15', shadow: 'hover:shadow-amber-500/20', text: 'text-amber-500', headerBg: 'bg-amber-500/5', headerBorder: 'border-amber-500/20' },
-                        };
-                        const colors = colorMap[subcategory.color];
+                <Select value={mealsSortBy} onValueChange={(value: any) => setMealsSortBy(value)}>
+                  <SelectTrigger className="h-8 w-36 text-xs border-green-500/30 bg-white">
+                    <SelectValue placeholder="Ordenar por..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="order">Ordem Original</SelectItem>
+                    <SelectItem value="time">Horário</SelectItem>
+                    <SelectItem value="name">Nome</SelectItem>
+                    <SelectItem value="calories">Calorias</SelectItem>
+                    <SelectItem value="protein">Proteína</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-                        return (
-                          <div key={subcategory.value}>
-                            {/* Section Header */}
-                            <div className={`flex items-center justify-between px-4 py-3 rounded-lg ${colors.headerBg} border ${colors.headerBorder} mb-3`}>
-                              <div className="flex items-center gap-2">
-                                <IconComponent className={`w-5 h-5 ${colors.text}`} />
-                                <h3 className="text-sm font-semibold text-[#222222]">{subcategory.label}</h3>
-                                <Badge variant="outline" className={`${colors.border} ${colors.text} text-xs`}>
-                                  {subcategoryItems.length}
-                                </Badge>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => addGuideline(subcategory.value as any)}
-                                className={`${colors.text} hover:${colors.bg} h-7 text-xs`}
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Adicionar
-                              </Button>
-                            </div>
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pb-24">
+              {mealFields.length === 0 ? (
+                <Card className="bg-green-500/10 border-green-500/30">
+                  <CardContent className="p-12 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 border border-[#00C98A]/50 mb-4">
+                      <Utensils className="w-8 h-8 text-[#00C98A]" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhuma refeição adicionada ainda</h3>
+                    <p className="text-[#777777] mb-6">
+                      Comece adicionando refeições ao plano alimentar. Você pode adicionar alimentos e definir macros para cada refeição.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={addMeal}
+                      className="bg-[#00C98A] hover:bg-[#00A875] text-white transition-all duration-300"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Primeira Refeição
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleMealDragEnd}
+                >
+                  <SortableContext
+                    items={mealFields.map((meal) => meal.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-4">
+                      {(() => {
+                        // Ordenar refeições baseado no critério selecionado
+                        const meals = form.getValues("meals") || [];
+                        const sortedMealFields = [...mealFields].sort((a, b) => {
+                          const indexA = mealFields.indexOf(a);
+                          const indexB = mealFields.indexOf(b);
+                          const mealA = meals[indexA];
+                          const mealB = meals[indexB];
 
-                            {/* Items */}
-                            {subcategoryItems.length === 0 ? (
-                              <p className="text-sm text-[#999999] text-center py-4 italic">Nenhum item em {subcategory.label.toLowerCase()}</p>
-                            ) : (
-                              <div className="space-y-3">
-                                {subcategoryItems.map(({ field, index }) => {
-                                  const isExpanded = expandedGuidelines.has(index);
-                                  const titleValue = form.watch(`guidelines.${index}.title`);
+                          if (!mealA || !mealB) return 0;
 
-                                  const getTitleText = (html: string) => {
-                                    if (!html) return "Novo Item";
-                                    const div = document.createElement("div");
-                                    div.innerHTML = html;
-                                    return div.textContent || div.innerText || "Novo Item";
-                                  };
+                          switch (mealsSortBy) {
+                            case 'time':
+                              const timeA = mealA.suggested_time || '';
+                              const timeB = mealB.suggested_time || '';
+                              return timeA.localeCompare(timeB);
+                            case 'name':
+                              const nameA = mealA.meal_name || '';
+                              const nameB = mealB.meal_name || '';
+                              return nameA.localeCompare(nameB);
+                            case 'calories':
+                              return (mealB.calories || 0) - (mealA.calories || 0);
+                            case 'protein':
+                              return (mealB.protein || 0) - (mealA.protein || 0);
+                            default:
+                              return (mealA.meal_order || 0) - (mealB.meal_order || 0);
+                          }
+                        });
 
-                                  return (
-                                    <Card
-                                      key={field.id}
-                                      className={`${colors.bg} border ${colors.border} ${colors.hover} transition-all duration-300 hover:shadow-lg ${colors.shadow}`}
-                                    >
-                                      <CardHeader className="pb-3 cursor-pointer" onClick={() => {
-                                        const newExpanded = new Set(expandedGuidelines);
-                                        if (isExpanded) {
-                                          newExpanded.delete(index);
-                                        } else {
-                                          newExpanded.add(index);
-                                        }
-                                        setExpandedGuidelines(newExpanded);
-                                      }}>
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2 flex-1">
-                                            {isExpanded ? (
-                                              <ChevronDown className={`w-4 h-4 ${colors.text}`} />
-                                            ) : (
-                                              <ChevronUp className="w-4 h-4 text-[#777777]" />
-                                            )}
-                                            <CardTitle className="text-base font-semibold text-[#222222]">
-                                              {getTitleText(titleValue)}
-                                            </CardTitle>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                const guidelineData = form.getValues(`guidelines.${index}`);
-                                                if (guidelineData.title && guidelineData.content) {
-                                                  createTemplate({
-                                                    guideline_type: guidelineData.guideline_type || 'supplement_suplementacao',
-                                                    title: guidelineData.title,
-                                                    content: guidelineData.content,
-                                                    priority: index
-                                                  }).then(() => {
-                                                    toast({
-                                                      title: 'Item favoritado!',
-                                                      description: 'Este item aparecerá em novos planos',
-                                                    });
-                                                  }).catch((error) => {
-                                                    console.error('Erro ao favoritar:', error);
-                                                  });
-                                                } else {
-                                                  toast({
-                                                    title: 'Erro',
-                                                    description: 'Preencha título e conteúdo antes de favoritar',
-                                                    variant: 'destructive'
-                                                  });
-                                                }
-                                              }}
-                                              className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-                                              title="Salvar como favorito"
-                                            >
-                                              <Star className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                removeGuideline(index);
-                                              }}
-                                              className="text-destructive hover:text-destructive"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </CardHeader>
+                        return sortedMealFields;
+                      })().map((meal) => {
+                        // Encontrar o índice original no array não ordenado
+                        const mealIndex = mealFields.findIndex(m => m.id === meal.id);
+                        if (mealIndex === -1) return null;
+                        const isExpanded = expandedMeals.has(mealIndex);
 
-                                      {isExpanded && (
-                                        <CardContent className="space-y-4">
-                                          <FormField
-                                            control={form.control}
-                                            name={`guidelines.${index}.title`}
-                                            render={({ field }) => (
-                                              <FormItem>
-                                                <FormLabel className="text-[#222222] font-medium">Nome do Item *</FormLabel>
-                                                <FormControl>
-                                                  <RichTextEditor
-                                                    value={field.value || ''}
-                                                    onChange={field.onChange}
-                                                    placeholder="Ex: Creatina Monohidratada"
-                                                    className="min-h-[60px]"
-                                                  />
-                                                </FormControl>
-                                                <FormMessage />
-                                              </FormItem>
-                                            )}
-                                          />
-
-                                          <FormField
-                                            control={form.control}
-                                            name={`guidelines.${index}.content`}
-                                            render={({ field }) => (
-                                              <FormItem>
-                                                <FormLabel className="text-[#222222] font-medium">Conteúdo *</FormLabel>
-                                                <FormControl>
-                                                  <RichTextEditor
-                                                    value={field.value || ''}
-                                                    onChange={field.onChange}
-                                                    placeholder="Ex: Tomar 5g todos os dias..."
-                                                    className="min-h-[120px]"
-                                                    resizable={true}
-                                                  />
-                                                </FormControl>
-                                                <FormMessage />
-                                              </FormItem>
-                                            )}
-                                          />
-                                        </CardContent>
-                                      )}
-                                    </Card>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
+                        // Componente MealItem movido para fora do map para evitar redefinição
+                        return <MealItemComponent
+                          key={meal.id}
+                          meal={meal}
+                          mealIndex={mealIndex}
+                          isExpanded={isExpanded}
+                          form={form}
+                          expandedMeals={expandedMeals}
+                          setExpandedMeals={setExpandedMeals}
+                          removeMeal={removeMeal}
+                          appendMeal={appendMeal}
+                          toast={toast}
+                          sensors={sensors}
+                          handleFoodDragEnd={handleFoodDragEnd}
+                          handleMealDragEnd={handleMealDragEnd}
+                          foodDatabase={foodDatabase}
+                          handleFoodSelect={handleFoodSelect}
+                          recalculateFoodMacros={recalculateFoodMacros}
+                          addFoodToMeal={addFoodToMeal}
+                          removeFoodFromMeal={removeFoodFromMeal}
+                          calculateMealMacros={calculateMealMacros}
+                          calculateTotals={calculateTotals}
+                          setFoodGroupsMealIndex={setFoodGroupsMealIndex}
+                          setFoodGroupsModalOpen={setFoodGroupsModalOpen}
+                          setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
+                          setSubstitutionsModalOpen={setSubstitutionsModalOpen}
+                          setFoodSelectionMealIndex={setFoodSelectionMealIndex}
+                          setFoodSelectionModalOpen={setFoodSelectionModalOpen}
+                          setFavoriteMealsMealIndex={setFavoriteMealsMealIndex}
+                          setFavoriteMealsModalOpen={setFavoriteMealsModalOpen}
+                          setFavoriteMeals={setFavoriteMeals}
+                          setFavoriteMealsLoading={setFavoriteMealsLoading}
+                        />;
                       })}
                     </div>
-                  )}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
 
-              {/* ABA 5: Resumo */}
-              {activeTab === "summary" && (
-                <div className="space-y-6">
-                  <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700/40">
-                    <CardHeader className="pb-4 border-b border-slate-700/50">
-                      <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-purple-400" />
-                        Resumo do Plano
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="bg-gradient-to-br from-slate-800/30 to-slate-700/30 rounded-lg p-4 border border-slate-700/50">
-                        <h4 className="font-semibold mb-3 text-white flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-purple-400" />
-                          Informações Básicas
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <p className="text-slate-300">
-                            <span className="text-slate-500 font-medium">Nome:</span>{" "}
-                            <span className="text-white font-semibold">{form.watch("name") || "Não definido"}</span>
-                          </p>
-                          {form.watch("notes") && (
-                            <p className="text-slate-300">
-                              <span className="text-slate-500 font-medium">Observações:</span>{" "}
-                              <span className="text-white">{form.watch("notes")}</span>
-                            </p>
-                          )}
+            </div>
+          </div>
+
+          {/* ═══ DIVISÓRIA: ORIENTAÇÕES ═══ */}
+          <div className="border-t-2 border-[#00C98A]/30 my-6" />
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => setIsSelectTemplateOpen(true)}
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Selecionar de Favoritas
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setGuidelineTemplatesOpen(true)}
+                  size="sm"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
+                >
+                  <Star className="w-4 h-4 mr-2 fill-white" />
+                  Gerenciar Favoritas
+                </Button>
+              </div>
+              <Button
+                type="button"
+                onClick={() => addGuideline('general')}
+                size="sm"
+                className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Orientação
+              </Button>
+            </div>
+
+            {guidelineFields.filter((_, index) => {
+              const type = form.watch(`guidelines.${index}.guideline_type`) || 'general';
+              return type === 'general';
+            }).length === 0 ? (
+              <Card className="bg-green-400/10 border-green-500/30">
+                <CardContent className="p-12 text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
+                    <BookOpen className="w-8 h-8 text-[#00C98A]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhuma orientação adicionada ainda</h3>
+                  <p className="text-[#777777] mb-6">
+                    Adicione orientações para ajudar o paciente a seguir o plano corretamente.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => addGuideline('general')}
+                    className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Primeira Orientação
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {guidelineFields.map((guideline, index) => {
+                  const titleValue = form.watch(`guidelines.${index}.title`);
+                  const typeValue = form.watch(`guidelines.${index}.guideline_type`) || 'general';
+
+                  // Render only general guidelines in this tab
+                  if (typeValue !== 'general') return null;
+
+                  const isExpanded = expandedGuidelines.has(index);
+
+                  // Extrair texto puro do HTML para exibir no header
+                  const getTitleText = (html: string) => {
+                    if (!html) return `Orientação ${index + 1}`;
+                    const div = document.createElement('div');
+                    div.innerHTML = html;
+                    const text = div.textContent || div.innerText || '';
+                    return text.trim() || `Orientação ${index + 1}`;
+                  };
+
+                  return (
+                    <Card
+                      key={guideline.id}
+                      className="bg-green-400/10 border border-green-500/30 hover:bg-green-400/15 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20"
+                    >
+                      <CardHeader className="pb-3 cursor-pointer" onClick={() => {
+                        const newExpanded = new Set(expandedGuidelines);
+                        if (isExpanded) {
+                          newExpanded.delete(index);
+                        } else {
+                          newExpanded.add(index);
+                        }
+                        setExpandedGuidelines(newExpanded);
+                      }}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-[#00C98A]" />
+                            ) : (
+                              <ChevronUp className="w-4 h-4 text-[#777777]" />
+                            )}
+                            <CardTitle className="text-base font-semibold text-[#222222]">
+                              {getTitleText(titleValue)}
+                            </CardTitle>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Salvar como template
+                                const guidelineData = form.getValues(`guidelines.${index}`);
+                                if (guidelineData.title && guidelineData.content) {
+                                  createTemplate({
+                                    guideline_type: guidelineData.guideline_type || 'general',
+                                    title: guidelineData.title,
+                                    content: guidelineData.content,
+                                    priority: index
+                                  }).then(() => {
+                                    toast({
+                                      title: 'Orientação favoritada!',
+                                      description: 'Esta orientação aparecerá em novos planos',
+                                    });
+                                  }).catch((error) => {
+                                    console.error('Erro ao favoritar:', error);
+                                  });
+                                } else {
+                                  toast({
+                                    title: 'Erro',
+                                    description: 'Preencha título e conteúdo antes de favoritar',
+                                    variant: 'destructive'
+                                  });
+                                }
+                              }}
+                              className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                              title="Salvar como favorita"
+                            >
+                              <Star className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeGuideline(index);
+                              }}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
+                      </CardHeader>
+
+                      {isExpanded && (
+                        <CardContent className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name={`guidelines.${index}.title`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[#222222] font-medium">Título *</FormLabel>
+                                <FormControl>
+                                  <RichTextEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    placeholder="Ex: Hidratação"
+                                    className="min-h-[60px]"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`guidelines.${index}.content`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[#222222] font-medium">Conteúdo *</FormLabel>
+                                <FormControl>
+                                  <RichTextEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    placeholder="Ex: Beber 2-3L de água por dia..."
+                                    className="min-h-[120px]"
+                                    resizable={true}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ═══ DIVISÓRIA: SUPLEMENTOS ═══ */}
+          <div className="border-t-2 border-[#00C98A]/30 my-6" />
+
+          <div className="space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => setIsSelectTemplateOpen(true)}
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transition-all duration-300"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Selecionar de Favoritas
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setGuidelineTemplatesOpen(true)}
+                  size="sm"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-yellow-500/20 hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-300"
+                >
+                  <Star className="w-4 h-4 mr-2 fill-white" />
+                  Gerenciar Favoritas
+                </Button>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Item
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => addGuideline('supplement_suplementacao')}>
+                    <Database className="w-4 h-4 mr-2 text-emerald-500" />
+                    Suplementação
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addGuideline('supplement_protocolo')}>
+                    <FlaskConical className="w-4 h-4 mr-2 text-blue-500" />
+                    Protocolo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addGuideline('supplement_manipulados')}>
+                    <Beaker className="w-4 h-4 mr-2 text-amber-500" />
+                    Manipulados
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Check if there are any supplement items at all */}
+            {guidelineFields.filter((_, index) => {
+              const type = form.watch(`guidelines.${index}.guideline_type`) || '';
+              return isSupplementType(type);
+            }).length === 0 ? (
+              <Card className="bg-green-400/10 border-green-500/30">
+                <CardContent className="p-12 text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/20 border border-green-500/30 mb-4">
+                    <Database className="w-8 h-8 text-[#00C98A]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#222222] mb-2">Nenhum item adicionado</h3>
+                  <p className="text-[#777777] mb-6">
+                    Adicione suplementos, protocolos ou manipulados ao plano do paciente.
+                  </p>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        className="bg-[#00C98A] hover:bg-[#00A875] text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Primeiro Item
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                      <DropdownMenuItem onClick={() => addGuideline('supplement_suplementacao')}>
+                        <Database className="w-4 h-4 mr-2 text-emerald-500" />
+                        Suplementação
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addGuideline('supplement_protocolo')}>
+                        <FlaskConical className="w-4 h-4 mr-2 text-blue-500" />
+                        Protocolo
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addGuideline('supplement_manipulados')}>
+                        <Beaker className="w-4 h-4 mr-2 text-amber-500" />
+                        Manipulados
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Render each subcategory section */}
+                {supplementSubcategories.map((subcategory) => {
+                  const subcategoryItems = guidelineFields
+                    .map((field, index) => ({ field, index }))
+                    .filter(({ index }) => {
+                      const type = form.watch(`guidelines.${index}.guideline_type`) || '';
+                      return getSupplementSubcategory(type) === subcategory.value;
+                    });
+
+                  const IconComponent = subcategory.icon;
+                  const colorMap = {
+                    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', hover: 'hover:bg-emerald-500/15', shadow: 'hover:shadow-emerald-500/20', text: 'text-emerald-500', headerBg: 'bg-emerald-500/5', headerBorder: 'border-emerald-500/20' },
+                    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', hover: 'hover:bg-blue-500/15', shadow: 'hover:shadow-blue-500/20', text: 'text-blue-500', headerBg: 'bg-blue-500/5', headerBorder: 'border-blue-500/20' },
+                    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', hover: 'hover:bg-amber-500/15', shadow: 'hover:shadow-amber-500/20', text: 'text-amber-500', headerBg: 'bg-amber-500/5', headerBorder: 'border-amber-500/20' },
+                  };
+                  const colors = colorMap[subcategory.color];
+
+                  return (
+                    <div key={subcategory.value}>
+                      {/* Section Header */}
+                      <div className={`flex items-center justify-between px-4 py-3 rounded-lg ${colors.headerBg} border ${colors.headerBorder} mb-3`}>
+                        <div className="flex items-center gap-2">
+                          <IconComponent className={`w-5 h-5 ${colors.text}`} />
+                          <h3 className="text-sm font-semibold text-[#222222]">{subcategory.label}</h3>
+                          <Badge variant="outline" className={`${colors.border} ${colors.text} text-xs`}>
+                            {subcategoryItems.length}
+                          </Badge>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => addGuideline(subcategory.value as any)}
+                          className={`${colors.text} hover:${colors.bg} h-7 text-xs`}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Adicionar
+                        </Button>
                       </div>
 
-                      <div>
-                        <h4 className="font-semibold mb-4 text-white flex items-center gap-2">
-                          <Utensils className="w-4 h-4 text-orange-400" />
-                          Refeições ({form.watch("meals")?.length || 0})
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {form.watch("meals")?.map((meal: any, index: number) => {
+                      {/* Items */}
+                      {subcategoryItems.length === 0 ? (
+                        <p className="text-sm text-[#999999] text-center py-4 italic">Nenhum item em {subcategory.label.toLowerCase()}</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {subcategoryItems.map(({ field, index }) => {
+                            const isExpanded = expandedGuidelines.has(index);
+                            const titleValue = form.watch(`guidelines.${index}.title`);
+
+                            const getTitleText = (html: string) => {
+                              if (!html) return "Novo Item";
+                              const div = document.createElement("div");
+                              div.innerHTML = html;
+                              return div.textContent || div.innerText || "Novo Item";
+                            };
+
                             return (
-                              <div key={index} className="p-4 bg-gradient-to-br from-slate-800/30 to-slate-700/30 border border-slate-700/50 rounded-lg hover:shadow-lg transition-all duration-300">
-                                <p className="font-semibold mb-2 text-white">{meal.meal_name}</p>
-                                <div className="flex items-center gap-3 text-xs">
-                                  <Badge variant="outline" className="border-green-500/50 text-[#00A875] bg-green-500/10">
-                                    {meal.foods?.length || 0} alimento(s)
-                                  </Badge>
-                                  <Badge variant="outline" className="border-orange-500/30 text-orange-600 bg-orange-500/10">
-                                    {meal.calories || 0} kcal
-                                  </Badge>
-                                </div>
-                              </div>
+                              <Card
+                                key={field.id}
+                                className={`${colors.bg} border ${colors.border} ${colors.hover} transition-all duration-300 hover:shadow-lg ${colors.shadow}`}
+                              >
+                                <CardHeader className="pb-3 cursor-pointer" onClick={() => {
+                                  const newExpanded = new Set(expandedGuidelines);
+                                  if (isExpanded) {
+                                    newExpanded.delete(index);
+                                  } else {
+                                    newExpanded.add(index);
+                                  }
+                                  setExpandedGuidelines(newExpanded);
+                                }}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      {isExpanded ? (
+                                        <ChevronDown className={`w-4 h-4 ${colors.text}`} />
+                                      ) : (
+                                        <ChevronUp className="w-4 h-4 text-[#777777]" />
+                                      )}
+                                      <CardTitle className="text-base font-semibold text-[#222222]">
+                                        {getTitleText(titleValue)}
+                                      </CardTitle>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const guidelineData = form.getValues(`guidelines.${index}`);
+                                          if (guidelineData.title && guidelineData.content) {
+                                            createTemplate({
+                                              guideline_type: guidelineData.guideline_type || 'supplement_suplementacao',
+                                              title: guidelineData.title,
+                                              content: guidelineData.content,
+                                              priority: index
+                                            }).then(() => {
+                                              toast({
+                                                title: 'Item favoritado!',
+                                                description: 'Este item aparecerá em novos planos',
+                                              });
+                                            }).catch((error) => {
+                                              console.error('Erro ao favoritar:', error);
+                                            });
+                                          } else {
+                                            toast({
+                                              title: 'Erro',
+                                              description: 'Preencha título e conteúdo antes de favoritar',
+                                              variant: 'destructive'
+                                            });
+                                          }
+                                        }}
+                                        className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                                        title="Salvar como favorito"
+                                      >
+                                        <Star className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeGuideline(index);
+                                        }}
+                                        className="text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardHeader>
+
+                                {isExpanded && (
+                                  <CardContent className="space-y-4">
+                                    <FormField
+                                      control={form.control}
+                                      name={`guidelines.${index}.title`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className="text-[#222222] font-medium">Nome do Item *</FormLabel>
+                                          <FormControl>
+                                            <RichTextEditor
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              placeholder="Ex: Creatina Monohidratada"
+                                              className="min-h-[60px]"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name={`guidelines.${index}.content`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className="text-[#222222] font-medium">Conteúdo *</FormLabel>
+                                          <FormControl>
+                                            <RichTextEditor
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              placeholder="Ex: Tomar 5g todos os dias..."
+                                              className="min-h-[120px]"
+                                              resizable={true}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </CardContent>
+                                )}
+                              </Card>
                             );
                           })}
                         </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold mb-4 text-white flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-purple-400" />
-                          Observações entre Refeições ({form.watch("observations")?.length || 0})
-                        </h4>
-                        <div className="space-y-3">
-                          {form.watch("observations")?.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((observation: any, index: number) => (
-                            <div key={index} className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/50 text-purple-300">
-                                  Observação {index + 1}
-                                </Badge>
-                                <Badge variant="outline" className="border-green-500/50 text-[#00A875] bg-green-500/10">
-                                  Ordem: {observation.order || index + 1}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-white mb-1">{observation.text}</p>
-                              {observation.position && (
-                                <p className="text-xs text-slate-400 mt-2">📍 Posição: {observation.position}</p>
-                              )}
-                            </div>
-                          ))}
-                          {(!form.watch("observations") || form.watch("observations")?.length === 0) && (
-                            <p className="text-sm text-slate-400 text-center py-4">Nenhuma observação adicionada</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold mb-4 text-white flex items-center gap-2">
-                          <BookOpen className="w-4 h-4 text-emerald-400" />
-                          Orientações ({form.watch("guidelines")?.length || 0})
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {form.watch("guidelines")?.map((guideline: any, index: number) => (
-                            <div key={index} className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-lg hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300">
-                              <div
-                                className="font-semibold text-emerald-300 mb-2"
-                                dangerouslySetInnerHTML={{ __html: guideline.title || '' }}
-                              />
-                              <div
-                                className="text-sm text-slate-300 prose prose-sm prose-invert max-w-none"
-                                dangerouslySetInnerHTML={{ __html: guideline.content || '' }}
-                                style={{
-                                  wordWrap: 'break-word',
-                                  overflowWrap: 'break-word'
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
-          </Tabs>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Botões de ação */}
           <div className="pt-4 border-t border-gray-200 mt-4 flex justify-end gap-3">
@@ -2970,18 +2588,18 @@ export function DietPlanForm({
       <GuidelineTemplatesModal
         open={guidelineTemplatesOpen}
         onOpenChange={setGuidelineTemplatesOpen}
-        category={activeTab === 'supplements' ? 'supplement' : 'general'}
+        category="general"
       />
 
       <GuidelineTemplatesModal
         open={isSelectTemplateOpen}
         onOpenChange={setIsSelectTemplateOpen}
         mode="select"
-        category={activeTab === 'supplements' ? 'supplement' : 'general'}
+        category="general"
         onSelectTemplates={(templates) => {
           templates.forEach(template => {
             appendGuideline({
-              guideline_type: template.guideline_type || (activeTab === 'supplements' ? 'supplement' : 'general'),
+              guideline_type: template.guideline_type || 'general',
               title: template.title,
               content: template.content,
               priority: guidelineFields.length,
@@ -2989,7 +2607,7 @@ export function DietPlanForm({
           });
           setIsSelectTemplateOpen(false);
           toast({
-            title: activeTab === 'supplements' ? "Suplementos adicionados!" : "Orientações adicionadas!",
+            title: "Itens adicionados!",
             description: `${templates.length} itens foram adicionados ao plano.`,
           });
         }}
