@@ -3,9 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useParams, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { RealtimeUpdater } from "@/components/RealtimeUpdater";
@@ -58,6 +58,9 @@ const PopEditor = lazy(() => import("./pages/pop/PopEditor"));
 const PopSessionExecute = lazy(() => import("./pages/pop/PopSessionExecute"));
 const PopSessionReview = lazy(() => import("./pages/pop/PopSessionReview"));
 
+// --- Auth Específico ---
+const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
+
 // Wrapper para forçar remontagem do PatientEvolution quando telefone mudar
 function PatientEvolutionWrapper() {
   const { telefone } = useParams<{ telefone: string }>();
@@ -109,6 +112,16 @@ function UpdateOnNavigation() {
   return null;
 }
 
+// Wrapper para rotas autenticadas para evitar piscar tela branca antes do DashboardLayout redirecionar
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuthContext();
+
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -141,6 +154,12 @@ const App = () => (
                 </Suspense>
               } />
 
+              <Route path="/update-password" element={
+                <Suspense fallback={<PageLoader />}>
+                  <UpdatePassword />
+                </Suspense>
+              } />
+
               {/* Rota pública: Evolução do Aluno */}
               <Route path="/evolucao-aluno" element={<StudentEvolutionLogin />} />
               <Route path="/evolucao-aluno/:telefone" element={
@@ -151,14 +170,18 @@ const App = () => (
 
               {/* Rotas protegidas - requerem autenticação */}
               <Route path="/" element={
-                <Suspense fallback={<PageLoader />}>
-                  <Dashboard />
-                </Suspense>
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <Dashboard />
+                  </Suspense>
+                </ProtectedRoute>
               } />
               <Route path="/dashboard" element={
-                <Suspense fallback={<PageLoader />}>
-                  <Dashboard />
-                </Suspense>
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <Dashboard />
+                  </Suspense>
+                </ProtectedRoute>
               } />
               <Route path="/patients" element={
                 <Suspense fallback={<PageLoader />}>
