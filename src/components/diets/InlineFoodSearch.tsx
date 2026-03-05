@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Star } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { CustomFoodModal } from './CustomFoodModal';
 import { customFoodsService, CreateCustomFoodInput } from '@/lib/custom-foods-service';
 import { useToast } from "@/hooks/use-toast";
+import { dietService } from '@/lib/diet-service';
 
 interface FoodItem {
     name: string;
@@ -48,6 +49,12 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
     const listRef = useRef<HTMLUListElement>(null);
     const { toast } = useToast();
 
+    // Load favorites for prioritization
+    const [favorites, setFavorites] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        dietService.getFavorites().then(favs => setFavorites(new Set(favs))).catch(() => { });
+    }, []);
+
     // Load custom categories for the modal
     useEffect(() => {
         const loadCategories = async () => {
@@ -68,8 +75,8 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
         const lowerTerm = searchTerm.toLowerCase();
 
         // Exact matches or starts with (higher priority)
-        const exactMatches = [];
-        const containsMatches = [];
+        const exactMatches: FoodItem[] = [];
+        const containsMatches: FoodItem[] = [];
 
         for (const food of foodDatabase) {
             const lowerName = food.name.toLowerCase();
@@ -84,8 +91,19 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
             if (exactMatches.length + containsMatches.length > 50) break;
         }
 
+        // Sort each group: favorites first
+        const sortByFavorites = (a: FoodItem, b: FoodItem) => {
+            const aFav = favorites.has(a.name);
+            const bFav = favorites.has(b.name);
+            if (aFav && !bFav) return -1;
+            if (!aFav && bFav) return 1;
+            return 0;
+        };
+        exactMatches.sort(sortByFavorites);
+        containsMatches.sort(sortByFavorites);
+
         return [...exactMatches, ...containsMatches].slice(0, 50);
-    }, [searchTerm, foodDatabase]);
+    }, [searchTerm, foodDatabase, favorites]);
 
     useEffect(() => {
         if (autoFocus && inputRef.current) {
@@ -285,6 +303,9 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
                             onMouseEnter={() => setSelectedIndex(index)}
                         >
                             <div className="flex items-center">
+                                {favorites.has(food.name) && (
+                                    <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400 mr-1.5 flex-shrink-0" />
+                                )}
                                 <span className={cn("text-sm font-medium truncate max-w-[240px]",
                                     index === selectedIndex ? "text-green-800" : ""
                                 )}>
