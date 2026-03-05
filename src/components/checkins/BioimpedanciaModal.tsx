@@ -11,11 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { 
-  TrendingUp, 
-  Copy, 
-  ExternalLink, 
-  Plus, 
+import {
+  TrendingUp,
+  Copy,
+  ExternalLink,
+  Plus,
   Download,
   Activity,
   Scale,
@@ -26,13 +26,16 @@ import {
   List,
   MoreVertical,
   Edit,
-  Trash2
+  Trash2,
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BioimpedanciaInput } from '../evolution/BioimpedanciaInput';
 import { EvolutionExporter } from '../evolution/EvolutionExporter';
 import { EvolutionExportPage } from '../evolution/EvolutionExportPage';
+import { BioimpedanciaAIGenerator } from './BioimpedanciaAIGenerator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -74,15 +77,15 @@ interface BioimpedanciaData {
   observacoes?: string | null;
 }
 
-export function BioimpedanciaModal({ 
-  open, 
-  onOpenChange, 
-  telefone, 
-  patientName 
+export function BioimpedanciaModal({
+  open,
+  onOpenChange,
+  telefone,
+  patientName
 }: BioimpedanciaModalProps) {
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [checkins, setCheckins] = useState<CheckinData[]>([]);
@@ -96,19 +99,22 @@ export function BioimpedanciaModal({
     textoGPT: ''
   });
   const [savingBio, setSavingBio] = useState(false);
-  
+
   // Estados para exportação (mesmos da PatientEvolution)
   const [showEvolutionExport, setShowEvolutionExport] = useState(false);
   const [evolutionExportMode, setEvolutionExportMode] = useState<'png' | 'pdf' | null>(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [bodyCompositions, setBodyCompositions] = useState<any[]>([]);
-  
+
   // Estados para histórico de bioimpedâncias
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [allBioimpedancias, setAllBioimpedancias] = useState<BioimpedanciaData[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<BioimpedanciaData | null>(null);
   const [editingBio, setEditingBio] = useState<BioimpedanciaData | null>(null);
-  
+
+  // Estado para o gerador IA
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+
   // Ref para evitar múltiplas execuções do download
   const isExportingRef = useRef(false);
 
@@ -161,11 +167,11 @@ export function BioimpedanciaModal({
 
       // Calcular idade a partir da data de nascimento se disponível
       const idade = patient.data_nascimento ? calcularIdade(patient.data_nascimento) : null;
-      
-      setPatientData({ 
+
+      setPatientData({
         nome: patient.nome,
         created_at: patient.created_at,
-        idade, 
+        idade,
         altura_inicial: (patient as any).altura_inicial || null,
         peso_inicial: (patient as any).peso_inicial || null,
         sexo: patient.genero || null,
@@ -227,24 +233,24 @@ export function BioimpedanciaModal({
     if (!patientData) return '';
 
     // Usar peso_inicial do paciente primeiro, depois peso do primeiro check-in como fallback
-    const pesoInicial = patientData.peso_inicial 
+    const pesoInicial = patientData.peso_inicial
       ? parseFloat(patientData.peso_inicial.toString())
-      : (checkins.length > 0 && checkins[checkins.length - 1]?.peso 
-          ? parseFloat(checkins[checkins.length - 1].peso) 
-          : 0);
-    
+      : (checkins.length > 0 && checkins[checkins.length - 1]?.peso
+        ? parseFloat(checkins[checkins.length - 1].peso)
+        : 0);
+
     const pesoAtual = checkins.length > 0 && checkins[0]?.peso ? parseFloat(checkins[0].peso) : 0;
     const variacao = pesoAtual - pesoInicial;
     const variacaoTexto = variacao > 0 ? `+${variacao.toFixed(1)}kg Ganho de peso` : `${variacao.toFixed(1)}kg Perda de peso`;
 
     // Data do peso inicial (usar data_fotos_iniciais se peso_inicial existe, senão data do primeiro check-in)
-    const dataInicial = patientData.peso_inicial 
-      ? (patientData.data_fotos_iniciais 
-          ? format(new Date(patientData.data_fotos_iniciais), 'dd \'de\' MMM', { locale: ptBR })
-          : format(new Date(patientData.created_at), 'dd \'de\' MMM', { locale: ptBR }))
-      : (checkins.length > 0 && checkins[checkins.length - 1]?.peso 
-          ? format(new Date(checkins[checkins.length - 1].data_checkin), 'dd \'de\' MMM', { locale: ptBR })
-          : 'Data não disponível');
+    const dataInicial = patientData.peso_inicial
+      ? (patientData.data_fotos_iniciais
+        ? format(new Date(patientData.data_fotos_iniciais), 'dd \'de\' MMM', { locale: ptBR })
+        : format(new Date(patientData.created_at), 'dd \'de\' MMM', { locale: ptBR }))
+      : (checkins.length > 0 && checkins[checkins.length - 1]?.peso
+        ? format(new Date(checkins[checkins.length - 1].data_checkin), 'dd \'de\' MMM', { locale: ptBR })
+        : 'Data não disponível');
 
     // Data do peso atual
     const dataAtual = checkins.length > 0 && checkins[0]?.data_checkin
@@ -377,7 +383,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
     const textoPatient = generateInShapeText();
     const textoBio = generateBioimpedanciaText();
     const textoCompleto = `${textoPatient}\n\n${textoBio}`;
-    
+
     try {
       await navigator.clipboard.writeText(textoCompleto);
       toast({
@@ -399,7 +405,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
 
   const handleSaveBioimpedancia = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!bioFormData.peso || !bioFormData.altura || !bioFormData.idade || !bioFormData.sexo || !bioFormData.textoGPT) {
       toast({
         title: 'Campos obrigatórios',
@@ -414,7 +420,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
       // Parse do texto do GPT (implementação simplificada)
       const percentualGorduraMatch = bioFormData.textoGPT.match(/(\d+[,.]?\d*)%/);
       const classificacaoMatch = bioFormData.textoGPT.match(/Classificação.*?:\s*(.+?)(?:\n|$)/i);
-      
+
       if (!percentualGorduraMatch) {
         throw new Error('Formato inválido: % de Gordura não encontrado no texto');
       }
@@ -429,9 +435,9 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
       const imc = peso / (alturaNum * alturaNum);
       const massaGorda = (peso * percentualGordura) / 100;
       const massaMagra = peso - massaGorda;
-      
+
       // TMB simplificado
-      const tmb = bioFormData.sexo === 'M' 
+      const tmb = bioFormData.sexo === 'M'
         ? Math.round(10 * peso + 6.25 * (alturaNum * 100) - 5 * idadeNum + 5)
         : Math.round(10 * peso + 6.25 * (alturaNum * 100) - 5 * idadeNum - 161);
 
@@ -466,10 +472,10 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
         sexo: '',
         textoGPT: ''
       });
-      
+
       // Recarregar dados
       loadPatientData();
-      
+
     } catch (error: any) {
       console.error('Erro ao salvar bioimpedância:', error);
       toast({
@@ -490,7 +496,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
   // Função de exportação (mesma da PatientEvolution)
   const handleExport = async (format: 'pdf' | 'png' | 'jpeg') => {
     if (!patientData) return;
-    
+
     // Usar o mesmo componente de exportação do portal
     setEvolutionExportMode(format === 'jpeg' ? 'png' : format);
     setShowEvolutionExport(true);
@@ -502,7 +508,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
     if (isExportingRef.current) {
       return;
     }
-    
+
     try {
       isExportingRef.current = true;
       setGeneratingPDF(true);
@@ -589,360 +595,378 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
             {/* Botões de Ação */}
             <div className="flex flex-wrap gap-3 justify-center">
               <Button
-              onClick={handleCopyAllData}
-              variant="outline"
-              className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-800"
-            >
-              <Copy className="w-4 h-4" />
-              Copiar Todos os Dados
-            </Button>
-
-            <Button
-              onClick={handleOpenInShape}
-              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Abrir InShape
-            </Button>
-
-            <Button
-              onClick={() => setShowAddBio(true)}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar Bioimpedância
-            </Button>
-
-            {allBioimpedancias.length > 0 && (
-              <Button
-                onClick={() => {
-                  loadAllBioimpedancias();
-                  setShowHistoryModal(true);
-                }}
-                className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={handleCopyAllData}
+                variant="outline"
+                className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-800"
               >
-                <List className="w-4 h-4" />
-                Ver Histórico ({allBioimpedancias.length})
+                <Copy className="w-4 h-4" />
+                Copiar Todos os Dados
               </Button>
-            )}
-          </div>
 
-          {/* Formulário de Bioimpedância Integrado */}
-          {showAddBio && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-emerald-400" />
-                  Adicionar Análise de Bioimpedância
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 mb-4">
-                  <p className="text-sm text-slate-300 mb-2">
-                    📋 <strong>Paciente:</strong> {patientName}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    💡 Use o botão "Abrir InShape" para obter a análise e cole a resposta abaixo
-                  </p>
-                </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+                    <Sparkles className="w-4 h-4" />
+                    Análise Corporal
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                  <DropdownMenuItem
+                    onClick={() => setShowAIGenerator(true)}
+                    className="text-slate-200 hover:bg-slate-700 cursor-pointer gap-2"
+                  >
+                    <Sparkles className="w-4 h-4 text-blue-400" />
+                    Gerar Bioimpedância
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleOpenInShape}
+                    className="text-slate-200 hover:bg-slate-700 cursor-pointer gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4 text-purple-400" />
+                    Abrir InShape
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                <form onSubmit={handleSaveBioimpedancia} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-slate-300 text-sm font-medium">
-                        Peso (kg) *
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        placeholder="75.5"
-                        value={bioFormData.peso}
-                        onChange={(e) => setBioFormData({...bioFormData, peso: e.target.value})}
-                        required
-                        className="bg-slate-800 border-slate-600 text-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-slate-300 text-sm font-medium">
-                        Altura (m) *
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="1.75"
-                        value={bioFormData.altura}
-                        onChange={(e) => setBioFormData({...bioFormData, altura: e.target.value})}
-                        required
-                        className="bg-slate-800 border-slate-600 text-slate-200"
-                      />
-                    </div>
-                  </div>
+              <Button
+                onClick={() => setShowAddBio(true)}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar Bioimpedância
+              </Button>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-slate-300 text-sm font-medium">
-                        Idade (anos) *
-                      </label>
-                      <Input
-                        type="number"
-                        placeholder="25"
-                        value={bioFormData.idade}
-                        onChange={(e) => setBioFormData({...bioFormData, idade: e.target.value})}
-                        required
-                        className="bg-slate-800 border-slate-600 text-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-slate-300 text-sm font-medium">
-                        Sexo *
-                      </label>
-                      <select
-                        value={bioFormData.sexo}
-                        onChange={(e) => setBioFormData({...bioFormData, sexo: e.target.value})}
-                        required
-                        className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="M">Masculino</option>
-                        <option value="F">Feminino</option>
-                      </select>
-                    </div>
-                  </div>
+              {allBioimpedancias.length > 0 && (
+                <Button
+                  onClick={() => {
+                    loadAllBioimpedancias();
+                    setShowHistoryModal(true);
+                  }}
+                  className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <List className="w-4 h-4" />
+                  Ver Histórico ({allBioimpedancias.length})
+                </Button>
+              )}
+            </div>
 
-                  <div className="space-y-2">
-                    <label className="text-slate-300 text-sm font-medium">
-                      Resposta do GPT InShape *
-                    </label>
-                    <Textarea
-                      placeholder="📆 Data: 21/10/2025
-🧍 Percentual de Gordura Estimado: 18,5%
-🏅 Classificação do Shape: Percentual de gordura mediano"
-                      rows={6}
-                      value={bioFormData.textoGPT}
-                      onChange={(e) => setBioFormData({...bioFormData, textoGPT: e.target.value})}
-                      required
-                      className="bg-slate-800 border-slate-600 text-slate-200 font-mono text-sm"
-                    />
-                    <p className="text-xs text-slate-500">
-                      Cole aqui o texto completo retornado pelo GPT InShape
-                    </p>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowAddBio(false)}
-                      className="border-slate-600 text-slate-300"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={savingBio}
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {savingBio ? 'Salvando...' : 'Salvar Bioimpedância'}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Dados do Paciente */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-400" />
-                Dados do Paciente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {/* Check-ins Realizados */}
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Activity className="w-4 h-4 text-blue-400" />
-                    <span className="text-xs text-blue-300">Check-ins</span>
-                  </div>
-                  <p className="text-lg font-bold text-white">{checkins.length}</p>
-                  <p className="text-xs text-slate-400">Realizados</p>
-                </div>
-
-                {/* Idade */}
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs text-amber-300">Idade</span>
-                  </div>
-                  <p className="text-lg font-bold text-white">{patientData.idade || 'N/A'}</p>
-                  <p className="text-xs text-slate-400">anos</p>
-                </div>
-
-                {/* Altura */}
-                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Ruler className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs text-cyan-300">Altura</span>
-                  </div>
-                  <p className="text-lg font-bold text-white">
-                    {patientData.altura_inicial ? `${patientData.altura_inicial}m` : 'N/A'}
-                  </p>
-                </div>
-
-                {/* Peso Inicial */}
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Weight className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs text-emerald-300">Peso Inicial</span>
-                  </div>
-                  <p className="text-lg font-bold text-white">
-                    {patientData.peso_inicial 
-                      ? `${parseFloat(patientData.peso_inicial.toString()).toFixed(1)}kg`
-                      : (checkins.length > 0 && checkins[checkins.length - 1]?.peso 
-                          ? `${parseFloat(checkins[checkins.length - 1].peso).toFixed(1)}kg`
-                          : 'N/A')}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {patientData.peso_inicial 
-                      ? (patientData.data_fotos_iniciais 
-                          ? format(new Date(patientData.data_fotos_iniciais), 'dd \'de\' MMM', { locale: ptBR })
-                          : format(new Date(patientData.created_at), 'dd \'de\' MMM', { locale: ptBR }))
-                      : (checkins.length > 0 && checkins[checkins.length - 1]?.peso 
-                          ? format(new Date(checkins[checkins.length - 1].data_checkin), 'dd \'de\' MMM', { locale: ptBR })
-                          : 'Data não disponível')}
-                  </p>
-                </div>
-
-                {/* Peso Atual */}
-                {checkins.length > 0 && checkins[0]?.peso && (
-                  <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Scale className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs text-indigo-300">Peso Atual</span>
-                    </div>
-                    <p className="text-lg font-bold text-white">
-                      {parseFloat(checkins[0].peso).toFixed(1)}kg
+            {/* Formulário de Bioimpedância Integrado */}
+            {showAddBio && (
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-emerald-400" />
+                    Adicionar Análise de Bioimpedância
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 mb-4">
+                    <p className="text-sm text-slate-300 mb-2">
+                      📋 <strong>Paciente:</strong> {patientName}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {format(new Date(checkins[0].data_checkin), 'dd \'de\' MMM \'de\' yyyy', { locale: ptBR })}
+                      💡 Use o botão "Abrir InShape" para obter a análise e cole a resposta abaixo
                     </p>
                   </div>
-                )}
 
-                {/* Variação */}
-                {checkins.length > 0 && checkins[0]?.peso && (
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <TrendingUp className="w-4 h-4 text-purple-400" />
-                      <span className="text-xs text-purple-300">Variação</span>
+                  <form onSubmit={handleSaveBioimpedancia} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-slate-300 text-sm font-medium">
+                          Peso (kg) *
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="75.5"
+                          value={bioFormData.peso}
+                          onChange={(e) => setBioFormData({ ...bioFormData, peso: e.target.value })}
+                          required
+                          className="bg-slate-800 border-slate-600 text-slate-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-slate-300 text-sm font-medium">
+                          Altura (m) *
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="1.75"
+                          value={bioFormData.altura}
+                          onChange={(e) => setBioFormData({ ...bioFormData, altura: e.target.value })}
+                          required
+                          className="bg-slate-800 border-slate-600 text-slate-200"
+                        />
+                      </div>
                     </div>
-                    {(() => {
-                      // Usar peso_inicial do paciente primeiro, depois peso do último check-in como fallback
-                      const pesoInicial = patientData.peso_inicial 
-                        ? parseFloat(patientData.peso_inicial.toString())
-                        : (checkins.length > 1 && checkins[checkins.length - 1]?.peso 
-                            ? parseFloat(checkins[checkins.length - 1].peso)
-                            : parseFloat(checkins[0].peso));
-                      
-                      const pesoAtual = parseFloat(checkins[0].peso);
-                      const variacao = pesoAtual - pesoInicial;
-                      const isPositive = variacao > 0;
-                      
-                      return (
-                        <>
-                          <p className={`text-lg font-bold ${isPositive ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {isPositive ? '+' : ''}{variacao.toFixed(1)}kg
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {isPositive ? 'Ganho' : 'Perda'} de peso
-                          </p>
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Dados da Bioimpedância */}
-          {lastBioimpedancia && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-slate-300 text-sm font-medium">
+                          Idade (anos) *
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder="25"
+                          value={bioFormData.idade}
+                          onChange={(e) => setBioFormData({ ...bioFormData, idade: e.target.value })}
+                          required
+                          className="bg-slate-800 border-slate-600 text-slate-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-slate-300 text-sm font-medium">
+                          Sexo *
+                        </label>
+                        <select
+                          value={bioFormData.sexo}
+                          onChange={(e) => setBioFormData({ ...bioFormData, sexo: e.target.value })}
+                          required
+                          className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="M">Masculino</option>
+                          <option value="F">Feminino</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-slate-300 text-sm font-medium">
+                        Resposta do GPT InShape *
+                      </label>
+                      <Textarea
+                        placeholder="📆 Data: 21/10/2025
+🧍 Percentual de Gordura Estimado: 18,5%
+🏅 Classificação do Shape: Percentual de gordura mediano"
+                        rows={6}
+                        value={bioFormData.textoGPT}
+                        onChange={(e) => setBioFormData({ ...bioFormData, textoGPT: e.target.value })}
+                        required
+                        className="bg-slate-800 border-slate-600 text-slate-200 font-mono text-sm"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Cole aqui o texto completo retornado pelo GPT InShape
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowAddBio(false)}
+                        className="border-slate-600 text-slate-300"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={savingBio}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        {savingBio ? 'Salvando...' : 'Salvar Bioimpedância'}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dados do Paciente */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-purple-400" />
-                  Composição Corporal Atual
+                  <User className="w-5 h-5 text-blue-400" />
+                  Dados do Paciente
                 </CardTitle>
-                <p className="text-sm text-slate-400">
-                  Última avaliação: {format(new Date(lastBioimpedancia.data_avaliacao), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
-                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {/* % Gordura */}
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-red-400">{lastBioimpedancia.percentual_gordura}%</p>
-                    <p className="text-xs text-red-300">% Gordura</p>
-                    <p className="text-xs text-slate-400">{lastBioimpedancia.classificacao || 'Percentual de gordura mediano'}</p>
-                  </div>
-
-                  {/* Peso Total */}
+                  {/* Check-ins Realizados */}
                   <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-blue-400">{lastBioimpedancia.peso} kg</p>
-                    <p className="text-xs text-blue-300">Peso Total</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Activity className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs text-blue-300">Check-ins</span>
+                    </div>
+                    <p className="text-lg font-bold text-white">{checkins.length}</p>
+                    <p className="text-xs text-slate-400">Realizados</p>
                   </div>
 
-                  {/* Massa Gorda */}
-                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-orange-400">{lastBioimpedancia.massa_gorda.toFixed(2)} kg</p>
-                    <p className="text-xs text-orange-300">Massa Gorda</p>
+                  {/* Idade */}
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs text-amber-300">Idade</span>
+                    </div>
+                    <p className="text-lg font-bold text-white">{patientData.idade || 'N/A'}</p>
+                    <p className="text-xs text-slate-400">anos</p>
                   </div>
 
-                  {/* Massa Magra */}
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-emerald-400">{lastBioimpedancia.massa_magra.toFixed(2)} kg</p>
-                    <p className="text-xs text-emerald-300">Massa Magra</p>
-                  </div>
-
-                  {/* IMC */}
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-yellow-400">{lastBioimpedancia.imc.toFixed(2)}</p>
-                    <p className="text-xs text-yellow-300">IMC</p>
-                    <p className="text-xs text-slate-400">Peso normal</p>
-                  </div>
-
-                  {/* TMB */}
+                  {/* Altura */}
                   <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-cyan-400">{lastBioimpedancia.tmb}</p>
-                    <p className="text-xs text-cyan-300">TMB (kcal/dia)</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Ruler className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs text-cyan-300">Altura</span>
+                    </div>
+                    <p className="text-lg font-bold text-white">
+                      {patientData.altura_inicial ? `${patientData.altura_inicial}m` : 'N/A'}
+                    </p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {!lastBioimpedancia && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="py-8">
-                <div className="text-center">
-                  <TrendingUp className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                  <p className="text-slate-400 mb-4">Nenhuma bioimpedância registrada ainda</p>
-                  <Button
-                    onClick={() => setShowAddBio(true)}
-                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Adicionar Primeira Bioimpedância
-                  </Button>
+                  {/* Peso Inicial */}
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Weight className="w-4 h-4 text-emerald-400" />
+                      <span className="text-xs text-emerald-300">Peso Inicial</span>
+                    </div>
+                    <p className="text-lg font-bold text-white">
+                      {patientData.peso_inicial
+                        ? `${parseFloat(patientData.peso_inicial.toString()).toFixed(1)}kg`
+                        : (checkins.length > 0 && checkins[checkins.length - 1]?.peso
+                          ? `${parseFloat(checkins[checkins.length - 1].peso).toFixed(1)}kg`
+                          : 'N/A')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {patientData.peso_inicial
+                        ? (patientData.data_fotos_iniciais
+                          ? format(new Date(patientData.data_fotos_iniciais), 'dd \'de\' MMM', { locale: ptBR })
+                          : format(new Date(patientData.created_at), 'dd \'de\' MMM', { locale: ptBR }))
+                        : (checkins.length > 0 && checkins[checkins.length - 1]?.peso
+                          ? format(new Date(checkins[checkins.length - 1].data_checkin), 'dd \'de\' MMM', { locale: ptBR })
+                          : 'Data não disponível')}
+                    </p>
+                  </div>
+
+                  {/* Peso Atual */}
+                  {checkins.length > 0 && checkins[0]?.peso && (
+                    <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Scale className="w-4 h-4 text-indigo-400" />
+                        <span className="text-xs text-indigo-300">Peso Atual</span>
+                      </div>
+                      <p className="text-lg font-bold text-white">
+                        {parseFloat(checkins[0].peso).toFixed(1)}kg
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {format(new Date(checkins[0].data_checkin), 'dd \'de\' MMM \'de\' yyyy', { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Variação */}
+                  {checkins.length > 0 && checkins[0]?.peso && (
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <TrendingUp className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs text-purple-300">Variação</span>
+                      </div>
+                      {(() => {
+                        // Usar peso_inicial do paciente primeiro, depois peso do último check-in como fallback
+                        const pesoInicial = patientData.peso_inicial
+                          ? parseFloat(patientData.peso_inicial.toString())
+                          : (checkins.length > 1 && checkins[checkins.length - 1]?.peso
+                            ? parseFloat(checkins[checkins.length - 1].peso)
+                            : parseFloat(checkins[0].peso));
+
+                        const pesoAtual = parseFloat(checkins[0].peso);
+                        const variacao = pesoAtual - pesoInicial;
+                        const isPositive = variacao > 0;
+
+                        return (
+                          <>
+                            <p className={`text-lg font-bold ${isPositive ? 'text-red-400' : 'text-emerald-400'}`}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}kg
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {isPositive ? 'Ganho' : 'Perda'} de peso
+                            </p>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+
+            {/* Dados da Bioimpedância */}
+            {lastBioimpedancia && (
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-purple-400" />
+                    Composição Corporal Atual
+                  </CardTitle>
+                  <p className="text-sm text-slate-400">
+                    Última avaliação: {format(new Date(lastBioimpedancia.data_avaliacao), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* % Gordura */}
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                      <p className="text-2xl font-bold text-red-400">{lastBioimpedancia.percentual_gordura}%</p>
+                      <p className="text-xs text-red-300">% Gordura</p>
+                      <p className="text-xs text-slate-400">{lastBioimpedancia.classificacao || 'Percentual de gordura mediano'}</p>
+                    </div>
+
+                    {/* Peso Total */}
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                      <p className="text-2xl font-bold text-blue-400">{lastBioimpedancia.peso} kg</p>
+                      <p className="text-xs text-blue-300">Peso Total</p>
+                    </div>
+
+                    {/* Massa Gorda */}
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                      <p className="text-2xl font-bold text-orange-400">{lastBioimpedancia.massa_gorda.toFixed(2)} kg</p>
+                      <p className="text-xs text-orange-300">Massa Gorda</p>
+                    </div>
+
+                    {/* Massa Magra */}
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                      <p className="text-2xl font-bold text-emerald-400">{lastBioimpedancia.massa_magra.toFixed(2)} kg</p>
+                      <p className="text-xs text-emerald-300">Massa Magra</p>
+                    </div>
+
+                    {/* IMC */}
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                      <p className="text-2xl font-bold text-yellow-400">{lastBioimpedancia.imc.toFixed(2)}</p>
+                      <p className="text-xs text-yellow-300">IMC</p>
+                      <p className="text-xs text-slate-400">Peso normal</p>
+                    </div>
+
+                    {/* TMB */}
+                    <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
+                      <p className="text-2xl font-bold text-cyan-400">{lastBioimpedancia.tmb}</p>
+                      <p className="text-xs text-cyan-300">TMB (kcal/dia)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!lastBioimpedancia && (
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardContent className="py-8">
+                  <div className="text-center">
+                    <TrendingUp className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-400 mb-4">Nenhuma bioimpedância registrada ainda</p>
+                    <Button
+                      onClick={() => setShowAddBio(true)}
+                      className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Adicionar Primeira Bioimpedância
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Histórico de Bioimpedâncias */}
       <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
@@ -975,7 +999,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
                         </Badge>
                       )}
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
                       <div>
                         <p className="text-xs text-slate-400">% Gordura</p>
@@ -994,7 +1018,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
                         <p className="text-lg font-bold text-emerald-400">{bio.massa_magra.toFixed(1)} kg</p>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       <div>
                         <p className="text-xs text-slate-400">IMC</p>
@@ -1006,7 +1030,7 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
                       </div>
                     </div>
                   </div>
-                  
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -1114,6 +1138,18 @@ ${lastBioimpedancia.tmb} TMB (kcal/dia)`;
           onDirectExport={handleDirectEvolutionExport}
         />
       )}
+
+      {/* Modal de Geração IA */}
+      <BioimpedanciaAIGenerator
+        open={showAIGenerator}
+        onOpenChange={setShowAIGenerator}
+        telefone={telefone}
+        patientName={patientName}
+        onSuccess={() => {
+          loadPatientData();
+          loadAllBioimpedancias();
+        }}
+      />
     </>
   );
 }

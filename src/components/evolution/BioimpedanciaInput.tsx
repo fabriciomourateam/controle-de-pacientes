@@ -4,8 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Plus, ExternalLink, Calculator } from 'lucide-react';
+import { Activity, Plus, ExternalLink, Calculator, Sparkles, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -15,6 +21,7 @@ import {
   calcularTMB,
   classificarIMC
 } from '@/lib/body-calculations';
+import { BioimpedanciaAIGenerator } from '@/components/checkins/BioimpedanciaAIGenerator';
 
 interface Bioimpedancia {
   id: string;
@@ -60,6 +67,7 @@ export function BioimpedanciaInput({
   const [loading, setLoading] = useState(false);
   const [loadingLastBio, setLoadingLastBio] = useState(false);
   const [hasLastBio, setHasLastBio] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   // Função para obter data local sem problema de timezone
   const getLocalDateString = () => {
@@ -334,221 +342,250 @@ export function BioimpedanciaInput({
   };
 
   return (
-    <div className="flex gap-2">
-      {/* BOTÃO PARA ABRIR O INSHAPE - só mostra se não for autoOpen */}
-      {!autoOpen && (
-        <Button
-          onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
-          className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Abrir InShape
-        </Button>
-      )}
-
-      {/* DIALOG PARA ADICIONAR/EDITAR BIOIMPEDÂNCIA */}
-      <Dialog
-        open={open}
-        onOpenChange={(isOpen) => {
-          setOpen(isOpen);
-          if (!isOpen && editingBio && onCancel) {
-            onCancel();
-          }
-          if (!isOpen && autoOpen && onCancel) {
-            onCancel();
-          }
-        }}
-      >
-        {!editingBio && !autoOpen && (
-          <DialogTrigger asChild>
-            <Button className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
-              <Plus className="w-4 h-4" />
-              Adicionar Bioimpedância
-            </Button>
-          </DialogTrigger>
+    <>
+      <div className="flex gap-2">
+        {/* DROPDOWN ANÁLISE CORPORAL - só mostra se não for autoOpen */}
+        {!autoOpen && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
+                <Sparkles className="w-4 h-4" />
+                Análise Corporal
+                <ChevronDown className="w-3 h-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-slate-800 border-slate-700">
+              <DropdownMenuItem
+                onClick={() => setShowAIGenerator(true)}
+                className="text-slate-200 hover:bg-slate-700 cursor-pointer gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                Gerar Bioimpedância
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => window.open('https://chatgpt.com/g/g-685e0c8b2d8c8191b896dd996cab7537-inshape', '_blank')}
+                className="text-slate-200 hover:bg-slate-700 cursor-pointer gap-2"
+              >
+                <ExternalLink className="w-4 h-4 text-purple-400" />
+                Abrir InShape
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-        <DialogContent className="bg-slate-900 border-slate-700 max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-emerald-400" />
-              {editingBio ? 'Editar Análise de Bioimpedância' : 'Adicionar Análise de Bioimpedância'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-              <p className="text-sm text-slate-300 mb-2">
-                📋 <strong>Paciente:</strong> {nome}
-              </p>
-              <p className="text-xs text-slate-400">
-                💡 Use o botão "Abrir InShape" para obter a análise e cole a resposta abaixo
-              </p>
-              {loadingLastBio && (
-                <p className="text-xs text-blue-400 mt-2 flex items-center gap-1">
-                  🔄 Carregando dados da última avaliação...
-                </p>
-              )}
-              {hasLastBio && !loadingLastBio && (
-                <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
-                  ✅ Dados pré-preenchidos da última avaliação (você pode editar se mudou)
-                </p>
-              )}
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="peso" className="text-slate-300">
-                  Peso (kg) *
-                </Label>
-                <Input
-                  id="peso"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="75,5"
-                  value={formData.peso}
-                  onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
-                  required
-                  disabled={loadingLastBio}
-                  className="bg-slate-800 border-slate-600 text-slate-200"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="altura" className="text-slate-300">
-                  Altura (m) *
-                </Label>
-                <Input
-                  id="altura"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="1,75"
-                  value={formData.altura}
-                  onChange={(e) => setFormData({ ...formData, altura: e.target.value })}
-                  required
-                  disabled={loadingLastBio}
-                  className="bg-slate-800 border-slate-600 text-slate-200"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="idade" className="text-slate-300">
-                  Idade (anos) * {idade && <span className="text-xs text-emerald-400">✓ Do cadastro</span>}
-                </Label>
-                <Input
-                  id="idade"
-                  type="number"
-                  placeholder="25"
-                  value={formData.idade}
-                  onChange={(e) => setFormData({ ...formData, idade: e.target.value })}
-                  required
-                  className="bg-slate-800 border-slate-600 text-slate-200"
-                />
-                {!idade && (
-                  <p className="text-xs text-amber-400">
-                    ℹ️ Preencha manualmente (não está no cadastro)
+        {/* DIALOG PARA ADICIONAR/EDITAR BIOIMPEDÂNCIA */}
+        <Dialog
+          open={open}
+          onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen && editingBio && onCancel) {
+              onCancel();
+            }
+            if (!isOpen && autoOpen && onCancel) {
+              onCancel();
+            }
+          }}
+        >
+          {!editingBio && !autoOpen && (
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
+                <Plus className="w-4 h-4" />
+                Adicionar Bioimpedância
+              </Button>
+            </DialogTrigger>
+          )}
+          <DialogContent className="bg-slate-900 border-slate-700 max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-400" />
+                {editingBio ? 'Editar Análise de Bioimpedância' : 'Adicionar Análise de Bioimpedância'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                <p className="text-sm text-slate-300 mb-2">
+                  📋 <strong>Paciente:</strong> {nome}
+                </p>
+                <p className="text-xs text-slate-400">
+                  💡 Use o botão "Análise Corporal" → "Gerar Bioimpedância" para análise automática via IA, ou "Abrir InShape" para o GPT externo
+                </p>
+                {loadingLastBio && (
+                  <p className="text-xs text-blue-400 mt-2 flex items-center gap-1">
+                    🔄 Carregando dados da última avaliação...
+                  </p>
+                )}
+                {hasLastBio && !loadingLastBio && (
+                  <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                    ✅ Dados pré-preenchidos da última avaliação (você pode editar se mudou)
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="sexo" className="text-slate-300">
-                  Sexo * {sexo && <span className="text-xs text-emerald-400">✓ Do cadastro</span>}
-                </Label>
-                <select
-                  id="sexo"
-                  value={formData.sexo}
-                  onChange={(e) => setFormData({ ...formData, sexo: e.target.value })}
-                  required
-                  className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Selecione...</option>
-                  <option value="M">Masculino</option>
-                  <option value="F">Feminino</option>
-                </select>
-                {!sexo && (
-                  <p className="text-xs text-amber-400">
-                    ℹ️ Selecione manualmente (não está no cadastro)
-                  </p>
-                )}
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="textoGPT" className="text-slate-300">
-                Resposta do GPT InShape *
-              </Label>
-              <Textarea
-                id="textoGPT"
-                placeholder="📆 Data: 21/10/2025
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="peso" className="text-slate-300">
+                    Peso (kg) *
+                  </Label>
+                  <Input
+                    id="peso"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="75,5"
+                    value={formData.peso}
+                    onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
+                    required
+                    disabled={loadingLastBio}
+                    className="bg-slate-800 border-slate-600 text-slate-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="altura" className="text-slate-300">
+                    Altura (m) *
+                  </Label>
+                  <Input
+                    id="altura"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="1,75"
+                    value={formData.altura}
+                    onChange={(e) => setFormData({ ...formData, altura: e.target.value })}
+                    required
+                    disabled={loadingLastBio}
+                    className="bg-slate-800 border-slate-600 text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="idade" className="text-slate-300">
+                    Idade (anos) * {idade && <span className="text-xs text-emerald-400">✓ Do cadastro</span>}
+                  </Label>
+                  <Input
+                    id="idade"
+                    type="number"
+                    placeholder="25"
+                    value={formData.idade}
+                    onChange={(e) => setFormData({ ...formData, idade: e.target.value })}
+                    required
+                    className="bg-slate-800 border-slate-600 text-slate-200"
+                  />
+                  {!idade && (
+                    <p className="text-xs text-amber-400">
+                      ℹ️ Preencha manualmente (não está no cadastro)
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sexo" className="text-slate-300">
+                    Sexo * {sexo && <span className="text-xs text-emerald-400">✓ Do cadastro</span>}
+                  </Label>
+                  <select
+                    id="sexo"
+                    value={formData.sexo}
+                    onChange={(e) => setFormData({ ...formData, sexo: e.target.value })}
+                    required
+                    className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                  </select>
+                  {!sexo && (
+                    <p className="text-xs text-amber-400">
+                      ℹ️ Selecione manualmente (não está no cadastro)
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="textoGPT" className="text-slate-300">
+                  Resposta do GPT InShape *
+                </Label>
+                <Textarea
+                  id="textoGPT"
+                  placeholder="📆 Data: 21/10/2025
 🧍 Percentual de Gordura Estimado: 18,5%
 🏅 Classificação do Shape: Percentual de gordura mediano"
-                value={formData.textoGPT}
-                onChange={(e) => setFormData({ ...formData, textoGPT: e.target.value })}
-                required
-                rows={6}
-                className="bg-slate-800 border-slate-600 text-slate-200 font-mono text-sm"
-              />
-              <p className="text-xs text-slate-500">
-                Cole aqui o texto completo retornado pelo GPT InShape
-              </p>
-            </div>
-
-            {/* PREVIEW DOS CÁLCULOS */}
-            {calculosPreview && (
-              <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Calculator className="w-4 h-4 text-emerald-400" />
-                  <h4 className="text-sm font-semibold text-emerald-300">
-                    Cálculos Automáticos (Preview)
-                  </h4>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-slate-800/50 p-2 rounded">
-                    <p className="text-xs text-slate-400">IMC</p>
-                    <p className="text-lg font-bold text-white">{calculosPreview.imc}</p>
-                    <p className="text-xs text-slate-500">{calculosPreview.classificacaoIMC}</p>
-                  </div>
-                  <div className="bg-slate-800/50 p-2 rounded">
-                    <p className="text-xs text-slate-400">Massa Gorda</p>
-                    <p className="text-lg font-bold text-red-400">{calculosPreview.massaGorda} kg</p>
-                  </div>
-                  <div className="bg-slate-800/50 p-2 rounded">
-                    <p className="text-xs text-slate-400">Massa Magra</p>
-                    <p className="text-lg font-bold text-emerald-400">{calculosPreview.massaMagra} kg</p>
-                  </div>
-                  <div className="bg-slate-800/50 p-2 rounded">
-                    <p className="text-xs text-slate-400">TMB</p>
-                    <p className="text-lg font-bold text-blue-400">{calculosPreview.tmb} kcal</p>
-                  </div>
-                </div>
+                  value={formData.textoGPT}
+                  onChange={(e) => setFormData({ ...formData, textoGPT: e.target.value })}
+                  required
+                  rows={6}
+                  className="bg-slate-800 border-slate-600 text-slate-200 font-mono text-sm"
+                />
+                <p className="text-xs text-slate-500">
+                  Cole aqui o texto completo retornado pelo GPT InShape
+                </p>
               </div>
-            )}
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  if (editingBio && onCancel) {
-                    onCancel();
-                  }
-                }}
-                className="border-slate-600 text-slate-300"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading || !formData.textoGPT || !formData.peso || !formData.altura}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
-                {loading ? 'Salvando...' : editingBio ? 'Atualizar Bioimpedância' : 'Salvar Bioimpedância'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+              {/* PREVIEW DOS CÁLCULOS */}
+              {calculosPreview && (
+                <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calculator className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-sm font-semibold text-emerald-300">
+                      Cálculos Automáticos (Preview)
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-slate-800/50 p-2 rounded">
+                      <p className="text-xs text-slate-400">IMC</p>
+                      <p className="text-lg font-bold text-white">{calculosPreview.imc}</p>
+                      <p className="text-xs text-slate-500">{calculosPreview.classificacaoIMC}</p>
+                    </div>
+                    <div className="bg-slate-800/50 p-2 rounded">
+                      <p className="text-xs text-slate-400">Massa Gorda</p>
+                      <p className="text-lg font-bold text-red-400">{calculosPreview.massaGorda} kg</p>
+                    </div>
+                    <div className="bg-slate-800/50 p-2 rounded">
+                      <p className="text-xs text-slate-400">Massa Magra</p>
+                      <p className="text-lg font-bold text-emerald-400">{calculosPreview.massaMagra} kg</p>
+                    </div>
+                    <div className="bg-slate-800/50 p-2 rounded">
+                      <p className="text-xs text-slate-400">TMB</p>
+                      <p className="text-lg font-bold text-blue-400">{calculosPreview.tmb} kcal</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setOpen(false);
+                    if (editingBio && onCancel) {
+                      onCancel();
+                    }
+                  }}
+                  className="border-slate-600 text-slate-300"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || !formData.textoGPT || !formData.peso || !formData.altura}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {loading ? 'Salvando...' : editingBio ? 'Atualizar Bioimpedância' : 'Salvar Bioimpedância'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Modal de Geração IA */}
+      <BioimpedanciaAIGenerator
+        open={showAIGenerator}
+        onOpenChange={setShowAIGenerator}
+        telefone={telefone}
+        patientName={nome}
+        onSuccess={onSuccess}
+      />
+    </>
   );
 }
 
