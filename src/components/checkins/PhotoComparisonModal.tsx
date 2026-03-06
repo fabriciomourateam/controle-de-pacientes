@@ -51,7 +51,7 @@ export function PhotoComparisonModal({
   const [currentDate, setCurrentDate] = useState<string>('');
   const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
   const [previousCheckinIdState, setPreviousCheckinIdState] = useState<string | null>(null);
-  
+
   // Estados para upload múltiplo
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadType, setUploadType] = useState<'initial' | 'previous' | 'current' | null>(null);
@@ -59,22 +59,22 @@ export function PhotoComparisonModal({
   const [filePositions, setFilePositions] = useState<{ [key: number]: PhotoAngle }>({});
   const [uploadingMultiple, setUploadingMultiple] = useState(false);
   const [hidePreviousColumn, setHidePreviousColumn] = useState(false);
-  
+
   // Estados para zoom individual de cada coluna
   const [zoomInitial, setZoomInitial] = useState(100);
   const [zoomPrevious, setZoomPrevious] = useState(100);
   const [zoomCurrent, setZoomCurrent] = useState(100);
-  
+
   // Estados para posição (pan) de cada coluna
   const [posInitial, setPosInitial] = useState({ x: 0, y: 0 });
   const [posPrevious, setPosPrevious] = useState({ x: 0, y: 0 });
   const [posCurrent, setPosCurrent] = useState({ x: 0, y: 0 });
-  
+
   // Estados para controle de drag
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [activeColumn, setActiveColumn] = useState<'initial' | 'previous' | 'current' | null>(null);
-  
+
   // Refs para inputs de arquivo
   const fileInputRef = useRef<HTMLInputElement>(null); // Para upload simples (uma foto)
   const multipleFileInputRef = useRef<HTMLInputElement>(null); // Para upload múltiplo
@@ -97,7 +97,7 @@ export function PhotoComparisonModal({
           lado_2: patient.foto_inicial_lado_2 || undefined,
           costas: patient.foto_inicial_costas || undefined
         });
-        setInitialDate(patient.data_fotos_iniciais 
+        setInitialDate(patient.data_fotos_iniciais
           ? new Date(patient.data_fotos_iniciais).toLocaleDateString('pt-BR')
           : 'Dados Iniciais');
       }
@@ -182,7 +182,7 @@ export function PhotoComparisonModal({
       const availableAngleInitial = angles.find(angle => tempInitial[angle]);
       const availableAnglePrevious = angles.find(angle => tempPrevious[angle]);
       const availableAngleCurrent = angles.find(angle => tempCurrent[angle]);
-      
+
       if (availableAngleInitial) {
         setSelectedAngleInitial(availableAngleInitial);
       }
@@ -231,14 +231,7 @@ export function PhotoComparisonModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, checkinId, telefone, checkinDate, previousCheckinId]);
 
-  // ⚡ REMOVIDO: Auto-ocultar coluna anterior
-  // Agora a coluna anterior fica visível por padrão quando houver fotos
-  // O usuário pode ocultar manualmente usando o botão
-  // useEffect(() => {
-  //   if (open && !previousDate) {
-  //     setHidePreviousColumn(true);
-  //   }
-  // }, [open, previousDate]);
+  // O estado de ocultar a coluna anterior é agora derivado (hidePreviousColumn || !previousDate)
 
   // Cleanup de URLs de preview quando arquivos são removidos ou modal fecha
   useEffect(() => {
@@ -266,7 +259,7 @@ export function PhotoComparisonModal({
   };
 
   const angles: PhotoAngle[] = ['frente', 'lado', 'lado_2', 'costas'];
-  
+
   // Obter ângulos disponíveis para cada coluna
   const getAvailableAngles = (photoSet: PhotoSet) => {
     return angles.filter(angle => photoSet[angle]);
@@ -279,16 +272,16 @@ export function PhotoComparisonModal({
   const navigateAngle = (photoSet: PhotoSet, currentAngle: PhotoAngle, direction: 'prev' | 'next', setAngle: (angle: PhotoAngle) => void) => {
     const available = getAvailableAngles(photoSet);
     if (available.length === 0) return;
-    
+
     const currentIndex = available.indexOf(currentAngle);
     let newIndex: number;
-    
+
     if (direction === 'prev') {
       newIndex = currentIndex === 0 ? available.length - 1 : currentIndex - 1;
     } else {
       newIndex = currentIndex === available.length - 1 ? 0 : currentIndex + 1;
     }
-    
+
     setAngle(available[newIndex]);
   };
 
@@ -297,11 +290,11 @@ export function PhotoComparisonModal({
     try {
       // Processar arquivo (converte HEIC para JPEG automaticamente se necessário)
       const processedFile = await processPhotoFile(file);
-      
+
       const fileExt = processedFile.name.split('.').pop();
       let fileName = '';
       let filePath = '';
-      
+
       if (type === 'initial') {
         fileName = `${telefone}_inicial_${angle}_${Date.now()}.${fileExt}`;
         // Não incluir o nome do bucket no caminho, pois .from() já especifica o bucket
@@ -338,7 +331,7 @@ export function PhotoComparisonModal({
   const handleSaveInitialPhoto = async (file: File, angle: PhotoAngle) => {
     const uploadKey = `initial_${angle}`;
     setUploading(prev => ({ ...prev, [uploadKey]: true }));
-    
+
     try {
       const photoUrl = await uploadPhoto(file, 'initial', angle);
       if (!photoUrl) {
@@ -389,10 +382,10 @@ export function PhotoComparisonModal({
   // Função para salvar foto do checkin anterior
   const handleSavePreviousPhoto = async (file: File, angle: PhotoAngle) => {
     if (!previousCheckinIdState) return;
-    
+
     const uploadKey = `previous_${angle}`;
     setUploading(prev => ({ ...prev, [uploadKey]: true }));
-    
+
     try {
       const photoUrl = await uploadPhoto(file, 'previous', angle);
       if (!photoUrl) {
@@ -441,7 +434,7 @@ export function PhotoComparisonModal({
   const handleSaveCurrentPhoto = async (file: File, angle: PhotoAngle) => {
     const uploadKey = `current_${angle}`;
     setUploading(prev => ({ ...prev, [uploadKey]: true }));
-    
+
     try {
       const photoUrl = await uploadPhoto(file, 'current', angle);
       if (!photoUrl) {
@@ -493,7 +486,7 @@ export function PhotoComparisonModal({
 
     const { type, angle } = pendingUpload;
     setPendingUpload(null);
-    
+
     if (type === 'initial') {
       await handleSaveInitialPhoto(file, angle);
     } else if (type === 'previous') {
@@ -535,13 +528,13 @@ export function PhotoComparisonModal({
 
     setUploadingMultiple(true);
     const updates: { [key: string]: string } = {};
-    
+
     try {
       // Upload de cada foto
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         const angle = filePositions[i] || 'frente';
-        
+
         const photoUrl = await uploadPhoto(file, uploadType, angle);
         if (!photoUrl) {
           toast({
@@ -580,21 +573,21 @@ export function PhotoComparisonModal({
             .from('patients')
             .update(updates)
             .eq('telefone', telefone);
-          
+
           if (error) throw error;
         } else if (uploadType === 'previous' && previousCheckinIdState) {
           const { error } = await supabase
             .from('checkin')
             .update(updates)
             .eq('id', previousCheckinIdState);
-          
+
           if (error) throw error;
         } else if (uploadType === 'current') {
           const { error } = await supabase
             .from('checkin')
             .update(updates)
             .eq('id', checkinId);
-          
+
           if (error) throw error;
         }
 
@@ -605,7 +598,7 @@ export function PhotoComparisonModal({
 
         // Recarregar fotos
         await loadPhotos();
-        
+
         // Fechar modal e limpar estado
         setShowUploadModal(false);
         setSelectedFiles([]);
@@ -627,7 +620,7 @@ export function PhotoComparisonModal({
   // Obter posições disponíveis baseado no tipo
   const getAvailablePositions = (type: 'initial' | 'previous' | 'current'): PhotoAngle[] => {
     const allPositions: PhotoAngle[] = ['frente', 'lado', 'lado_2', 'costas'];
-    
+
     if (type === 'initial') {
       return allPositions.filter(pos => !initialPhotos[pos]);
     } else if (type === 'previous') {
@@ -673,16 +666,16 @@ export function PhotoComparisonModal({
   // Handlers para drag (arrastar imagem) - CORRIGIDOS
   const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
     if (!isDraggingRef.current || !activeColumnRef.current) return;
-    
+
     e.preventDefault();
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
-    
-    const currentPos = activeColumnRef.current === 'initial' ? posInitialRef.current : 
-                       activeColumnRef.current === 'previous' ? posPreviousRef.current : posCurrentRef.current;
-    
+
+    const currentPos = activeColumnRef.current === 'initial' ? posInitialRef.current :
+      activeColumnRef.current === 'previous' ? posPreviousRef.current : posCurrentRef.current;
+
     const newPos = { x: currentPos.x + dx, y: currentPos.y + dy };
-    
+
     if (activeColumnRef.current === 'initial') {
       setPosInitial(newPos);
     } else if (activeColumnRef.current === 'previous') {
@@ -690,17 +683,17 @@ export function PhotoComparisonModal({
     } else {
       setPosCurrent(newPos);
     }
-    
+
     setDragStart({ x: e.clientX, y: e.clientY });
   }, []);
 
   const handleGlobalMouseUp = useCallback(() => {
     setIsDragging(false);
     setActiveColumn(null);
-    
+
     // Restaurar cursor
     document.body.style.cursor = '';
-    
+
     // Remover event listeners globais
     document.removeEventListener('mousemove', handleGlobalMouseMove);
     document.removeEventListener('mouseup', handleGlobalMouseUp);
@@ -713,11 +706,11 @@ export function PhotoComparisonModal({
     setIsDragging(true);
     setActiveColumn(column);
     setDragStart({ x: e.clientX, y: e.clientY });
-    
+
     // Adicionar event listeners globais para melhor controle
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp);
-    
+
     // Mudar cursor para grabbing
     document.body.style.cursor = 'grabbing';
   }, [handleGlobalMouseMove, handleGlobalMouseUp]);
@@ -747,17 +740,17 @@ export function PhotoComparisonModal({
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging || !activeColumn) return;
-    
+
     e.preventDefault();
     const touch = e.touches[0];
     const dx = touch.clientX - dragStart.x;
     const dy = touch.clientY - dragStart.y;
-    
-    const currentPos = activeColumn === 'initial' ? posInitial : 
-                       activeColumn === 'previous' ? posPrevious : posCurrent;
-    
+
+    const currentPos = activeColumn === 'initial' ? posInitial :
+      activeColumn === 'previous' ? posPrevious : posCurrent;
+
     const newPos = { x: currentPos.x + dx, y: currentPos.y + dy };
-    
+
     if (activeColumn === 'initial') {
       setPosInitial(newPos);
     } else if (activeColumn === 'previous') {
@@ -765,7 +758,7 @@ export function PhotoComparisonModal({
     } else {
       setPosCurrent(newPos);
     }
-    
+
     setDragStart({ x: touch.clientX, y: touch.clientY });
   }, [isDragging, activeColumn, dragStart, posInitial, posPrevious, posCurrent]);
 
@@ -777,13 +770,13 @@ export function PhotoComparisonModal({
   // Handler para zoom com scroll do mouse
   const handleWheel = useCallback((e: React.WheelEvent, column: 'initial' | 'previous' | 'current') => {
     e.preventDefault();
-    
-    const currentZoom = column === 'initial' ? zoomInitial : 
-                        column === 'previous' ? zoomPrevious : zoomCurrent;
-    
+
+    const currentZoom = column === 'initial' ? zoomInitial :
+      column === 'previous' ? zoomPrevious : zoomCurrent;
+
     const delta = e.deltaY > 0 ? -10 : 10;
     const newZoom = Math.max(50, Math.min(200, currentZoom + delta));
-    
+
     if (column === 'initial') {
       setZoomInitial(newZoom);
     } else if (column === 'previous') {
@@ -791,7 +784,7 @@ export function PhotoComparisonModal({
     } else {
       setZoomCurrent(newZoom);
     }
-    
+
     // Se o zoom voltar para 100% ou menos, resetar posição
     if (newZoom <= 100) {
       if (column === 'initial') {
@@ -867,14 +860,13 @@ export function PhotoComparisonModal({
     const isActiveDrag = isDragging && activeColumn === type;
 
     return (
-      <div 
-        className={`w-full h-full flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden min-h-[150px] md:min-h-[200px] relative select-none ${
-          canDrag 
-            ? isActiveDrag 
-              ? 'cursor-grabbing' 
-              : 'cursor-grab hover:bg-slate-800/50' 
+      <div
+        className={`w-full h-full flex items-center justify-center bg-slate-900 rounded border border-slate-700 overflow-hidden min-h-[150px] md:min-h-[200px] relative select-none ${canDrag
+            ? isActiveDrag
+              ? 'cursor-grabbing'
+              : 'cursor-grab hover:bg-slate-800/50'
             : 'cursor-default'
-        }`}
+          }`}
         onMouseDown={(e) => handleMouseDown(e, type)}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -896,26 +888,25 @@ export function PhotoComparisonModal({
             🖱️ Clique e arraste
           </div>
         )}
-        
+
         {/* Indicador de zoom ativo */}
         {zoom > 100 && (
           <div className="absolute top-2 left-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded pointer-events-none">
             {zoom}%
           </div>
         )}
-        
+
         {/* Indicador de posição quando arrastado */}
         {(pos.x !== 0 || pos.y !== 0) && (
           <div className="absolute bottom-2 left-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded pointer-events-none">
             📍 {Math.round(pos.x)}, {Math.round(pos.y)}
           </div>
         )}
-        
-        <div 
-          className={`w-full h-full flex items-center justify-center ${
-            isActiveDrag ? '' : 'transition-transform duration-150 ease-out'
-          }`}
-          style={{ 
+
+        <div
+          className={`w-full h-full flex items-center justify-center ${isActiveDrag ? '' : 'transition-transform duration-150 ease-out'
+            }`}
+          style={{
             transform: `scale(${zoom / 100}) translate(${pos.x / (zoom / 100)}px, ${pos.y / (zoom / 100)}px)`,
             transformOrigin: 'center center'
           }}
@@ -937,9 +928,9 @@ export function PhotoComparisonModal({
             />
           )}
         </div>
-        
+
         {/* Overlay para melhor controle de drag - sempre ativo quando há foto */}
-        <div 
+        <div
           className="absolute inset-0 z-5 bg-transparent"
           onMouseDown={(e) => handleMouseDown(e, type)}
           onTouchStart={(e) => handleTouchStart(e, type)}
@@ -949,21 +940,21 @@ export function PhotoComparisonModal({
   };
 
   // Componente para controles de zoom e posição - MELHORADO
-  const ZoomControls = ({ 
-    zoom, 
-    setZoom, 
-    pos, 
-    setPos, 
-    color 
-  }: { 
-    zoom: number, 
-    setZoom: (z: number) => void, 
+  const ZoomControls = ({
+    zoom,
+    setZoom,
+    pos,
+    setPos,
+    color
+  }: {
+    zoom: number,
+    setZoom: (z: number) => void,
     pos: { x: number, y: number },
     setPos: (p: { x: number, y: number }) => void,
-    color: string 
+    color: string
   }) => {
     const hasChanges = zoom !== 100 || pos.x !== 0 || pos.y !== 0;
-    
+
     return (
       <div className="flex flex-col items-center gap-1 mt-1">
         <div className="flex items-center gap-1">
@@ -1019,7 +1010,7 @@ export function PhotoComparisonModal({
             </TooltipProvider>
           )}
         </div>
-        
+
         {/* Dica sobre controles */}
         <div className="text-[8px] text-slate-500 text-center">
           🖱️ Scroll para zoom • Clique e arraste para mover
@@ -1028,6 +1019,8 @@ export function PhotoComparisonModal({
     );
   };
 
+
+  const isPreviousHidden = hidePreviousColumn || !previousDate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1094,11 +1087,10 @@ export function PhotoComparisonModal({
               onChange={handleFileInputChange}
             />
             {/* Grid de comparação - lado a lado em mobile também */}
-            <div className={`flex-1 grid gap-2 md:gap-4 p-2 md:p-4 overflow-auto min-h-0 ${
-              hidePreviousColumn 
-                ? 'grid-cols-2' 
+            <div className={`flex-1 grid gap-2 md:gap-4 p-2 md:p-4 overflow-auto min-h-0 ${isPreviousHidden
+                ? 'grid-cols-2'
                 : 'grid-cols-2 md:grid-cols-3'
-            }`}>
+              }`}>
               {/* Coluna 1: Inicial */}
               <div className="flex flex-col">
                 <div className="mb-2 text-center">
@@ -1152,11 +1144,10 @@ export function PhotoComparisonModal({
                           variant={selectedAngleInitial === angle ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedAngleInitial(angle)}
-                          className={`text-[10px] h-6 px-1.5 ${
-                            selectedAngleInitial === angle
+                          className={`text-[10px] h-6 px-1.5 ${selectedAngleInitial === angle
                               ? 'bg-green-600 hover:bg-green-700 text-white'
                               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                          }`}
+                            }`}
                         >
                           {getAngleLabel(angle)}
                         </Button>
@@ -1185,96 +1176,95 @@ export function PhotoComparisonModal({
               </div>
 
               {/* Coluna 2: Check-in Anterior */}
-              {!hidePreviousColumn && (
-              <div className="flex flex-col">
-                <div className="mb-2 text-center">
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-medium">
-                      📅 Check-in Anterior
+              {!isPreviousHidden && (
+                <div className="flex flex-col">
+                  <div className="mb-2 text-center">
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-medium">
+                        📅 Check-in Anterior
+                      </div>
+                      {previousDate && getAvailablePositions('previous').length > 0 && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setUploadType('previous');
+                                  setShowUploadModal(true);
+                                }}
+                                className="h-6 w-6 p-0 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20"
+                              >
+                                <ImageIcon className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Adicionar Fotos</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
-                    {previousDate && getAvailablePositions('previous').length > 0 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setUploadType('previous');
-                                setShowUploadModal(true);
-                              }}
-                              className="h-6 w-6 p-0 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20"
-                            >
-                              <ImageIcon className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Adicionar Fotos</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    {previousDate && (
+                      <div className="text-xs text-slate-400 mt-1">{previousDate}</div>
                     )}
                   </div>
-                  {previousDate && (
-                    <div className="text-xs text-slate-400 mt-1">{previousDate}</div>
-                  )}
-                </div>
-                {/* Seletor de ângulo para Anterior */}
-                {previousDate && availableAnglesPrevious.length > 0 && (
-                  <div className="mb-2 flex items-center justify-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigateAngle(previousPhotos, selectedAnglePrevious, 'prev', setSelectedAnglePrevious)}
-                      className="h-6 w-6 p-0 text-slate-400 hover:text-white"
-                      disabled={availableAnglesPrevious.length <= 1}
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                    <div className="flex gap-1">
-                      {availableAnglesPrevious.map((angle) => (
-                        <Button
-                          key={angle}
-                          variant={selectedAnglePrevious === angle ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedAnglePrevious(angle)}
-                          className={`text-[10px] h-6 px-1.5 ${
-                            selectedAnglePrevious === angle
-                              ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                          }`}
-                        >
-                          {getAngleLabel(angle)}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigateAngle(previousPhotos, selectedAnglePrevious, 'next', setSelectedAnglePrevious)}
-                      className="h-6 w-6 p-0 text-slate-400 hover:text-white"
-                      disabled={availableAnglesPrevious.length <= 1}
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-                <div className="flex-1 min-h-[150px] md:min-h-[200px]">
-                  {previousDate ? (
-                    renderPhoto(previousPhotos[selectedAnglePrevious], previousDate, 'Anterior', 'previous', selectedAnglePrevious, zoomPrevious, posPrevious)
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-800/50 rounded border border-slate-700 min-h-[150px] md:min-h-[200px]">
-                      <span className="text-xs text-slate-500">Sem check-in anterior</span>
+                  {/* Seletor de ângulo para Anterior */}
+                  {previousDate && availableAnglesPrevious.length > 0 && (
+                    <div className="mb-2 flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigateAngle(previousPhotos, selectedAnglePrevious, 'prev', setSelectedAnglePrevious)}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                        disabled={availableAnglesPrevious.length <= 1}
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                      <div className="flex gap-1">
+                        {availableAnglesPrevious.map((angle) => (
+                          <Button
+                            key={angle}
+                            variant={selectedAnglePrevious === angle ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedAnglePrevious(angle)}
+                            className={`text-[10px] h-6 px-1.5 ${selectedAnglePrevious === angle
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                              }`}
+                          >
+                            {getAngleLabel(angle)}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigateAngle(previousPhotos, selectedAnglePrevious, 'next', setSelectedAnglePrevious)}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                        disabled={availableAnglesPrevious.length <= 1}
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </Button>
                     </div>
                   )}
-                </div>
-                {/* Controles de zoom e posição */}
-                {previousDate && previousPhotos[selectedAnglePrevious] && (
-                  <div className="flex justify-center">
-                    <ZoomControls zoom={zoomPrevious} setZoom={setZoomPrevious} pos={posPrevious} setPos={setPosPrevious} color="purple" />
+                  <div className="flex-1 min-h-[150px] md:min-h-[200px]">
+                    {previousDate ? (
+                      renderPhoto(previousPhotos[selectedAnglePrevious], previousDate, 'Anterior', 'previous', selectedAnglePrevious, zoomPrevious, posPrevious)
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-800/50 rounded border border-slate-700 min-h-[150px] md:min-h-[200px]">
+                        <span className="text-xs text-slate-500">Sem check-in anterior</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                  {/* Controles de zoom e posição */}
+                  {previousDate && previousPhotos[selectedAnglePrevious] && (
+                    <div className="flex justify-center">
+                      <ZoomControls zoom={zoomPrevious} setZoom={setZoomPrevious} pos={posPrevious} setPos={setPosPrevious} color="purple" />
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Coluna 3: Check-in Atual */}
@@ -1330,11 +1320,10 @@ export function PhotoComparisonModal({
                           variant={selectedAngleCurrent === angle ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedAngleCurrent(angle)}
-                          className={`text-[10px] h-6 px-1.5 ${
-                            selectedAngleCurrent === angle
+                          className={`text-[10px] h-6 px-1.5 ${selectedAngleCurrent === angle
                               ? 'bg-blue-600 hover:bg-blue-700 text-white'
                               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                          }`}
+                            }`}
                         >
                           {getAngleLabel(angle)}
                         </Button>
@@ -1373,8 +1362,8 @@ export function PhotoComparisonModal({
             <DialogTitle className="text-slate-200">
               Adicionar Fotos - {
                 uploadType === 'initial' ? 'Dados Iniciais' :
-                uploadType === 'previous' ? 'Check-in Anterior' :
-                'Check-in Atual'
+                  uploadType === 'previous' ? 'Check-in Anterior' :
+                    'Check-in Atual'
               }
             </DialogTitle>
             <DialogDescription className="text-slate-400">
@@ -1450,9 +1439,9 @@ export function PhotoComparisonModal({
                             {availablePositions.map((pos) => (
                               <SelectItem key={pos} value={pos}>
                                 {pos === 'frente' ? '📷 Foto 1 (Frente)' :
-                                 pos === 'lado' ? '📷 Foto 2 (Lado D)' :
-                                 pos === 'lado_2' ? '📷 Foto 3 (Lado E)' :
-                                 '📷 Foto 4 (Costas)'}
+                                  pos === 'lado' ? '📷 Foto 2 (Lado D)' :
+                                    pos === 'lado_2' ? '📷 Foto 3 (Lado E)' :
+                                      '📷 Foto 4 (Costas)'}
                               </SelectItem>
                             ))}
                           </SelectContent>

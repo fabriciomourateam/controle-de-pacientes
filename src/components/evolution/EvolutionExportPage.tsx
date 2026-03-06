@@ -168,7 +168,7 @@ export function EvolutionExportPage({
       return Math.round(10 * peso + 6.25 * alturaCm - 5 * idade - 161);
     }
   };
-  const tmb = calcularTMB(pesoParaCalculo || 0);
+  const tmb = lastBodyComp?.tmb || calcularTMB(pesoParaCalculo || 0);
 
   // Calcular diferenças comparando com avaliação anterior
   const calcularDiferencas = () => {
