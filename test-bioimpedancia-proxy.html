@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Proxy Bioimpedância</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Proxy Bioimpedância IA</h1>
+    
+    <div class="info result">
+        <strong>Status:</strong> Testando conexão com proxy local...
+    </div>
+
+    <button onclick="testProxy()">🔍 Testar Proxy</button>
+    <button onclick="testMinimalRequest()">🤖 Testar Requisição Mínima</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        async function testProxy() {
+            addResult('🔍 Testando se proxy está disponível...', 'info');
+            
+            try {
+                const response = await fetch('/api/analyze-bioimpedancia', {
+                    method: 'HEAD'
+                });
+                
+                if (response.status === 405) {
+                    addResult('✅ Proxy está rodando! (405 Method Not Allowed é esperado para HEAD)', 'success');
+                } else if (response.ok) {
+                    addResult('✅ Proxy está rodando!', 'success');
+                } else {
+                    addResult(`⚠️ Proxy respondeu com status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Erro ao conectar com proxy: ${error.message}`, 'error');
+                addResult('💡 Certifique-se que o proxy está rodando: <code>node proxy-server.js</code>', 'info');
+            }
+        }
+
+        async function testMinimalRequest() {
+            addResult('🤖 Testando requisição mínima para Anthropic...', 'info');
+            
+            try {
+                const response = await fetch('/api/analyze-bioimpedancia', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-5-sonnet-20241022',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: 'Teste simples. Responda apenas: OK'
+                            }
+                        ],
+                        max_tokens: 10
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('✅ Requisição para Anthropic funcionou!', 'success');
+                    addResult(`📊 Resposta: <pre>${JSON.stringify(data, null, 2)}</pre>`, 'info');
+                } else {
+                    addResult(`❌ Erro na requisição: ${response.status}`, 'error');
+                    addResult(`📋 Detalhes: <pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Erro na requisição: ${error.message}`, 'error');
+            }
+        }
+
+        // Testar automaticamente ao carregar
+        window.onload = () => {
+            testProxy();
+        };
+    </script>
+</body>
+</html>

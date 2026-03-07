@@ -143,8 +143,40 @@ export function BioimpedanciaAIGenerator({
             setStep('validating');
         } catch (error: any) {
             console.error('Erro na análise IA:', error);
-            setErrorMessage(error.message || 'Erro desconhecido na análise');
+            
+            // Melhor tratamento de diferentes tipos de erro
+            let errorMsg = 'Erro desconhecido na análise';
+            
+            if (error.message) {
+                errorMsg = error.message;
+            } else if (error.error?.message) {
+                errorMsg = error.error.message;
+            } else if (typeof error === 'string') {
+                errorMsg = error;
+            }
+            
+            // Mensagens mais amigáveis para erros comuns
+            if (errorMsg.includes('Failed to fetch')) {
+                errorMsg = 'Erro de conexão. Verifique sua internet e tente novamente.';
+            } else if (errorMsg.includes('ERR_CONNECTION_RESET')) {
+                errorMsg = 'Conexão resetada. Tente novamente em alguns segundos.';
+            } else if (errorMsg.includes('401')) {
+                errorMsg = 'Erro de autenticação com a IA. Verifique as configurações.';
+            } else if (errorMsg.includes('429')) {
+                errorMsg = 'Muitas requisições. Aguarde alguns minutos e tente novamente.';
+            } else if (errorMsg.includes('413')) {
+                errorMsg = 'Fotos muito grandes. Tente com fotos menores.';
+            }
+            
+            setErrorMessage(errorMsg);
             setStep('error');
+            
+            // Toast para feedback imediato
+            toast({
+                title: "Erro na análise IA",
+                description: errorMsg,
+                variant: "destructive",
+            });
         }
     };
 

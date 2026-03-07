@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { supabase } from '@/integrations/supabase/client';
 
 // ============================================
@@ -246,8 +245,8 @@ function loadImageViaCanvas(url: string): Promise<{ data: string; mediaType: str
             clearTimeout(timeout);
             try {
                 const canvas = document.createElement('canvas');
-                // Limit size to avoid huge base64 strings
-                const maxDim = 1200;
+                // Diminuir o tamanho máximo para evitar erro 413 da Anthropic
+                const maxDim = 800;
                 let w = img.naturalWidth;
                 let h = img.naturalHeight;
                 if (w > maxDim || h > maxDim) {
@@ -260,7 +259,7 @@ function loadImageViaCanvas(url: string): Promise<{ data: string; mediaType: str
                 const ctx = canvas.getContext('2d');
                 if (!ctx) { resolve(null); return; }
                 ctx.drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                 const base64 = dataUrl.split(',')[1];
                 resolve({ data: base64, mediaType: 'image/jpeg' });
             } catch (e) {
@@ -341,10 +340,8 @@ export async function analyzeBioimpedancia(
     params: BioimpedanciaAIParams,
     onProgress?: (step: string) => void
 ): Promise<BioimpedanciaAIResult> {
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (!apiKey) {
-        throw new Error('Chave da API do Anthropic não configurada (VITE_ANTHROPIC_API_KEY)');
-    }
+    // Sempre usar proxy (local em dev, Vercel em prod)
+    const useProxy = true;
 
     // Step 1: Fetch patient data
     onProgress?.('Buscando dados do paciente...');
@@ -458,12 +455,7 @@ export async function analyzeBioimpedancia(
         customInstructions || undefined
     );
 
-    const anthropic = new Anthropic({
-        apiKey,
-        dangerouslyAllowBrowser: true,
-    });
-
-    const messageContent: Anthropic.MessageParam['content'] = [
+    const messageContent = [
         ...photos.map(photo => ({
             type: 'image' as const,
             source: {
@@ -475,11 +467,28 @@ export async function analyzeBioimpedancia(
         { type: 'text' as const, text: prompt },
     ];
 
-    const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 3000,
-        messages: [{ role: 'user', content: messageContent }],
+    // Sempre usar proxy (local em dev, Vercel em prod)
+    console.log('🚀 Usando proxy para análise...');
+    
+    const proxyResponse = await fetch('/api/analyze-bioimpedancia', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-5-20250929',
+            messages: [{ role: 'user', content: messageContent }],
+            max_tokens: 3000
+        })
     });
+
+    if (!proxyResponse.ok) {
+        const errorData = await proxyResponse.json().catch(() => ({}));
+        console.error('Proxy analytics error:', errorData);
+        throw new Error(errorData.message || errorData.error || `Erro na comunicação com a IA (${proxyResponse.status})`);
+    }
+
+    const response = await proxyResponse.json();
 
     // Step 6: Parse response
     onProgress?.('Processando resultado...');

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste IA Checkin</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste IA Checkin (Chamada Direta)</h1>
+    
+    <div class="info result">
+        <strong>Teste:</strong> Verificar se a IA do checkin funciona com chamada direta ao Anthropic
+    </div>
+
+    <button onclick="testCheckinAI()">🤖 Testar IA Checkin</button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        const results = document.getElementById('results');
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        // Simular a mesma implementação da IA do checkin
+        async function testCheckinAI() {
+            addResult('🤖 Testando IA do checkin (chamada direta)...', 'info');
+            
+            // Usar a mesma chave que está no .env
+            const apiKey = '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';
+            
+            try {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-5-sonnet-20241022',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: 'Teste simples da IA do checkin. Responda apenas: CHECKIN OK'
+                            }
+                        ],
+                        max_tokens: 10
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('✅ IA do checkin funcionando! (chamada direta)', 'success');
+                    addResult(`📊 Resposta: <pre>${JSON.stringify(data, null, 2)}</pre>`, 'info');
+                } else {
+                    addResult(`❌ Erro na IA do checkin: ${response.status}`, 'error');
+                    addResult(`📋 Detalhes: <pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Erro na IA do checkin: ${error.message}`, 'error');
+            }
+        }
+
+        // Expor função globalmente
+        window.testCheckinAI = testCheckinAI;
+    </script>
+</body>
+</html>
