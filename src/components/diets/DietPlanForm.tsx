@@ -78,6 +78,7 @@ import { FoodSelectionModal } from "./FoodSelectionModal";
 import { RichTextEditor } from "./RichTextEditor";
 import { foodSuggestionsService } from "@/lib/diet-food-suggestions-service";
 import FoodCacheService from "@/lib/food-cache-service";
+import { InlineFoodRow } from "./InlineFoodRow";
 
 import { FoodSubstitutionsModal } from "./FoodSubstitutionsModal";
 import { ProportionalAdjustmentModal } from "./ProportionalAdjustmentModal";
@@ -793,6 +794,7 @@ export function DietPlanForm({
         carbs: 0,
         fats: 0,
         notes: "",
+        substitutions: [],
       },
     ]);
   };
@@ -3072,325 +3074,6 @@ export function DietPlanForm({
   );
 }
 
-// Componente FoodItem memoizado para evitar re-renderizações e perda de foco
-const FoodItem = memo(function FoodItem({
-  mealIndex,
-  foodIndex,
-  form,
-  foodDatabase,
-  handleFoodSelect,
-  recalculateFoodMacros,
-  removeFoodFromMeal,
-  setSubstitutionsFoodIndex,
-  setSubstitutionsModalOpen: setSubstitutionsModalOpenProp,
-  mealType,
-  mealCalories,
-  mealProtein,
-  mealCarbs,
-  mealFats,
-  existingFoods,
-  calculateMealMacros,
-  calculateTotals,
-}: any) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: `food-${mealIndex}-${foodIndex}` });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const foodData = useWatch({ control: form.control, name: `meals.${mealIndex}.foods.${foodIndex}` });
-  const foodName = foodData?.food_name || "";
-  const quantity = foodData?.quantity || 0;
-  const unit = foodData?.unit || "";
-  const carbs = foodData?.carbs || 0;
-  const protein = foodData?.protein || 0;
-  const fats = foodData?.fats || 0;
-  const calories = foodData?.calories || 0;
-
-  return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className="bg-white border-0 shadow-none hover:bg-gray-50/50 transition-all duration-200"
-    >
-      <CardContent className="p-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Drag handle */}
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity touch-none"
-          >
-            <GripVertical className="w-4 h-4 text-[#777777]" />
-          </div>
-
-          {/* Nome do alimento - editável livremente */}
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.food_name`}
-            render={({ field }) => (
-              <FormItem className="flex-1 min-w-[150px]">
-                <FormControl>
-                  <Input
-                    type="text"
-                    value={field.value || ""}
-                    onChange={(e) => {
-                      field.onChange(e.target.value);
-                    }}
-                    placeholder="Nome do alimento"
-                    className="h-8 text-sm border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                    title="Edite o nome livremente. Os valores nutricionais são vinculados à quantidade."
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Quantidade */}
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.quantity`}
-            render={({ field }) => (
-              <FormItem className="w-20">
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    placeholder="100"
-                    className="h-8 text-sm border-green-500/30 bg-green-500/10 text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                    {...field}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0;
-                      field.onChange(value);
-                      // Cálculo em tempo real - atualiza imediatamente
-                      recalculateFoodMacros(mealIndex, foodIndex);
-                    }}
-                    onBlur={(e) => {
-                      // Garantir atualização final ao sair do campo
-                      const value = parseFloat(e.target.value) || 0;
-                      field.onChange(value);
-                      recalculateFoodMacros(mealIndex, foodIndex);
-                    }}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Unidade */}
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.unit`}
-            render={({ field }) => (
-              <FormItem className="w-24">
-                <Select
-                  onValueChange={(value) => {
-                    try {
-                      field.onChange(value);
-                      recalculateFoodMacros(mealIndex, foodIndex);
-                    } catch (error) {
-                      console.error('Erro ao alterar unidade:', error);
-                    }
-                  }}
-                  value={field.value ?? ""}
-                >
-                  <FormControl>
-                    <SelectTrigger
-                      className="h-8 text-sm border-green-500/30 bg-green-500/10 text-[#222222] focus:border-green-500 focus:ring-green-500/10 focus:bg-green-500/15 focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <SelectValue placeholder="un" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent
-                    className="bg-white border-green-500/30 z-50"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <SelectItem value="g" className="text-[#222222]">g</SelectItem>
-                    <SelectItem value="ml" className="text-[#222222]">ml</SelectItem>
-                    <SelectItem value="unidade" className="text-[#222222]">un</SelectItem>
-                    <SelectItem value="colher" className="text-[#222222]">colher</SelectItem>
-                    <SelectItem value="xicara" className="text-[#222222]">xícara</SelectItem>
-                    <SelectItem value="fatia" className="text-[#222222]">fatia</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Separador */}
-          <div className="w-px h-6 bg-gray-300" />
-
-          {/* Macros - apenas exibição */}
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-[#222222] font-medium min-w-[60px]">
-              kcal: <span className="text-orange-600">{calories}</span>
-            </span>
-            <span className="text-[#222222] font-medium min-w-[50px]">
-              P: <span className="text-blue-600">{protein.toFixed(1)}g</span>
-            </span>
-            <span className="text-[#222222] font-medium min-w-[50px]">
-              C: <span className="text-purple-600">{carbs.toFixed(1)}g</span>
-            </span>
-            <span className="text-[#222222] font-medium min-w-[50px]">
-              G: <span className="text-emerald-600">{fats.toFixed(1)}g</span>
-            </span>
-          </div>
-
-          {/* Botões de ação */}
-          <div className="flex gap-1 ml-auto">
-            <FormField
-              control={form.control}
-              name={`meals.${mealIndex}.foods.${foodIndex}.food_name`}
-              render={({ field: foodNameField }) => (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSubstitutionsFoodIndex({ mealIndex, foodIndex });
-                      setSubstitutionsModalOpenProp(true);
-                    }}
-                    className={`h-7 w-7 p-0 relative ${foodData?.substitutions && foodData.substitutions.length > 0
-                      ? 'text-[#00C98A] hover:text-[#00A875] hover:bg-green-500/20 bg-green-500/10'
-                      : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
-                      }`}
-                    title={foodData?.substitutions && foodData.substitutions.length > 0
-                      ? `${foodData.substitutions.length} substituição(ões) cadastrada(s)`
-                      : "Opções de Substituição"}
-                    disabled={!foodNameField.value}
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    {foodData?.substitutions && foodData.substitutions.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-[#00C98A] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                        {foodData.substitutions.length}
-                      </span>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      removeFoodFromMeal(mealIndex, foodIndex);
-                    }}
-                    className="h-7 w-7 p-0 text-red-400 hover:text-red-500 hover:bg-red-50"
-                    title="Remover alimento"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </>
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Campos de macros ocultos para edição (mantidos para funcionamento) */}
-        <div className="hidden">
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.calories`}
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                      calculateMealMacros(mealIndex);
-                      calculateTotals();
-                    }}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.protein`}
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                      calculateMealMacros(mealIndex);
-                      calculateTotals();
-                    }}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.carbs`}
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                      calculateMealMacros(mealIndex);
-                      calculateTotals();
-                    }}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`meals.${mealIndex}.foods.${foodIndex}.fats`}
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
-                      calculateMealMacros(mealIndex);
-                      calculateTotals();
-                    }}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-});
-
 // Componente MealItem separado e memoizado para evitar redefinição e perda de foco
 const MealItemComponent = memo(function MealItemComponent({
   meal,
@@ -3784,6 +3467,23 @@ const MealItemComponent = memo(function MealItemComponent({
                   <Star className="w-4 h-4" aria-hidden="true" />
                 </Button>
 
+                {/* Botão Grupos de Alimentos (verde) */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFoodGroupsMealIndex(mealIndex);
+                    setFoodGroupsModalOpen(true);
+                  }}
+                  title="Adicionar grupo de alimentos (ex: Arroz, Feijão e Carne)"
+                >
+                  <Layers className="w-3 h-3 mr-1" />
+                  grupos
+                </Button>
+
                 {/* Botão remover */}
                 <Button
                   type="button"
@@ -3867,7 +3567,7 @@ const MealItemComponent = memo(function MealItemComponent({
                     strategy={verticalListSortingStrategy}
                   >
                     {mealFoods.map((food: any, foodIndex: number) => (
-                      <FoodItem
+                      <InlineFoodRow
                         key={`food-${mealIndex}-${foodIndex}`}
                         mealIndex={mealIndex}
                         foodIndex={foodIndex}
@@ -3876,18 +3576,12 @@ const MealItemComponent = memo(function MealItemComponent({
                         handleFoodSelect={handleFoodSelect}
                         recalculateFoodMacros={recalculateFoodMacros}
                         removeFoodFromMeal={removeFoodFromMeal}
-                        setSubstitutionFoodIndex={setSubstitutionFoodIndex}
-                        setSubstitutionModalOpen={setSubstitutionModalOpen}
                         setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
                         setSubstitutionsModalOpen={setSubstitutionsModalOpenProp}
-                        mealType={mealData?.meal_type || ''}
-                        mealCalories={mealCalories}
-                        mealProtein={mealProtein}
-                        mealCarbs={mealCarbs}
-                        mealFats={mealFats}
-                        existingFoods={existingFoods}
                         calculateMealMacros={calculateMealMacros}
                         calculateTotals={calculateTotals}
+                        isEditingNew={!food?.food_name}
+                        onCommitNew={() => addFoodToMeal(mealIndex)}
                       />
                     ))}
                   </SortableContext>
