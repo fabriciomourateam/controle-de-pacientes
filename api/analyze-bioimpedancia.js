@@ -16,10 +16,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Método não permitido' });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Buscar chave da API (tenta ANTHROPIC_API_KEY primeiro, depois VITE_ANTHROPIC_API_KEY)
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
     if (!apiKey) {
+        console.error('❌ Chave da API não encontrada. Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('ANTHROPIC')));
         return res.status(500).json({
-            error: 'Chave da API Anthropic não configurada no ambiente Vercel.'
+            error: 'Chave da API Anthropic não configurada no ambiente Vercel.',
+            hint: 'Configure ANTHROPIC_API_KEY ou VITE_ANTHROPIC_API_KEY nas variáveis de ambiente do Vercel'
         });
     }
 
