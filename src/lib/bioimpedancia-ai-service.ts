@@ -245,8 +245,8 @@ function loadImageViaCanvas(url: string): Promise<{ data: string; mediaType: str
             clearTimeout(timeout);
             try {
                 const canvas = document.createElement('canvas');
-                // Diminuir o tamanho máximo para evitar erro 413 da Anthropic
-                const maxDim = 800;
+                // Reduzir ainda mais para evitar erro 413 (Content Too Large) no Vercel
+                const maxDim = 512; // Reduzido de 800 para 512
                 let w = img.naturalWidth;
                 let h = img.naturalHeight;
                 if (w > maxDim || h > maxDim) {
@@ -259,7 +259,8 @@ function loadImageViaCanvas(url: string): Promise<{ data: string; mediaType: str
                 const ctx = canvas.getContext('2d');
                 if (!ctx) { resolve(null); return; }
                 ctx.drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                // Aumentar compressão de 0.7 para 0.5
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                 const base64 = dataUrl.split(',')[1];
                 resolve({ data: base64, mediaType: 'image/jpeg' });
             } catch (e) {
@@ -485,6 +486,12 @@ export async function analyzeBioimpedancia(
     if (!proxyResponse.ok) {
         const errorData = await proxyResponse.json().catch(() => ({}));
         console.error('Proxy analytics error:', errorData);
+        
+        // Erro 413: Payload muito grande
+        if (proxyResponse.status === 413) {
+            throw new Error('Fotos muito grandes. O sistema já reduz automaticamente, mas essas fotos ainda excedem o limite. Tente com fotos menores ou menos fotos.');
+        }
+        
         throw new Error(errorData.message || errorData.error || `Erro na comunicação com a IA (${proxyResponse.status})`);
     }
 
