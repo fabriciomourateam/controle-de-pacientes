@@ -875,7 +875,11 @@ export function DietPlanForm({
     const foodName = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.food_name`);
     if (!foodName) return;
 
-    const currentQuantity = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 0;
+    const rawQuantity = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 0;
+    const unitWeight = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.gram_weight_per_unit`);
+    const currentQuantity = rawQuantity;
+    const effectiveQuantity = unitWeight ? currentQuantity * unitWeight : currentQuantity;
+
     const currentCalories = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.calories`) || 0;
     const currentProtein = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.protein`) || 0;
     const currentCarbs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0;
@@ -899,7 +903,7 @@ export function DietPlanForm({
     // Se JÁ temos macros originais armazenados, SEMPRE usar eles para recalcular
     // Isso garante que o cálculo seja consistente mesmo após mudar o nome
     if (originalQuantity && originalQuantity > 0 && originalMacros) {
-      // Calcular macros por unidade baseado nos macros originais e quantidade original
+      // Calcular macros por grama (ou unidade efetiva) baseado nos macros originais e quantidade original
       const macrosPerUnit = {
         calories: originalMacros.calories / originalQuantity,
         protein: originalMacros.protein / originalQuantity,
@@ -907,22 +911,22 @@ export function DietPlanForm({
         fats: originalMacros.fats / originalQuantity,
       };
 
-      // Recalcular para a nova quantidade
+      // Recalcular para a nova quantidade efetiva
       form.setValue(
         `meals.${mealIndex}.foods.${foodIndex}.calories`,
-        Math.round(macrosPerUnit.calories * currentQuantity)
+        Math.round(macrosPerUnit.calories * effectiveQuantity)
       );
       form.setValue(
         `meals.${mealIndex}.foods.${foodIndex}.protein`,
-        Math.round(macrosPerUnit.protein * currentQuantity * 10) / 10
+        Math.round(macrosPerUnit.protein * effectiveQuantity * 10) / 10
       );
       form.setValue(
         `meals.${mealIndex}.foods.${foodIndex}.carbs`,
-        Math.round(macrosPerUnit.carbs * currentQuantity * 10) / 10
+        Math.round(macrosPerUnit.carbs * effectiveQuantity * 10) / 10
       );
       form.setValue(
         `meals.${mealIndex}.foods.${foodIndex}.fats`,
-        Math.round(macrosPerUnit.fats * currentQuantity * 10) / 10
+        Math.round(macrosPerUnit.fats * effectiveQuantity * 10) / 10
       );
 
       // Recalcular macros da refeição e totais
@@ -949,7 +953,7 @@ export function DietPlanForm({
 
     if (selectedFood) {
       // Alimento encontrado no banco, usar valores do banco
-      const multiplier = currentQuantity / 100;
+      const multiplier = effectiveQuantity / 100;
 
       const newCalories = Math.round(selectedFood.calories_per_100g * multiplier);
       const newProtein = Math.round(selectedFood.protein_per_100g * multiplier * 10) / 10;
@@ -962,7 +966,7 @@ export function DietPlanForm({
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, newFats);
 
       // Armazenar como macros originais
-      originalQuantitiesRef.current.set(foodKey, currentQuantity);
+      originalQuantitiesRef.current.set(foodKey, effectiveQuantity);
       originalMacrosRef.current.set(foodKey, {
         calories: newCalories,
         protein: newProtein,
@@ -976,7 +980,7 @@ export function DietPlanForm({
         // Se já temos uma quantidade original armazenada, recalcular proporcionalmente
         const storedQuantity = originalQuantitiesRef.current.get(foodKey);
         if (storedQuantity && storedQuantity > 0) {
-          const ratio = currentQuantity / storedQuantity;
+          const ratio = effectiveQuantity / storedQuantity;
           form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, Math.round(currentCalories * ratio));
           form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, Math.round(currentProtein * ratio * 10) / 10);
           form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, Math.round(currentCarbs * ratio * 10) / 10);
@@ -984,7 +988,7 @@ export function DietPlanForm({
         }
 
         // Armazenar os valores atuais como referência original
-        originalQuantitiesRef.current.set(foodKey, currentQuantity);
+        originalQuantitiesRef.current.set(foodKey, effectiveQuantity);
         originalMacrosRef.current.set(foodKey, {
           calories: form.getValues(`meals.${mealIndex}.foods.${foodIndex}.calories`),
           protein: form.getValues(`meals.${mealIndex}.foods.${foodIndex}.protein`),
