@@ -98,6 +98,7 @@ import { dietFavoritesService } from "@/lib/diet-favorites-service";
 import { dietMealFavoritesService, type FavoriteMeal } from "@/lib/diet-meal-favorites-service";
 import { foodGroupsService } from "@/lib/diet-food-groups-service";
 import { useGuidelineTemplates } from "@/hooks/use-guideline-templates";
+import { userFoodMeasuresService, UserFoodMeasure } from "@/lib/user-food-measures-service";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -273,6 +274,41 @@ export function DietPlanForm({
   const [showSuggestions, setShowSuggestions] = useState<{ mealIndex: number; foodIndex: number } | null>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+
+  // Custom User Food Measures
+  const [userFoodMeasures, setUserFoodMeasures] = useState<UserFoodMeasure[]>([]);
+
+  useEffect(() => {
+    const loadMeasures = async () => {
+      const measures = await userFoodMeasuresService.getUserFoodMeasures();
+      setUserFoodMeasures(measures);
+    };
+    loadMeasures();
+  }, []);
+
+  const handleSaveUserFoodMeasure = useCallback(async (food_name: string, unit_name: string, gram_weight: number) => {
+    const saved = await userFoodMeasuresService.saveUserFoodMeasure({ food_name, unit_name, gram_weight });
+    if (saved) {
+      setUserFoodMeasures(prev => {
+        const existing = prev.findIndex(m => m.id === saved.id);
+        if (existing >= 0) {
+          const newArr = [...prev];
+          newArr[existing] = saved;
+          return newArr;
+        }
+        return [...prev, saved];
+      });
+      toast({ title: "Sucesso", description: "Medida customizada salva para usos futuros." });
+    }
+  }, [toast]);
+
+  const handleDeleteUserFoodMeasure = useCallback(async (food_name: string, unit_name: string) => {
+    const success = await userFoodMeasuresService.deleteUserFoodMeasure(food_name, unit_name);
+    if (success) {
+      setUserFoodMeasures(prev => prev.filter(m => !(m.food_name === food_name && m.unit_name === unit_name)));
+      toast({ title: "Removido", description: "Medida customizada removida com sucesso." });
+    }
+  }, [toast]);
 
   // Sensors para drag and drop
   const sensors = useSensors(
@@ -1971,7 +2007,10 @@ export function DietPlanForm({
                           setFavoriteMealsModalOpen={setFavoriteMealsModalOpen}
                           setFavoriteMeals={setFavoriteMeals}
                           setFavoriteMealsLoading={setFavoriteMealsLoading}
-                        />;
+                          userFoodMeasures={userFoodMeasures}
+                          handleSaveUserFoodMeasure={handleSaveUserFoodMeasure}
+                          handleDeleteUserFoodMeasure={handleDeleteUserFoodMeasure}
+                        />
                       })}
                     </div>
                   </SortableContext>
@@ -3114,6 +3153,9 @@ const MealItemComponent = memo(function MealItemComponent({
   setFavoriteMealsModalOpen,
   setFavoriteMeals,
   setFavoriteMealsLoading,
+  userFoodMeasures,
+  handleSaveUserFoodMeasure,
+  handleDeleteUserFoodMeasure,
 }: any) {
   // Usar useWatch apenas uma vez para evitar múltiplas re-renderizações
   const mealData = useWatch({ control: form.control, name: `meals.${mealIndex}` });
@@ -3589,6 +3631,9 @@ const MealItemComponent = memo(function MealItemComponent({
                         calculateTotals={calculateTotals}
                         isEditingNew={!food?.food_name}
                         onCommitNew={() => addFoodToMeal(mealIndex)}
+                        userFoodMeasures={userFoodMeasures}
+                        onSaveUserFoodMeasure={handleSaveUserFoodMeasure}
+                        onDeleteUserFoodMeasure={handleDeleteUserFoodMeasure}
                       />
                     ))}
                   </SortableContext>

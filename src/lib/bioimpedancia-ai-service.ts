@@ -304,14 +304,67 @@ async function fetchPhotoAsBase64(url: string): Promise<{ data: string; mediaTyp
             return null;
         }
 
+        // Se for pequeno (< 500KB), carrega direto sem perder qualidade
+        if (blob.size < 500 * 1024) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64 = (reader.result as string).split(',')[1];
+                    resolve({ data: base64, mediaType: contentType });
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // Se for maior que 500KB, comprime via canvas para evitar o erro 413 Payload Too Large
         return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = (reader.result as string).split(',')[1];
-                resolve({ data: base64, mediaType: contentType });
+            const objectUrl = URL.createObjectURL(blob);
+            const img = new Image();
+
+            const timeout = setTimeout(() => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(null);
+            }, 15000);
+
+            img.onload = () => {
+                clearTimeout(timeout);
+                try {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 512;
+                    let w = img.naturalWidth;
+                    let h = img.naturalHeight;
+                    if (w > maxDim || h > maxDim) {
+                        const ratio = Math.min(maxDim / w, maxDim / h);
+                        w = Math.round(w * ratio);
+                        h = Math.round(h * ratio);
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        URL.revokeObjectURL(objectUrl);
+                        resolve(null);
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                    const base64 = dataUrl.split(',')[1];
+                    URL.revokeObjectURL(objectUrl);
+                    resolve({ data: base64, mediaType: 'image/jpeg' });
+                } catch (e) {
+                    console.warn(`Canvas export failed for blob: ${url}`, e);
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(null);
+                }
             };
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(blob);
+            img.onerror = () => {
+                clearTimeout(timeout);
+                console.warn(`Failed to load object URL image: ${url}`);
+                URL.revokeObjectURL(objectUrl);
+                resolve(null);
+            };
+            img.src = objectUrl;
         });
     } catch {
         // Fallback to canvas approach
@@ -470,7 +523,7 @@ export async function analyzeBioimpedancia(
 
     // Sempre usar proxy (local em dev, Vercel em prod)
     console.log('🚀 Usando proxy para análise...');
-    
+
     const proxyResponse = await fetch('/api/analyze-bioimpedancia', {
         method: 'POST',
         headers: {
@@ -486,12 +539,12 @@ export async function analyzeBioimpedancia(
     if (!proxyResponse.ok) {
         const errorData = await proxyResponse.json().catch(() => ({}));
         console.error('Proxy analytics error:', errorData);
-        
+
         // Erro 413: Payload muito grande
         if (proxyResponse.status === 413) {
             throw new Error('Fotos muito grandes. O sistema já reduz automaticamente, mas essas fotos ainda excedem o limite. Tente com fotos menores ou menos fotos.');
         }
-        
+
         throw new Error(errorData.message || errorData.error || `Erro na comunicação com a IA (${proxyResponse.status})`);
     }
 

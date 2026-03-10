@@ -549,6 +549,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_food_measures: {
+        Row: {
+          id: string
+          user_id: string
+          food_name: string
+          unit_name: string
+          gram_weight: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          food_name: string
+          unit_name: string
+          gram_weight: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          food_name?: string
+          unit_name?: string
+          gram_weight?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_food_measures_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       users: {
         Row: {
           id: string

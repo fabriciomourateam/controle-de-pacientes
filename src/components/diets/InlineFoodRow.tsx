@@ -40,6 +40,9 @@ interface InlineFoodRowProps {
     onSwapWithParent?: (subIndex: number) => void;
     isEditingNew?: boolean; // Se true, começa focado no quantity
     onCommitNew?: () => void; // Quando confirma o novo alimento e deve criar a próxima linha limpa
+    userFoodMeasures?: any[];
+    onSaveUserFoodMeasure?: (foodName: string, unitName: string, gramWeight: number) => void;
+    onDeleteUserFoodMeasure?: (foodName: string, unitName: string) => void;
 }
 
 export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
@@ -60,7 +63,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
     onAddSub,
     onSwapWithParent,
     isEditingNew = false,
-    onCommitNew
+    onCommitNew,
+    userFoodMeasures = [],
+    onSaveUserFoodMeasure,
+    onDeleteUserFoodMeasure
 }) => {
     // Monitorar a "food" via react-hook-form para re-renderizar quando form mudar
     const foodPath = isSub
@@ -127,6 +133,19 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             qtyRef.current.select();
         }
     }, [isEditingNew]);
+
+    // Auto-preencher measureWeight based on user profile's custom measures
+    useEffect(() => {
+        if (userFoodMeasures && userFoodMeasures.length > 0 && food?.food_name && unitValue) {
+            const matched = userFoodMeasures.find((m: any) =>
+                m.food_name.toLowerCase() === food.food_name.toLowerCase() &&
+                m.unit_name.toLowerCase() === unitValue.toLowerCase()
+            );
+            if (matched) {
+                setCustomMeasureWeight(matched.gram_weight.toString());
+            }
+        }
+    }, [food?.food_name, unitValue, userFoodMeasures]);
 
     // Se trocar de food (ao buscar no InlineFoodSearch quando está editando no lugar)
     const handleFoodChange = (newFoodData: any) => {
@@ -310,6 +329,51 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
 
     // 1: Edit State (Render Inputs)
     if (isEditing) {
+        // --- Cálculo de macros dinâmico ao vivo ---
+        let liveCalories = food?.calories || 0;
+        let liveProtein = food?.protein || 0;
+        let liveCarbs = food?.carbs || 0;
+        let liveFats = food?.fats || 0;
+
+        if (food?.food_name) {
+            let parsedQty = parseFloat(qtyValue.replace(',', '.'));
+            if (isNaN(parsedQty)) parsedQty = 0;
+
+            const lowerUnit = unitValue?.toLowerCase().trim() || '';
+            const isAtVontade = lowerUnit === 'à vontade' || lowerUnit === 'a vontade';
+
+            let effectiveQuantity = parsedQty;
+            if (isAtVontade) {
+                effectiveQuantity = 0;
+            } else if (customMeasureWeight) {
+                const parsedWeight = parseFloat(customMeasureWeight.replace(',', '.'));
+                if (!isNaN(parsedWeight) && parsedWeight > 0) {
+                    effectiveQuantity = parsedQty * parsedWeight;
+                }
+            } else if (food?.gram_weight_per_unit) {
+                effectiveQuantity = parsedQty * food.gram_weight_per_unit;
+            }
+
+            if (parsedQty <= 0 && !isAtVontade) {
+                liveCalories = 0; liveProtein = 0; liveCarbs = 0; liveFats = 0;
+            } else if (isAtVontade) {
+                liveCalories = 0; liveProtein = 0; liveCarbs = 0; liveFats = 0;
+            } else {
+                const cleanName = food.food_name.split(/[,\(]/)[0].trim();
+                const matchedFood = foodDatabase.find(f => f.name.toLowerCase() === food.food_name.toLowerCase()) ||
+                    foodDatabase.find(f => f.name.toLowerCase().includes(cleanName.toLowerCase()));
+
+                if (matchedFood) {
+                    const multiplier = effectiveQuantity / 100;
+                    liveCalories = Math.round(matchedFood.calories_per_100g * multiplier);
+                    liveProtein = Math.round(matchedFood.protein_per_100g * multiplier * 10) / 10;
+                    liveCarbs = Math.round(matchedFood.carbs_per_100g * multiplier * 10) / 10;
+                    liveFats = Math.round(matchedFood.fats_per_100g * multiplier * 10) / 10;
+                }
+            }
+        }
+        // --- Fim Cálculo ---
+
         return (
             <div ref={setNodeRef} style={style} className={cn(
                 "flex items-center gap-2 p-1.5 rounded-md shadow-sm transition-all border-l-[3px]",
@@ -391,6 +455,19 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     </datalist>
                 </div>
 
+                {/* Preview de Macros ao vivo (visível apenas ao digitar) */}
+                <div className="hidden md:flex flex-col justify-center mx-2 px-2 border-x border-gray-200 text-[10px] text-gray-500 min-w-[130px] opacity-80">
+                    <div className="flex justify-between items-center font-medium mb-0.5">
+                        <span>Preview:</span>
+                        <span className="text-orange-500 font-bold text-xs">{liveCalories} kcal</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                        <span>P: {liveProtein}g</span>
+                        <span>C: {liveCarbs}g</span>
+                        <span>G: {liveFats}g</span>
+                    </div>
+                </div>
+
                 <div className="flex items-center gap-1">
                     <Popover open={measurePopoverOpen} onOpenChange={setMeasurePopoverOpen}>
                         <PopoverTrigger asChild>
@@ -440,6 +517,12 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         setMeasurePopoverOpen(false);
+                                                        if (onSaveUserFoodMeasure && food?.food_name && unitValue && customMeasureWeight) {
+                                                            const parsedW = parseFloat(customMeasureWeight.replace(',', '.'));
+                                                            if (!isNaN(parsedW) && parsedW > 0) {
+                                                                onSaveUserFoodMeasure(food.food_name, unitValue, parsedW);
+                                                            }
+                                                        }
                                                     }
                                                 }}
                                                 className="h-8 text-sm flex-1 bg-gray-50 border-gray-300 text-gray-900 focus-visible:ring-purple-500 focus-visible:border-purple-500"
@@ -447,10 +530,35 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                                             <Button
                                                 size="sm"
                                                 className="h-8 bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-all"
-                                                onClick={() => setMeasurePopoverOpen(false)}
+                                                onClick={() => {
+                                                    setMeasurePopoverOpen(false);
+                                                    if (onSaveUserFoodMeasure && food?.food_name && unitValue && customMeasureWeight) {
+                                                        const parsedW = parseFloat(customMeasureWeight.replace(',', '.'));
+                                                        if (!isNaN(parsedW) && parsedW > 0) {
+                                                            onSaveUserFoodMeasure(food.food_name, unitValue, parsedW);
+                                                        }
+                                                    }
+                                                }}
                                             >
                                                 OK
                                             </Button>
+                                            {hasSavedMeasure && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700"
+                                                    title="Remover medida customizada salva"
+                                                    onClick={() => {
+                                                        if (onDeleteUserFoodMeasure && food?.food_name && unitValue) {
+                                                            onDeleteUserFoodMeasure(food.food_name, unitValue);
+                                                            setCustomMeasureWeight("");
+                                                            setMeasurePopoverOpen(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
