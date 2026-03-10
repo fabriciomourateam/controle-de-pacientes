@@ -3177,8 +3177,8 @@ const MealItemComponent = memo(function MealItemComponent({
 
   // Função para calcular cores baseadas no índice
   const getMealCardColors = (index: number, total: number) => {
-    // Adicionada borda esquerda fina e de cor cinza clara, e fundo branco minimalista
-    return 'bg-white border-y border-r border-l-[3px] border-l-gray-300 border-y-gray-100 border-r-gray-100 shadow-sm hover:shadow-md hover:bg-gray-50/30';
+    // Fundo branco sem bordas de contorno, com uma sombra suave e barra lateral verde bem clara
+    return 'bg-white border-y-transparent border-r-transparent border-l-[4px] border-l-[#00c98a]/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.08)] hover:bg-gray-50/40 rounded-xl';
   };
 
   const cardColors = getMealCardColors(mealIndex, totalMeals);
