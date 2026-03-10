@@ -115,6 +115,11 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
         opacity: isDragging ? 0.5 : 1,
     };
 
+    const dndSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
     // Focus qty on render if new
     useEffect(() => {
         if (isEditingNew && qtyRef.current) {
@@ -625,10 +630,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             {/* Renderizar substituições aninhadas */}
             {!isSub && substitutions.length > 0 && !isSubsCollapsed && (
                 <DndContext
-                    sensors={useSensors(
-                        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-                        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-                    )}
+                    sensors={dndSensors}
                     collisionDetection={closestCenter}
                     onDragEnd={(event) => {
                         const { active, over } = event;
