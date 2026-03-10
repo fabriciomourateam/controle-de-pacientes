@@ -204,21 +204,23 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
         // Only commit if food is selected and qty is valid
         if (!food?.food_name) return;
 
-        const parsedQty = parseFloat(qtyValue.replace(',', '.'));
+        let parsedQty = parseFloat(qtyValue.replace(',', '.'));
+        if (isNaN(parsedQty)) parsedQty = 0;
 
-        if (!isNaN(parsedQty) && parsedQty > 0) {
+        const lowerUnit = unitValue?.toLowerCase().trim() || '';
+        const isAtVontade = lowerUnit === 'à vontade' || lowerUnit === 'a vontade';
+
+        if (parsedQty > 0 || isAtVontade) {
+            const actualQty = isAtVontade && parsedQty <= 0 ? 1 : parsedQty;
             const oldParsedQty = parseFloat(food?.quantity?.toString() || '0');
             const oldWeight = food?.gram_weight_per_unit || 1;
             const oldEffectiveQuantity = oldParsedQty * oldWeight;
 
-            form.setValue(`${foodPath}.quantity`, parsedQty);
+            form.setValue(`${foodPath}.quantity`, actualQty);
             form.setValue(`${foodPath}.unit`, unitValue || 'g');
 
-            const lowerUnit = unitValue?.toLowerCase().trim() || '';
-            const isAtVontade = lowerUnit === 'à vontade' || lowerUnit === 'a vontade';
-
             // Handle Custom Measure Weight if defined
-            let effectiveQuantity = parsedQty;
+            let effectiveQuantity = actualQty;
             if (isAtVontade) {
                 effectiveQuantity = 0;
                 form.setValue(`${foodPath}.gram_weight_per_unit`, null);
@@ -226,12 +228,12 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                 const parsedWeight = parseFloat(customMeasureWeight.replace(',', '.'));
                 if (!isNaN(parsedWeight) && parsedWeight > 0) {
                     form.setValue(`${foodPath}.gram_weight_per_unit`, parsedWeight);
-                    effectiveQuantity = parsedQty * parsedWeight;
+                    effectiveQuantity = actualQty * parsedWeight;
                 } else {
                     form.setValue(`${foodPath}.gram_weight_per_unit`, null);
                 }
             } else if (food?.gram_weight_per_unit) {
-                effectiveQuantity = parsedQty * food.gram_weight_per_unit;
+                effectiveQuantity = actualQty * food.gram_weight_per_unit;
             }
 
             if (!isSub) {
@@ -281,15 +283,15 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                 const matchedFood = foodDatabase.find(f => f.name.toLowerCase() === food?.food_name.toLowerCase()) ||
                     foodDatabase.find(f => f.name.toLowerCase().includes(cleanName.toLowerCase()));
 
-                if (matchedFood) {
+                if (matchedFood && !isAtVontade) {
                     const multiplier = effectiveQuantity / 100;
                     form.setValue(`${foodPath}.calories`, Math.round(matchedFood.calories_per_100g * multiplier));
                     form.setValue(`${foodPath}.protein`, Math.round(matchedFood.protein_per_100g * multiplier * 10) / 10);
                     form.setValue(`${foodPath}.carbs`, Math.round(matchedFood.carbs_per_100g * multiplier * 10) / 10);
                     form.setValue(`${foodPath}.fats`, Math.round(matchedFood.fats_per_100g * multiplier * 10) / 10);
                 } else {
-                    // Se não for encontrado na base (ex: nome mudado custom), zera ou mantem o anterior (melhor não forçar zero se tiver custom)
-                    if (parsedQty <= 0) {
+                    // Se não for encontrado na base (ex: nome mudado custom) ou for à vontade, zera
+                    if (actualQty <= 0 || isAtVontade) {
                         form.setValue(`${foodPath}.calories`, 0);
                         form.setValue(`${foodPath}.protein`, 0);
                         form.setValue(`${foodPath}.carbs`, 0);
@@ -310,10 +312,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
     if (isEditing) {
         return (
             <div ref={setNodeRef} style={style} className={cn(
-                "flex items-center gap-2 p-1.5 rounded-md bg-green-50/50 border border-green-200/50 shadow-sm",
-                isSub && "ml-8 bg-blue-50/50 border-blue-200/50 shadow-none border-l-2 border-l-blue-400"
+                "flex items-center gap-2 p-1.5 rounded-md bg-green-50/50 border border-green-200/50 shadow-sm transition-all",
+                isSub && "ml-8 bg-amber-50/60 border-amber-200/60 shadow-none border-l-[3px] border-l-amber-400"
             )}>
-                {isSub && <div className="w-4 h-4 text-blue-400 font-bold -mt-0.5 opacity-60 ml-1">↳</div>}
+                {isSub && <div className="w-5 h-5 flex items-center justify-center text-amber-500 font-bold -mt-0.5 opacity-80 flex-shrink-0"><span className="text-lg leading-none">↳</span></div>}
 
                 {/* If no food selected yet or changing food */}
                 <div className="flex-1 min-w-[200px]">
@@ -499,7 +501,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             <div
                 className={cn(
                     "group flex items-center justify-between p-2 rounded-md hover:bg-green-50/50 transition-colors border border-transparent hover:border-green-200/50 cursor-pointer",
-                    isSub && "ml-8 hover:bg-blue-50/50 hover:border-blue-200/50 border-l-2 border-l-transparent hover:border-l-blue-400"
+                    isSub && "ml-8 bg-amber-50/40 border-amber-100 hover:bg-amber-100/50 hover:border-amber-200/80 border-l-[3px] border-l-amber-400"
                 )}
                 onClick={() => {
                     setQtyValue(food?.quantity?.toString() || "");
@@ -516,10 +518,11 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                         <div
                             {...(id ? attributes : {})}
                             {...(id ? listeners : {})}
-                            className={cn("text-blue-400/60 font-medium ml-1 flex-shrink-0", id && "cursor-grab active:cursor-grabbing")}
+                            className={cn("w-5 h-5 flex items-center justify-center text-amber-500 font-bold -mt-0.5 opacity-80 flex-shrink-0 cursor-pointer", id && "cursor-grab active:cursor-grabbing hover:bg-amber-200/50 rounded-sm transition-colors")}
                             onClick={(e) => { if (id) e.stopPropagation(); }}
+                            title={id ? "Segure para arrastar" : ""}
                         >
-                            {id ? <GripVertical className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" /> : "↳"}
+                            {id ? <GripVertical className="h-4 w-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" /> : <span className="text-lg leading-none">↳</span>}
                         </div>
                     ) : (
                         <div
