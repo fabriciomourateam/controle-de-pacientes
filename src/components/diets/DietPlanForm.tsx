@@ -1938,7 +1938,7 @@ export function DietPlanForm({
                     items={mealFields.map((meal) => meal.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {(() => {
                         // Ordenar refeições baseado no critério selecionado
                         const meals = form.getValues("meals") || [];
@@ -3175,10 +3175,10 @@ const MealItemComponent = memo(function MealItemComponent({
   // Obter total de refeições para calcular progressão de cores
   const totalMeals = form.watch("meals")?.length || 1;
 
-  // Função para calcular cores baseadas no índice - usando verde bem leve
+  // Função para calcular cores baseadas no índice
   const getMealCardColors = (index: number, total: number) => {
-    // Todos os cards usam fundo verde clarinho com borda verde suave
-    return 'bg-green-50/40 border-green-200/50 hover:bg-green-50/60 hover:shadow-md';
+    // Adicionada borda esquerda fina e de cor cinza clara, e fundo branco minimalista
+    return 'bg-white border-y border-r border-l-[3px] border-l-gray-300 border-y-gray-100 border-r-gray-100 shadow-sm hover:shadow-md hover:bg-gray-50/30';
   };
 
   const cardColors = getMealCardColors(mealIndex, totalMeals);

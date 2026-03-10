@@ -147,6 +147,11 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
         }
     }, [food?.food_name, unitValue, userFoodMeasures]);
 
+    const hasSavedMeasure = userFoodMeasures?.some((m: any) =>
+        m.food_name?.toLowerCase() === food?.food_name?.toLowerCase() &&
+        m.unit_name?.toLowerCase() === unitValue?.toLowerCase()
+    );
+
     // Se trocar de food (ao buscar no InlineFoodSearch quando está editando no lugar)
     const handleFoodChange = (newFoodData: any) => {
         form.setValue(`${foodPath}.food_name`, newFoodData.name);
