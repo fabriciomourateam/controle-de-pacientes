@@ -312,8 +312,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
     if (isEditing) {
         return (
             <div ref={setNodeRef} style={style} className={cn(
-                "flex items-center gap-2 p-1.5 rounded-md bg-green-50/50 border border-green-200/50 shadow-sm transition-all",
-                isSub && "ml-8 bg-amber-50/60 border-amber-200/60 shadow-none border-l-[3px] border-l-amber-400"
+                "flex items-center gap-2 p-1.5 rounded-md shadow-sm transition-all border-l-[3px]",
+                isSub
+                    ? "ml-8 bg-amber-50/60 border-y-amber-200/60 border-r-amber-200/60 shadow-none border-l-amber-400"
+                    : "bg-green-50/50 border-y-green-200/50 border-r-green-200/50 border-l-[#00C98A]"
             )}>
                 {isSub && <div className="w-5 h-5 flex items-center justify-center text-amber-500 font-bold -mt-0.5 opacity-80 flex-shrink-0"><span className="text-lg leading-none">↳</span></div>}
 
@@ -500,8 +502,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
         )}>
             <div
                 className={cn(
-                    "group flex items-center justify-between p-2 rounded-md hover:bg-green-50/50 transition-colors border border-transparent hover:border-green-200/50 cursor-pointer",
-                    isSub && "ml-8 bg-amber-50/40 border-amber-100 hover:bg-amber-100/50 hover:border-amber-200/80 border-l-[3px] border-l-amber-400"
+                    "group flex items-center justify-between p-2 rounded-md transition-colors border cursor-pointer border-l-[3px]",
+                    isSub
+                        ? "ml-8 bg-amber-50/40 border-y-amber-100 border-r-amber-100 hover:bg-amber-100/50 hover:border-y-amber-200/80 hover:border-r-amber-200/80 border-l-amber-400"
+                        : "border-y-transparent border-r-transparent hover:bg-green-50/30 hover:border-y-green-200/50 hover:border-r-green-200/50 border-l-[#00C98A]"
                 )}
                 onClick={() => {
                     setQtyValue(food?.quantity?.toString() || "");
