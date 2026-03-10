@@ -151,7 +151,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             unitRef.current?.select();
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            if (unitValue && !['g', 'ml', ''].includes(unitValue.toLowerCase().trim()) && !customMeasureWeight && !food?.gram_weight_per_unit) {
+            const lowerUnit = unitValue?.toLowerCase().trim() || '';
+            const isAtVontade = lowerUnit === 'à vontade' || lowerUnit === 'a vontade';
+
+            if (unitValue && !['g', 'ml', ''].includes(lowerUnit) && !isAtVontade && !customMeasureWeight && !food?.gram_weight_per_unit) {
                 setMeasurePopoverOpen(true);
                 return;
             }
@@ -174,7 +177,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
     const handleUnitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
-            if (unitValue && !['g', 'ml', ''].includes(unitValue.toLowerCase().trim()) && !customMeasureWeight && !food?.gram_weight_per_unit) {
+            const lowerUnit = unitValue?.toLowerCase().trim() || '';
+            const isAtVontade = lowerUnit === 'à vontade' || lowerUnit === 'a vontade';
+
+            if (unitValue && !['g', 'ml', ''].includes(lowerUnit) && !isAtVontade && !customMeasureWeight && !food?.gram_weight_per_unit) {
                 setMeasurePopoverOpen(true);
                 return;
             }
@@ -208,9 +214,15 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             form.setValue(`${foodPath}.quantity`, parsedQty);
             form.setValue(`${foodPath}.unit`, unitValue || 'g');
 
+            const lowerUnit = unitValue?.toLowerCase().trim() || '';
+            const isAtVontade = lowerUnit === 'à vontade' || lowerUnit === 'a vontade';
+
             // Handle Custom Measure Weight if defined
             let effectiveQuantity = parsedQty;
-            if (customMeasureWeight) {
+            if (isAtVontade) {
+                effectiveQuantity = 0;
+                form.setValue(`${foodPath}.gram_weight_per_unit`, null);
+            } else if (customMeasureWeight) {
                 const parsedWeight = parseFloat(customMeasureWeight.replace(',', '.'));
                 if (!isNaN(parsedWeight) && parsedWeight > 0) {
                     form.setValue(`${foodPath}.gram_weight_per_unit`, parsedWeight);

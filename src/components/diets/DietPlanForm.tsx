@@ -875,8 +875,11 @@ export function DietPlanForm({
     const foodName = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.food_name`);
     if (!foodName) return;
 
-    const rawQuantity = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.quantity`) || 0;
-    const unitWeight = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.gram_weight_per_unit`);
+    const rawQuantity = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.quantity` as any) || 0;
+    const unitWeight = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.gram_weight_per_unit` as any);
+    const currentUnit = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.unit` as any);
+    const isAtVontade = currentUnit?.toLowerCase().trim() === 'à vontade' || currentUnit?.toLowerCase().trim() === 'a vontade';
+
     const currentQuantity = rawQuantity;
     const effectiveQuantity = unitWeight ? currentQuantity * unitWeight : currentQuantity;
 
@@ -885,8 +888,8 @@ export function DietPlanForm({
     const currentCarbs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.carbs`) || 0;
     const currentFats = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.fats`) || 0;
 
-    // Se quantidade é 0 ou negativa, zerar todos os macros
-    if (currentQuantity <= 0) {
+    // Se quantidade é 0 ou negativa, ou a unidade é 'à vontade', zerar todos os macros
+    if (currentQuantity <= 0 || isAtVontade) {
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, 0);
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, 0);
       form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, 0);
@@ -3622,10 +3625,12 @@ const MealItemComponent = memo(function MealItemComponent({
                         render={({ field }) => (
                           <FormItem className="pt-2">
                             <FormControl>
-                              <Textarea
+                              <RichTextEditor
                                 placeholder="Observações específicas para esta refeição..."
-                                className="resize-none border-green-500/30 bg-white text-[#222222] placeholder:text-[#777777] focus:border-green-500 focus:ring-green-500/10 focus:bg-white focus:outline-none focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-green-500/10 focus-visible:ring-offset-0 transition-all duration-300 min-h-[60px]"
+                                className="min-h-[100px]"
                                 {...field}
+                                value={field.value || ""}
+                                onChange={field.onChange}
                               />
                             </FormControl>
                             <FormMessage />
