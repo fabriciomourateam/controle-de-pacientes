@@ -26,7 +26,8 @@ import {
   Mail,
   User,
   FileText,
-  Calendar
+  Calendar,
+  Lock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { adminService, AdminUser, AdminMetrics, RevenueData } from '@/lib/admin-service';
@@ -95,6 +96,13 @@ export default function AdminDashboard() {
   const [accessMap, setAccessMap] = useState<Record<string, AccessRoutes>>({});
   const [teamMemberIds, setTeamMemberIds] = useState<Set<string>>(new Set());
   const [togglingAccess, setTogglingAccess] = useState<string | null>(null);
+  
+  // States para reset de senha
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [userToReset, setUserToReset] = useState<AdminUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -231,6 +239,41 @@ export default function AdminDashboard() {
   const handleViewUserPatients = (userId: string) => {
     // Navegar para a página de pacientes com filtro por user_id
     navigate(`/patients?userId=${userId}`);
+  };
+
+  const handleOpenResetPassword = (user: AdminUser) => {
+    setUserToReset(user);
+    setNewPassword('');
+    setResetPasswordOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!userToReset || newPassword.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter pelo menos 6 caracteres.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setResettingPassword(true);
+    try {
+      await adminService.resetUserPassword(userToReset.id, newPassword);
+      toast({
+        title: 'Senha redefinida',
+        description: `A senha de ${userToReset.email} foi alterada com sucesso.`
+      });
+      setResetPasswordOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Falha ao redefinir a senha.',
+        variant: 'destructive'
+      });
+    } finally {
+      setResettingPassword(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -649,6 +692,13 @@ export default function AdminDashboard() {
                                   <Mail className="w-4 h-4 mr-2" />
                                   Enviar Email
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenResetPassword(user)}
+                                  className="text-amber-400 hover:bg-amber-500/10"
+                                >
+                                  <Lock className="w-4 h-4 mr-2" />
+                                  Redefinir Senha
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-700" />
                                 {user.subscription && (
                                   <DropdownMenuItem
@@ -801,12 +851,65 @@ export default function AdminDashboard() {
                   </div>
                   <div className="bg-slate-700/50 p-3 rounded-lg">
                     <label className="text-sm font-medium text-slate-400">Receita Total</label>
-                    <p className="text-2xl font-bold text-emerald-400">{formatCurrency(selectedUser.stats.total_revenue)}</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(selectedUser.stats.total_revenue)}</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog para Recriar Senha */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Lock className="w-5 h-5 text-amber-500" />
+              Redefinir Senha
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Crie uma nova senha temporária para este usuário. Ele poderá acessar imediatamente com o e-mail {userToReset?.email} e a senha informada abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="new-password" className="text-sm font-medium text-slate-300">
+                Nova Senha (mín. 6 caracteres)
+              </label>
+              <Input
+                id="new-password"
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Exemplo: Clinica123!"
+                className="bg-slate-700/50 border-slate-600 text-white"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setResetPasswordOpen(false)}
+              className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700"
+              disabled={resettingPassword}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleResetPassword}
+              disabled={resettingPassword || newPassword.length < 6}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {resettingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Confirmar Redefinição
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
       </div>

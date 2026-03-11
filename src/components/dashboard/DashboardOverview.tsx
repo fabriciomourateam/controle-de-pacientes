@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PatientForm } from "@/components/forms/PatientForm";
+
 
 import { InteractiveChart } from "./InteractiveChart";
 import { useToast } from "@/hooks/use-toast";
@@ -74,7 +74,7 @@ export function DashboardOverview() {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { profile } = useProfile();
-  const { createPatient } = usePatients();
+
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics(filterThisMonth);
   const { data: chartData, isLoading: chartLoading } = useChartData(filterThisMonth);
@@ -519,22 +519,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
     navigate(`/patients/${patientId}`);
   };
 
-  // Função para criar novo paciente
-  const handleCreatePatient = async (patientData: any) => {
-    try {
-      await createPatient(patientData);
-      toast({
-        title: "Sucesso",
-        description: "Paciente criado com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar o paciente.",
-        variant: "destructive",
-      });
-    }
-  };
+
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -549,15 +534,6 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <PatientForm
-            trigger={
-              <Button className="btn-premium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300">
-                <Users className="w-4 h-4 mr-2" />
-                Novo Paciente
-              </Button>
-            }
-            onSave={handleCreatePatient}
-          />
           <Button
             variant="outline"
             onClick={() => {

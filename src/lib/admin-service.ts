@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseService } from '@/integrations/supabase/service-client';
 import { subscriptionService } from './subscription-service';
 
 export interface AdminUser {
@@ -53,7 +54,7 @@ export const adminService = {
    */
   async getAllUsers(): Promise<AdminUser[]> {
     // Buscar usuários através de user_profiles (não podemos acessar auth.users diretamente)
-    const { data: profiles } = await supabase
+    const { data: profiles } = await supabaseService
       .from('user_profiles')
       .select('id, email, created_at')
       .order('created_at', { ascending: false });
@@ -68,7 +69,7 @@ export const adminService = {
         const stats = await this.getUserStats(profile.id);
         
         // Buscar a assinatura mais recente deste usuário
-        const { data: subscriptionData } = await (supabase as any)
+        const { data: subscriptionData } = await (supabaseService as any)
           .from('user_subscriptions')
           .select(`
             user_id,
@@ -112,7 +113,7 @@ export const adminService = {
    * Buscar assinatura de um usuário
    */
   async getUserSubscription(userId: string) {
-    const { data } = await (supabase as any)
+    const { data } = await (supabaseService as any)
       .from('user_subscriptions')
       .select(`
         id,
@@ -141,19 +142,19 @@ export const adminService = {
    */
   async getUserStats(userId: string) {
     // Contar pacientes
-    const { count: patientsCount } = await supabase
+    const { count: patientsCount } = await supabaseService
       .from('patients')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
     // Contar checkins
-    const { count: checkinsCount } = await supabase
+    const { count: checkinsCount } = await supabaseService
       .from('checkin')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
     // Buscar pagamentos
-    const { data: payments } = await supabase
+    const { data: payments } = await supabaseService
       .from('payments')
       .select('amount, status')
       .eq('user_id', userId)
@@ -175,13 +176,13 @@ export const adminService = {
    */
   async getAdminMetrics(): Promise<AdminMetrics> {
     // Contar usuários (através de user_profiles)
-    const { count: totalUsers } = await supabase
+    const { count: totalUsers } = await supabaseService
       .from('user_profiles')
       .select('*', { count: 'exact', head: true });
 
     // Buscar assinaturas mais recentes de cada usuário
     // Primeiro, buscar todos os user_ids únicos
-    const { data: allSubscriptions, error: subscriptionsError } = await (supabase as any)
+    const { data: allSubscriptions, error: subscriptionsError } = await (supabaseService as any)
       .from('user_subscriptions')
       .select('user_id, status, created_at')
       .order('created_at', { ascending: false });
@@ -231,17 +232,17 @@ export const adminService = {
     });
 
     // Contar pacientes totais
-    const { count: totalPatients } = await supabase
+    const { count: totalPatients } = await supabaseService
       .from('patients')
       .select('*', { count: 'exact', head: true });
 
     // Contar checkins totais
-    const { count: totalCheckins } = await supabase
+    const { count: totalCheckins } = await supabaseService
       .from('checkin')
       .select('*', { count: 'exact', head: true });
 
     // Calcular receita
-    const { data: payments } = await supabase
+    const { data: payments } = await supabaseService
       .from('payments')
       .select('amount, status, created_at')
       .eq('status', 'paid');
@@ -250,7 +251,7 @@ export const adminService = {
 
     // Calcular MRR (Monthly Recurring Revenue)
     // Buscar assinaturas ativas e seus planos
-    const { data: activeSubsWithPlans } = await (supabase as any)
+    const { data: activeSubsWithPlans } = await (supabaseService as any)
       .from('user_subscriptions')
       .select(`
         subscription_plans (price_monthly)
@@ -271,7 +272,7 @@ export const adminService = {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const { count: cancellationsLast30Days } = await (supabase as any)
+    const { count: cancellationsLast30Days } = await (supabaseService as any)
       .from('user_subscriptions')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'canceled')
@@ -285,12 +286,12 @@ export const adminService = {
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-    const { count: newUsersLast30Days } = await supabase
+    const { count: newUsersLast30Days } = await supabaseService
       .from('user_profiles')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo.toISOString());
 
-    const { count: newUsersPrevious30Days } = await supabase
+    const { count: newUsersPrevious30Days } = await supabaseService
       .from('user_profiles')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', sixtyDaysAgo.toISOString())
@@ -319,7 +320,7 @@ export const adminService = {
    * Buscar dados de receita por mês
    */
   async getRevenueData(): Promise<RevenueData[]> {
-    const { data: payments } = await supabase
+    const { data: payments } = await supabaseService
       .from('payments')
       .select('amount, created_at, status')
       .eq('status', 'paid')
@@ -344,7 +345,7 @@ export const adminService = {
     });
 
     // Buscar novas assinaturas por mês
-    const { data: subscriptions } = await (supabase as any)
+    const { data: subscriptions } = await (supabaseService as any)
       .from('user_subscriptions')
       .select('status, created_at, canceled_at')
       .order('created_at', { ascending: true });
@@ -394,7 +395,7 @@ export const adminService = {
    */
   async toggleUserStatus(userId: string, active: boolean): Promise<void> {
       // Atualizar status da assinatura
-    const { error } = await (supabase as any)
+    const { error } = await (supabaseService as any)
       .from('user_subscriptions')
       .update({ 
         status: active ? 'active' : 'canceled',
@@ -426,7 +427,7 @@ export const adminService = {
       console.log('Plano gratuito encontrado:', { id: freePlan.id, name: freePlan.name });
 
       // Buscar todos os usuários
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await supabaseService
         .from('user_profiles')
         .select('id, email');
 
@@ -442,7 +443,7 @@ export const adminService = {
       console.log(`Total de usuários encontrados: ${profiles.length}`);
 
     // Buscar todas as assinaturas
-    const { data: subscriptions, error: subsError } = await (supabase as any)
+    const { data: subscriptions, error: subsError } = await (supabaseService as any)
       .from('user_subscriptions')
       .select('user_id');
 
@@ -472,7 +473,7 @@ export const adminService = {
           console.log(`Atribuindo trial para ${user.email}...`);
 
           // Chamar função RPC que contorna RLS
-          const { data, error } = await supabase.rpc('admin_assign_trial', {
+          const { data, error } = await supabaseService.rpc('admin_assign_trial', {
             p_user_id: user.id,
             p_plan_id: freePlan.id
           });
@@ -502,6 +503,26 @@ export const adminService = {
       return { assigned, errors, details };
     } catch (error: any) {
       console.error('Erro ao atribuir trials:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Redefinir senha de um usuário administrativo ou qualquer usuário
+   * Usa a Service Role Key para bypassar necessidade do token antigo
+   */
+  async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    try {
+      const { error } = await supabaseServiceService.auth.admin.updateUserById(
+        userId,
+        { password: newPassword }
+      );
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Erro ao redefinir senha do usuário:', error);
       throw error;
     }
   }

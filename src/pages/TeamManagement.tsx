@@ -12,7 +12,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Plus, Search, MoreVertical, Edit, Trash2, Power, PowerOff, Shield, Clock } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Users, Plus, Search, MoreVertical, Edit, Trash2, Power, PowerOff, Shield, Clock, Lock, Loader2 } from 'lucide-react';
+import { adminService } from '@/lib/admin-service';
 import { AddMemberModal } from '@/components/team/AddMemberModal';
 import { EditMemberModal } from '@/components/team/EditMemberModal';
 import { RolesModal } from '@/components/team/RolesModal';
@@ -32,6 +40,12 @@ export default function TeamManagement() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterAccess, setFilterAccess] = useState<'all' | 'today' | 'recent' | 'old' | 'very-old' | 'never'>('all');
+
+  // Adicionando estados para o reset de senhas
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [memberToReset, setMemberToReset] = useState<TeamMember | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   // Funções auxiliares (movidas para o topo)
   const getLastAccessStatus = (lastAccess: string | null) => {
@@ -135,6 +149,42 @@ export default function TeamManagement() {
         description: error instanceof Error ? error.message : 'Erro ao alterar status',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleOpenResetPassword = (member: TeamMember) => {
+    if (!member.user_id) {
+       toast({
+          title: 'Erro',
+          description: 'Este membro ainda não possui uma conta de acesso atrelada (user_id ausente).',
+          variant: 'destructive'
+       });
+       return;
+    }
+    setMemberToReset(member);
+    setNewPassword('');
+    setResetPasswordOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!memberToReset?.user_id || newPassword.length < 6) return;
+    
+    setResettingPassword(true);
+    try {
+      await adminService.resetUserPassword(memberToReset.user_id, newPassword);
+      toast({
+        title: 'Senha redefinida',
+        description: `A senha de ${memberToReset.name} foi alterada com sucesso.`
+      });
+      setResetPasswordOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Falha ao redefinir a senha.',
+        variant: 'destructive'
+      });
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -433,6 +483,10 @@ export default function TeamManagement() {
                         <Edit className="w-4 h-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenResetPassword(member)}>
+                        <Lock className="w-4 h-4 mr-2 text-amber-500" />
+                        <span className="text-amber-500">Redefinir Senha</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleToggleStatus(member)}>
                         {member.is_active ? (
                           <>
@@ -494,6 +548,60 @@ export default function TeamManagement() {
           roles={roles}
           onRoleUpdated={refetch}
         />
+
+        {/* Dialog para Recriar Senha */}
+        <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Lock className="w-5 h-5 text-amber-500" />
+                Redefinir Senha Temporária
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Defina uma nova senha para {memberToReset?.name}. O membro poderá acessar imediatamente e depois alterá-la.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="new-password" className="text-sm font-medium text-slate-300">
+                  Nova Senha (mín. 6 caracteres)
+                </label>
+                <Input
+                  id="new-password"
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Exemplo: Clinica123!"
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setResetPasswordOpen(false)}
+                className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700"
+                disabled={resettingPassword}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resettingPassword || newPassword.length < 6}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {resettingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Confirmar Redefinição
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </DashboardLayout>
   );
