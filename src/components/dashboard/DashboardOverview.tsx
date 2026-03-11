@@ -54,7 +54,7 @@ import {
   MessageSquarePlus
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks } from "@/hooks/use-supabase-data";
+import { useDashboardMetrics, useChartData, useExpiringPatients, useRecentFeedbacks, usePatients } from "@/hooks/use-supabase-data";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCheckinsWithPatient } from "@/hooks/use-checkin-data";
 import { CheckinDetailsModal } from "@/components/modals/CheckinDetailsModal";
@@ -74,6 +74,7 @@ export function DashboardOverview() {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { profile } = useProfile();
+  const { createPatient } = usePatients();
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const { data: metricsData, isLoading: metricsLoading } = useDashboardMetrics(filterThisMonth);
   const { data: chartData, isLoading: chartLoading } = useChartData(filterThisMonth);
@@ -521,7 +522,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
   // Função para criar novo paciente
   const handleCreatePatient = async (patientData: any) => {
     try {
-      // A lógica de criação será implementada no PatientForm
+      await createPatient(patientData);
       toast({
         title: "Sucesso",
         description: "Paciente criado com sucesso!",
@@ -572,7 +573,7 @@ Muito obrigado por tudo, novamente agradeço demais por toda confiança!`;
             className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 transition-all duration-300"
           >
             <ClipboardList className="w-4 h-4 mr-2" />
-            Nova Anamnese
+            Link Anamnese
           </Button>
           <Button
             variant="outline"
