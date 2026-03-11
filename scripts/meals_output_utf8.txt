@@ -1,0 +1,19 @@
+Fetching 2 most recent diet plans...
+
+
+=== Plano: Plano Alimentar - Juliano Lima Penna (Ativo: true) | Patient ID: a7da7550-4757-4909-8746-944d38ef1c5d ===
+Refeições cadastradas na DB: 6
+  - [Meal Order: 1] [ID: 0c5db206-c93e-4c21-98d1-3f9b1ff1fdb9] REFEIÇÃO 01. Alimentos: 3
+  - [Meal Order: 2] [ID: 12ac5c21-051a-40df-954c-a71871f2c7bd] REFEIÇÃO 02. Alimentos: 3
+  - [Meal Order: 3] [ID: 6e92410b-05de-4aaf-a65f-9da1c3fc2d29] REFEIÇÃO 03. Alimentos: 4
+  - [Meal Order: 4] [ID: 0fb33189-d3b4-44a0-8801-f1c8c439412b] REFEIÇÃO 04. Alimentos: 4
+  - [Meal Order: 5] [ID: d01b8dd8-5194-4709-8ffa-1fd0bdddfbba] REFEIÇÃO 05. Alimentos: 4
+  - [Meal Order: 6] [ID: 8bc6fa41-68e2-4307-ae47-cc79c59a8bed] REFEIÇÃO 06. Alimentos: 3
+
+
+=== Plano: Dieta Recomposição Corporal  (Ativo: true) | Patient ID: 7b2fdf3f-155f-4c8c-8cff-59502afc622b ===
+Refeições cadastradas na DB: 4
+  - [Meal Order: 1] [ID: 93045054-0f78-4c68-90de-13f6dd81de4b] Café da Manhã. Alimentos: 2
+  - [Meal Order: 2] [ID: dae82841-d37d-433d-8b87-d4380d301792] Café da Manhã (Cópia). Alimentos: 2
+  - [Meal Order: 3] [ID: da849760-42a8-4c0d-b8a2-c07d356689ac] Café da Manhã (Cópia). Alimentos: 2
+  - [Meal Order: 4] [ID: e45f73e4-87b5-454e-b24e-01eba5901569] Café da Manhã (Cópia). Alimentos: 2

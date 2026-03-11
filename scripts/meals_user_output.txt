@@ -1,0 +1,13 @@
+Buscando TODOS os pacientes...
+Paciente não encontrado após filtrar em javascript.
+Amostra de telefones:
+- Samuel Pedro Toso Betim: 5518991715955
+- Matheus Bezerra Mesquita: 5511945668863
+- Vitória Caroline Muxila Tavian: 5516996406536
+- Douglas Alves Martins: 5511966358527
+- Guilherme de Oliveira : 553488294241
+- Marcelo Augusto Fontalva Prado: 5511940715315
+- Mariangela Moriya Da Rocha: 14046306866
+- Alexandre Barreiros Brandão: 5511999681281
+- Vicente de Paula Luz Junior: 556496646481
+- Rafael da Mota Gomes : 5599984086415

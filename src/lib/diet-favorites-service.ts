@@ -15,10 +15,10 @@ export const dietFavoritesService = {
         .select('*')
         .eq('user_id', user.id)
         .eq('food_name', foodName)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
-      if (selectError && selectError.code !== 'PGRST116') {
-        // PGRST116 = nenhum resultado encontrado, o que é OK
+      if (selectError) {
         throw selectError;
       }
 
@@ -82,7 +82,8 @@ export const dietFavoritesService = {
         .select('id')
         .eq('user_id', user.id)
         .eq('food_name', foodName)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error) return false;
       return !!data;
@@ -130,6 +131,7 @@ export const dietFavoritesService = {
         .select('*')
         .eq('user_id', user.id)
         .eq('food_name', foodName)
+        .limit(1)
         .single();
 
       if (selectError && selectError.code !== 'PGRST116') {

@@ -117,12 +117,12 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
     // Reset selected index when search changes
     useEffect(() => {
         setSelectedIndex(0);
-        if (searchTerm.trim().length > 0 && filteredFoods.length > 0) {
+        if (searchTerm.trim().length > 0) {
             setIsOpen(true);
         } else {
             setIsOpen(false);
         }
-    }, [searchTerm, filteredFoods.length]);
+    }, [searchTerm]);
 
     // Scroll selected item into view
     useEffect(() => {
@@ -269,7 +269,7 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onFocus={() => {
-                        if (searchTerm.trim().length > 0 && filteredFoods.length > 0) {
+                        if (searchTerm.trim().length > 0) {
                             setIsOpen(true);
                         }
                     }}
@@ -279,7 +279,7 @@ export const InlineFoodSearch: React.FC<InlineFoodSearchProps> = ({
                 />
             </div>
 
-            {isOpen && filteredFoods.length > 0 && (
+            {isOpen && searchTerm.trim().length > 0 && (
                 <ul
                     ref={listRef}
                     className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-md shadow-2xl max-h-72 overflow-y-auto"

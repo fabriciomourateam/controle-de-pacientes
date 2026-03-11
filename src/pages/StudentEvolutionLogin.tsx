@@ -21,11 +21,27 @@ export default function StudentEvolutionLogin() {
     const [loading, setLoading] = useState(false);
 
     const formatPhone = (value: string) => {
+        const hasPlus = value.startsWith('+');
         const numbers = value.replace(/\D/g, '');
-        const normalized = numbers.startsWith('55') && numbers.length > 11
-            ? numbers.slice(2, 13)
-            : numbers;
-        const limited = normalized.slice(0, 11);
+        
+        // Se começar com 55 e tiver 13/12 dígitos, podemos tentar formatar como BR
+        if (numbers.startsWith('55') && numbers.length >= 12 && numbers.length <= 13) {
+            const ddd = numbers.slice(2, 4);
+            const num = numbers.slice(4);
+            if (num.length === 9) {
+                return `+55 (${ddd}) ${num.slice(0, 5)}-${num.slice(5)}`;
+            } else if (num.length === 8) {
+                return `+55 (${ddd}) 9${num.slice(0, 4)}-${num.slice(4)}`;
+            }
+        }
+        
+        // Se tiver mais de 11 dígitos e não for o padrão acima, consideramos internacional e não cortamos
+        if (hasPlus || numbers.length > 11) {
+            return hasPlus ? `+${numbers}` : numbers;
+        }
+
+        // Padrão BR normal (cortando no máximo em 11)
+        const limited = numbers.slice(0, 11);
 
         if (limited.length <= 2) return limited;
         if (limited.length <= 7) return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
@@ -75,16 +91,17 @@ export default function StudentEvolutionLogin() {
                     variants.push(without9);
                     variants.push(`55${without9}`);
                 }
-            } else if (cleanPhone.length === 12 || cleanPhone.length === 13) {
-                // Already has 55 prefix
+            } else if (cleanPhone.length >= 12) {
+                // Já possui prefixo do país (como 55 ou 49) ou é internacional
                 const withoutCC = cleanPhone.slice(2);
                 variants.push(withoutCC);
-                if (withoutCC.length === 10) {
+                if (cleanPhone.startsWith('55') && withoutCC.length === 10) {
                     const ddd = withoutCC.slice(0, 2);
                     const num = withoutCC.slice(2);
                     variants.push(`${ddd}9${num}`);
                     variants.push(`55${ddd}9${num}`);
                 }
+                variants.push(`+${cleanPhone}`);
             }
 
             let found = false;
@@ -173,13 +190,13 @@ export default function StudentEvolutionLogin() {
                                     autoFocus
                                 />
                                 <p className="text-xs text-slate-400">
-                                    Digite o telefone cadastrado pelo seu treinador
+                                    Para números internacionais, informe o código do país (ex: 49...)
                                 </p>
                             </div>
 
                             <Button
                                 type="submit"
-                                disabled={loading || telefone.length < 14}
+                                disabled={loading || telefone.replace(/\D/g, '').length < 10}
                                 className="w-full h-12 text-lg bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 shadow-lg shadow-teal-500/30 hover:shadow-teal-500/50 transition-all"
                             >
                                 {loading ? (

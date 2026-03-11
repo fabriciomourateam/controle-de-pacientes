@@ -361,22 +361,67 @@ export default function PatientEvolution() {
     try {
       setLoading(true);
 
-      // Limpar telefone antes de usar
-      const cleanTelefone = telefoneToUse?.trim().replace(/\s+/g, '') || telefoneToUse;
+      // Manter o telefone original caso precise do valor exato com espaços e '+'
+      const originalTelefone = telefoneToUse?.trim() || telefoneToUse;
+      // Limpar telefone para busca alternativa
+      const cleanTelefone = originalTelefone.replace(/\s+/g, '');
 
-      // Buscar check-ins do paciente
-      const checkinsData = await checkinService.getByPhone(cleanTelefone);
+      // Tentar buscar paciente primeiro com o telefone exato
+      let currentPatient = patient;
+      let patientPhoneToUse = originalTelefone;
 
-      // Migrar dados atuais para check-in separado se necessário (antes de setCheckins)
+      const { data: exactPatientData } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('telefone', originalTelefone)
+        .maybeSingle();
+
+      if (exactPatientData) {
+        currentPatient = exactPatientData;
+        patientPhoneToUse = exactPatientData.telefone;
+      } else {
+        // Tentar com o telefone limpo
+        const { data: cleanPatientData } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('telefone', cleanTelefone)
+          .maybeSingle();
+        
+        if (cleanPatientData) {
+          currentPatient = cleanPatientData;
+          patientPhoneToUse = cleanPatientData.telefone;
+        } else {
+          // Fallback final com ilike
+          const { data: altPatientData } = await supabase
+            .from('patients')
+            .select('*')
+            .ilike('telefone', `%${cleanTelefone}%`)
+            .limit(1)
+            .maybeSingle();
+          if (altPatientData) {
+            currentPatient = altPatientData;
+            patientPhoneToUse = altPatientData.telefone;
+          }
+        }
+      }
+
+      if (currentPatient) {
+        setPatient(currentPatient);
+      }
+
+      // Buscar check-ins usando o telefone correto encontrado no banco (ou o original se não achou paciente)
+      const checkinsData = await checkinService.getByPhone(patientPhoneToUse);
+
+      // Migrar dados atuais para check-in separado se necessário
       let needsRefetch = false;
       if (checkinsData.length > 0) {
-        needsRefetch = await migrateCurrentDataToCheckin(cleanTelefone, checkinsData);
+        needsRefetch = await migrateCurrentDataToCheckin(patientPhoneToUse, checkinsData);
       }
 
       // ✅ Só buscar novamente se houve migração (otimização: evita query duplicada)
       let finalCheckinsData = checkinsData;
       if (needsRefetch) {
-        finalCheckinsData = await checkinService.getByPhone(cleanTelefone);
+        finalCheckinsData = await checkinService.getByPhone(patientPhoneToUse);
         setCheckins(finalCheckinsData);
       } else {
         setCheckins(checkinsData);
@@ -387,45 +432,13 @@ export default function PatientEvolution() {
         checkAndMigratePhotos(finalCheckinsData);
       }
 
-      // Buscar dados do paciente
-      // Usar o telefone limpo que já foi calculado acima
-      const { data: patientData, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('telefone', cleanTelefone)
-        .maybeSingle();
-
-      if (error) {
-        // Erro 406 geralmente indica problema de RLS - não é crítico, apenas logar
-        if ((error as any).status === 406 || (error as any).code === 'PGRST200') {
-          console.warn('Acesso negado ao paciente (RLS). Execute o SQL fix-patients-rls-final.sql no Supabase.');
-        } else {
-          console.error('Erro ao buscar paciente:', error);
-        }
-        // Não definir patient como null para não quebrar a página
-        // Os check-ins já foram carregados, então a página pode funcionar sem dados do paciente
-      } else if (patientData) {
-        setPatient(patientData);
-      } else {
-        // Tentar buscar com TRIM no banco (caso ainda tenha espaços)
-        const { data: altPatientData } = await supabase
-          .from('patients')
-          .select('*')
-          .ilike('telefone', `%${cleanTelefone}%`)
-          .limit(1)
-          .maybeSingle();
-        if (altPatientData) {
-          setPatient(altPatientData);
-        }
-      }
-
       // ✅ OTIMIZAÇÃO BÁSICA: Adicionar limite para reduzir egress
       // Buscar bioimpedâncias (mantém select('*') para compatibilidade total)
       try {
         let bioQuery = supabase
           .from('body_composition')
           .select('*')
-          .eq('telefone', cleanTelefone)
+          .eq('telefone', patientPhoneToUse)
           .order('data_avaliacao', { ascending: false });
 
         // Aplicar limite apenas se fornecido

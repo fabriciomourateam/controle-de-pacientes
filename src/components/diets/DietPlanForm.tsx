@@ -575,13 +575,14 @@ export function DietPlanForm({
     FoodCacheService.cleanExpiredCache();
   }, []);
 
-  // Carregar alimentos quando o modal de seleção for aberto
+  // Carregar alimentos quando o modal de seleção for aberto ou na aba de refeições ou em isPageMode
   useEffect(() => {
-    if (foodSelectionModalOpen && !foodDatabaseLoaded && !foodDatabaseLoading) {
-      console.log('🔄 [DietPlanForm] Modal de seleção aberto, carregando alimentos...');
+    const shouldLoad = foodSelectionModalOpen || activeTab === 'meals' || isPageMode;
+    if (shouldLoad && !foodDatabaseLoaded && !foodDatabaseLoading) {
+      console.log('🔄 [DietPlanForm] Carregando alimentos (Modal/Aba Meals/isPageMode)...');
       loadFoodDatabase();
     }
-  }, [foodSelectionModalOpen, foodDatabaseLoaded, foodDatabaseLoading, loadFoodDatabase]);
+  }, [foodSelectionModalOpen, activeTab, isPageMode, foodDatabaseLoaded, foodDatabaseLoading, loadFoodDatabase]);
 
   // Navegação por teclado
   useEffect(() => {
@@ -656,11 +657,14 @@ export function DietPlanForm({
           foods: (meal.diet_foods || []).map((food: any, foodIndex: number) => {
             // Tentar parsear substituições do campo notes se existir
             let substitutions = [];
+            let originalNotes = food.notes || "";
+
             try {
               if (food.notes) {
                 const parsed = JSON.parse(food.notes);
                 if (parsed.substitutions && Array.isArray(parsed.substitutions)) {
                   substitutions = parsed.substitutions;
+                  originalNotes = parsed.original_notes || "";
                 }
               }
             } catch (e) {
@@ -689,7 +693,7 @@ export function DietPlanForm({
               protein: food.protein || 0,
               carbs: food.carbs || 0,
               fats: food.fats || 0,
-              notes: food.notes || null,
+              notes: originalNotes,
               substitutions: substitutions,
             };
           }),
@@ -1480,7 +1484,7 @@ export function DietPlanForm({
                   <ChevronDown className="w-4 h-4 text-[#777777] transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3 space-y-4">
+              <CollapsibleContent forceMount className="pt-3 space-y-4 data-[state=closed]:hidden">
 
                 <FormField
                   control={form.control}
@@ -1938,7 +1942,7 @@ export function DietPlanForm({
                     items={mealFields.map((meal) => meal.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-6">
+                    <div className="space-y-3">
                       {(() => {
                         // Ordenar refeições baseado no critério selecionado
                         const meals = form.getValues("meals") || [];
@@ -2455,7 +2459,7 @@ export function DietPlanForm({
                                   </div>
                                 </CardHeader>
 
-                                {isExpanded && (
+                                <div className={isExpanded ? 'block' : 'hidden'}>
                                   <CardContent className="space-y-4">
                                     <FormField
                                       control={form.control}
@@ -2496,7 +2500,7 @@ export function DietPlanForm({
                                       )}
                                     />
                                   </CardContent>
-                                )}
+                                </div>
                               </Card>
                             );
                           })}
@@ -3175,10 +3179,10 @@ const MealItemComponent = memo(function MealItemComponent({
   // Obter total de refeições para calcular progressão de cores
   const totalMeals = form.watch("meals")?.length || 1;
 
-  // Função para calcular cores baseadas no índice
+  // Função para calcular cores baseadas no índice - usando verde bem leve
   const getMealCardColors = (index: number, total: number) => {
-    // Fundo branco sem bordas de contorno, com uma sombra suave e barra lateral verde bem clara
-    return 'bg-white border-y-transparent border-r-transparent border-l-[4px] border-l-[#00c98a]/30 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_15px_-3px_rgba(0,0,0,0.08)] hover:bg-gray-50/40 rounded-xl';
+    // Todos os cards usam fundo verde clarinho e sombra suave, com borda esquerda verde escuro
+    return 'bg-green-50/40 border-y-green-200/50 border-r-green-200/50 border-l-[3px] border-l-[#00C98A] shadow-sm hover:bg-green-50/60 hover:shadow-md';
   };
 
   const cardColors = getMealCardColors(mealIndex, totalMeals);
@@ -3201,7 +3205,7 @@ const MealItemComponent = memo(function MealItemComponent({
   const isLastMeal = mealIndex === (totalMeals - 1);
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className="mb-3">
       <Collapsible
         open={isExpanded}
         onOpenChange={(open) => {
@@ -3214,9 +3218,9 @@ const MealItemComponent = memo(function MealItemComponent({
           setExpandedMeals(newExpanded);
         }}
       >
-        <Card className={`border transition-all duration-300 hover:shadow-md ${cardColors}`}>
+        <Card className={`border-l-4 border-l-[#00C98A] shadow-md hover:shadow-lg transition-all duration-300 ${cardColors}`}>
           <CardHeader
-            className="pb-2 pt-3 px-4 cursor-pointer"
+            className="py-4 px-5 min-h-[72px] cursor-pointer flex items-center justify-center"
             onClick={() => {
               const newExpanded = new Set(expandedMeals);
               if (isExpanded) {
@@ -3449,12 +3453,15 @@ const MealItemComponent = memo(function MealItemComponent({
                   onClick={(e) => {
                     e.stopPropagation();
                     const meals = form.getValues("meals") || [];
-                    const mealToDuplicate = meals[mealIndex];
+                    const { id, ...mealWithoutId } = mealToDuplicate;
                     const newMeal = {
-                      ...mealToDuplicate,
+                      ...mealWithoutId,
                       meal_name: `${mealToDuplicate.meal_name} (Cópia)`,
                       meal_order: meals.length + 1,
-                      foods: mealToDuplicate.foods?.map((food: any) => ({ ...food })) || [],
+                      foods: mealToDuplicate.foods?.map((food: any) => {
+                        const { id: foodId, ...foodWithoutId } = food;
+                        return { ...foodWithoutId };
+                      }) || [],
                     };
                     appendMeal(newMeal);
                     toast({
@@ -3551,7 +3558,7 @@ const MealItemComponent = memo(function MealItemComponent({
               </div>
             </div>
           </CardHeader>
-          <CollapsibleContent>
+          <CollapsibleContent forceMount className="data-[state=closed]:hidden">
             <CardContent className="space-y-2 p-4">
               {/* Campos ocultos mas mantidos no formulário (para estrutura n8n) */}
               <div className="hidden">
@@ -3648,52 +3655,47 @@ const MealItemComponent = memo(function MealItemComponent({
                 )}
 
                 {/* Observação da Refeição - Minimizada por padrão */}
-                {mealFoods.length > 0 && (
-                  <Collapsible defaultOpen={false}>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="w-full justify-between pt-2 border-t border-green-200/30 text-[#222222] hover:bg-green-50/30"
-                      >
-                        <FormLabel className="text-[#222222] font-medium flex items-center gap-2 cursor-pointer">
-                          <BookOpen className="w-4 h-4 text-[#00C98A]" />
-                          Observação (opcional)
-                        </FormLabel>
-                        <ChevronDown className="w-4 h-4 text-[#777777]" />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <FormField
-                        control={form.control}
-                        name={`meals.${mealIndex}.instructions`}
-                        render={({ field }) => (
-                          <FormItem className="pt-2">
-                            <FormControl>
-                              <RichTextEditor
-                                placeholder="Observações específicas para esta refeição..."
-                                className="min-h-[100px]"
-                                {...field}
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
+                <Collapsible defaultOpen={false}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full justify-between pt-2 border-t border-green-200/30 text-[#222222] hover:bg-green-50/30"
+                    >
+                      <FormLabel className="text-[#222222] font-medium flex items-center gap-2 cursor-pointer">
+                        <BookOpen className="w-4 h-4 text-[#00C98A]" />
+                        Observação (opcional)
+                      </FormLabel>
+                      <ChevronDown className="w-4 h-4 text-[#777777]" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent forceMount className="data-[state=closed]:hidden">
+                    <FormField
+                      control={form.control}
+                      name={`meals.${mealIndex}.instructions`}
+                      render={({ field }) => (
+                        <FormItem className="pt-2">
+                          <FormControl>
+                            <RichTextEditor
+                              placeholder="Observações específicas para esta refeição..."
+                              className="min-h-[100px]"
+                              {...field}
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CollapsibleContent>
+                </Collapsible>
 
               </div>
             </CardContent>
           </CollapsibleContent>
         </Card>
       </Collapsible>
-      {!isLastMeal && (
-        <div className="my-4 border-t-2 border-green-500/30"></div>
-      )}
     </div>
   );
 });

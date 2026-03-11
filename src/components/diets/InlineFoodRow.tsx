@@ -121,10 +121,10 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
         opacity: isDragging ? 0.5 : 1,
     };
 
-    const dndSensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
+    // Dnd-kit sensors (always call hooks at the top level)
+    const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+    const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
+    const dndSensors = useSensors(pointerSensor, keyboardSensor);
 
     // Focus qty on render if new
     useEffect(() => {
@@ -135,6 +135,11 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
     }, [isEditingNew]);
 
     // Auto-preencher measureWeight based on user profile's custom measures
+    const hasSavedMeasure = userFoodMeasures?.some((m: any) =>
+        m.food_name.toLowerCase() === food?.food_name?.toLowerCase() &&
+        m.unit_name.toLowerCase() === unitValue?.toLowerCase()
+    ) || false;
+
     useEffect(() => {
         if (userFoodMeasures && userFoodMeasures.length > 0 && food?.food_name && unitValue) {
             const matched = userFoodMeasures.find((m: any) =>
@@ -146,11 +151,6 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             }
         }
     }, [food?.food_name, unitValue, userFoodMeasures]);
-
-    const hasSavedMeasure = userFoodMeasures?.some((m: any) =>
-        m.food_name?.toLowerCase() === food?.food_name?.toLowerCase() &&
-        m.unit_name?.toLowerCase() === unitValue?.toLowerCase()
-    );
 
     // Se trocar de food (ao buscar no InlineFoodSearch quando está editando no lugar)
     const handleFoodChange = (newFoodData: any) => {
@@ -441,22 +441,33 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     <Input
                         ref={unitRef}
                         type="text"
-                        list="diet-units"
+                        list={`diet-units-${food?.food_name?.replace(/\s+/g, '-') || 'generic'}`}
                         value={unitValue}
                         onChange={(e) => setUnitValue(e.target.value)}
                         onKeyDown={handleUnitKeyDown}
                         placeholder="Unid"
                         className="h-9 w-20 text-sm bg-white border border-gray-300 px-2 text-center text-gray-700 shadow-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-green-500 outline-none"
                     />
-                    <datalist id="diet-units">
+                    <datalist id={`diet-units-${food?.food_name?.replace(/\s+/g, '-') || 'generic'}`}>
                         <option value="g" />
                         <option value="ml" />
-                        <option value="colher(es)" />
+                        <option value="à vontade" />
+                        <option value="colher(es) de sopa" />
                         <option value="fatia(s)" />
                         <option value="unidade(s)" />
                         <option value="pedaço(s)" />
                         <option value="xícara(s)" />
                         <option value="porção(ões)" />
+                        {(() => {
+                            if (userFoodMeasures && food?.food_name) {
+                                const arr = userFoodMeasures as any[];
+                                const foodMeasures = arr.filter(m => m.food_name === food.food_name);
+                                return foodMeasures.map((m: any, idx: number) => (
+                                    <option key={`custom-meas-${idx}`} value={m.measure_name} label={`${m.gram_weight}g`} />
+                                ));
+                            }
+                            return null;
+                        })()}
                     </datalist>
                 </div>
 
@@ -620,7 +631,16 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                         ? "ml-8 bg-amber-50/40 border-y-amber-100 border-r-amber-100 hover:bg-amber-100/50 hover:border-y-amber-200/80 hover:border-r-amber-200/80 border-l-amber-400"
                         : "border-y-transparent border-r-transparent hover:bg-green-50/30 hover:border-y-green-200/50 hover:border-r-green-200/50 border-l-[#00C98A]"
                 )}
-                onClick={() => {
+                onClick={(e) => {
+                    // Clique simples: 
+                    // Se for principal e tiver subs -> expande/colapsa
+                    if (!isSub && substitutions.length > 0) {
+                        setIsSubsCollapsed(!isSubsCollapsed);
+                    }
+                }}
+                onDoubleClick={(e) => {
+                    // Prevenir que o clique duplo propague ou dispare seleção de texto irritante
+                    e.preventDefault();
                     setQtyValue(food?.quantity?.toString() || "");
                     setUnitValue(food?.unit || "");
                     setIsEditing(true);
@@ -654,7 +674,24 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
 
                     <div className="flex-1 truncate">
                         <span className="text-sm font-medium text-gray-700">
-                            {food?.quantity} {food?.unit} <span className="text-gray-400 font-normal mx-0.5">de</span> {food?.food_name}
+                            {(() => {
+                                const unitLower = food?.unit?.toLowerCase() || '';
+                                const isAVontade = unitLower === 'à vontade' || unitLower === 'a vontade';
+                                const isQtyOne = food?.quantity?.toString() === '1';
+
+                                if (isAVontade && isQtyOne) {
+                                    return (
+                                        <>
+                                            {food?.food_name} <span className="text-gray-500 font-normal italic text-xs ml-1">{food?.unit}</span>
+                                        </>
+                                    );
+                                }
+                                return (
+                                    <>
+                                        {food?.quantity} {food?.unit} <span className="text-gray-400 font-normal mx-0.5">de</span> {food?.food_name}
+                                    </>
+                                );
+                            })()}
                         </span>
                         {renderSourceBadge()}
                     </div>
@@ -760,144 +797,148 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
             </div>
 
             {/* Renderizar substituições aninhadas */}
-            {!isSub && substitutions.length > 0 && !isSubsCollapsed && (
-                <DndContext
-                    sensors={dndSensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={(event) => {
-                        const { active, over } = event;
-                        if (!over || active.id === over.id) return;
-
-                        const currentSubs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
-                        const oldIdx = currentSubs.findIndex((_: any, i: number) => `sub-${mealIndex}-${foodIndex}-${i}` === active.id);
-                        const newIdx = currentSubs.findIndex((_: any, i: number) => `sub-${mealIndex}-${foodIndex}-${i}` === over.id);
-
-                        if (oldIdx !== -1 && newIdx !== -1) {
-                            const reordered = arrayMove(currentSubs, oldIdx, newIdx);
-                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, reordered);
-                        }
-                    }}
-                >
-                    <SortableContext
-                        items={substitutions.map((_: any, i: number) => `sub-${mealIndex}-${foodIndex}-${i}`)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        {substitutions.slice(0, showAllSubs ? undefined : 5).map((sub: any, subIndex: number) => (
-                            <InlineFoodRow
-                                key={`sub-${mealIndex}-${foodIndex}-${subIndex}`}
-                                id={`sub-${mealIndex}-${foodIndex}-${subIndex}`}
-                                mealIndex={mealIndex}
-                                foodIndex={subIndex}
-                                parentIndex={foodIndex}
-                                form={form}
-                                foodDatabase={foodDatabase}
-                                isSub={true}
-                                handleFoodSelect={handleFoodSelect}
-                                recalculateFoodMacros={recalculateFoodMacros}
-                                removeFoodFromMeal={removeFoodFromMeal}
-                                setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
-                                setSubstitutionsModalOpen={setSubstitutionsModalOpen}
-                                calculateMealMacros={calculateMealMacros}
-                                calculateTotals={calculateTotals}
-                                isEditingNew={sub._isNew}
-                                onCommitNew={() => {
-                                    const currentSubs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
-                                    if (currentSubs[subIndex]) {
-                                        currentSubs[subIndex]._isNew = false;
-                                        form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, currentSubs);
-                                    }
-                                    setIsAddingSub(true);
-                                }}
-                                onAddSub={() => setIsAddingSub(true)}
-                                onSwapWithParent={(subIndexParam) => {
-                                    // Implementação do Swap
-                                    const currentFoods = form.getValues(`meals.${mealIndex}.foods`) || [];
-                                    const parentFood = currentFoods[foodIndex];
-                                    const subFood = parentFood.substitutions[subIndexParam];
-
-                                    // Cria novo parent baseado no sub
-                                    const newParent = {
-                                        ...subFood,
-                                        calories: 0, // Precisa recalcular com o macro multiplier do foodCache
-                                        protein: 0,
-                                        carbs: 0,
-                                        fats: 0,
-                                        notes: parentFood.notes,
-                                        substitutions: [
-                                            ...parentFood.substitutions.filter((_: any, i: number) => i !== subIndexParam),
-                                            { // Antigo parent vira sub
-                                                food_name: parentFood.food_name,
-                                                quantity: parentFood.quantity,
-                                                unit: parentFood.unit
-                                            }
-                                        ]
-                                    };
-
-                                    // Atualiza no form
-                                    currentFoods[foodIndex] = newParent;
-                                    form.setValue(`meals.${mealIndex}.foods`, currentFoods);
-
-                                    // Encontra o novo alimento principal no BD para pegar os macros
-                                    const dbFood = foodDatabase.find(f => f.name === subFood.food_name);
-                                    if (dbFood) {
-                                        form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, Math.round((subFood.quantity * dbFood.calories_per_100g) / 100));
-                                        form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, Math.round((subFood.quantity * dbFood.protein_per_100g * 10) / 100) / 10);
-                                        form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, Math.round((subFood.quantity * dbFood.carbs_per_100g * 10) / 100) / 10);
-                                        form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, Math.round((subFood.quantity * dbFood.fats_per_100g * 10) / 100) / 10);
-
-                                        calculateMealMacros(mealIndex);
-                                        calculateTotals();
-                                    } else {
-                                        // Dispara recalculo generico caso não encontre (deve encontrar)
-                                        handleFoodSelect(mealIndex, foodIndex, subFood.food_name);
-                                    }
-                                }}
-                            />
-                        ))}
-                    </SortableContext>
-                    {substitutions.length > 5 && (
-                        <div className="ml-8 mt-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowAllSubs(!showAllSubs);
-                                }}
-                                className="h-7 px-2 text-[10px] uppercase font-bold tracking-wide text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex items-center border border-transparent hover:border-gray-200"
-                            >
-                                {showAllSubs ? "Ver menos" : `+ ${substitutions.length - 5} substitutos`}
-                            </Button>
-                        </div>
-                    )}
-                </DndContext>
-            )}
-
-            {/* Input the novo substituto (indentado) */}
-            {!isSubsCollapsed && isAddingSub && (
-                <div className="ml-8 mt-1">
-                    <InlineFoodSearch
-                        form={form}
-                        mealIndex={mealIndex}
-                        foodDatabase={foodDatabase}
-                        autoFocus={true}
-                        placeholder="Buscar substituto..."
-                        onFoodSelect={(selectedSub) => {
-                            const newSub = {
-                                food_name: selectedSub.name,
-                                quantity: 100, // deafult
-                                unit: "g",
-                                _isNew: true
-                            };
+            {
+                !isSub && substitutions.length > 0 && !isSubsCollapsed && (
+                    <DndContext
+                        sensors={dndSensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(event) => {
+                            const { active, over } = event;
+                            if (!over || active.id === over.id) return;
 
                             const currentSubs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
-                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, [...currentSubs, newSub]);
+                            const oldIdx = currentSubs.findIndex((_: any, i: number) => `sub-${mealIndex}-${foodIndex}-${i}` === active.id);
+                            const newIdx = currentSubs.findIndex((_: any, i: number) => `sub-${mealIndex}-${foodIndex}-${i}` === over.id);
 
-                            setIsAddingSub(false);
+                            if (oldIdx !== -1 && newIdx !== -1) {
+                                const reordered = arrayMove(currentSubs, oldIdx, newIdx);
+                                form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, reordered);
+                            }
                         }}
-                    />
-                </div>
-            )}
-        </div>
+                    >
+                        <SortableContext
+                            items={substitutions.map((_: any, i: number) => `sub-${mealIndex}-${foodIndex}-${i}`)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            {substitutions.slice(0, showAllSubs ? undefined : 5).map((sub: any, subIndex: number) => (
+                                <InlineFoodRow
+                                    key={`sub-${mealIndex}-${foodIndex}-${subIndex}`}
+                                    id={`sub-${mealIndex}-${foodIndex}-${subIndex}`}
+                                    mealIndex={mealIndex}
+                                    foodIndex={subIndex}
+                                    parentIndex={foodIndex}
+                                    form={form}
+                                    foodDatabase={foodDatabase}
+                                    isSub={true}
+                                    handleFoodSelect={handleFoodSelect}
+                                    recalculateFoodMacros={recalculateFoodMacros}
+                                    removeFoodFromMeal={removeFoodFromMeal}
+                                    setSubstitutionsFoodIndex={setSubstitutionsFoodIndex}
+                                    setSubstitutionsModalOpen={setSubstitutionsModalOpen}
+                                    calculateMealMacros={calculateMealMacros}
+                                    calculateTotals={calculateTotals}
+                                    isEditingNew={sub._isNew}
+                                    onCommitNew={() => {
+                                        const currentSubs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
+                                        if (currentSubs[subIndex]) {
+                                            currentSubs[subIndex]._isNew = false;
+                                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, currentSubs);
+                                        }
+                                        setIsAddingSub(true);
+                                    }}
+                                    onAddSub={() => setIsAddingSub(true)}
+                                    onSwapWithParent={(subIndexParam) => {
+                                        // Implementação do Swap
+                                        const currentFoods = form.getValues(`meals.${mealIndex}.foods`) || [];
+                                        const parentFood = currentFoods[foodIndex];
+                                        const subFood = parentFood.substitutions[subIndexParam];
+
+                                        // Cria novo parent baseado no sub
+                                        const newParent = {
+                                            ...subFood,
+                                            calories: 0, // Precisa recalcular com o macro multiplier do foodCache
+                                            protein: 0,
+                                            carbs: 0,
+                                            fats: 0,
+                                            notes: parentFood.notes,
+                                            substitutions: [
+                                                ...parentFood.substitutions.filter((_: any, i: number) => i !== subIndexParam),
+                                                { // Antigo parent vira sub
+                                                    food_name: parentFood.food_name,
+                                                    quantity: parentFood.quantity,
+                                                    unit: parentFood.unit
+                                                }
+                                            ]
+                                        };
+
+                                        // Atualiza no form
+                                        currentFoods[foodIndex] = newParent;
+                                        form.setValue(`meals.${mealIndex}.foods`, currentFoods);
+
+                                        // Encontra o novo alimento principal no BD para pegar os macros
+                                        const dbFood = foodDatabase.find(f => f.name === subFood.food_name);
+                                        if (dbFood) {
+                                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.calories`, Math.round((subFood.quantity * dbFood.calories_per_100g) / 100));
+                                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.protein`, Math.round((subFood.quantity * dbFood.protein_per_100g * 10) / 100) / 10);
+                                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.carbs`, Math.round((subFood.quantity * dbFood.carbs_per_100g * 10) / 100) / 10);
+                                            form.setValue(`meals.${mealIndex}.foods.${foodIndex}.fats`, Math.round((subFood.quantity * dbFood.fats_per_100g * 10) / 100) / 10);
+
+                                            calculateMealMacros(mealIndex);
+                                            calculateTotals();
+                                        } else {
+                                            // Dispara recalculo generico caso não encontre (deve encontrar)
+                                            handleFoodSelect(mealIndex, foodIndex, subFood.food_name);
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </SortableContext>
+                        {substitutions.length > 5 && (
+                            <div className="ml-8 mt-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowAllSubs(!showAllSubs);
+                                    }}
+                                    className="h-7 px-2 text-[10px] uppercase font-bold tracking-wide text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex items-center border border-transparent hover:border-gray-200"
+                                >
+                                    {showAllSubs ? "Ver menos" : `+ ${substitutions.length - 5} substitutos`}
+                                </Button>
+                            </div>
+                        )}
+                    </DndContext>
+                )
+            }
+
+            {/* Input the novo substituto (indentado) */}
+            {
+                !isSubsCollapsed && isAddingSub && (
+                    <div className="ml-8 mt-1">
+                        <InlineFoodSearch
+                            form={form}
+                            mealIndex={mealIndex}
+                            foodDatabase={foodDatabase}
+                            autoFocus={true}
+                            placeholder="Buscar substituto..."
+                            onFoodSelect={(selectedSub) => {
+                                const newSub = {
+                                    food_name: selectedSub.name,
+                                    quantity: 100, // deafult
+                                    unit: "g",
+                                    _isNew: true
+                                };
+
+                                const currentSubs = form.getValues(`meals.${mealIndex}.foods.${foodIndex}.substitutions`) || [];
+                                form.setValue(`meals.${mealIndex}.foods.${foodIndex}.substitutions`, [...currentSubs, newSub]);
+
+                                setIsAddingSub(false);
+                            }}
+                        />
+                    </div>
+                )
+            }
+        </div >
     );
 };

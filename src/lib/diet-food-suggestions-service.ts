@@ -47,7 +47,7 @@ export const foodSuggestionsService = {
         .eq('user_id', user.id)
         .order('usage_count', { ascending: false })
         .limit(50);
-      
+
       if (!error && data) {
         favorites = data;
       }
@@ -68,7 +68,7 @@ export const foodSuggestionsService = {
         .eq('meal_type', context.mealType)
         .order('usage_count', { ascending: false })
         .limit(50);
-      
+
       if (!error && data) {
         stats = data;
       }
@@ -237,9 +237,10 @@ export const foodSuggestionsService = {
         .eq('user_id', user.id)
         .eq('food_name', foodName)
         .eq('meal_type', mealType)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
-      if (selectError && selectError.code !== 'PGRST116') {
+      if (selectError) {
         // PGRST116 = nenhum resultado encontrado, o que é OK
         throw selectError;
       }
