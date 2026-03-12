@@ -77,6 +77,17 @@ export default function Pricing() {
 
       // Para planos pagos, redirecionar para Kiwify
       // O productId será obtido automaticamente do kiwifyConfig baseado no nome do plano
+      
+      // Link customizado para o plano Silver solicitado pelo usuário
+      if (plan.name === 'intermediate' || plan.name === 'silver') {
+        window.open('https://pay.kiwify.com.br/xF7iEto', '_blank');
+        toast({
+          title: 'Redirecionando...',
+          description: 'Você será redirecionado para finalizar o pagamento.',
+        });
+        return;
+      }
+
       const checkout = await kiwifyService.createCheckout(
         '', // Será obtido automaticamente do config
         user.id,
@@ -172,7 +183,17 @@ export default function Pricing() {
             .map((plan) => {
             const isCurrent = isCurrentPlan(plan);
             const isFree = plan.name === 'free';
-            const yearlyPrice = plan.price_yearly ? plan.price_yearly / 10 : null; // Preço mensal no anual
+            const isSilver = plan.name === 'silver' || plan.name === 'intermediate';
+            const isBlack = plan.name === 'black' || plan.name === 'advanced';
+            
+            // Alterar preço do Silver conforme solicitado
+            if (isSilver) {
+              plan.price_monthly = 99.90;
+            }
+
+            // Ocultar preço anual para Silver e Black conforme solicitado
+            const showYearly = !isSilver && !isBlack;
+            const yearlyPrice = (showYearly && plan.price_yearly) ? plan.price_yearly / 10 : null; // Preço mensal no anual
             
             // Definir features customizadas para Silver e Black
             let customFeatures = plan.features;
