@@ -1,22 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseAdmin } from './supabase-admin';
-import { any } from 'zod';
-import { any } from 'zod';
-import { number } from 'framer-motion';
-import { string } from 'zod';
-import { any } from 'zod';
-import { string } from 'zod';
-import { string } from 'zod';
-import { string } from 'zod';
-import { boolean } from 'zod';
-import { string } from 'zod';
-import { string } from 'zod';
-import { string } from 'zod';
-import { boolean } from 'zod';
-import { string } from 'zod';
-import { string } from 'zod';
-import { string } from 'zod';
-import { boolean } from 'zod';
 
 // Função auxiliar para verificar permissões
 export function hasPermission(
@@ -65,6 +48,7 @@ export interface TeamMember {
   role?: TeamRole;
   permissions?: Record<string, any> | null;
   is_active: boolean;
+  checkin_slug?: string | null;
   invited_at: string;
   accepted_at: string | null;
   last_access: string | null;
@@ -87,6 +71,7 @@ export interface UpdateTeamMemberInput {
   role_id?: string;
   permissions?: Record<string, any> | null;
   is_active?: boolean;
+  checkin_slug?: string;
 }
 
 export const teamService = {
@@ -279,7 +264,6 @@ export const teamService = {
 
     return data;
   },
-
   async updateTeamMember(memberId: string, updates: UpdateTeamMemberInput): Promise<TeamMember> {
     const { data, error } = await (supabase as any).from('team_members')
       .update(updates)
@@ -289,8 +273,27 @@ export const teamService = {
         role:team_roles(*)
       `)
       .single();
-
+    
     if (error) throw error;
+    
+    // Atualizar checkin_slug no perfil correspondente se fornecido
+    if (updates.checkin_slug !== undefined && data.user_id) {
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+          id: data.user_id,
+          checkin_slug: updates.checkin_slug,
+          full_name: updates.name || data.name,
+          role: 'member'
+        }, {
+          onConflict: 'id'
+        });
+        
+      if (profileError) {
+        console.error('Erro ao atualizar slug no perfil:', profileError);
+      }
+    }
+    
     return data;
   },
 

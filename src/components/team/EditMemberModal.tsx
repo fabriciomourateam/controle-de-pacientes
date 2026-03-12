@@ -38,6 +38,7 @@ const formSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
   role_id: z.string().min(1, 'Selecione um perfil'),
+  checkin_slug: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -62,7 +63,8 @@ export function EditMemberModal({ open, onOpenChange, member, roles, onSuccess }
     defaultValues: {
       name: member.name,
       email: member.email,
-      role_id: member.role_id,
+      role_id: member.role_id || '',
+      checkin_slug: member.checkin_slug || '',
     },
   });
 
@@ -71,7 +73,8 @@ export function EditMemberModal({ open, onOpenChange, member, roles, onSuccess }
       form.reset({
         name: member.name,
         email: member.email,
-        role_id: member.role_id,
+        role_id: member.role_id || '',
+        checkin_slug: member.checkin_slug || '',
       });
       setCustomPermissions(member.permissions || null);
       setCustomizePermissions(!!member.permissions);
@@ -86,6 +89,7 @@ export function EditMemberModal({ open, onOpenChange, member, roles, onSuccess }
         name: data.name,
         email: data.email,
         role_id: data.role_id,
+        checkin_slug: data.checkin_slug,
         permissions: customizePermissions ? customPermissions : null,
       });
 
@@ -152,7 +156,6 @@ export function EditMemberModal({ open, onOpenChange, member, roles, onSuccess }
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="role_id"
@@ -178,6 +181,27 @@ export function EditMemberModal({ open, onOpenChange, member, roles, onSuccess }
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="checkin_slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-300">Slug de Check-in (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        className="bg-slate-700 border-slate-600 text-white" 
+                        placeholder="Ex: joaosilva" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription className="text-slate-400">
+                      Identificador amigável para o link de check-in público. Se vazio, usará o ID do usuário.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

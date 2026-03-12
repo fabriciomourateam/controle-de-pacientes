@@ -85,41 +85,42 @@ export const profileService = {
         throw new Error('Usuário não autenticado');
       }
 
-      const profileData = {
-        ...profile,
-        id: user.id,
-        updated_at: new Date().toISOString()
-      };
-
-      // Remover checkin_slug do objeto que vai para user_profiles (pois a view pode não ter o campo)
-      const { checkin_slug, ...viewData } = profileData;
-
-      // 1. Salvar dados gerais na view user_profiles
-      const { data: savedViewData, error: viewError } = await supabase
-        .from('user_profiles' as any)
-        .upsert(viewData, {
-          onConflict: 'id',
-          ignoreDuplicates: false
+      // 1. Salvar na TABELA principal profiles (que garante que o registro exista para o check-in)
+      const { data: savedProfile, error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: profile.name,
+          checkin_slug: profile.checkin_slug || null,
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (viewError) throw viewError;
+      if (profileError) {
+        console.error('Erro ao salvar na tabela profiles:', profileError);
+        throw profileError;
+      }
 
-      // 2. Salvar checkin_slug diretamente na tabela profiles
-      if (checkin_slug !== undefined) {
-        const { error: slugError } = await supabase
-          .from('profiles')
-          .update({ checkin_slug: checkin_slug || null })
-          .eq('id', user.id);
+      // 2. Salvar na VIEW/Tabela user_profiles (campos legados/extras)
+      const { checkin_slug, ...viewData } = { ...profile, id: user.id, updated_at: new Date().toISOString() };
+      const { data: savedViewData, error: viewError } = await supabase
+        .from('user_profiles' as any)
+        .upsert(viewData)
+        .select()
+        .single();
 
-        if (slugError) throw slugError;
+      // Não lançamos erro se a view falhar, pois o dado principal (profiles) já foi salvo
+      if (viewError) {
+        console.warn('Alerta: Erro ao sincronizar com user_profiles:', viewError);
       }
 
       return {
-        ...(savedViewData || {}),
-        checkin_slug: checkin_slug || ''
-      };
+        ...profile,
+        ...(savedViewData as any || {}),
+        name: profile.name,
+        checkin_slug: profile.checkin_slug || ''
+      } as UserProfile;
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
       throw error;

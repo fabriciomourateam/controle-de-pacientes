@@ -75,7 +75,16 @@ export default function PublicCheckin() {
         }
 
         if (!profile) {
-          setInvalidToken(true);
+          // 3. Se não achou perfil, mas o token é um UUID válido, permite o acesso
+          // usando um Nutricionista genérico. Isso resolve o erro de link inválido
+          // para nutris que ainda não inicializaram o perfil.
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+          if (isUuid) {
+            setUserId(token);
+            setNutriName('Nutricionista');
+          } else {
+            setInvalidToken(true);
+          }
         } else {
           setUserId(profile.id);
           setNutriName(profile.full_name || 'Nutricionista');

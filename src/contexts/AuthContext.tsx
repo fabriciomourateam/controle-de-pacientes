@@ -118,18 +118,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(() => resolve({ data: null, error: new Error('O tempo de conexão com o servidor esgotou') }), 8000)
       );
 
-      const { data: profileData, error: profileError } = await Promise.race([profilePromise, timeoutPromise]) as any;
+      let profileData = null;
+      let profileError = null;
 
-      if (profileError) throw profileError;
+      try {
+        const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+        profileData = data;
+        profileError = error;
+      } catch (err) {
+        profileError = err;
+      }
 
-      // Verificar se é membro de alguma equipe
-      const { data: memberDataArray } = await supabase
+      // Se o perfil não existe, criar um básico usando metadata do auth
+      if (!profileData && (!profileError || profileError.code === 'PGRST116')) {
+        console.log('Perfil não encontrado, criando automático...');
+        const { data: newProfile, error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || '',
+            email: user.email || '',
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        
+        if (!upsertError) {
+          profileData = newProfile;
+        }
+      } else if (profileError) {
+        throw profileError;
+      }
+
+      // Verificar se é membro de alguma equipe (primeiro por ID, depois por e-mail como fallback)
+      let { data: memberDataArray, error: memberError } = await (supabase as any)
         .from('team_members')
         .select('*, role:team_roles(*)')
         .eq('user_id', user.id)
         .eq('is_active', true);
 
-      const memberData = memberDataArray?.[0];
+      // Se não achou por ID, tenta por e-mail (para vincular usuários novos) - agora insensitivo a maiúsculas
+      if ((!memberDataArray || memberDataArray.length === 0) && user.email) {
+        console.log('Buscando membro por e-mail para vinculação (insensitivo)...');
+        const { data: byEmail, error: emailError } = await (supabase as any)
+          .from('team_members')
+          .select('*, role:team_roles(*)')
+          .ilike('email', user.email)
+          .eq('is_active', true);
+        
+        if (byEmail && byEmail.length > 0) {
+          memberDataArray = byEmail;
+          // Vincular o user_id automaticamente para futuros logins
+          console.log('Vinculando user_id ao membro da equipe...');
+          await (supabase as any)
+            .from('team_members')
+            .update({ user_id: user.id } as any)
+            .eq('id', byEmail[0].id);
+        }
+      }
+
+      const memberData = memberDataArray?.[0] as any;
 
       if (memberData) {
         // É membro da equipe - atualizar último acesso
@@ -146,31 +194,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           is_owner: false,
         });
       } else {
-        // É owner
+        // É owner APENAS se não for explicitamente um 'member' no perfil
+        const isActuallyOwner = profileData?.role !== 'member';
+        
         setProfile({
           id: user.id,
           email: user.email || '',
           name: profileData?.full_name,
           role: profileData?.role,
           permissions: undefined,
-          is_owner: true,
+          is_owner: isActuallyOwner,
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
+      console.error('Erro crítico ao carregar perfil:', error);
       if (retries > 0) {
         console.log(`Tentando recarregar perfil... (${retries} tentativas restantes)`);
-        // Aguarda 1s e tenta novamente
         setTimeout(() => loadProfile(user, retries - 1), 1000);
-        return; // Retorna para não setar o loading como false ainda
+        return;
       }
 
-      // Se der erro mesmo após as tentativas, assume que é owner (modo offline/fallback)
-      setProfile({
-        id: user.id,
-        email: user.email || '',
-        is_owner: true,
-      });
+      // Se falhar tudo, NÃO assumir is_owner: true por padrão se for um erro de rede
+      // Mantém profile como null para que o AppSidebar não mostre nada indevido
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -178,9 +224,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateLastAccess = async (memberId: string) => {
     try {
-      await supabase
+      await (supabase as any)
         .from('team_members')
-        .update({ last_access: new Date().toISOString() })
+        .update({ last_access: new Date().toISOString() } as any)
         .eq('id', memberId);
     } catch (error) {
       console.error('Erro ao atualizar último acesso:', error);

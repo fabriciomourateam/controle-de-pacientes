@@ -174,8 +174,8 @@ export function AppSidebar() {
   const trainingNavItems = [];
   const adminNavItems = [];
 
-  // Treinamentos apenas para owner ou admin da plataforma
-  if (userEmail === ADMIN_EMAIL || isOwner) {
+  // Treinamentos apenas para o admin da plataforma (Fabricio) ou membros da equipe dele
+  if (userEmail === ADMIN_EMAIL || isTeamMember) {
     trainingNavItems.push({ title: "POP Plano Alimentar", url: "/admin/pop", icon: BookOpen });
   }
 
@@ -184,15 +184,18 @@ export function AppSidebar() {
     adminNavItems.push({ title: "Admin", url: "/admin", icon: Shield });
   }
 
-  // Gestão de Equipe apenas para owner ou admin
-  if (userEmail === ADMIN_EMAIL || isOwner) {
+  // Gestão de Equipe apenas para owner ou admin da plataforma
+  if (userEmail === ADMIN_EMAIL || (isOwner && authProfile?.role !== 'member')) {
     adminNavItems.push({ title: "Gestão de Equipe", url: "/team", icon: Users });
-    adminNavItems.push({ title: "Workspace", url: "/workspace", icon: Monitor });
-    adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
+    
+    // Workspace apenas para o admin da plataforma
+    if (userEmail === ADMIN_EMAIL) {
+      adminNavItems.push({ title: "Workspace", url: "/workspace", icon: Monitor });
+    }
   }
 
-  // Reuniões também para membros da equipe (que não são owners)
-  if (!isOwner && userEmail !== ADMIN_EMAIL && (isTeamMember || authProfile?.permissions?.dashboard)) {
+  // Reuniões liberado para todos (Owner/User e Team Members)
+  if (userEmail === ADMIN_EMAIL || isOwner || isTeamMember) {
     adminNavItems.push({ title: "Reuniões", url: "/meetings", icon: Calendar });
   }
 
