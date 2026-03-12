@@ -134,6 +134,34 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
 
   const activePlans = plans.filter(p => p.active);
 
+  // Auto-preenchimento de duração e vencimento ao selecionar plano
+  const watchedPlano = form.watch("plano");
+  useEffect(() => {
+    if (!watchedPlano || patient) return; // Não auto-preencher em edições
+
+    const selectedPlan = activePlans.find(p => p.name === watchedPlano);
+    if (selectedPlan) {
+      // Mapeamento de período para meses
+      const periodToMonths: Record<string, number> = {
+        "Mensal": 1,
+        "Bimestral": 2,
+        "Trimestral": 3,
+        "Semestral": 6,
+        "Anual": 12,
+      };
+
+      const months = periodToMonths[selectedPlan.period] || 3;
+      form.setValue("tempo_acompanhamento", months);
+
+      // Calcular data de expiração
+      const expirationDate = new Date();
+      expirationDate.setMonth(expirationDate.getMonth() + months);
+      form.setValue("vencimento", expirationDate);
+      
+      console.log(`Auto-fill: Plano "${selectedPlan.name}" selecionado. Duração: ${months} meses. Expiração: ${expirationDate.toLocaleDateString()}`);
+    }
+  }, [watchedPlano, activePlans, form, patient]);
+
   const handleSubmit = async (data: PatientFormData) => {
     setLoading(true);
     try {
@@ -329,7 +357,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                         <PopoverContent className="w-auto p-0 bg-slate-900/95 backdrop-blur-sm border-slate-700/50" align="start">
                           <CalendarComponent
                             mode="single"
-                            selected={field.value}
+                            selected={field.value instanceof Date ? field.value : undefined}
                             onSelect={field.onChange}
                             disabled={(date) => date < new Date()}
                             initialFocus
@@ -464,7 +492,7 @@ export function PatientForm({ patient, trigger, onSave, open: externalOpen, onOp
                         <PopoverContent className="w-auto p-0 bg-slate-900/95 backdrop-blur-sm border-slate-700/50" align="start">
                           <CalendarComponent
                             mode="single"
-                            selected={field.value}
+                            selected={field.value instanceof Date ? field.value : undefined}
                             onSelect={field.onChange}
                             disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                             initialFocus

@@ -46,7 +46,7 @@ const mainNavItems = [
   { title: "Pacientes", url: "/patients", icon: Users },
   { title: "Retenção", url: "/retention", icon: AlertTriangle },
   { title: "Checkins", url: "/checkins", icon: MessageSquare },
-  { title: "Planos de Acompanhamento", url: "/plans", icon: Calendar, ownerOnly: true }, // Apenas owner
+  { title: "Planos de Acompanhamento", url: "/plans", icon: Calendar },
   { title: "Métricas Operacionais", url: "/metrics", icon: TrendingUp },
   { title: "Métricas Comerciais", url: "/commercial-metrics", icon: Target },
   { title: "Relatórios", url: "/reports", icon: BarChart3 },
@@ -124,6 +124,7 @@ export function AppSidebar() {
 
   // Mapeamento de permissões por rota
   const routePermissions: Record<string, { resource: string; action?: string }> = {
+    "/plans": { resource: "plans", action: "view" },
     "/patients": { resource: "patients", action: "view" },
     "/retention": { resource: "patients", action: "view" },
     "/checkins": { resource: "checkins", action: "view" },
@@ -173,8 +174,8 @@ export function AppSidebar() {
   const trainingNavItems = [];
   const adminNavItems = [];
 
-  // Treinamentos para todos (owner, admin e membros da equipe)
-  if (userEmail === ADMIN_EMAIL || isOwner || isTeamMember) {
+  // Treinamentos apenas para owner ou admin da plataforma
+  if (userEmail === ADMIN_EMAIL || isOwner) {
     trainingNavItems.push({ title: "POP Plano Alimentar", url: "/admin/pop", icon: BookOpen });
   }
 

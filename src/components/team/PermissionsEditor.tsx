@@ -44,6 +44,16 @@ const permissionsConfig: Record<string, PermissionConfig> = {
       delete: { label: 'Deletar', description: 'Remover pacientes' },
     },
   },
+  plans: {
+    label: 'Planos de Acompanhamento',
+    type: 'object',
+    children: {
+      view: { label: 'Visualizar', description: 'Ver lista de planos' },
+      create: { label: 'Criar novos', description: 'Cadastrar novos planos' },
+      edit: { label: 'Editar', description: 'Modificar planos' },
+      delete: { label: 'Deletar', description: 'Remover planos' },
+    },
+  },
   checkins: {
     label: 'Check-ins',
     type: 'object',
