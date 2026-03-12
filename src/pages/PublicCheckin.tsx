@@ -328,7 +328,8 @@ export default function PublicCheckin() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ...checkinData,
+            ...data, // Envia todas as respostas (incluindo campos manuais)
+            ...checkinData, // Dados fixos e pontuação
             nome: patientName,
             nutri_id: userId,
             nutri_nome: nutriName

@@ -119,10 +119,25 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
               {CHECKIN_FIELDS.map(f => (
                 <SelectItem key={f || 'none'} value={f || 'none'}>{f || '(nenhum)'}</SelectItem>
               ))}
+              <SelectItem value="manual">Personalizado (digitar slug)...</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
+
+      {/* Input manual para o campo principal */}
+      {(!CHECKIN_FIELDS.includes(step.field || '') || step.field === 'manual') && step.field !== undefined && (
+        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          <Label className="text-slate-400 text-[10px]">Slug do Campo Personalizado</Label>
+          <Input
+            value={step.field === 'manual' ? '' : step.field}
+            onChange={e => update('field', e.target.value)}
+            placeholder="ex: nivel_atividade"
+            className="bg-slate-800/50 border-slate-700/50 text-white h-8 text-xs font-mono"
+            autoFocus
+          />
+        </div>
+      )}
 
       {/* Pergunta */}
       {step.type !== 'message' && (
@@ -388,9 +403,12 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
               </CardHeader>
               <CardContent className="px-3 pb-3 space-y-2">
                 <div className="grid grid-cols-3 gap-2">
-                  <Select value={step.showIf?.field || ''} onValueChange={v => update('showIf', v ? { ...step.showIf, field: v, operator: step.showIf?.operator || '==', value: step.showIf?.value || '' } : undefined)}>
+                  <Select value={CHECKIN_FIELDS.includes(step.showIf?.field || '') ? (step.showIf?.field || '') : (step.showIf?.field ? 'manual' : '')} onValueChange={v => update('showIf', v ? { ...step.showIf, field: v === 'manual' ? '' : v, operator: step.showIf?.operator || '==', value: step.showIf?.value || '' } : undefined)}>
                     <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white h-8 text-xs"><SelectValue placeholder="Campo" /></SelectTrigger>
-                    <SelectContent>{CHECKIN_FIELDS.filter(f => f).map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      {CHECKIN_FIELDS.filter(f => f).map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                      <SelectItem value="manual">Manual...</SelectItem>
+                    </SelectContent>
                   </Select>
                   <Select value={step.showIf?.operator || '=='} onValueChange={v => update('showIf', { ...step.showIf!, operator: v })}>
                     <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -398,6 +416,17 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
                   </Select>
                   <Input value={step.showIf?.value || ''} onChange={e => update('showIf', { ...step.showIf!, value: e.target.value })} className="bg-slate-800/50 border-slate-700/50 text-white h-8 text-xs" placeholder="Valor" />
                 </div>
+                {(!CHECKIN_FIELDS.includes(step.showIf?.field || '') || step.showIf?.field === 'manual') && step.showIf?.field !== undefined && (
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-500">Slug do Campo</Label>
+                    <Input
+                      value={step.showIf.field === 'manual' ? '' : step.showIf.field}
+                      onChange={e => update('showIf', { ...step.showIf!, field: e.target.value })}
+                      className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-[10px] font-mono"
+                      placeholder="Slug manual"
+                    />
+                  </div>
+                )}
                 {step.showIf && (
                   <Button size="sm" variant="ghost" onClick={() => update('showIf', undefined)} className="h-6 text-xs text-red-400">
                     Remover condição
@@ -422,9 +451,12 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
                       <Button size="sm" variant="ghost" onClick={() => removeConditional(i)} className="h-5 text-xs text-red-400"><Trash2 className="w-3 h-3" /></Button>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <Select value={cm.condition.field} onValueChange={v => updateConditional(i, 'field', v)}>
+                      <Select value={CHECKIN_FIELDS.includes(cm.condition.field) ? cm.condition.field : (cm.condition.field ? 'manual' : '')} onValueChange={v => updateConditional(i, 'field', v === 'manual' ? '' : v)}>
                         <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-[10px]"><SelectValue placeholder="Campo" /></SelectTrigger>
-                        <SelectContent>{CHECKIN_FIELDS.filter(f => f).map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                        <SelectContent>
+                          {CHECKIN_FIELDS.filter(f => f).map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                          <SelectItem value="manual">Manual...</SelectItem>
+                        </SelectContent>
                       </Select>
                       <Select value={cm.condition.operator} onValueChange={v => updateConditional(i, 'operator', v)}>
                         <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-[10px]"><SelectValue /></SelectTrigger>
@@ -432,6 +464,17 @@ export function StepEditor({ step, onChange, isLastStep }: StepEditorProps) {
                       </Select>
                       <Input value={cm.condition.value} onChange={e => updateConditional(i, 'value', e.target.value)} className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-[10px]" placeholder="Valor" />
                     </div>
+                    {(!CHECKIN_FIELDS.includes(cm.condition.field) || cm.condition.field === 'manual') && (
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-slate-500">Slug do Campo</Label>
+                        <Input
+                          value={cm.condition.field === 'manual' ? '' : cm.condition.field}
+                          onChange={e => updateConditional(i, 'field', e.target.value)}
+                          className="bg-slate-800/50 border-slate-700/50 text-white h-7 text-[10px] font-mono"
+                          placeholder="Slug manual"
+                        />
+                      </div>
+                    )}
                     {cm.messages.map((msg, mi) => (
                       <Textarea
                         key={mi}
