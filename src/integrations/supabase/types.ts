@@ -62,6 +62,9 @@ export type Database = {
           data_preenchimento: string
           created_at: string
           updated_at: string
+          respostas_json: Json | null
+          tipo_checkin: string | null
+          user_id: string | null
         }
         Insert: {
           id?: string

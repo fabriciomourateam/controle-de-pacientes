@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp, Trash2, Loader2 } from "lucide-react";
+import { Calendar, TrendingDown, TrendingUp, Activity, Heart, Droplets, Moon, Target, AlertCircle, Edit, Weight, Flame, BedDouble, ChevronDown, ChevronUp, Trash2, Loader2, Sparkles } from "lucide-react";
 import { EditCheckinModal } from "./EditCheckinModal";
 import { AddPhotosToCheckin } from "./AddPhotosToCheckin";
 import { getMediaType } from "@/lib/media-utils";
@@ -24,6 +24,16 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
+
+const IGNORED_JSON_KEYS = [
+  'telefone', 'data_checkin', 'data_preenchimento', 'peso', 'medida', 'treino',
+  'tempo', 'descanso', 'cardio', 'tempo_cardio', 'ref_livre', 'oq_comeu_ref_livre',
+  'beliscos', 'oq_beliscou', 'comeu_menos', 'fome_algum_horario',
+  'alimento_para_incluir', 'agua', 'sono', 'stress', 'libido', 'melhora_visual',
+  'quais_pontos', 'objetivo', 'dificuldades', 'user_id', 'id', 'created_at',
+  'updated_at', 'patient_id', 'status', 'foto_1', 'foto_2', 'foto_3', 'foto_4',
+  'score_total', 'score_dieta', 'score_treino', 'score_constancia', 'medidas'
+];
 
 interface TimelineProps {
   checkins: Checkin[];
@@ -437,6 +447,30 @@ export function Timeline({ checkins, onCheckinUpdated, showEditButton = true }: 
                           )}
                         </div>
                       )}
+
+                      {/* Respostas Customizadas (Campos Novos) */}
+                      {(checkin as any).respostas_json &&
+                        Object.entries((checkin as any).respostas_json).some(([key, val]) => !IGNORED_JSON_KEYS.includes(key) && val) && (
+                          <div className="bg-blue-900/15 p-2.5 rounded border border-blue-700/20 mt-2">
+                            <p className="text-[10px] text-blue-400 mb-2 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="w-3 h-3" /> Respostas Adicionais:
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                              {Object.entries((checkin as any).respostas_json)
+                                .filter(([key, val]) => !IGNORED_JSON_KEYS.includes(key) && val)
+                                .map(([key, val]) => (
+                                  <div key={key} className="flex flex-col gap-0.5">
+                                    <span className="text-[10px] font-medium text-slate-400 capitalize">
+                                      {key.replace(/_/g, ' ')}:
+                                    </span>
+                                    <span className="text-xs text-slate-200">
+                                      {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
                     </div>
                   )}
 

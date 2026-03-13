@@ -102,7 +102,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
     const qtyRef = useRef<HTMLInputElement>(null);
     const unitRef = useRef<HTMLInputElement>(null);
 
-    const sortableId = `food-${mealIndex}-${foodIndex}`;
+    const sortableId = id || `food-${mealIndex}-${foodIndex}`;
     const {
         attributes,
         listeners,
@@ -112,7 +112,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
         isDragging,
     } = useSortable({
         id: sortableId,
-        disabled: isSub || isEditing,
+        disabled: isEditing,
     });
 
     const style = {
@@ -488,6 +488,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     <Popover open={measurePopoverOpen} onOpenChange={setMeasurePopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
@@ -544,6 +545,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                                                 className="h-8 text-sm flex-1 bg-gray-50 border-gray-300 text-gray-900 focus-visible:ring-purple-500 focus-visible:border-purple-500"
                                             />
                                             <Button
+                                                type="button"
                                                 size="sm"
                                                 className="h-8 bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-all"
                                                 onClick={() => {
@@ -560,6 +562,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                                             </Button>
                                             {hasSavedMeasure && (
                                                 <Button
+                                                    type="button"
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700"
@@ -583,6 +586,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     </Popover>
 
                     <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={commitChanges}
@@ -709,6 +713,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     {!isSub && substitutions.length > 0 && (
                         <>
                             <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => {
@@ -730,6 +735,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                                 A-Z
                             </Button>
                             <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => {
@@ -746,6 +752,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
 
                     {isSub && onSwapWithParent ? (
                         <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
@@ -760,6 +767,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     ) : (
                         !isSub && (
                             <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => {
@@ -774,6 +782,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                     )}
 
                     <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
@@ -896,6 +905,7 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                         {substitutions.length > 5 && (
                             <div className="ml-8 mt-1">
                                 <Button
+                                    type="button"
                                     variant="ghost"
                                     size="sm"
                                     onClick={(e) => {
@@ -925,8 +935,12 @@ export const InlineFoodRow: React.FC<InlineFoodRowProps> = ({
                             onFoodSelect={(selectedSub) => {
                                 const newSub = {
                                     food_name: selectedSub.name,
-                                    quantity: 100, // deafult
+                                    quantity: 100, // default
                                     unit: "g",
+                                    calories: Math.round(selectedSub.calories_per_100g) || 0,
+                                    protein: Math.round(selectedSub.protein_per_100g * 10) / 10 || 0,
+                                    carbs: Math.round(selectedSub.carbs_per_100g * 10) / 10 || 0,
+                                    fats: Math.round(selectedSub.fats_per_100g * 10) / 10 || 0,
                                     _isNew: true
                                 };
 

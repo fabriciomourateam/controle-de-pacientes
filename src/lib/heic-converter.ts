@@ -1,13 +1,3 @@
-/**
- * Utilitário para conversão automática de fotos HEIC para JPEG
- * 
- * Este módulo intercepta uploads de fotos e converte automaticamente
- * arquivos HEIC (formato padrão do iPhone) para JPEG antes do upload.
- * 
- * A conversão é transparente - o sistema continua trabalhando com JPEG
- * como sempre trabalhou.
- */
-
 import heic2any from 'heic2any';
 
 /**
@@ -26,97 +16,145 @@ export function isHeicFile(file: File): boolean {
 }
 
 /**
+ * Comprime e redimensiona uma imagem usando Canvas
+ * @param file - Arquivo de imagem original (JPEG, PNG, WebP)
+ * @param maxWidth - Largura máxima (padrão 1600px para manter nitidez)
+ * @param quality - Qualidade da compressão (0-1), padrão 0.85
+ * @returns Promise com o arquivo comprimido
+ */
+async function compressImage(
+  file: File,
+  maxWidth: number = 1600,
+  quality: number = 0.85
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Redimensionamento proporcional se maior que o limite
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file); // Fallback para original se falhar o contexto
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const originalName = file.name.split('.').slice(0, -1).join('.');
+            const compressedFile = new File([blob], `${originalName}.jpg`, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+
+            console.log('📉 Imagem comprimida:', {
+              nome: file.name,
+              original: `${(file.size / 1024).toFixed(2)} KB`,
+              comprimida: `${(compressedFile.size / 1024).toFixed(2)} KB`,
+              dimensoes: `${width}x${height}`
+            });
+
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+}
+
+/**
  * Converte um arquivo HEIC para JPEG
- * 
- * @param heicFile - Arquivo HEIC original
- * @param quality - Qualidade da conversão JPEG (0-1), padrão 0.9
- * @returns Promise com o arquivo JPEG convertido
  */
 export async function convertHeicToJpeg(
   heicFile: File,
-  quality: number = 0.9
+  quality: number = 0.85
 ): Promise<File> {
   try {
     console.log('🔄 Convertendo HEIC para JPEG:', heicFile.name);
     
-    // Converte HEIC para Blob JPEG
     const jpegBlob = await heic2any({
       blob: heicFile,
       toType: 'image/jpeg',
       quality: quality,
     });
 
-    // heic2any pode retornar um array de blobs se a imagem tiver múltiplas páginas
-    // Pegamos apenas o primeiro blob
     const blob = Array.isArray(jpegBlob) ? jpegBlob[0] : jpegBlob;
-
-    // Cria um novo File a partir do Blob
     const originalName = heicFile.name.replace(/\.heic$/i, '').replace(/\.heif$/i, '');
     const jpegFile = new File([blob], `${originalName}.jpg`, {
       type: 'image/jpeg',
       lastModified: Date.now(),
     });
 
-    console.log('✅ Conversão concluída:', {
-      original: `${heicFile.name} (${(heicFile.size / 1024).toFixed(2)} KB)`,
-      converted: `${jpegFile.name} (${(jpegFile.size / 1024).toFixed(2)} KB)`,
-    });
-
-    return jpegFile;
+    // Após converter de HEIC, passamos pela compressão/redimensionamento padrão
+    return await compressImage(jpegFile);
   } catch (error) {
     console.error('❌ Erro ao converter HEIC:', error);
-    throw new Error('Falha ao converter imagem HEIC. Por favor, tente com outro formato.');
+    // Tenta retornar o original ou falhar graciosamente
+    return heicFile;
   }
 }
 
 /**
- * Processa um arquivo de foto, convertendo automaticamente se for HEIC
- * 
- * Esta é a função principal que deve ser usada antes de fazer upload.
- * Se o arquivo for HEIC, converte para JPEG automaticamente.
- * Se já for outro formato, retorna o arquivo original sem modificações.
- * 
- * @param file - Arquivo de foto original
- * @param quality - Qualidade da conversão JPEG (0-1), padrão 0.9
- * @returns Promise com o arquivo processado (convertido ou original)
- * 
- * @example
- * ```typescript
- * const processedFile = await processPhotoFile(selectedFile);
- * // Agora pode fazer upload do processedFile normalmente
- * await uploadToSupabase(processedFile);
- * ```
+ * Processa um arquivo de foto, comprimindo e convertendo se necessário.
+ * Esta é a função principal que deve ser usada antes de cada upload.
  */
 export async function processPhotoFile(
   file: File,
-  quality: number = 0.9
+  quality: number = 0.85
 ): Promise<File> {
-  // Se for HEIC, converte para JPEG
-  if (isHeicFile(file)) {
-    return await convertHeicToJpeg(file, quality);
+  try {
+    // 1. Se for HEIC, converte para JPEG (que já chama compressImage internamente)
+    if (isHeicFile(file)) {
+      return await convertHeicToJpeg(file, quality);
+    }
+    
+    // 2. Se for outra imagem, aplica compressão e redimensionamento
+    if (file.type.startsWith('image/')) {
+      return await compressImage(file, 1600, quality);
+    }
+
+    return file;
+  } catch (e) {
+    console.error('Erro no processamento da foto:', e);
+    return file;
   }
-  
-  // Se não for HEIC, retorna o arquivo original sem modificações
-  return file;
 }
 
 /**
- * Processa múltiplos arquivos de foto, convertendo HEIC automaticamente
- * 
- * @param files - Array de arquivos de foto
- * @param quality - Qualidade da conversão JPEG (0-1), padrão 0.9
- * @returns Promise com array de arquivos processados
+ * Processa múltiplos arquivos de foto em paralelo
  */
 export async function processMultiplePhotoFiles(
   files: File[],
-  quality: number = 0.9
+  quality: number = 0.85
 ): Promise<File[]> {
-  const processedFiles: File[] = [];
-  
-  for (const file of files) {
-    const processedFile = await processPhotoFile(file, quality);
-    processedFiles.push(processedFile);
-  }
-  
-  return processedFiles;
+  return Promise.all(files.map(file => processPhotoFile(file, quality)));
 }

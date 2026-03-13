@@ -40,6 +40,7 @@ export const checkinService = {
         mes_ano,
         total_pontuacao,
         percentual_aproveitamento,
+        respostas_json,
         created_at,
         updated_at
       `)
@@ -216,6 +217,7 @@ export const checkinService = {
         mes_ano,
         total_pontuacao,
         percentual_aproveitamento,
+        respostas_json,
         created_at,
         updated_at
       `)
@@ -259,6 +261,7 @@ export const checkinService = {
         mes_ano,
         total_pontuacao,
         percentual_aproveitamento,
+        respostas_json,
         created_at,
         updated_at
       `)

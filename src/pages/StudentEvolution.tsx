@@ -14,6 +14,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Heart, Scale, TrendingUp, Camera, ZoomIn, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Database } from '@/integrations/supabase/types';
+import { Timeline } from '@/components/evolution/Timeline';
 
 type Checkin = Database['public']['Tables']['checkin']['Row'];
 type Patient = Database['public']['Tables']['patients']['Row'];
@@ -477,6 +478,17 @@ export default function StudentEvolution() {
                             transition={{ duration: 0.5, delay: 0.35 }}
                         >
                             <ReadOnlyPhotoGallery checkins={checkins} patient={patient} />
+                        </motion.div>
+                    )}
+
+                    {/* Linha do Tempo de Check-ins */}
+                    {checkins.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.38 }}
+                        >
+                            <Timeline checkins={checkins} />
                         </motion.div>
                     )}
 

@@ -27,6 +27,11 @@ interface FoodSubstitution {
   unit: string;
   custom_unit_name?: string;
   custom_unit_grams?: number;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+  _isNew?: boolean;
 }
 
 interface FoodSubstitutionsModalProps {
@@ -455,14 +460,27 @@ export function FoodSubstitutionsModal({
       return;
     }
 
-    // Adicionar informações de medidas personalizadas às substituições
-    const substitutionsWithCustomUnits = substitutions.map((sub, index) => ({
-      ...sub,
-      custom_unit_grams: customUnitGrams.get(index),
-      custom_unit_name: customUnitNames.get(index),
-    }));
+    // Adicionar informações de medidas personalizadas e MACROS às substituições
+    const substitutionsWithMacros = substitutions.map((sub, index) => {
+      const macros = calculateMacros(
+        substitutionsFoodData.get(index) || null,
+        sub.quantity,
+        sub.unit,
+        customUnitGrams.get(index) || sub.custom_unit_grams
+      );
 
-    onSave(substitutionsWithCustomUnits);
+      return {
+        ...sub,
+        custom_unit_grams: customUnitGrams.get(index) || sub.custom_unit_grams,
+        custom_unit_name: customUnitNames.get(index) || sub.custom_unit_name,
+        calories: macros?.calories || sub.calories || 0,
+        protein: macros?.protein || sub.protein || 0,
+        carbs: macros?.carbs || sub.carbs || 0,
+        fats: macros?.fats || sub.fats || 0,
+      };
+    });
+
+    onSave(substitutionsWithMacros);
     onOpenChange(false);
     toast({
       title: 'Substituições salvas!',
@@ -847,6 +865,7 @@ export function FoodSubstitutionsModal({
 
         <DialogFooter>
           <Button
+            type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="bg-[#222222] hover:bg-[#333333] text-white border-0"
@@ -854,6 +873,7 @@ export function FoodSubstitutionsModal({
             Cancelar
           </Button>
           <Button
+            type="button"
             onClick={handleSave}
             className="bg-[#00C98A] hover:bg-[#00A875] text-white"
           >

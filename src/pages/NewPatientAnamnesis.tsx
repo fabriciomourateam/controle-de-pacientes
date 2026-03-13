@@ -15,8 +15,8 @@ const supabasePublic = createClient(
 
 export default function NewPatientAnamnesis() {
   const { token } = useParams<{ token: string }>();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();  const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [validating, setValidating] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [nutriName, setNutriName] = useState<string>('');
@@ -54,7 +54,7 @@ export default function NewPatientAnamnesis() {
           profile = profileBySlug;
         } else {
           // Se não achou por slug, verifica se é UUID válido antes de buscar por ID
-          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
 
           if (isUuid) {
             const { data: profileById, error: idError } = await supabasePublic
@@ -120,7 +120,7 @@ export default function NewPatientAnamnesis() {
 
       return publicUrl;
     } catch (error) {
-      console.error('Erro ao fazer upload da foto:', error);
+      console.error(`Erro ao fazer upload da foto ${type}:`, error);
       return null;
     }
   };
@@ -128,22 +128,24 @@ export default function NewPatientAnamnesis() {
   const handleSubmit = async (formData: any) => {
     if (!userId) return;
     setLoading(true);
+    setLoadingStatus('Processando dados...');
 
     try {
       const cleanTelefone = formData.telefone.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
 
-      // 1. Upload das fotos
-      let fotoFrenteUrl: string | null = null;
-      let fotoLadoUrl: string | null = null;
-      let fotoLado2Url: string | null = null;
-      let fotoCostasUrl: string | null = null;
+      // 1. Upload das fotos em paralelo
+      setLoadingStatus('Enviando fotos...');
+      const uploadPromises = [
+        formData.foto_frente ? uploadPhoto(formData.foto_frente, cleanTelefone, 'frente') : Promise.resolve(null),
+        formData.foto_lado ? uploadPhoto(formData.foto_lado, cleanTelefone, 'lado') : Promise.resolve(null),
+        formData.foto_lado2 ? uploadPhoto(formData.foto_lado2, cleanTelefone, 'lado_2') : Promise.resolve(null),
+        formData.foto_costas ? uploadPhoto(formData.foto_costas, cleanTelefone, 'costas') : Promise.resolve(null),
+      ];
 
-      if (formData.foto_frente) fotoFrenteUrl = await uploadPhoto(formData.foto_frente, cleanTelefone, 'frente');
-      if (formData.foto_lado) fotoLadoUrl = await uploadPhoto(formData.foto_lado, cleanTelefone, 'lado');
-      if (formData.foto_lado2) fotoLado2Url = await uploadPhoto(formData.foto_lado2, cleanTelefone, 'lado_2');
-      if (formData.foto_costas) fotoCostasUrl = await uploadPhoto(formData.foto_costas, cleanTelefone, 'costas');
+      const [fotoFrenteUrl, fotoLadoUrl, fotoLado2Url, fotoCostasUrl] = await Promise.all(uploadPromises);
 
       // 2. Criar paciente na tabela patients
+      setLoadingStatus('Criando perfil do paciente...');
       const patientData: any = {
         nome: formData.nome,
         telefone: cleanTelefone,
@@ -173,8 +175,6 @@ export default function NewPatientAnamnesis() {
         patientData.data_fotos_iniciais = dataFotos;
       }
 
-      console.log('Dados do paciente a serem enviados:', patientData);
-
       const { data: newPatient, error: patientError } = await supabasePublic
         .from('patients')
         .insert(patientData)
@@ -186,9 +186,8 @@ export default function NewPatientAnamnesis() {
         throw patientError;
       }
 
-      console.log('Paciente criado:', newPatient);
-
       // 3. Criar checkin inicial
+      setLoadingStatus('Salvando medidas iniciais...');
       if (formData.peso || formData.cintura || formData.quadril || fotoFrenteUrl) {
         const checkinData: any = {
           telefone: cleanTelefone,
@@ -202,8 +201,6 @@ export default function NewPatientAnamnesis() {
           foto_4: fotoCostasUrl || null,
         };
 
-        console.log('Criando checkin inicial:', checkinData);
-
         if (formData.cintura || formData.quadril) {
           const medidas: string[] = [];
           if (formData.cintura) medidas.push(`Cintura: ${formData.cintura}cm`);
@@ -216,6 +213,7 @@ export default function NewPatientAnamnesis() {
       }
 
       // 4. Salvar anamnese
+      setLoadingStatus('Finalizando anamnese...');
       const anamneseData: any = { ...formData.anamnese };
       if (formData.objetivo) anamneseData.objetivo = formData.objetivo;
 
@@ -227,8 +225,6 @@ export default function NewPatientAnamnesis() {
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
         anamneseData.idade = age.toString();
       }
-
-      console.log('Salvando anamnese:', anamneseData);
 
       const { error: anamneseError } = await supabasePublic
         .from('patient_anamnesis')
@@ -243,8 +239,6 @@ export default function NewPatientAnamnesis() {
         console.error('Erro ao salvar anamnese:', anamneseError);
         throw anamneseError;
       }
-
-      console.log('Anamnesis data before filling missing fields:', anamneseData);
 
       // Preencher campos vazios com "Sem dados" baseando-se no fluxo ativo
       try {
@@ -266,12 +260,10 @@ export default function NewPatientAnamnesis() {
         }
       } catch (flowError) {
         console.error('Erro ao processar fluxo ativo (non-critical):', flowError);
-        // Não interrompe o fluxo principal
       }
 
-      console.log('Anamnese salva com sucesso (dados completos):', anamneseData);
-
       // 5. Enviar Webhook
+      setLoadingStatus('Notificando sistema...');
       try {
         await fetch('https://n8n.shapepro.shop/webhook/anamnese-myshape', {
           method: 'POST',
@@ -302,6 +294,7 @@ export default function NewPatientAnamnesis() {
       });
     } finally {
       setLoading(false);
+      setLoadingStatus('');
     }
   };
 
@@ -393,6 +386,7 @@ export default function NewPatientAnamnesis() {
         <AnamnesisForm
           onSubmit={handleSubmit}
           loading={loading}
+          loadingStatus={loadingStatus}
           isPublic
           customFlow={flowSteps ?? undefined}
           customTermsUrl={termsUrl ?? undefined}

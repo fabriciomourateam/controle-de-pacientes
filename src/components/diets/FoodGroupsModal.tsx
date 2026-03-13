@@ -165,6 +165,7 @@ export function FoodGroupsModal({
                       </div>
                     </div>
                     <Button
+                      type="button"
                       onClick={() => handleAddGroup(group.id)}
                       disabled={loading}
                       className="w-full bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
@@ -181,6 +182,7 @@ export function FoodGroupsModal({
 
         <DialogFooter className="pt-4 border-t border-gray-200">
           <Button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="bg-[#00C98A] hover:bg-[#00A875] text-white border-0"
           >

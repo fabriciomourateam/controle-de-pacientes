@@ -404,7 +404,7 @@ export function FoodSelectionModal({
                           if (!food) return null;
                           return (
                             <button
-                              key={index}
+                              type="button"
                               onClick={() => handleSelectFood(food)}
                               className="w-full text-left px-3 py-2.5 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none rounded-md group"
                             >
@@ -474,6 +474,7 @@ export function FoodSelectionModal({
               <div className="divide-y divide-green-500/10">
                 {filteredFoods.map((food, index) => (
                   <button
+                    type="button"
                     key={index}
                     onClick={() => handleSelectFood(food)}
                     className="w-full text-left px-4 py-3 hover:bg-green-500/10 transition-colors focus:bg-green-500/10 focus:outline-none group"

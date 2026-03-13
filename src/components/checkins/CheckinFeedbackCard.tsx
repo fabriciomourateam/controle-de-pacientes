@@ -30,6 +30,16 @@ import { PhotoComparisonModal } from './PhotoComparisonModal';
 import { BioimpedanciaModal } from './BioimpedanciaModal';
 import { ProtocolNotesHistory } from './ProtocolNotesHistory';
 
+const IGNORED_JSON_KEYS = [
+  'telefone', 'data_checkin', 'data_preenchimento', 'peso', 'medida', 'treino',
+  'tempo', 'descanso', 'cardio', 'tempo_cardio', 'ref_livre', 'oq_comeu_ref_livre',
+  'beliscos', 'oq_beliscou', 'comeu_menos', 'fome_algum_horario',
+  'alimento_para_incluir', 'agua', 'sono', 'stress', 'libido', 'melhora_visual',
+  'quais_pontos', 'objetivo', 'dificuldades', 'user_id', 'id', 'created_at',
+  'updated_at', 'patient_id', 'status', 'foto_1', 'foto_2', 'foto_3', 'foto_4',
+  'score_total', 'score_dieta', 'score_treino', 'score_constancia', 'medidas'
+];
+
 interface CheckinFeedbackCardProps {
   checkin: CheckinWithPatient;
   totalCheckins?: number;
@@ -3649,6 +3659,31 @@ const CheckinFeedbackCardComponent: React.FC<CheckinFeedbackCardProps> = ({
                               </div>
                             </div>
                           </div>
+
+                          {/* Respostas Customizadas (Campos Novos) */}
+                          {(checkin as any).respostas_json &&
+                            Object.entries((checkin as any).respostas_json).some(([key, val]) => !IGNORED_JSON_KEYS.includes(key) && val) && (
+                              <div className="col-span-1 md:col-span-2 mt-2 pt-3 border-t border-slate-700/50">
+                                <h5 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                                  <Sparkles className="w-4 h-4" />
+                                  Respostas Adicionais
+                                </h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-[13px] bg-blue-500/5 p-3 rounded-lg border border-blue-500/10">
+                                  {Object.entries((checkin as any).respostas_json)
+                                    .filter(([key, val]) => !IGNORED_JSON_KEYS.includes(key) && val)
+                                    .map(([key, val]) => (
+                                      <div key={key} className="flex flex-col gap-0.5">
+                                        <span className="font-semibold text-slate-400 text-[11px] uppercase tracking-wider">
+                                          {key.replace(/_/g, ' ')}
+                                        </span>
+                                        <span className="text-slate-200">
+                                          {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                        </span>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
                         </div>
                       </motion.div>
                     )}

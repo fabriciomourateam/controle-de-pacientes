@@ -1453,7 +1453,7 @@ export function DietPlanForm({
   const formContent = (
     <>
       <Form {...form}>
-        <form id="diet-plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-4">
+        <form id="diet-plan-form" onSubmit={(e) => e.preventDefault()} className="space-y-4 pb-4">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -2528,14 +2528,7 @@ export function DietPlanForm({
             <Button
               type="button"
               disabled={loading}
-              onClick={async () => {
-                console.log('🖱️ Botão Salvar clicado!');
-                console.log('📝 Valores do formulário:', form.getValues());
-
-                // Forçar submit sem validação
-                const values = form.getValues();
-                await onSubmit(values as DietPlanFormData);
-              }}
+              onClick={form.handleSubmit(onSubmit)}
               className="bg-[#00C98A] hover:bg-[#00A875] text-white"
             >
               {loading ? "Salvando..." : "Salvar Plano"}
@@ -3204,6 +3197,41 @@ const MealItemComponent = memo(function MealItemComponent({
 
   const isLastMeal = mealIndex === (totalMeals - 1);
 
+  const handleTimeBlur = (fieldName: string, value: string) => {
+    if (!value) return;
+    
+    // Remove tudo que não for número ou dois pontos
+    let cleanValue = value.replace(/[^\d:]/g, '');
+    
+    // Formatos suportados:
+    // "12" -> "12:00"
+    // "8" -> "08:00"
+    // "1230" -> "12:30"
+    // "830" -> "08:30"
+    
+    if (cleanValue.length > 0 && !cleanValue.includes(':')) {
+      if (cleanValue.length <= 2) {
+        // "12" -> "12:00"
+        let hours = cleanValue.padStart(2, '0');
+        cleanValue = `${hours}:00`;
+      } else if (cleanValue.length === 3) {
+        // "830" -> "08:30"
+        cleanValue = `0${cleanValue.substring(0, 1)}:${cleanValue.substring(1)}`;
+      } else if (cleanValue.length === 4) {
+        // "1230" -> "12:30"
+        cleanValue = `${cleanValue.substring(0, 2)}:${cleanValue.substring(2)}`;
+      }
+    } else if (cleanValue.includes(':')) {
+      // Se já tem dois pontos, garante formato HH:MM
+      const parts = cleanValue.split(':');
+      const hours = parts[0].padStart(2, '0').substring(0, 2);
+      const minutes = (parts[1] || '00').padEnd(2, '0').substring(0, 2);
+      cleanValue = `${hours}:${minutes}`;
+    }
+    
+    form.setValue(fieldName, cleanValue);
+  };
+
   return (
     <div ref={setNodeRef} style={style} className="mb-3">
       <Collapsible
@@ -3220,7 +3248,7 @@ const MealItemComponent = memo(function MealItemComponent({
       >
         <Card className={`border-l-4 border-l-[#00C98A] shadow-md hover:shadow-lg transition-all duration-300 ${cardColors}`}>
           <CardHeader
-            className="py-4 px-5 min-h-[72px] cursor-pointer flex items-center justify-center"
+            className="py-4 px-4 min-h-[72px] cursor-pointer flex items-center w-full"
             onClick={() => {
               const newExpanded = new Set(expandedMeals);
               if (isExpanded) {
@@ -3231,7 +3259,7 @@ const MealItemComponent = memo(function MealItemComponent({
               setExpandedMeals(newExpanded);
             }}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 w-full">
               {/* Lado esquerdo: Drag handle, horários editáveis, nome editável, macros compactados */}
               <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 flex-wrap md:flex-nowrap">
                 {/* Drag handle */}
@@ -3280,6 +3308,10 @@ const MealItemComponent = memo(function MealItemComponent({
                             className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 font-medium text-center rounded-sm transition-all"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur();
+                              handleTimeBlur(`meals.${mealIndex}.start_time`, e.target.value);
+                            }}
                             onClick={(e) => e.stopPropagation()}
                             aria-label={`Horário inicial da ${mealName}`}
                           />
@@ -3304,6 +3336,10 @@ const MealItemComponent = memo(function MealItemComponent({
                             className="h-7 w-14 md:w-16 text-xs border-0 bg-transparent text-[#111111] placeholder:text-[#666666] focus:ring-0 focus:outline-none focus:bg-white focus:shadow-sm focus-visible:ring-1 focus-visible:ring-green-500/50 p-0 font-medium text-center rounded-sm transition-all"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur();
+                              handleTimeBlur(`meals.${mealIndex}.end_time`, e.target.value);
+                            }}
                             onClick={(e) => e.stopPropagation()}
                             aria-label={`Horário final da ${mealName}`}
                           />

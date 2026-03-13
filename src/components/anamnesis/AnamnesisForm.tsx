@@ -57,6 +57,7 @@ interface FormData {
 interface AnamnesisFormProps {
   onSubmit: (data: FormData) => Promise<void>;
   loading: boolean;
+  loadingStatus?: string;
   isPublic?: boolean;
   customFlow?: AnamnesisFlowStep[];
   customTermsUrl?: string;
@@ -289,7 +290,7 @@ function PhoneInputField({ value, onChange, placeholder }: { value: string, onCh
 
 // ===== COMPONENTE PRINCIPAL =====
 
-export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow, customTermsUrl, customTermsText }: AnamnesisFormProps) {
+export function AnamnesisForm({ onSubmit, loading, loadingStatus, isPublic = false, customFlow, customTermsUrl, customTermsText }: AnamnesisFormProps) {
   const useCustomFlow = customFlow && customFlow.length > 0;
 
   // Derivar STEPS dinamicamente a partir do customFlow
@@ -1477,7 +1478,7 @@ export function AnamnesisForm({ onSubmit, loading, isPublic = false, customFlow,
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Enviando...
+                {loadingStatus || 'Enviando...'}
               </>
             ) : (
               <>
