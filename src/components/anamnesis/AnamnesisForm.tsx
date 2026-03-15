@@ -12,7 +12,7 @@ import {
   Utensils, Clock, Dumbbell, MessageSquare, ChevronLeft, ChevronRight,
   Save, Loader2, CheckCircle2, Upload, X, Camera, FileText, Check, ChevronsUpDown, Search
 } from 'lucide-react';
-import { AnamnesisData } from '@/lib/anamnesis-service';
+import { AnamnesisData, anamnesisService } from '@/lib/anamnesis-service';
 import type { AnamnesisFlowStep, AnamnesisFieldDef } from '@/lib/anamnesis-flow-default';
 import {
   Command,
@@ -62,6 +62,7 @@ interface AnamnesisFormProps {
   customFlow?: AnamnesisFlowStep[];
   customTermsUrl?: string;
   customTermsText?: string;
+  nutriUserId?: string;
 }
 
 const DEFAULT_STEPS = [
@@ -290,7 +291,7 @@ function PhoneInputField({ value, onChange, placeholder }: { value: string, onCh
 
 // ===== COMPONENTE PRINCIPAL =====
 
-export function AnamnesisForm({ onSubmit, loading, loadingStatus, isPublic = false, customFlow, customTermsUrl, customTermsText }: AnamnesisFormProps) {
+export function AnamnesisForm({ onSubmit, loading, loadingStatus, isPublic = false, customFlow, customTermsUrl, customTermsText, nutriUserId }: AnamnesisFormProps) {
   const useCustomFlow = customFlow && customFlow.length > 0;
 
   // Derivar STEPS dinamicamente a partir do customFlow
@@ -356,15 +357,65 @@ export function AnamnesisForm({ onSubmit, loading, loadingStatus, isPublic = fal
     }
   }, []);
 
-  // Persistence: Save to localStorage on change (includes current step)
+  // Persistence: Save to localStorage and Server on change (includes current step)
   useEffect(() => {
+    const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null, _step: step };
+    
+    // Local save
     try {
-      const dataToSave = { ...form, foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null, _step: step };
       localStorage.setItem('anamnesis-form-progress', JSON.stringify(dataToSave));
     } catch (e) {
-      console.error('Failed to save form progress', e);
+      console.error('Failed to save form progress locally', e);
     }
-  }, [form, step]);
+
+    // Server Sync (only if we have nutriUserId and phone)
+    if (isPublic && nutriUserId && form.telefone && form.telefone.length > 5) {
+      const timer = setTimeout(() => {
+        anamnesisService.saveDraft(nutriUserId, form.telefone, step, dataToSave);
+      }, 2000); // 2s debounce
+      return () => clearTimeout(timer);
+    }
+  }, [form, step, nutriUserId, isPublic]);
+
+  // Check for server draft when phone is entered
+  useEffect(() => {
+    // Only check if we have a valid nutriUserId and a phone number that looks complete
+    // and if the current name is still empty (meaning user hasn't started manually yet)
+    const cleanPhone = form.telefone.replace(/\D/g, '');
+    if (isPublic && nutriUserId && cleanPhone.length >= 10 && form.nome === '') {
+      const checkServerDraft = async () => {
+        try {
+          const draft = await anamnesisService.getDraft(nutriUserId, form.telefone);
+          if (draft && draft.data) {
+            const { _step, ...formFields } = draft.data;
+            
+            // Re-map fields to the form state
+            setForm(prev => ({
+              ...prev,
+              ...formFields,
+              // Never restore photos from drafts (they are null anyway in saving logic)
+              foto_frente: null, foto_lado: null, foto_lado2: null, foto_costas: null
+            }));
+            
+            if (_step && _step >= 1 && _step <= STEPS.length) {
+              setStep(_step);
+            }
+
+            toast({
+              title: "Progresso Recuperado! 💾",
+              description: "Vimos que você já começou a preencher. Seus dados foram restaurados automaticamente.",
+              duration: 5000,
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching draft:', err);
+        }
+      };
+
+      const timer = setTimeout(checkServerDraft, 1000); // 1s delay to avoid spamming while typing
+      return () => clearTimeout(timer);
+    }
+  }, [form.telefone, nutriUserId, isPublic, toast, STEPS.length]);
 
   const updateField = (key: keyof FormData, value: any) => setForm(prev => ({ ...prev, [key]: value }));
   const updateAnamnese = (key: keyof AnamnesisData, value: string) => setForm(prev => ({ ...prev, anamnese: { ...prev.anamnese, [key]: value } }));
@@ -590,8 +641,11 @@ export function AnamnesisForm({ onSubmit, loading, loadingStatus, isPublic = fal
       return;
     }
 
-    // Clear storage on successful submission attempt
+    // Clear storage and server draft on successful submission attempt
     localStorage.removeItem('anamnesis-form-progress');
+    if (isPublic && nutriUserId && form.telefone) {
+      anamnesisService.deleteDraft(nutriUserId, form.telefone);
+    }
     await onSubmit(form);
   };
 

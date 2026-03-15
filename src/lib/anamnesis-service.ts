@@ -120,11 +120,65 @@ export interface PatientAnamnesis {
 }
 
 async function getCurrentUserId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id || null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch {
+    return null;
+  }
 }
 
 export const anamnesisService = {
+  async saveDraft(nutriUserId: string, telefone: string, step: number, data: any): Promise<void> {
+    const cleanTelefone = telefone.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
+    if (!cleanTelefone) return;
+
+    const { error } = await supabase
+      .from('anamnesis_drafts' as any)
+      .upsert({
+        nutri_user_id: nutriUserId,
+        telefone: cleanTelefone,
+        current_step: step,
+        data: data,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'nutri_user_id,telefone'
+      });
+
+    if (error) console.error('Erro ao salvar rascunho:', error);
+  },
+
+  async getDraft(nutriUserId: string, telefone: string): Promise<any | null> {
+    const cleanTelefone = telefone.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
+    if (!cleanTelefone) return null;
+
+    const { data, error } = await supabase
+      .from('anamnesis_drafts' as any)
+      .select('*')
+      .eq('nutri_user_id', nutriUserId)
+      .eq('telefone', cleanTelefone)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Erro ao buscar rascunho:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async deleteDraft(nutriUserId: string, telefone: string): Promise<void> {
+    const cleanTelefone = telefone.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
+    if (!cleanTelefone) return;
+
+    const { error } = await supabase
+      .from('anamnesis_drafts' as any)
+      .delete()
+      .eq('nutri_user_id', nutriUserId)
+      .eq('telefone', cleanTelefone);
+
+    if (error) console.error('Erro ao excluir rascunho:', error);
+  },
+
   async create(patientId: string, telefone: string, data: AnamnesisData): Promise<PatientAnamnesis> {
     const userId = await getCurrentUserId();
     if (!userId) throw new Error('Usuário não autenticado');

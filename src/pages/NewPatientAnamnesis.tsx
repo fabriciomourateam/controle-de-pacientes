@@ -388,6 +388,7 @@ export default function NewPatientAnamnesis() {
           loading={loading}
           loadingStatus={loadingStatus}
           isPublic
+          nutriUserId={userId ?? undefined}
           customFlow={flowSteps ?? undefined}
           customTermsUrl={termsUrl ?? undefined}
           customTermsText={termsText ?? undefined}
